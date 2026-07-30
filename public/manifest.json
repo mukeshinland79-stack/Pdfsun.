@@ -1,0 +1,25 @@
+{
+  "short_name": "PDFSun",
+  "name": "PDFSun - Free Online PDF & AI Suite",
+  "description": "Enterprise-grade, 100% private in-browser PDF suite offering 50+ free utilities: Merge, Split, Compress, AI Chat, OCR, e-Sign, and PDF Conversion.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["utilities", "productivity", "office"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
