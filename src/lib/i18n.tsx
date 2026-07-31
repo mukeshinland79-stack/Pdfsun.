@@ -45,7 +45,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
     home: "Home",
     allTools: "All PDF Tools",
-    aiSuite: "AI Document Suite",
+    aiSuite: "AI Tools",
     searchPlaceholder: "Search 50+ tools (Cmd+K)...",
     history: "Recent History",
     favorites: "Favorite Tools",

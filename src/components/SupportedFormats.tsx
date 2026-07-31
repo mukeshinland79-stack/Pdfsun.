@@ -12,7 +12,7 @@ export const SupportedFormats: React.FC = () => {
         </div>
 
         <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          Supported File Formats on PDFSUN.COM
+          Supported File Formats on PDFSun
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
           Convert, process, and optimize documents across all major office formats, vector images, and eBook standards.

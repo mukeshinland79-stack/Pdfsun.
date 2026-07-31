@@ -65,7 +65,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <User className="w-5 h-5 text-orange-500" />
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">PDFSun Access & User Roles</h3>
-              <p className="text-[10px] text-slate-400">PDFSUN.COM Authentication Engine</p>
+              <p className="text-[10px] text-slate-400">PDFSun Authentication Engine</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
@@ -188,7 +188,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">
           <p className="text-[11px] text-slate-400">
-            Role switching updates navigation options instantly across PDFSUN.COM.
+            Role switching updates navigation options instantly across PDFSun.
           </p>
         </div>
       </div>

@@ -27,10 +27,18 @@ import {
   Activity,
   Check,
   Flame,
+  Globe,
+  Copy,
 } from "lucide-react";
 import { AdminSettings } from "../types";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { ALL_TOOLS } from "../data/toolsData";
+import {
+  generateSitemapXml,
+  downloadSitemapFile,
+  copySitemapToClipboard,
+  getSitemapStats,
+} from "../utils/sitemapGenerator";
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -205,6 +213,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab("seo")}
+            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+              activeTab === "seo" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Globe className="w-4 h-4 text-amber-400" />
+            <span>SEO & Sitemap</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("reports")}
             className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
               activeTab === "reports" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -272,7 +290,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-400 uppercase">Active Domain</div>
-                  <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">PDFSUN.COM</div>
+                  <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">pdfsun.vercel.app</div>
                 </div>
               </div>
             </div>
@@ -362,7 +380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Platform Health & Privacy Guarantee</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  PDFSUN.COM runs on 100% client-side WebAssembly routines. Server CPU load is maintained under 2% while handling thousands of concurrent users.
+                  PDFSun runs on 100% client-side WebAssembly routines. Server CPU load is maintained under 2% while handling thousands of concurrent users.
                 </p>
               </div>
             </div>
@@ -559,6 +577,81 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setLocalSettings({ ...localSettings, ownerName: e.target.value })}
                     className="w-full p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SEO & Sitemap Tab */}
+          {activeTab === "seo" && (
+            <div className="space-y-6">
+              <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500 font-bold">
+                      <Globe className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Dynamic sitemap.xml SEO Engine
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Scans ALL {ALL_TOOLS.length} PDF tools, blog articles, and core routes to optimize Google indexation.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => downloadSitemapFile(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
+                    className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:bg-amber-600 transition flex items-center space-x-1.5"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download sitemap.xml</span>
+                  </button>
+                </div>
+
+                {/* Sitemap Statistics Grid */}
+                {(() => {
+                  const sStats = getSitemapStats(localSettings.domainName ? `https://${localSettings.domainName}` : undefined);
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Total URLs Scanned</p>
+                        <p className="text-lg font-black text-amber-500">{sStats.totalUrls}</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">PDF Tool Pages</p>
+                        <p className="text-lg font-black text-blue-500">{sStats.toolUrlsCount}</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Blog Tutorials</p>
+                        <p className="text-lg font-black text-indigo-500">{sStats.blogUrlsCount}</p>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Core & Legal Routes</p>
+                        <p className="text-lg font-black text-emerald-500">{sStats.corePagesCount + sStats.policyPagesCount}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Raw XML Source Preview */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Generated sitemap.xml Preview:
+                    </span>
+                    <button
+                      onClick={() => copySitemapToClipboard(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
+                      className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 transition flex items-center space-x-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy XML</span>
+                    </button>
+                  </div>
+                  <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
+                    {generateSitemapXml(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
+                  </pre>
                 </div>
               </div>
             </div>

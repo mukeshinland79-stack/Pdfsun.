@@ -236,7 +236,7 @@ app.post("/api/ai/ocr", async (req, res) => {
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", app: "PDFSun", domain: "PDFSUN.COM" });
+  res.json({ status: "ok", app: "PDFSun", domain: "pdfsun.vercel.app" });
 });
 
 async function startServer() {

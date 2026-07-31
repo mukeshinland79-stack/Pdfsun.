@@ -250,7 +250,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   Gemini 3.6
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">PDFSUN.COM AI Document Suite</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">PDFSun AI Document Suite</p>
             </div>
           </div>
 

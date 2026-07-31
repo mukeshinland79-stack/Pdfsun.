@@ -89,7 +89,7 @@ export const PricingSection: React.FC = () => {
 
               <div className="pt-8">
                 <button
-                  onClick={() => alert(`Selected ${plan.name} Plan on PDFSUN.COM`)}
+                  onClick={() => alert(`Selected ${plan.name} Plan on PDFSun`)}
                   className={`w-full py-3 rounded-2xl text-xs font-bold transition shadow-md ${
                     plan.popular
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-95"

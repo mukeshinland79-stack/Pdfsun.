@@ -8,6 +8,14 @@ import {
   Heart,
   BookOpen,
   LifeBuoy,
+  Code2,
+  Cpu,
+  Terminal,
+  Zap,
+  Sparkles,
+  Layers,
+  CheckCircle2,
+  Laptop,
 } from "lucide-react";
 import { PolicyType } from "../types";
 import { NewsletterSubscription } from "./NewsletterSubscription";
@@ -18,6 +26,7 @@ interface FooterProps {
   onOpenAiTools: () => void;
   onOpenBlogModal: () => void;
   onOpenContactModal: () => void;
+  onOpenSitemapModal?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -26,6 +35,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenAiTools,
   onOpenBlogModal,
   onOpenContactModal,
+  onOpenSitemapModal,
 }) => {
   return (
     <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">
@@ -68,7 +78,7 @@ export const Footer: React.FC<FooterProps> = ({
               </div>
               <div>
                 <span className="text-2xl font-black text-white tracking-tight">PDFSun</span>
-                <p className="text-[10px] font-bold text-amber-400 tracking-wider">PDFSUN.COM</p>
+                <p className="text-[10px] font-bold text-amber-400 tracking-wider">PDFSun</p>
               </div>
             </div>
 
@@ -79,7 +89,7 @@ export const Footer: React.FC<FooterProps> = ({
             <div className="space-y-1.5 pt-2 text-xs font-medium text-slate-400">
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-orange-500 shrink-0" />
-                <span>Domain: <strong className="text-white font-mono">PDFSUN.COM</strong></span>
+                <span>Website: <a href="https://pdfsun.vercel.app" target="_blank" rel="noreferrer" className="text-white font-mono hover:text-amber-400 hover:underline">https://pdfsun.vercel.app</a></span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-orange-500 shrink-0" />
@@ -180,6 +190,16 @@ export const Footer: React.FC<FooterProps> = ({
                   FAQs & Security
                 </a>
               </li>
+              {onOpenSitemapModal && (
+                <li>
+                  <button
+                    onClick={onOpenSitemapModal}
+                    className="hover:text-amber-400 transition flex items-center space-x-1 font-bold text-amber-400/90"
+                  >
+                    <span>SEO Sitemap (.xml)</span>
+                  </button>
+                </li>
+              )}
               <li className="pt-2 flex items-center space-x-1.5 text-emerald-400 font-bold">
                 <ShieldCheck className="w-4 h-4" />
                 <span>GDPR Compliant</span>
@@ -207,18 +227,85 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
+        {/* Professional Website Developer & Pro Features Lower Banner */}
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900 to-amber-950/30 border border-amber-500/20 shadow-2xl relative overflow-hidden space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+            <div className="flex items-center space-x-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center shadow-lg font-black shrink-0">
+                <Code2 className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h4 className="text-sm font-black text-white tracking-wide uppercase">
+                    Professional Developer Pro Suite
+                  </h4>
+                  <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    v3.8 Production Engine
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Architected & Engineered by <strong className="text-amber-400 font-bold">Mukesh Kalonia</strong> • Lead Web Developer
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Status Pill */}
+            <div className="flex items-center space-x-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono font-bold text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>100% Operational • 0.02s Response</span>
+            </div>
+          </div>
+
+          {/* Short Pro Feature Icons & Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-amber-500/50 transition">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">Gemini 3.6 AI Core</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-blue-500/50 transition">
+              <Zap className="w-4 h-4 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">Turbo GPU Canvas</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-emerald-500/50 transition">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">256-Bit SSL Encryption</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-indigo-500/50 transition">
+              <Terminal className="w-4 h-4 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">WASM Multi-thread</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-purple-500/50 transition">
+              <Cpu className="w-4 h-4 text-purple-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">Zero-Knowledge Sandbox</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2 group hover:border-orange-500/50 transition">
+              <Globe className="w-4 h-4 text-orange-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold text-slate-200 truncate">Global Edge CDN</span>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Copyright Row */}
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-2">
             <span>🇮🇳</span>
             <strong className="text-white">Proudly Made in India</strong>
             <span>•</span>
-            <span>© 2026 <strong className="text-white">PDFSUN.COM</strong>. All Rights Reserved.</span>
+            <span>© 2026 <strong className="text-white">PDFSun</strong>. All Rights Reserved.</span>
           </div>
 
-          <div className="flex items-center space-x-1">
-            <span>Designed & Developed by</span>
+          <div className="flex items-center space-x-2">
+            <Code2 className="w-4 h-4 text-amber-400" />
+            <span>Designed & Engineered by</span>
             <strong className="text-amber-400 font-bold">Mukesh Kalonia</strong>
+            <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md font-mono">
+              Lead Web Developer
+            </span>
           </div>
         </div>
       </div>

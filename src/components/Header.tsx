@@ -31,6 +31,10 @@ import {
   UserCheck,
   Download,
   WifiOff,
+  Eye,
+  EyeOff,
+  Palette,
+  Laptop,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile } from "../types";
@@ -43,6 +47,10 @@ import { usePWAStatus } from "../pwaRegister";
 interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
+  themeMode?: "system" | "light" | "dark" | "eye-protection" | "aurora";
+  setThemeMode?: (mode: "system" | "light" | "dark" | "eye-protection" | "aurora") => void;
+  syncWithSystem?: boolean;
+  setSyncWithSystem?: (val: boolean) => void;
   favorites: string[];
   onOpenFavorites: () => void;
   onOpenHistory: () => void;
@@ -60,6 +68,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode,
+  themeMode = "light",
+  setThemeMode,
+  syncWithSystem = true,
+  setSyncWithSystem,
   favorites,
   onOpenFavorites,
   onOpenHistory,
@@ -79,6 +91,20 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close theme dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) {
+        setThemeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Instant Search & Overlay State
   const [headerSearchQuery, setHeaderSearchQuery] = useState("");
@@ -153,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
                   PRO
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider">PDFSUN.COM</span>
+              <span className="text-[10px] font-bold text-slate-400 tracking-wider">pdfsun.vercel.app</span>
             </div>
           </div>
 
@@ -296,34 +322,185 @@ export const Header: React.FC<HeaderProps> = ({
             <Clock className="w-4 h-4" />
           </button>
 
-          {/* Professional Dual Theme Switcher (Light & Dark) */}
-          <div className="relative flex items-center bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+          {/* Single Unified Theme Control Icon & Dropdown Selector */}
+          <div className="relative" ref={themeDropdownRef}>
             <button
-              onClick={() => setDarkMode(false)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                !darkMode
-                  ? "bg-white text-amber-600 shadow-sm border border-slate-200/60"
-                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 border shadow-xs ${
+                themeMode === "eye-protection"
+                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 ring-2 ring-amber-500/20"
+                  : themeMode === "aurora"
+                  ? "bg-indigo-950/80 text-sky-300 border-indigo-500/40 ring-2 ring-indigo-500/20"
+                  : themeMode === "dark"
+                  ? "bg-slate-800 text-blue-300 border-slate-700 hover:bg-slate-700"
+                  : themeMode === "system"
+                  ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80"
               }`}
-              title="Light Theme"
-              aria-label="Switch to Light Theme"
+              title={
+                themeMode === "eye-protection"
+                  ? "Current Theme: Eye Protection Mode (Warm sepia & reduced blue light)"
+                  : themeMode === "aurora"
+                  ? "Current Theme: Aurora Glass (Animated gradient & frosted glass UI)"
+                  : themeMode === "dark"
+                  ? "Current Theme: Standard Dark Mode (Low-light midnight theme)"
+                  : themeMode === "system"
+                  ? "Current Theme: System Auto Mode (Matches OS theme)"
+                  : "Current Theme: Standard Light Mode (Bright daylight interface)"
+              }
+              aria-label={`Current Theme: ${themeMode || "light"}. Click to change theme.`}
             >
-              <Sun className={`w-3.5 h-3.5 ${!darkMode ? "text-amber-500 fill-amber-400/30" : ""}`} />
-              <span className="hidden lg:inline">{t("light", "Light")}</span>
+              {themeMode === "system" && <Laptop className="w-4 h-4 text-indigo-500" />}
+              {themeMode === "light" && <Sun className="w-4 h-4 text-amber-500 fill-amber-400/30" />}
+              {themeMode === "dark" && <Moon className="w-4 h-4 text-blue-400 fill-blue-400/30" />}
+              {themeMode === "eye-protection" && <Eye className="w-4 h-4 text-amber-600 fill-amber-500/30" />}
+              {themeMode === "aurora" && <Sparkles className="w-4 h-4 text-sky-300 animate-pulse" />}
+
+              <span className="hidden sm:inline font-bold">
+                {themeMode === "system"
+                  ? "Auto"
+                  : themeMode === "light"
+                  ? "Light"
+                  : themeMode === "dark"
+                  ? "Dark"
+                  : themeMode === "eye-protection"
+                  ? "Eye Care"
+                  : "Aurora"}
+              </span>
+              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${themeDropdownOpen ? "rotate-180" : ""}`} />
             </button>
-            <button
-              onClick={() => setDarkMode(true)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                darkMode
-                  ? "bg-slate-900 text-blue-400 shadow-sm border border-slate-700/80"
-                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-              title="Dark Theme"
-              aria-label="Switch to Dark Theme"
-            >
-              <Moon className={`w-3.5 h-3.5 ${darkMode ? "text-blue-400 fill-blue-400/30" : ""}`} />
-              <span className="hidden lg:inline">{t("dark", "Dark")}</span>
-            </button>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {themeDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute right-0 top-full mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800/90 p-2 z-50 space-y-1"
+                >
+                  <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Select Display Theme
+                  </div>
+                  {[
+                    {
+                      id: "system",
+                      label: "System Auto",
+                      desc: "Matches OS dark/light setting",
+                      tooltip: "System Auto Mode: Automatically syncs with your operating system dark/light schedule",
+                      icon: Laptop,
+                      color: "text-indigo-500 dark:text-indigo-400",
+                    },
+                    {
+                      id: "light",
+                      label: "Light Mode",
+                      desc: "High contrast daylight UI",
+                      tooltip: "Light Mode: Bright & crisp daytime theme for high readability",
+                      icon: Sun,
+                      color: "text-amber-500 fill-amber-400/30",
+                    },
+                    {
+                      id: "dark",
+                      label: "Dark Mode",
+                      desc: "OLED midnight dark theme",
+                      tooltip: "Dark Mode: Low-light OLED midnight color scheme for reduced fatigue",
+                      icon: Moon,
+                      color: "text-blue-400 fill-blue-400/30",
+                    },
+                    {
+                      id: "eye-protection",
+                      label: "Eye Protection",
+                      desc: "Warm sepia & blue light filter",
+                      tooltip: "Eye Protection Mode: Warm sepia filter & blue light reduction for long document reading",
+                      icon: Eye,
+                      color: "text-amber-600 fill-amber-500/30",
+                    },
+                    {
+                      id: "aurora",
+                      label: "Aurora Glass",
+                      desc: "Animated gradient & frosted glass",
+                      tooltip: "Aurora Glass Theme: Vibrant animated gradient background with frosted glass UI",
+                      icon: Sparkles,
+                      color: "text-sky-400 animate-pulse",
+                    },
+                  ].map((opt) => {
+                    const IconComp = opt.icon;
+                    const isActive = themeMode === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        title={opt.tooltip}
+                        aria-label={`Select ${opt.label}: ${opt.desc}`}
+                        onClick={() => {
+                          if (setThemeMode) {
+                            setThemeMode(opt.id as any);
+                          } else {
+                            setDarkMode(opt.id === "dark" || opt.id === "aurora");
+                          }
+                          setThemeDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-start space-x-2.5 p-2 rounded-xl text-left transition-all ${
+                          isActive
+                            ? "bg-blue-50/90 dark:bg-blue-950/70 border border-blue-500/40 ring-2 ring-blue-500/20 shadow-xs"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent"
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 transition-colors ${isActive ? "bg-blue-100 dark:bg-blue-900/60 shadow-xs" : "bg-slate-100 dark:bg-slate-800"}`}>
+                          <IconComp className={`w-4 h-4 ${opt.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-bold ${isActive ? "text-blue-700 dark:text-blue-300" : "text-slate-800 dark:text-slate-200"}`}>
+                              {opt.label}
+                            </span>
+                            {isActive && (
+                              <span className="flex items-center space-x-1 text-[10px] font-black tracking-wide text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded-md">
+                                <span>Active</span>
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-[10px] line-clamp-1 mt-0.5 ${isActive ? "text-blue-600/80 dark:text-blue-300/80" : "text-slate-400"}`}>{opt.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  {/* Sync with System OS Preference Checkbox */}
+                  <div className="pt-2.5 mt-1 border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1.5">
+                    <label
+                      className="flex items-center justify-between cursor-pointer group text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                      title="Sync with System: Automatically listen to OS light/dark schedule changes"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Laptop className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                          Sync with System
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={syncWithSystem}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          if (setSyncWithSystem) {
+                            setSyncWithSystem(checked);
+                          }
+                          if (checked && setThemeMode) {
+                            setThemeMode("system");
+                          }
+                        }}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 dark:border-slate-700 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                      />
+                    </label>
+                    <p className="text-[9.5px] text-slate-400 mt-1 leading-tight">
+                      Auto-reverts to Light/Dark whenever your OS theme preference changes
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* User & Admin Navigation Menu */}
@@ -593,33 +770,38 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Mobile Theme Switcher Row */}
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
               {t("themeMode", "Website Theme")}
             </span>
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={() => setDarkMode(false)}
-                className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  !darkMode
-                    ? "bg-white text-amber-600 shadow-xs border border-slate-200"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                <Sun className={`w-3.5 h-3.5 ${!darkMode ? "text-amber-500 fill-amber-400/30" : ""}`} />
-                <span>{t("light", "Light")}</span>
-              </button>
-              <button
-                onClick={() => setDarkMode(true)}
-                className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  darkMode
-                    ? "bg-slate-900 text-blue-400 shadow-xs border border-slate-700"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                <Moon className={`w-3.5 h-3.5 ${darkMode ? "text-blue-400 fill-blue-400/30" : ""}`} />
-                <span>{t("dark", "Dark")}</span>
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {[
+                { id: "system", label: "Auto", icon: Laptop },
+                { id: "light", label: "Light", icon: Sun },
+                { id: "dark", label: "Dark", icon: Moon },
+                { id: "eye-protection", label: "Eye Care", icon: Eye },
+                { id: "aurora", label: "Aurora", icon: Sparkles },
+              ].map((m) => {
+                const IconComponent = m.icon;
+                const isActive = themeMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (setThemeMode) setThemeMode(m.id as any);
+                      else setDarkMode(m.id === "dark" || m.id === "aurora");
+                    }}
+                    className={`flex items-center justify-center space-x-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
+                    }`}
+                  >
+                    <IconComponent className="w-3.5 h-3.5" />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -640,7 +822,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4" />
-              <span>{t("aiSuite", "AI Document Suite")}</span>
+              <span>{t("aiSuite", "AI Tools")}</span>
             </div>
             <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">GEMINI 3.6</span>
           </button>
@@ -731,7 +913,7 @@ export const Header: React.FC<HeaderProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               <span>{t("privacyNote", "100% Local Privacy")}</span>
             </span>
-            <span className="font-mono text-[10px]">PDFSUN.COM</span>
+            <span className="font-mono text-[10px]">pdfsun.vercel.app</span>
           </div>
         </div>
       )}

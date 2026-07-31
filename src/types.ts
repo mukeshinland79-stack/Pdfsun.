@@ -18,6 +18,7 @@ export interface ToolItem {
   isPopular?: boolean;
   isStudentFavorite?: boolean;
   isAi?: boolean;
+  isPro?: boolean;
   badge?: string;
   supportedInput: string[];
   outputFormat: string;

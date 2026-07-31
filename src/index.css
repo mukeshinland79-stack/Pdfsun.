@@ -7,13 +7,89 @@
     color-scheme: light dark;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
+
+  /* Global smooth theme cross-fade transition helper */
+  html.theme-transitioning,
+  html.theme-transitioning body,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+                color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+                border-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+                box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+                fill 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+                stroke 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
   
   body {
-    @apply bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 antialiased selection:bg-blue-500 selection:text-white;
+    @apply bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 antialiased selection:bg-amber-500 selection:text-white;
+  }
+
+  /* Standardized Global Layout Container Utility */
+  .layout-container {
+    width: 100%;
+    max-width: 80rem; /* 1280px - max-w-7xl */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .layout-container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .layout-container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* Prevent Cumulative Layout Shift (CLS) for dynamic components and AdSense slots */
+  .adsense-slot-wrapper {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 120px;
+    transition: min-height 200ms ease, opacity 200ms ease;
+  }
+
+  /* Universal Premium Interactive Buttons & Click Feedback */
+  button, 
+  [role="button"],
+  .btn-interactive {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    will-change: transform, box-shadow;
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                color 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                font-weight 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Accessibility Focus Rings */
+  button:focus-visible, 
+  [role="button"]:focus-visible, 
+  .btn-interactive:focus-visible,
+  a:focus-visible {
+    outline: 2px solid #f59e0b !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3) !important;
   }
 }
 
-/* Custom scrollbars for light and dark modes */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -26,3 +102,189 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
 }
+
+/* Premium Button Classes Across Website */
+.btn-primary, 
+.btn-secondary, 
+.btn-accent, 
+.btn-ghost, 
+.btn-interactive,
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Hover Effect: Lift 3px, scale 1.03, soft glowing shadow, bold weight, accent border */
+.btn-primary:hover, 
+.btn-secondary:hover, 
+.btn-accent:hover, 
+.btn-interactive:hover,
+.btn-cta:hover {
+  cursor: pointer;
+  transform: translateY(-3px) scale(1.03);
+  font-weight: 700;
+  box-shadow: 0 10px 25px -4px rgba(245, 158, 11, 0.35), 0 6px 12px -2px rgba(0, 0, 0, 0.12);
+  border-color: rgba(245, 158, 11, 0.8) !important;
+}
+
+/* Active Press Effect: Scale down to 0.97 */
+.btn-primary:active, 
+.btn-secondary:active, 
+.btn-accent:active, 
+.btn-interactive:active,
+.btn-cta:active,
+button:active {
+  transform: translateY(0px) scale(0.97) !important;
+  transition-duration: 100ms !important;
+  box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Ripple Wave Animation */
+.btn-ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: btn-ripple-expand 450ms cubic-bezier(0, 0, 0.2, 1) forwards;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.dark .btn-ripple-wave {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@keyframes btn-ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* Soft Click Pulse Animation */
+@keyframes btn-click-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.btn-pulse-active {
+  animation: btn-click-pulse 250ms ease-out;
+}
+
+/* =========================================================
+   THEME 1: EYE PROTECTION MODE (Sepia / Warm Paper / Eye Safe)
+   ========================================================= */
+html.eye-protection {
+  color-scheme: light;
+}
+
+html.eye-protection body {
+  background-color: #f7f3e9 !important;
+  color: #2b251e !important;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+html.eye-protection .bg-white,
+html.eye-protection .bg-slate-50,
+html.eye-protection .bg-slate-100/80 {
+  background-color: #fcf9f2 !important;
+}
+
+html.eye-protection .bg-slate-900,
+html.eye-protection .dark\:bg-\[\#0f172a\],
+html.eye-protection .dark\:bg-slate-900,
+html.eye-protection .dark\:bg-slate-950 {
+  background-color: #eee7d8 !important;
+  color: #2b251e !important;
+}
+
+html.eye-protection .border-slate-200,
+html.eye-protection .border-slate-300,
+html.eye-protection .dark\:border-slate-800,
+html.eye-protection .dark\:border-slate-700 {
+  border-color: #e3d9c7 !important;
+}
+
+html.eye-protection .text-slate-900,
+html.eye-protection .text-slate-800,
+html.eye-protection .dark\:text-white,
+html.eye-protection .dark\:text-slate-100 {
+  color: #2b251e !important;
+}
+
+html.eye-protection .text-slate-600,
+html.eye-protection .text-slate-500,
+html.eye-protection .dark\:text-slate-300,
+html.eye-protection .dark\:text-slate-400 {
+  color: #5c5243 !important;
+}
+
+html.eye-protection .bg-blue-600,
+html.eye-protection .bg-indigo-600 {
+  background-color: #0f766e !important; /* Soft Teal Accent */
+}
+
+html.eye-protection .text-blue-600,
+html.eye-protection .text-indigo-600,
+html.eye-protection .dark\:text-blue-400 {
+  color: #0d9488 !important;
+}
+
+/* =========================================================
+   THEME 2: AURORA GLASS PREMIUM
+   ========================================================= */
+html.aurora-theme body {
+  background: linear-gradient(-45deg, #0b1120, #1e1b4b, #0f2744, #1e293b, #0f172a);
+  background-size: 400% 400%;
+  animation: auroraGradient 20s ease infinite;
+  color: #f8fafc !important;
+}
+
+@keyframes auroraGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+html.aurora-theme .aurora-glass {
+  background: rgba(15, 23, 42, 0.7) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Floating animation for cards & dropzones */
+@keyframes floatUpAndDown {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: floatUpAndDown 4.5s ease-in-out infinite;
+}
+
+

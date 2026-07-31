@@ -37,7 +37,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ isOpen
             <LifeBuoy className="w-5 h-5 text-orange-500" />
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Contact & Support Center</h3>
-              <p className="text-[10px] text-slate-400">PDFSUN.COM Direct Support Desk</p>
+              <p className="text-[10px] text-slate-400">PDFSun Direct Support Desk</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">

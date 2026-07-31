@@ -17,7 +17,7 @@ export const FAQSection: React.FC = () => {
           Frequently Asked Questions
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Everything you need to know about PDFSUN.COM security, data privacy, and browser operations.
+          Everything you need to know about PDFSun security, data privacy, and browser operations.
         </p>
       </div>
 

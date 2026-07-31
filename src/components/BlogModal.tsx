@@ -40,7 +40,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
                 <BookOpen className="w-5 h-5 text-orange-500" />
                 <div>
                   <h2 className="text-base font-black text-slate-900 dark:text-white">PDFSun Blog & Guides</h2>
-                  <p className="text-[10px] text-slate-400">PDFSUN.COM Master Knowledge Base</p>
+                  <p className="text-[10px] text-slate-400">PDFSun Master Knowledge Base</p>
                 </div>
               </div>
             )}

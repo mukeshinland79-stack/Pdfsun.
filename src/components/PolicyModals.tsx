@@ -14,13 +14,13 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
   let content = <p>Default policy statement.</p>;
 
   if (policy === "privacy") {
-    title = "Privacy Policy - PDFSUN.COM";
+    title = "Privacy Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
         <p><strong>Effective Date: 2026</strong></p>
-        <p>At <strong>PDFSUN.COM</strong>, owned and operated by <strong>Mukesh Kalonia</strong>, we take user privacy and document confidentiality with top-tier enterprise care.</p>
+        <p>At <strong>PDFSun</strong>, owned and operated by <strong>Mukesh Kalonia</strong>, we take user privacy and document confidentiality with top-tier enterprise care.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Local Client Processing</h4>
-        <p>Whenever you merge, split, rotate, watermark, protect, or organize PDF files on PDFSUN.COM, the processing is performed 100% locally in your browser using client-side WebAssembly routines. Your document binary data never reaches our servers.</p>
+        <p>Whenever you merge, split, rotate, watermark, protect, or organize PDF files on PDFSun, the processing is performed 100% locally in your browser using client-side WebAssembly routines. Your document binary data never reaches our servers.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. AI Document Processing</h4>
         <p>When using Gemini AI tools (AI Chat, AI Summarizer, AI Translation, Flashcards), document text chunks are transmitted securely over TLS HTTPS strictly for inference. We do NOT retain, log, or train models on your uploaded documents.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">3. Auto-Deletion Guarantee</h4>
@@ -30,10 +30,10 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
       </div>
     );
   } else if (policy === "terms") {
-    title = "Terms & Conditions - PDFSUN.COM";
+    title = "Terms & Conditions - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>By accessing or using <strong>PDFSUN.COM</strong>, you agree to comply with and be bound by these Terms & Conditions established for PDFSun platform services.</p>
+        <p>By accessing or using <strong>PDFSun</strong>, you agree to comply with and be bound by these Terms & Conditions established for PDFSun platform services.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Acceptable Use</h4>
         <p>You agree not to upload malicious files, copyrighted material without permission, or attempt reverse engineering of PDFSun engines.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. Service Availability</h4>
@@ -41,28 +41,28 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
       </div>
     );
   } else if (policy === "cookie") {
-    title = "Cookie Policy - PDFSUN.COM";
+    title = "Cookie Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>PDFSUN.COM uses essential local storage cookies solely to save your dark mode preference, recent tool conversion log, and favorite tool list on your local device.</p>
+        <p>PDFSun uses essential local storage cookies solely to save your dark mode preference, recent tool conversion log, and favorite tool list on your local device.</p>
       </div>
     );
   } else if (policy === "refund") {
-    title = "Refund Policy - PDFSUN.COM";
+    title = "Refund Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>We offer a 14-day no-questions-asked refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSUN.COM. Contact mukeshkalonia241@gmail.com for instant refund processing.</p>
+        <p>We offer a 14-day no-questions-asked refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Contact mukeshkalonia241@gmail.com for instant refund processing.</p>
       </div>
     );
   } else if (policy === "about") {
     title = "About PDFSun & Owner Mukesh Kalonia";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p><strong>PDFSun (PDFSUN.COM)</strong> was created by <strong>Mukesh Kalonia</strong> to provide the world with a modern, fast, and 100% private PDF tools workspace integrated with next-gen Gemini 3.6 AI capabilities.</p>
+        <p><strong>PDFSun</strong> was created by <strong>Mukesh Kalonia</strong> to provide the world with a modern, fast, and 100% private PDF tools workspace integrated with next-gen Gemini 3.6 AI capabilities.</p>
       </div>
     );
   } else if (policy === "contact") {
-    title = "Contact & Support - PDFSUN.COM";
+    title = "Contact & Support - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
         <p>Have questions, feature requests, or enterprise support inquiries?</p>

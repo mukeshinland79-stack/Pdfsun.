@@ -16,6 +16,7 @@ import {
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
+import { triggerErrorToast } from "./GlobalErrorToast";
 
 interface HeroSectionProps {
   onSelectTool: (tool: ToolItem, initialFiles?: File[]) => void;
@@ -38,19 +39,33 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } =
+  const onDropRejected = (fileRejections: any[]) => {
+    if (fileRejections && fileRejections.length > 0) {
+      const rejected = fileRejections[0];
+      const name = rejected?.file?.name || "File";
+      const err = rejected?.errors?.[0]?.message || "Unsupported file format or unreadable document.";
+      triggerErrorToast(
+        "Upload Not Accepted",
+        `"${name}" could not be loaded: ${err}`,
+        { type: "upload", fileName: name }
+      );
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive, isDragAccept } =
     useDropzone({
       onDrop,
+      onDropRejected,
       multiple: true,
       accept: {
         "application/pdf": [".pdf"],
         "application/msword": [".doc"],
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
-        "image/*": [".jpg", ".jpeg", ".png"],
-        "text/plain": [".txt"],
-        "text/html": [".html"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx", ".xls"],
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx", ".ppt"],
+        "image/*": [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".bmp"],
+        "text/*": [".txt", ".html", ".csv", ".rtf", ".md"],
+        "application/epub+zip": [".epub"],
       },
     });
 
@@ -71,7 +86,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Brand Trust Badge */}
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 dark:bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-wide">
           <ShieldCheck className="w-4 h-4 text-blue-600" />
-          <span>PDFSUN.COM • Enterprise Grade • 100% Client-Side Privacy</span>
+          <span>PDFSun • Enterprise Grade • 100% Client-Side Privacy</span>
         </div>
 
         {/* Headline */}
@@ -106,14 +121,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Drag & Drop Main Dropzone with react-dropzone integration */}
         <div
           {...getRootProps()}
-          className={`max-w-2xl mx-auto rounded-3xl p-8 sm:p-10 border-2 border-dashed transition-all duration-200 shadow-2xl relative group cursor-pointer ${
-            isDragReject
-              ? "border-rose-500 bg-rose-500/10 scale-[1.01]"
-              : isDragAccept
+          className={`max-w-2xl mx-auto rounded-3xl p-8 sm:p-10 border-2 border-dashed transition-all duration-300 shadow-2xl relative group cursor-pointer aurora-glass ${
+            isDragAccept || isDragActive
               ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] ring-4 ring-emerald-500/20"
-              : isDragActive
-              ? "border-blue-600 bg-blue-500/10 scale-[1.02] ring-4 ring-blue-500/20"
-              : "border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:border-blue-500 dark:hover:border-blue-400"
+              : "border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:border-blue-500 dark:hover:border-blue-400 animate-float"
           }`}
         >
           <input {...getInputProps()} />
@@ -130,9 +141,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isDragActive
-                  ? isDragReject
-                    ? "Some files may not be supported"
-                    : "Release files to launch tool workspace"
+                  ? "Release files to launch tool workspace"
                   : t("dropzoneTitle", "Drop PDF files here or click to browse")}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">

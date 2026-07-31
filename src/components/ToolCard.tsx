@@ -61,6 +61,8 @@ import {
 import { ToolItem } from "../types";
 import { ToolRating, ToolRatingProps } from "./ToolRating";
 import { QuickTipTooltip } from "./QuickTipTooltip";
+import { ProFeatureIcon } from "./ProFeatureIcon";
+import { ProFeatureBadge } from "./ProFeatureBadge";
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   Combine,
@@ -148,7 +150,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   return (
     <div
       onClick={() => onSelectTool(tool)}
-      className="group relative bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500 dark:hover:border-amber-500 shadow-xs hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-200 cursor-pointer flex flex-col justify-between"
+      className="btn-interactive group relative bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500 dark:hover:border-amber-500 shadow-xs hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-200 cursor-pointer flex flex-col justify-between"
     >
       <div>
         {/* Top Header Row */}
@@ -182,6 +184,10 @@ export const ToolCard: React.FC<ToolCardProps> = ({
               </span>
             )}
 
+            {tool.isPro && (
+              <ProFeatureIcon variant="pill" size="xs" label="PRO" />
+            )}
+
             {tool.isAi && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Sparkles className="w-3 h-3 text-amber-500" />
@@ -208,10 +214,13 @@ export const ToolCard: React.FC<ToolCardProps> = ({
 
         {/* Title & Badge */}
         <div className="space-y-1 mb-2">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
             <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-amber-400 transition">
               {tool.name}
             </h3>
+            {tool.isPro && (
+              <ProFeatureBadge size="xs" tooltip="Pro Feature - Enterprise PDF Processing" />
+            )}
             {tool.badge && (
               <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded bg-orange-500 text-white">
                 {tool.badge}

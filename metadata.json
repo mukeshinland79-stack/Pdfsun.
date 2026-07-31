@@ -1,6 +1,6 @@
 {
   "name": "PDFSun",
-  "description": "Powerful PDF & AI Tools for Everyone - PDFSUN.COM",
+  "description": "Powerful PDF & AI Tools for Everyone - PDFSun",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

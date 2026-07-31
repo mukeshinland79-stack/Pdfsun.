@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
@@ -10,6 +10,9 @@ import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
+import { SideSkyscraperAds } from "./components/SideSkyscraperAds";
+import { NewsletterSubscription } from "./components/NewsletterSubscription";
+import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
 import { PolicyModals } from "./components/PolicyModals";
 import { RecentHistoryModal } from "./components/RecentHistoryModal";
@@ -20,27 +23,121 @@ import { UserDashboard } from "./components/UserDashboard";
 import { BlogModal } from "./components/BlogModal";
 import { ContactSupportModal } from "./components/ContactSupportModal";
 import { SearchModal } from "./components/SearchModal";
+import { SitemapModal } from "./components/SitemapModal";
+import { SEOManager } from "./components/SEOManager";
+import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
+import { calculateAdPlacements } from "./utils/adSenseHelper";
+
+export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
 export default function App() {
-  // Theme state
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem("pdfsun_theme");
-    if (saved) return saved === "dark";
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Ref to track initial page load to skip transition on first render
+  const isInitialMount = useRef(true);
+
+  // Enhanced Multi-Theme State (System Auto, Light, Dark, Eye Protection, Aurora Glass)
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const savedEye = localStorage.getItem("pdfsun_eye_protection");
+    if (savedEye === "true") return "eye-protection";
+
+    const savedTheme = localStorage.getItem("pdfsun_theme");
+    if (savedTheme === "system" || savedTheme === "dark" || savedTheme === "eye-protection" || savedTheme === "aurora" || savedTheme === "light") {
+      return savedTheme as ThemeMode;
+    }
+    return "light";
   });
 
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("pdfsun_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("pdfsun_theme", "light");
+  // Sync with System preference setting state
+  const [syncWithSystem, setSyncWithSystem] = useState<boolean>(() => {
+    const savedSync = localStorage.getItem("pdfsun_sync_system");
+    if (savedSync !== null) {
+      return savedSync === "true";
     }
-  }, [darkMode]);
+    return true;
+  });
+
+  const isSystemDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const darkMode = themeMode === "dark" || themeMode === "aurora" || (themeMode === "system" && isSystemDark);
+
+  const handleSetDarkMode = (val: boolean) => {
+    setThemeMode(val ? "dark" : "light");
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const updateClasses = (mode: ThemeMode) => {
+      root.classList.remove("dark", "eye-protection", "aurora-theme");
+      let active = mode;
+      if (mode === "system") {
+        active = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+
+      if (active === "dark") {
+        root.classList.add("dark");
+      } else if (active === "eye-protection") {
+        root.classList.add("eye-protection");
+      } else if (active === "aurora") {
+        root.classList.add("dark", "aurora-theme");
+      }
+    };
+
+    const applyThemeWithTransition = (mode: ThemeMode) => {
+      let timer: NodeJS.Timeout | undefined;
+
+      // Enable smooth cross-fade transition class for theme switches
+      if (!isInitialMount.current) {
+        root.classList.add("theme-transitioning");
+      }
+
+      // Modern View Transitions API cross-fade if supported
+      if (!isInitialMount.current && "startViewTransition" in document && typeof (document as any).startViewTransition === "function") {
+        (document as any).startViewTransition(() => {
+          updateClasses(mode);
+        });
+      } else {
+        updateClasses(mode);
+      }
+
+      if (!isInitialMount.current) {
+        timer = setTimeout(() => {
+          root.classList.remove("theme-transitioning");
+        }, 320);
+      }
+
+      return timer;
+    };
+
+    const cleanupTimer = applyThemeWithTransition(themeMode);
+    isInitialMount.current = false;
+
+    localStorage.setItem("pdfsun_theme", themeMode);
+    localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
+    localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
+
+    // Global listener for system theme preference changes:
+    // Listens for OS dark/light schedule changes even if a specific manual theme is set, when syncWithSystem is active!
+    let mediaQuery: MediaQueryList | undefined;
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      if (syncWithSystem || themeMode === "system") {
+        const nextTheme: ThemeMode = e.matches ? "dark" : "light";
+        setThemeMode(nextTheme);
+        applyThemeWithTransition(nextTheme);
+      }
+    };
+
+    if (typeof window !== "undefined" && window.matchMedia) {
+      mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", handleSystemChange);
+    }
+
+    return () => {
+      if (cleanupTimer) clearTimeout(cleanupTimer);
+      if (mediaQuery) mediaQuery.removeEventListener("change", handleSystemChange);
+    };
+  }, [themeMode, syncWithSystem]);
 
   // Role & Authentication state
   const [currentRole, setCurrentRole] = useState<UserRole>("owner"); // Owner/Admin mode for Mukesh Kalonia
@@ -56,8 +153,8 @@ export default function App() {
 
   // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
-    siteName: "PDFSun - Enterprise PDF Platform",
-    domainName: "PDFSUN.COM",
+    siteName: "PDFSun",
+    domainName: "https://pdfsun.vercel.app",
     supportEmail: "mukeshkalonia241@gmail.com",
     ownerName: "Mukesh Kalonia",
     maintenanceMode: false,
@@ -126,6 +223,7 @@ export default function App() {
   const [userDashboardOpen, setUserDashboardOpen] = useState(false);
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
 
   // Keyboard shortcut listener (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -167,18 +265,29 @@ export default function App() {
   // Dynamic SEO Helmet variables
   const pageTitle = activeTool
     ? `${activeTool.name} - Free Online PDF Tool | PDFSun`
-    : `${adminSettings.siteName} - Free Online PDF Converter & AI Tools`;
+    : "PDFSun – All PDF Tools in One Place";
 
   const pageDescription = activeTool
     ? `${activeTool.description} Free, fast, and 100% private client-side processing on PDFSun with zero server uploads.`
     : "PDFSun is an enterprise-grade, 100% private in-browser PDF suite offering 50+ free utilities: Merge, Split, Compress, AI Chat, OCR, e-Sign, Watermark, and Convert PDFs instantly.";
 
   const canonicalUrl = activeTool
-    ? `https://pdfsun.com/tool/${activeTool.slug}`
-    : "https://pdfsun.com/";
+    ? `https://pdfsun.vercel.app/tool/${activeTool.slug}`
+    : "https://pdfsun.vercel.app/";
+
+  // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
+  const adPlacements = calculateAdPlacements(
+    ALL_TOOLS.length,
+    activeTool !== null,
+    userProfile !== null,
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
+      {/* Dynamic SEO JSON-LD Structured Data Management for Rich Search Snippets */}
+      <SEOManager activeTool={activeTool} tools={ALL_TOOLS} />
+
       {/* Dynamic SEO Head Management */}
       <Helmet>
         <title>{pageTitle}</title>
@@ -190,14 +299,14 @@ export default function App() {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content="PDFSun Platform" />
-        <meta property="og:image" content="https://pdfsun.com/og-image.png" />
+        <meta property="og:site_name" content="PDFSun" />
+        <meta property="og:image" content="https://pdfsun.vercel.app/og-image.png" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content="https://pdfsun.com/twitter-image.png" />
+        <meta name="twitter:image" content="https://pdfsun.vercel.app/twitter-image.png" />
 
         {/* Indexing & Metadata */}
         <meta name="robots" content="index, follow" />
@@ -207,7 +316,11 @@ export default function App() {
       {/* Sticky Top Header */}
       <Header
         darkMode={darkMode}
-        setDarkMode={setDarkMode}
+        setDarkMode={handleSetDarkMode}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        syncWithSystem={syncWithSystem}
+        setSyncWithSystem={setSyncWithSystem}
         favorites={favorites}
         onOpenFavorites={() => {
           setSelectedCategory("all");
@@ -231,6 +344,20 @@ export default function App() {
         }}
       />
 
+      {/* Two-Side Skyscraper Ad Banners for Desktop Customer Engagement */}
+      <SideSkyscraperAds
+        onSelectTool={(slug) => {
+          const found = ALL_TOOLS.find((t) => t.slug === slug || t.id === slug);
+          if (found) handleSelectTool(found);
+        }}
+      />
+
+      {/* Quick Actions Sticky/Fixed Floating Sidebar */}
+      <QuickActionsSidebar
+        onSelectTool={handleSelectTool}
+        activeTool={activeTool}
+      />
+
       {/* Main Hero Dropzone & Search Section */}
       <main className="flex-1">
         <HeroSection
@@ -238,8 +365,10 @@ export default function App() {
           onOpenSearch={() => setSearchModalOpen(true)}
         />
 
-        {/* AdSense Top Slot */}
-        <AdSensePlaceholder slotId="header-leaderboard" format="leaderboard" />
+        {/* Placement 1: Sub-Hero AdSense Banner */}
+        {adPlacements.some((p) => p.id === "hero-sub-ad") && (
+          <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
+        )}
 
         {/* 50+ PDF Tools Filterable Grid */}
         <ToolGrid
@@ -252,8 +381,10 @@ export default function App() {
           setSearchQuery={setSearchQuery}
         />
 
-        {/* AdSense Middle Rectangle */}
-        <AdSensePlaceholder slotId="mid-grid-rectangle" format="rectangle" />
+        {/* Placement 2: In-Content Dynamic AdSense Rectangle */}
+        {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
+          <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
+        )}
 
         {/* Supported File Formats */}
         <SupportedFormats />
@@ -264,8 +395,16 @@ export default function App() {
         {/* Testimonials */}
         <TestimonialsSection />
 
+        {/* Placement 3: Native Feed Ad Container */}
+        {adPlacements.some((p) => p.id === "native-features-ad") && (
+          <AdSensePlaceholder slotId="pdfsun-auto-native-03" format="native-feed" />
+        )}
+
         {/* FAQ Accordion */}
         <FAQSection />
+
+        {/* Newsletter Subscription Banner */}
+        <NewsletterSubscription variant="standalone" />
       </main>
 
       {/* Enterprise Footer */}
@@ -281,6 +420,7 @@ export default function App() {
         }}
         onOpenBlogModal={() => setBlogModalOpen(true)}
         onOpenContactModal={() => setContactModalOpen(true)}
+        onOpenSitemapModal={() => setSitemapModalOpen(true)}
       />
 
       {/* Interactive Active Tool Workspace Modals */}
@@ -341,6 +481,9 @@ export default function App() {
       {/* Contact & Support Modal */}
       <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
 
+      {/* Dynamic sitemap.xml SEO Generator Modal */}
+      <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
+
       {/* Policies & Help Modals */}
       <PolicyModals policy={activePolicy} onClose={() => setActivePolicy(null)} />
 
@@ -365,6 +508,14 @@ export default function App() {
         isOpen={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
       />
+
+      {/* Global Toast Error Notifications */}
+      <GlobalErrorToast />
+
+      {/* Placement 4: Google AdSense Sticky Bottom Anchor Ad */}
+      {adPlacements.some((p) => p.id === "sticky-bottom-ad") && (
+        <AdSensePlaceholder slotId="pdfsun-auto-sticky-04" format="sticky-bottom" />
+      )}
     </div>
   );
 }

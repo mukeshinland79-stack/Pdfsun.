@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
+import { triggerErrorToast } from "./GlobalErrorToast";
+import { AdSensePlaceholder } from "./AdSensePlaceholder";
 import {
   mergePdfs,
   splitPdf,
@@ -116,7 +118,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [splitRange, setSplitRange] = useState("1, 2-3");
   const [rotationAngle, setRotationAngle] = useState(90);
   const [watermarkType, setWatermarkType] = useState<"text" | "image">("text");
-  const [watermarkText, setWatermarkText] = useState("PDFSun.com Watermark");
+  const [watermarkText, setWatermarkText] = useState("PDFSun Watermark");
   const [watermarkImageFile, setWatermarkImageFile] = useState<File | null>(null);
   const [watermarkOpacity, setWatermarkOpacity] = useState(0.35);
   const [watermarkAngle, setWatermarkAngle] = useState(45);
@@ -252,7 +254,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
     const firstInvalid = validatedStates.find((fs) => !fs.isValid);
     if (firstInvalid && firstInvalid.error) {
-      setErrorOverlay(parseHumanFriendlyError(firstInvalid.error, firstInvalid.file.name));
+      const parsedErr = parseHumanFriendlyError(firstInvalid.error, firstInvalid.file.name);
+      setErrorOverlay(parsedErr);
+      triggerErrorToast(
+        parsedErr.title || "File Not Accepted",
+        parsedErr.message || firstInvalid.error,
+        {
+          type: parsedErr.type,
+          fileName: firstInvalid.file.name,
+        }
+      );
     }
   }, [tool.category, tool.id, tool.supportedInput]);
 
@@ -268,9 +279,22 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     }
   }, []);
 
+  const onDropRejected = useCallback((fileRejections: any[]) => {
+    if (fileRejections && fileRejections.length > 0) {
+      const rej = fileRejections[0];
+      const name = rej?.file?.name || "Uploaded file";
+      const reason = rej?.errors?.[0]?.message || "File was rejected by upload validation.";
+      triggerErrorToast("Upload Rejected", `"${name}" could not be uploaded: ${reason}`, {
+        type: "upload",
+        fileName: name,
+      });
+    }
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } =
     useDropzone({
       onDrop,
+      onDropRejected,
       multiple: true,
     });
 
@@ -589,6 +613,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       const errInfo = parseHumanFriendlyError(err, files[0]?.name);
       setErrorOverlay(errInfo);
       setErrorMessage(errInfo.message);
+      triggerErrorToast(
+        errInfo.title || "Tool Processing Error",
+        errInfo.message || "An unexpected error occurred while processing the file.",
+        {
+          type: errInfo.type,
+          fileName: files[0]?.name,
+          onRetry: () => executeProcess(),
+        }
+      );
     } finally {
       abortControllerRef.current = null;
     }
@@ -1402,8 +1435,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
           {/* Download Completion Banner with Standardized Export Options */}
           {downloadReady && (
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-3.5">
+            <>
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3.5">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
@@ -1538,7 +1572,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               </div>
             </div>
-          )}
+
+            {/* Placement 5: Tool Result Sponsored Native Banner */}
+            <AdSensePlaceholder format="tool-result" slotId="pdfsun-tool-result-ad" />
+          </>
+        )}
         </div>
 
         {/* Workspace Footer Actions */}

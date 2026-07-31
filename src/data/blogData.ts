@@ -13,13 +13,13 @@ export const BLOG_POSTS: BlogPost[] = [
     image: "https://images.unsplash.com/photo-1568667256549-094345857637?auto=format&fit=crop&w=800&q=80",
     content: `Merging multiple PDF documents into a unified file is one of the most common tasks for students, researchers, and legal professionals.
 
-### Why Choose PDFSUN.COM for PDF Merging?
+### Why Choose PDFSun for PDF Merging?
 1. **100% Client-Side Encryption**: Your PDF files are combined directly inside your web browser's memory using WebAssembly. No files are uploaded to third-party servers.
 2. **Reorder Pages On The Fly**: Drag and drop your PDFs to rearrange page sequences before generating the final combined file.
 3. **Lightning Fast**: Process hundreds of pages in under 2 seconds.
 
 ### Step-by-Step Guide:
-1. Open the **Merge PDF** tool on PDFSUN.COM.
+1. Open the **Merge PDF** tool on PDFSun.
 2. Drag and drop your PDF files into the dropzone.
 3. Use the arrow controls to reorder your documents.
 4. Click **Run Merge PDF** and download your file immediately!`,
@@ -51,7 +51,7 @@ export const BLOG_POSTS: BlogPost[] = [
     date: "July 10, 2026",
     author: "Mukesh Kalonia",
     image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80",
-    content: `Traditional online PDF tools upload your sensitive contracts to remote servers for processing. On PDFSUN.COM, we utilize modern browser sandboxing to execute all PDF manipulations locally on your CPU.
+    content: `Traditional online PDF tools upload your sensitive contracts to remote servers for processing. On PDFSun, we utilize modern browser sandboxing to execute all PDF manipulations locally on your CPU.
 
 ### Benefits of Local Processing:
 - **Zero Server Storage**: Your files never leave your device.

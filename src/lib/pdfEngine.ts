@@ -261,7 +261,7 @@ export interface WatermarkOptions {
 
 export async function watermarkPdf(
   file: File,
-  optionsOrText: string | WatermarkOptions = "PDFSun.com Confidential",
+  optionsOrText: string | WatermarkOptions = "PDFSun Confidential",
   opacityParam: number = 0.35,
   fontSizeParam: number = 42,
   onProgress?: (percent: number) => void
@@ -283,7 +283,7 @@ export async function watermarkPdf(
   } else {
     opts = {
       type: optionsOrText.type || "text",
-      text: optionsOrText.text || "PDFSun.com Confidential",
+      text: optionsOrText.text || "PDFSun Confidential",
       imageFile: optionsOrText.imageFile || null,
       opacity: optionsOrText.opacity ?? opacityParam,
       fontSize: optionsOrText.fontSize ?? fontSizeParam,
@@ -294,7 +294,7 @@ export async function watermarkPdf(
 
   const {
     type = "text",
-    text = "PDFSun.com Confidential",
+    text = "PDFSun Confidential",
     imageFile = null,
     opacity = 0.35,
     fontSize = 42,
