@@ -10,7 +10,6 @@ import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
-import { SideSkyscraperAds } from "./components/SideSkyscraperAds";
 import { NewsletterSubscription } from "./components/NewsletterSubscription";
 import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
@@ -344,15 +343,7 @@ export default function App() {
         }}
       />
 
-      {/* Two-Side Skyscraper Ad Banners for Desktop Customer Engagement */}
-      <SideSkyscraperAds
-        onSelectTool={(slug) => {
-          const found = ALL_TOOLS.find((t) => t.slug === slug || t.id === slug);
-          if (found) handleSelectTool(found);
-        }}
-      />
-
-      {/* Quick Actions Sticky/Fixed Floating Sidebar */}
+      {/* Quick Actions Sidebar for Fast Tool Access */}
       <QuickActionsSidebar
         onSelectTool={handleSelectTool}
         activeTool={activeTool}
@@ -365,7 +356,7 @@ export default function App() {
           onOpenSearch={() => setSearchModalOpen(true)}
         />
 
-        {/* Placement 1: Sub-Hero AdSense Banner */}
+        {/* Placement 1: Sub-Hero AdSense Banner (Below Hero Section) */}
         {adPlacements.some((p) => p.id === "hero-sub-ad") && (
           <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
         )}
@@ -381,7 +372,7 @@ export default function App() {
           setSearchQuery={setSearchQuery}
         />
 
-        {/* Placement 2: In-Content Dynamic AdSense Rectangle */}
+        {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
         {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
           <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
         )}
@@ -394,11 +385,6 @@ export default function App() {
 
         {/* Testimonials */}
         <TestimonialsSection />
-
-        {/* Placement 3: Native Feed Ad Container */}
-        {adPlacements.some((p) => p.id === "native-features-ad") && (
-          <AdSensePlaceholder slotId="pdfsun-auto-native-03" format="native-feed" />
-        )}
 
         {/* FAQ Accordion */}
         <FAQSection />
@@ -511,11 +497,6 @@ export default function App() {
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
-
-      {/* Placement 4: Google AdSense Sticky Bottom Anchor Ad */}
-      {adPlacements.some((p) => p.id === "sticky-bottom-ad") && (
-        <AdSensePlaceholder slotId="pdfsun-auto-sticky-04" format="sticky-bottom" />
-      )}
     </div>
   );
 }
