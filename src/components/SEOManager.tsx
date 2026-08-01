@@ -58,6 +58,37 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     },
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Are my uploaded PDF files safe on PDFSun?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "At PDFSun, privacy is paramount. Operations run 100% locally inside your browser via webassembly. For AI features, temporary files are processed securely in memory over TLS HTTPS and purged immediately.",
+        },
+      },
+      {
+        "@type": "Question",
+        "name": "Is PDFSun completely free to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! PDFSun offers generous free access to 50+ tools with zero mandatory account registration.",
+        },
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use PDFSun offline as a Progressive Web App (PWA)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! PDFSun is built as a Progressive Web App (PWA). You can install it on Desktop, Mac, iPhone, or Android device to process PDFs offline.",
+        },
+      },
+    ],
+  };
+
   // Build active tool specific schemas or multi-tool catalog schema
   let activeToolSchema: Record<string, any> | null = null;
   let activeToolHowToSchema: Record<string, any> | null = null;
@@ -193,6 +224,11 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       {/* Organization JSON-LD */}
       <script type="application/ld+json">
         {JSON.stringify(organizationSchema)}
+      </script>
+
+      {/* FAQ Schema JSON-LD */}
+      <script type="application/ld+json">
+        {JSON.stringify(faqSchema)}
       </script>
 
       {/* Active Tool Specific WebApplication JSON-LD */}
