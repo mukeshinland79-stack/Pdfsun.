@@ -77,8 +77,26 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   avatar: string;
-  plan: "Free Sun" | "Student Pro" | "Team Enterprise";
+  plan: string;
   joinedDate: string;
+  hasAdminAccess?: boolean;
+}
+
+export interface AdminUserAccount {
+  id: string;
+  name: string;
+  email: string;
+  plan: string;
+  status: "Active" | "Suspended";
+  joined: string;
+  hasAdminAccess: boolean;
+  permissions?: {
+    analytics: boolean;
+    userManagement: boolean;
+    fileManagement: boolean;
+    adManagement: boolean;
+    websiteSettings: boolean;
+  };
 }
 
 export interface BlogPost {

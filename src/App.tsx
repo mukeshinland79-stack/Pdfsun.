@@ -25,7 +25,7 @@ import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
 import { SEOManager } from "./components/SEOManager";
 import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
-import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings } from "./types";
+import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
@@ -148,7 +148,70 @@ export default function App() {
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
     plan: "Team Enterprise",
     joinedDate: "Founder & Owner",
+    hasAdminAccess: true,
   });
+
+  // User Accounts State with persistent Admin Permission control
+  const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem("pdfsun_user_accounts");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      { id: "usr-01", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
+      { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
+      { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
+      { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
+    ];
+  });
+
+  const saveUserAccounts = (updated: AdminUserAccount[]) => {
+    setUserAccounts(updated);
+    try {
+      localStorage.setItem("pdfsun_user_accounts", JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleToggleAdminPermission = (userId: string) => {
+    const updated = userAccounts.map((acc) => {
+      if (acc.id === userId) {
+        const nextState = !acc.hasAdminAccess;
+        if (userProfile && userProfile.email === acc.email) {
+          setUserProfile({ ...userProfile, hasAdminAccess: nextState });
+        }
+        return { ...acc, hasAdminAccess: nextState };
+      }
+      return acc;
+    });
+    saveUserAccounts(updated);
+  };
+
+  const handleToggleUserStatus = (userId: string) => {
+    const updated = userAccounts.map((acc) => {
+      if (acc.id === userId) {
+        return { ...acc, status: acc.status === "Active" ? ("Suspended" as const) : ("Active" as const) };
+      }
+      return acc;
+    });
+    saveUserAccounts(updated);
+  };
+
+  const handleAddUserAccount = (newUser: { name: string; email: string; plan: string; hasAdminAccess: boolean }) => {
+    const account: AdminUserAccount = {
+      id: `usr-${Date.now()}`,
+      name: newUser.name,
+      email: newUser.email,
+      plan: newUser.plan,
+      status: "Active",
+      joined: new Date().toISOString().split("T")[0],
+      hasAdminAccess: newUser.hasAdminAccess,
+    };
+    saveUserAccounts([account, ...userAccounts]);
+  };
 
   // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
@@ -248,8 +311,16 @@ export default function App() {
 
   const handleSelectRole = (role: UserRole, profile: UserProfile | null) => {
     setCurrentRole(role);
-    setUserProfile(profile);
+    if (profile) {
+      const match = userAccounts.find((a) => a.email === profile.email);
+      const hasAdmin = role === "owner" || (match ? match.hasAdminAccess : Boolean(profile.hasAdminAccess));
+      setUserProfile({ ...profile, hasAdminAccess: hasAdmin });
+    } else {
+      setUserProfile(null);
+    }
   };
+
+  const canAccessAdmin = currentRole === "owner" || Boolean(userProfile?.hasAdminAccess);
 
   const handleLogout = () => {
     setCurrentRole("public");
@@ -331,6 +402,7 @@ export default function App() {
         onOpenSearch={() => setSearchModalOpen(true)}
         currentRole={currentRole}
         userProfile={userProfile}
+        canAccessAdmin={canAccessAdmin}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onOpenAdminPanel={handleOpenAdminPanel}
         onOpenUserDashboard={() => setUserDashboardOpen(true)}
@@ -437,14 +509,20 @@ export default function App() {
         onSelectRole={handleSelectRole}
       />
 
-      {/* Admin Panel Modal for Owner (Mukesh Kalonia) */}
+      {/* Admin Panel Modal for Owner (Mukesh Kalonia) & Authorized Admins */}
       <AdminPanel
         isOpen={adminPanelOpen}
         onClose={() => setAdminPanelOpen(false)}
         adminSettings={adminSettings}
         onUpdateSettings={setAdminSettings}
+        userAccounts={userAccounts}
+        onToggleAdminPermission={handleToggleAdminPermission}
+        onToggleUserStatus={handleToggleUserStatus}
+        onAddUserAccount={handleAddUserAccount}
         initialTab={adminPanelTab}
         onLogout={handleLogout}
+        isOwner={currentRole === "owner"}
+        currentUserProfile={userProfile}
       />
 
       {/* User Dashboard Modal */}

@@ -30,7 +30,7 @@ import {
   Globe,
   Copy,
 } from "lucide-react";
-import { AdminSettings } from "../types";
+import { AdminSettings, AdminUserAccount, UserProfile } from "../types";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { ALL_TOOLS } from "../data/toolsData";
 import {
@@ -45,8 +45,14 @@ interface AdminPanelProps {
   onClose: () => void;
   adminSettings: AdminSettings;
   onUpdateSettings: (settings: AdminSettings) => void;
+  userAccounts?: AdminUserAccount[];
+  onToggleAdminPermission?: (userId: string) => void;
+  onToggleUserStatus?: (userId: string) => void;
+  onAddUserAccount?: (newUser: { name: string; email: string; plan: string; hasAdminAccess: boolean }) => void;
   initialTab?: string;
   onLogout?: () => void;
+  isOwner?: boolean;
+  currentUserProfile?: UserProfile | null;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -54,23 +60,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onClose,
   adminSettings,
   onUpdateSettings,
+  userAccounts = [],
+  onToggleAdminPermission,
+  onToggleUserStatus,
+  onAddUserAccount,
   initialTab = "analytics",
   onLogout,
+  isOwner,
+  currentUserProfile,
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab || "analytics");
   const [localSettings, setLocalSettings] = useState<AdminSettings>(adminSettings);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // New user creation form state
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPlan, setNewUserPlan] = useState("Student Pro");
+  const [newUserGrantAdmin, setNewUserGrantAdmin] = useState(false);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+
   // Usage Analytics Hook for live usage monitoring
   const { topToolIds, getFormattedUsage } = useUsageAnalytics(10);
 
-  // User Management State
-  const [userList, setUserList] = useState([
-    { id: "usr-01", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12" },
-    { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04" },
-    { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19" },
-    { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01" },
+  // User Management State (fallback if not passed via props)
+  const [localUserList, setLocalUserList] = useState<AdminUserAccount[]>([
+    { id: "usr-01", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
+    { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
+    { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
+    { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
   ]);
+
+  const activeUserList = userAccounts.length > 0 ? userAccounts : localUserList;
 
   // System Logs State
   const [logs, setLogs] = useState([
@@ -80,18 +101,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     { id: 4, time: "15:22:40", type: "ADS", msg: "Google AdSense Publisher Slot pub-4820193821039120 served 120 impressions." },
   ]);
 
+  const handleToggleUserStatusInternal = (userId: string) => {
+    if (onToggleUserStatus) {
+      onToggleUserStatus(userId);
+    } else {
+      setLocalUserList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: u.status === "Active" ? "Suspended" : "Active" } : u))
+      );
+    }
+  };
+
+  const handleToggleAdminPermissionInternal = (userId: string) => {
+    if (onToggleAdminPermission) {
+      onToggleAdminPermission(userId);
+    } else {
+      setLocalUserList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, hasAdminAccess: !u.hasAdminAccess } : u))
+      );
+    }
+  };
+
+  const handleAddNewUserInternal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim()) return;
+    if (onAddUserAccount) {
+      onAddUserAccount({
+        name: newUserName.trim(),
+        email: newUserEmail.trim(),
+        plan: newUserPlan,
+        hasAdminAccess: newUserGrantAdmin,
+      });
+    } else {
+      const newUser: AdminUserAccount = {
+        id: `usr-${Date.now()}`,
+        name: newUserName.trim(),
+        email: newUserEmail.trim(),
+        plan: newUserPlan,
+        status: "Active",
+        joined: new Date().toISOString().split("T")[0],
+        hasAdminAccess: newUserGrantAdmin,
+      };
+      setLocalUserList((prev) => [newUser, ...prev]);
+    }
+    setNewUserName("");
+    setNewUserEmail("");
+    setNewUserGrantAdmin(false);
+    setShowAddUserForm(false);
+  };
+
   if (!isOpen) return null;
+
+  const isPlatformOwner = isOwner !== undefined 
+    ? isOwner 
+    : (currentUserProfile?.email === "mukeshkalonia241@gmail.com" || currentUserProfile?.plan === "Founder & Owner" || currentUserProfile?.plan === "Admin Owner");
+
+  const effectiveActiveTab = isPlatformOwner ? activeTab : "analytics";
 
   const handleSaveSettings = () => {
     onUpdateSettings(localSettings);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
-  };
-
-  const handleToggleUserStatus = (userId: string) => {
-    setUserList((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, status: u.status === "Active" ? "Suspended" : "Active" } : u))
-    );
   };
 
   const handlePurgeMemoryCache = () => {
@@ -123,11 +192,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">PDFSun Admin Control Center</h2>
                 <span className="text-[10px] bg-blue-600 text-white font-black px-2 py-0.5 rounded uppercase">
-                  ADMIN MODE
+                  {isPlatformOwner ? "ADMIN OWNER" : "GRANTED ADMIN"}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Authenticated Admin: <strong>Mukesh Kalonia</strong> (mukeshkalonia241@gmail.com)
+                Authenticated Admin: <strong>{currentUserProfile?.name || (isPlatformOwner ? "Mukesh Kalonia" : "Customer Admin")}</strong> ({currentUserProfile?.email || (isPlatformOwner ? "mukeshkalonia241@gmail.com" : "admin@pdfsun.app")})
+                {!isPlatformOwner && (
+                  <span className="ml-2 px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-[10px] uppercase border border-amber-500/30">
+                    Restricted View (Analytics Only)
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -142,121 +216,133 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Admin Navigation Tabs */}
         <div className="px-6 py-2 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-1.5 overflow-x-auto text-xs font-bold scrollbar-none">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "profile" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>Admin Profile</span>
-          </button>
+          {isPlatformOwner ? (
+            <>
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "profile" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <User className="w-4 h-4" />
+                <span>Admin Profile</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "analytics" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Analytics</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "analytics" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Analytics</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "users" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>User Management</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "users" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>User Management</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("files")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "files" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <FolderKanban className="w-4 h-4" />
-            <span>File Management</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("files")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "files" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <FolderKanban className="w-4 h-4" />
+                <span>File Management</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("ai")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "ai" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>AI Management</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("ai")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "ai" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI Management</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("ads")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "ads" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Advertisement Management</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("ads")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "ads" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <DollarSign className="w-4 h-4" />
+                <span>Advertisement Management</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "settings" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Website Settings</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "settings" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Website Settings</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("seo")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "seo" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Globe className="w-4 h-4 text-amber-400" />
-            <span>SEO & Sitemap</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("seo")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "seo" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Globe className="w-4 h-4 text-amber-400" />
+                <span>SEO & Sitemap</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("reports")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "reports" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Reports</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("reports")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "reports" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Reports</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("logs")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "logs" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Terminal className="w-4 h-4" />
-            <span>System Logs</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("logs")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "logs" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Terminal className="w-4 h-4" />
+                <span>System Logs</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab("backup")}
-            className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-              activeTab === "backup" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-            }`}
-          >
-            <DatabaseBackup className="w-4 h-4" />
-            <span>Backup & Restore</span>
-          </button>
+              <button
+                onClick={() => setActiveTab("backup")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "backup" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <DatabaseBackup className="w-4 h-4" />
+                <span>Backup & Restore</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className="px-3 py-2 rounded-xl flex items-center space-x-1.5 bg-blue-600 text-white shadow-xs font-bold"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Analytics Dashboard (Restricted Admin View)</span>
+            </button>
+          )}
         </div>
 
         {/* Tab Content Body */}
         <div className="flex-1 p-6 overflow-y-auto">
           {/* 0. Admin Profile Tab */}
-          {activeTab === "profile" && (
+          {effectiveActiveTab === "profile" && (
             <div className="space-y-6">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl font-black shadow-lg">
@@ -297,7 +383,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 1. Analytics Tab */}
-          {activeTab === "analytics" && (
+          {effectiveActiveTab === "analytics" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
@@ -387,12 +473,88 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 2. User Management Tab */}
-          {activeTab === "users" && (
+          {effectiveActiveTab === "users" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Registered Accounts & RBAC Control</h3>
-                <div className="text-xs text-slate-400 font-medium">Total: {userList.length} Accounts</div>
+              {/* Sticky Owner Access Banner */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3">
+                <Crown className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900 dark:text-amber-200">
+                  <strong className="font-extrabold block text-amber-600 dark:text-amber-400">
+                    👑 Owner Access Control & Admin Permission Manager (Sticky Policy)
+                  </strong>
+                  The Admin option is strictly visible ONLY to the Website Owner (Mukesh Kalonia). Customers & regular users cannot see or access the Admin Panel unless the Owner explicitly grants them Admin Access below.
+                </div>
               </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Registered Accounts & RBAC Permissions</h3>
+                  <p className="text-[11px] text-slate-400">Grant or revoke Admin access rights for any customer user account.</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowAddUserForm(!showAddUserForm)}
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{showAddUserForm ? "Cancel" : "+ Add New User"}</span>
+                  </button>
+                  <div className="text-xs text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl">
+                    Total: {activeUserList.length} Accounts
+                  </div>
+                </div>
+              </div>
+
+              {/* Add User Inline Form */}
+              {showAddUserForm && (
+                <form onSubmit={handleAddNewUserInternal} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3 animate-in fade-in">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Register New Account & Assign Permissions</div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Full Name"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      required
+                      className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      required
+                      className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                    <select
+                      value={newUserPlan}
+                      onChange={(e) => setNewUserPlan(e.target.value)}
+                      className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="Free Sun">Free Sun</option>
+                      <option value="Student Pro">Student Pro</option>
+                      <option value="Team Enterprise">Team Enterprise</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newUserGrantAdmin}
+                        onChange={(e) => setNewUserGrantAdmin(e.target.checked)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">Grant Admin Panel Access Right Away</span>
+                    </label>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md"
+                    >
+                      Save Account
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left text-xs">
@@ -400,46 +562,80 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <tr>
                       <th className="p-3">User Name</th>
                       <th className="p-3">Email Address</th>
-                      <th className="p-3">Role Tier</th>
+                      <th className="p-3">Plan Tier</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3">Joined Date</th>
-                      <th className="p-3 text-right">Action</th>
+                      <th className="p-3">Admin Permission</th>
+                      <th className="p-3">Joined</th>
+                      <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                    {userList.map((usr) => (
-                      <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="p-3 font-bold">{usr.name}</td>
-                        <td className="p-3 font-mono text-slate-500 dark:text-slate-400">{usr.email}</td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                            {usr.plan}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                              usr.status === "Active"
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : "bg-rose-500/10 text-rose-600"
-                            }`}
-                          >
-                            {usr.status}
-                          </span>
-                        </td>
-                        <td className="p-3 text-slate-400">{usr.joined}</td>
-                        <td className="p-3 text-right">
-                          {usr.email !== "mukeshkalonia241@gmail.com" && (
-                            <button
-                              onClick={() => handleToggleUserStatus(usr.id)}
-                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-200 dark:bg-slate-700 hover:bg-rose-600 hover:text-white transition"
+                    {activeUserList.map((usr) => {
+                      const isOwner = usr.email === "mukeshkalonia241@gmail.com" || usr.plan === "Admin Owner";
+                      return (
+                        <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="p-3 font-bold flex items-center space-x-1.5">
+                            {isOwner && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                            <span>{usr.name}</span>
+                          </td>
+                          <td className="p-3 font-mono text-slate-500 dark:text-slate-400">{usr.email}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                              {usr.plan}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                usr.status === "Active"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-rose-500/10 text-rose-600"
+                              }`}
                             >
-                              {usr.status === "Active" ? "Suspend" : "Activate"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                              {usr.status}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            {isOwner ? (
+                              <span className="px-2 py-1 rounded bg-amber-500 text-white font-black text-[10px] uppercase shadow-xs">
+                                👑 OWNER (FULL ADMIN)
+                              </span>
+                            ) : usr.hasAdminAccess ? (
+                              <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/30">
+                                ✅ ADMIN ACCESS GRANTED
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase">
+                                🔒 CUSTOMER ONLY
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-400">{usr.joined}</td>
+                          <td className="p-3 text-right">
+                            {!isOwner && (
+                              <div className="flex items-center justify-end space-x-1.5">
+                                <button
+                                  onClick={() => handleToggleAdminPermissionInternal(usr.id)}
+                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                                    usr.hasAdminAccess
+                                      ? "bg-rose-500/10 text-rose-600 border border-rose-500/30 hover:bg-rose-600 hover:text-white"
+                                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-xs"
+                                  }`}
+                                >
+                                  {usr.hasAdminAccess ? "Revoke Admin" : "Grant Admin"}
+                                </button>
+                                <button
+                                  onClick={() => handleToggleUserStatusInternal(usr.id)}
+                                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                                >
+                                  {usr.status === "Active" ? "Suspend" : "Activate"}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -447,7 +643,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 3. File Management Tab */}
-          {activeTab === "files" && (
+          {effectiveActiveTab === "files" && (
             <div className="space-y-4">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
@@ -469,7 +665,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 4. AI Management Tab */}
-          {activeTab === "ai" && (
+          {effectiveActiveTab === "ai" && (
             <div className="space-y-4">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
                 <div className="flex items-center space-x-2">
@@ -493,7 +689,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 5. Advertisement Management Tab */}
-          {activeTab === "ads" && (
+          {effectiveActiveTab === "ads" && (
             <div className="space-y-4">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
                 <div className="flex items-center space-x-2">
@@ -536,7 +732,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 6. Website Settings Tab */}
-          {activeTab === "settings" && (
+          {effectiveActiveTab === "settings" && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -583,7 +779,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* SEO & Sitemap Tab */}
-          {activeTab === "seo" && (
+          {effectiveActiveTab === "seo" && (
             <div className="space-y-6">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
                 <div className="flex items-center justify-between">
@@ -658,7 +854,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 7. Reports Tab */}
-          {activeTab === "reports" && (
+          {effectiveActiveTab === "reports" && (
             <div className="space-y-4">
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Platform Usage & Conversion Summary</h3>
@@ -679,7 +875,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 8. System Logs Tab */}
-          {activeTab === "logs" && (
+          {effectiveActiveTab === "logs" && (
             <div className="space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase">
                 <span>Real-Time System Log Stream</span>
@@ -698,7 +894,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           )}
 
           {/* 9. Backup & Restore Tab */}
-          {activeTab === "backup" && (
+          {effectiveActiveTab === "backup" && (
             <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">Export & Restore Platform Configuration</h3>
               <p className="text-xs text-slate-400">Download a full JSON snapshot of your PDFSun admin configuration settings.</p>

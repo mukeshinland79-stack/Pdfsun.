@@ -58,6 +58,7 @@ interface HeaderProps {
   onOpenSearch: () => void;
   currentRole: UserRole;
   userProfile: UserProfile | null;
+  canAccessAdmin?: boolean;
   onOpenAuthModal: () => void;
   onOpenAdminPanel: (tab?: string) => void;
   onOpenUserDashboard: () => void;
@@ -79,6 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   currentRole,
   userProfile,
+  canAccessAdmin,
   onOpenAuthModal,
   onOpenAdminPanel,
   onOpenUserDashboard,
@@ -87,6 +89,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
   const { isOffline, isInstallable, installPWA } = usePWAStatus();
+
+  // Admin access rule: Owner OR user explicitly granted admin access by owner
+  const hasAdminRights = canAccessAdmin !== undefined 
+    ? canAccessAdmin 
+    : (currentRole === "owner" || Boolean(userProfile?.hasAdminAccess));
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
@@ -505,24 +512,24 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* User & Admin Navigation Menu */}
           <div className="relative">
-            {currentRole === "owner" ? (
+            {hasAdminRights ? (
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center space-x-2 p-1.5 pl-3 pr-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white shadow-md hover:opacity-95 transition"
               >
-                <Crown className="w-4 h-4" />
+                <Crown className="w-4 h-4 text-amber-300" />
                 <span className="text-xs font-black uppercase tracking-wider hidden sm:inline">
                   {t("adminPanel", "Admin")}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
-            ) : currentRole === "user" ? (
+            ) : userProfile !== null ? (
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center space-x-2 p-1.5 pl-3 pr-2.5 rounded-xl bg-slate-800 dark:bg-slate-800 text-white shadow-md hover:bg-slate-700 transition border border-slate-700"
               >
                 <User className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-bold hidden sm:inline">{userProfile?.name.split(" ")[0]}</span>
+                <span className="text-xs font-bold hidden sm:inline">{userProfile.name.split(" ")[0]}</span>
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
             ) : (
@@ -545,19 +552,19 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
                   <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center justify-between">
-                    <span>{userProfile?.name || "User"}</span>
+                    <span>{userProfile?.name || "Customer User"}</span>
                     <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                      {currentRole === "owner" ? "ADMIN" : "USER"}
+                      {currentRole === "owner" ? "ADMIN OWNER" : userProfile?.hasAdminAccess ? "ADMIN (GRANTED)" : "CUSTOMER"}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono line-clamp-1">{userProfile?.email}</div>
+                  <div className="text-[10px] text-slate-400 font-mono line-clamp-1">{userProfile?.email || "customer@pdfsun.app"}</div>
                 </div>
 
-                {/* ADMIN ONLY MENU ITEMS - Securely hidden from standard users */}
-                {currentRole === "owner" && (
+                {/* ADMIN ONLY MENU ITEMS - Securely shown ONLY to Owner or users granted Admin access */}
+                {hasAdminRights && (
                   <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
                     <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                      Mukesh Kalonia (Admin)
+                      {currentRole === "owner" ? "Owner Admin Access" : "Admin Granted Access"}
                     </div>
 
                     <button
@@ -673,7 +680,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
 
                 {/* LOGGED IN USER MENU ITEMS */}
-                {currentRole === "user" && (
+                {(currentRole === "user" || userProfile !== null) && (
                   <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
                     <button
                       onClick={() => {
@@ -827,12 +834,12 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">GEMINI 3.6</span>
           </button>
 
-          {/* ADMIN MOBILE MENU OPTIONS */}
-          {currentRole === "owner" && (
+          {/* ADMIN MOBILE MENU OPTIONS - Shown ONLY to Owner or users explicitly granted Admin access */}
+          {hasAdminRights && (
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 space-y-1">
               <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center space-x-1">
                 <Crown className="w-3.5 h-3.5" />
-                <span>Admin Menu (Mukesh Kalonia)</span>
+                <span>Admin Menu {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
               </div>
               <button
                 onClick={() => {
