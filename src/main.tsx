@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App.tsx';
 import './index.css';
 import { LanguageProvider } from './lib/i18n';
@@ -81,6 +82,7 @@ createRoot(document.getElementById('root')!).render(
       <LanguageProvider>
         <HelmetProvider>
           <App />
+          <Analytics />
         </HelmetProvider>
       </LanguageProvider>
     </ErrorBoundary>
