@@ -35,9 +35,10 @@ import {
   EyeOff,
   Palette,
   Laptop,
+  Activity,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
-import { ToolItem, UserRole, UserProfile } from "../types";
+import { ToolItem, UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { useLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n";
 import { SearchOverlay } from "./SearchOverlay";
 import { SearchModal } from "./SearchModal";
@@ -91,10 +92,12 @@ export const Header: React.FC<HeaderProps> = ({
   const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
   const { isOffline, isInstallable, installPWA } = usePWAStatus();
 
-  // Admin access rule: Owner OR user explicitly granted admin access by owner
+  // Admin access rule: Dual Owners (Mukesh Kalonia & Mukesh Inland) OR user explicitly granted admin access
+  const userEmail = (userProfile?.email || "").toLowerCase().trim();
+  const isDualOwnerEmail = DUAL_OWNER_EMAILS.includes(userEmail);
   const hasAdminRights = canAccessAdmin !== undefined 
-    ? canAccessAdmin 
-    : (currentRole === "owner" || Boolean(userProfile?.hasAdminAccess));
+    ? (canAccessAdmin && (currentRole === "owner" || isDualOwnerEmail || Boolean(userProfile?.hasAdminAccess)))
+    : ((currentRole === "owner" || isDualOwnerEmail) || Boolean(userProfile?.hasAdminAccess));
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
@@ -666,6 +669,19 @@ export const Header: React.FC<HeaderProps> = ({
                       <Terminal className="w-3.5 h-3.5 text-slate-500" />
                       <span>{t("systemLogs", "System Logs")}</span>
                     </button>
+
+                    {isDualOwnerEmail && (
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAdminPanel("activity_log");
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition"
+                      >
+                        <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>System Activity Log</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {

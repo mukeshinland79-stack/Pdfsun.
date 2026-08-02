@@ -746,14 +746,19 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentLanguage, setCurrentLanguageState] = useState<string>(() => {
-    const saved = localStorage.getItem("pdfsun_language");
-    if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-      return saved;
+    if (typeof window === "undefined") return "en";
+    try {
+      const saved = localStorage.getItem("pdfsun_language");
+      if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
+        return saved;
+      }
+      const navLang = typeof navigator !== "undefined" ? navigator.language : "en";
+      const browserLang = navLang ? navLang.split("-")[0] : "en";
+      const matched = SUPPORTED_LANGUAGES.find((l) => l.code === browserLang || l.code === navLang);
+      return matched ? matched.code : "en";
+    } catch {
+      return "en";
     }
-    // Auto-detect browser language
-    const browserLang = navigator.language ? navigator.language.split("-")[0] : "en";
-    const matched = SUPPORTED_LANGUAGES.find((l) => l.code === browserLang || l.code === navigator.language);
-    return matched ? matched.code : "en";
   });
 
   const languageOption =
@@ -761,7 +766,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isRtl = !!languageOption.isRtl;
 
   useEffect(() => {
-    localStorage.setItem("pdfsun_language", currentLanguage);
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem("pdfsun_language", currentLanguage);
+    } catch {
+      // Ignore quota or security errors
+    }
     if (isRtl) {
       document.documentElement.dir = "rtl";
       document.documentElement.classList.add("rtl");

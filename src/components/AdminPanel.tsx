@@ -15,6 +15,7 @@ import {
   AlertCircle,
   RefreshCw,
   ShieldCheck,
+  ShieldAlert,
   Save,
   Trash2,
   Power,
@@ -25,6 +26,7 @@ import {
   LogOut,
   FileText,
   Activity,
+  HeartPulse,
   Check,
   Flame,
   Globe,
@@ -42,8 +44,24 @@ import {
   Plus,
   Layers,
 } from "lucide-react";
-import { AdminSettings, AdminUserAccount, UserProfile } from "../types";
+import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
+import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
+import { RealTimeTrafficMonitor } from "./RealTimeTrafficMonitor";
+import { ServerStatusWidget } from "./ServerStatusWidget";
+import { BusinessGrowthDashboard } from "./BusinessGrowthDashboard";
+import { RealTimeApiLatencyMonitor } from "./RealTimeApiLatencyMonitor";
+import { AdminActivityLog } from "./AdminActivityLog";
+import { AdminAlertSystem } from "./AdminAlertSystem";
+import { UserEngagementOverview } from "./UserEngagementOverview";
+import { AdminAnomalyDetector } from "./AdminAnomalyDetector";
+import { AdminSystemMonitor } from "./AdminSystemMonitor";
+import { GlobalTrafficHeatmap } from "./GlobalTrafficHeatmap";
+import { AdminPerformanceHeatmap } from "./AdminPerformanceHeatmap";
+import { AdminEmailDigest } from "./AdminEmailDigest";
+import { SEOPerformanceDashboard } from "./SEOPerformanceDashboard";
+import { AITokenMonitor } from "./AITokenMonitor";
+import { AdminSystemHealth } from "./AdminSystemHealth";
 import { ALL_TOOLS } from "../data/toolsData";
 import {
   generateSitemapXml,
@@ -147,7 +165,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Handler for Exporting Analytics CSV
   const handleExportAnalyticsCsv = () => {
-    let csvContent = "data:text/csv;charset=utf-8,Rank,Tool ID,Tool Name,Category,Total Executions,Platform Share %\n";
+    const nowStr = new Date().toISOString();
+    let csvContent = `PDFSun Enterprise Real-Time Analytics Report\nGenerated At,${nowStr}\nTotal Executions,${totalExecutions}\nTotal Tools Tracked,${ALL_TOOLS.length}\n\n`;
+    csvContent += "Rank,Tool ID,Tool Name,Category,Total Executions,Platform Share %\n";
+    
     ALL_TOOLS.slice()
       .sort((a, b) => getUsageCount(b.id) - getUsageCount(a.id))
       .forEach((t, index) => {
@@ -156,13 +177,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         csvContent += `${index + 1},"${t.id}","${t.name}","${t.category}",${count},${share}%\n`;
       });
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `PDFSun_Tool_Usage_Analytics_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `PDFSun_RealTime_Analytics_${nowStr.split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // User Management State (fallback if not passed via props)
@@ -233,9 +256,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   if (!isOpen) return null;
 
+  const userEmail = (currentUserProfile?.email || "").toLowerCase().trim();
+  const isDualOwnerUser = DUAL_OWNER_EMAILS.includes(userEmail);
+
   const isPlatformOwner = isOwner !== undefined 
-    ? isOwner 
-    : (currentUserProfile?.email === "mukeshkalonia241@gmail.com" || currentUserProfile?.plan === "Founder & Owner" || currentUserProfile?.plan === "Admin Owner");
+    ? (isOwner || isDualOwnerUser)
+    : (isDualOwnerUser || currentUserProfile?.plan === "Founder & Owner" || currentUserProfile?.plan === "Admin Owner");
 
   const effectiveActiveTab = isPlatformOwner ? activeTab : "analytics";
 
@@ -253,12 +279,106 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     alert("Memory cache purged successfully!");
   };
 
-  const handleExportBackup = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localSettings, null, 2));
+  const handleExportBackup = async () => {
+    let liveSystemConfig: SystemConfig = {
+      ADMIN_SECRET_KEY: "12345",
+      TEMP_STORAGE_RETENTION_MINUTES: 60,
+      MAX_STORAGE_USAGE_THRESHOLD: 90,
+      HEAVY_TRANSFORMATION_LIMIT: 1000,
+      GLOBAL_RATE_LIMIT: 10000,
+      BAD_REQUEST_AUTO_BLOCK_COUNT: 100,
+      OWNER_ONLY_STEALTH_MODE: true,
+    };
+
+    try {
+      const res = await fetch("/api/admin/system-config", {
+        headers: {
+          "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
+          "x-admin-token": "12345",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) {
+          liveSystemConfig = data.config;
+        }
+      }
+    } catch (err) {
+      console.warn("Using local system config baseline for backup download.");
+    }
+
+    const backupPayload = {
+      backupMetadata: {
+        appName: "PDFSun Enterprise Platform",
+        backupType: "Offline Emergency System Configuration Recovery Snapshot",
+        exportTimestamp: new Date().toISOString(),
+        exportedBy: currentUserProfile?.email || "mukeshinland79@gmail.com",
+        version: "2.5.0-PROD",
+        environment: "Cloud Run Production",
+      },
+      systemConfigSecretsAndLimits: {
+        ADMIN_SECRET_KEY: liveSystemConfig.ADMIN_SECRET_KEY,
+        GLOBAL_RATE_LIMIT: liveSystemConfig.GLOBAL_RATE_LIMIT,
+        TEMP_STORAGE_RETENTION_MINUTES: liveSystemConfig.TEMP_STORAGE_RETENTION_MINUTES,
+        MAX_STORAGE_USAGE_THRESHOLD: liveSystemConfig.MAX_STORAGE_USAGE_THRESHOLD,
+        HEAVY_TRANSFORMATION_LIMIT: liveSystemConfig.HEAVY_TRANSFORMATION_LIMIT,
+        BAD_REQUEST_AUTO_BLOCK_COUNT: liveSystemConfig.BAD_REQUEST_AUTO_BLOCK_COUNT,
+        OWNER_ONLY_STEALTH_MODE: liveSystemConfig.OWNER_ONLY_STEALTH_MODE,
+      },
+      websiteAdminSettings: localSettings,
+      registeredUserAccounts: activeUserList,
+      recoveryInstructions: [
+        "1. Store this backup JSON file in a secure, encrypted offline storage location.",
+        "2. In the event of an emergency or system reset, use the Import Configuration JSON option in the Admin Settings tab to restore all settings.",
+        "3. Verify ADMIN_SECRET_KEY and GLOBAL_RATE_LIMIT parameters after restoring.",
+      ],
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
     const dlAnchor = document.createElement("a");
     dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", "PDFSun_Admin_Config_Backup.json");
+    dlAnchor.setAttribute("download", `PDFSun_Backup_Configuration_${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(dlAnchor);
     dlAnchor.click();
+    document.body.removeChild(dlAnchor);
+  };
+
+  const handleImportBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const json = JSON.parse(evt.target?.result as string);
+        if (json.websiteAdminSettings) {
+          setLocalSettings(json.websiteAdminSettings);
+          onUpdateSettings(json.websiteAdminSettings);
+        }
+        if (json.systemConfigSecretsAndLimits) {
+          // Attempt to update server configuration via API
+          try {
+            await fetch("/api/admin/system-config", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
+                "x-admin-token": json.systemConfigSecretsAndLimits.ADMIN_SECRET_KEY || "12345",
+              },
+              body: JSON.stringify(json.systemConfigSecretsAndLimits),
+            });
+          } catch (apiErr) {
+            console.warn("Could not push restored system config to remote server:", apiErr);
+          }
+        }
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3500);
+        alert("Configuration backup JSON imported successfully! All settings, secret keys, and rate limits restored.");
+      } catch (err) {
+        alert("Invalid backup file format. Please upload a valid PDFSun emergency configuration JSON file.");
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -401,6 +521,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab("health")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "health" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <HeartPulse className="w-4 h-4 text-emerald-400" />
+                <span>System Health</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("activity_log")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "activity_log" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span>System Activity Log</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab("backup")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
                   effectiveActiveTab === "backup" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -426,20 +566,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* 0. Admin Profile Tab */}
           {effectiveActiveTab === "profile" && (
             <div className="space-y-6">
+              {/* Owner Overview Banner */}
               <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl font-black shadow-lg">
-                  MK
+                  {currentUserProfile?.name ? currentUserProfile.name.split(" ").map(n => n[0]).join("") : "MK"}
                 </div>
                 <div className="text-center md:text-left space-y-1">
                   <div className="flex items-center justify-center md:justify-start space-x-2">
-                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">Mukesh Kalonia</h3>
+                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                      {currentUserProfile?.name || "Mukesh Kalonia"}
+                    </h3>
                     <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase">
-                      PLATFORM OWNER
+                      DUAL-OWNER PLATFORM ADMIN
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400">mukeshkalonia241@gmail.com</p>
+                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                    {currentUserProfile?.email || "mukeshkalonia241@gmail.com"}
+                  </p>
                   <p className="text-xs text-slate-600 dark:text-slate-300 pt-1">
-                    Super administrator access with permission to configure global platform settings, advertisements, system security, and backup snapshots.
+                    Super administrator access with exclusive RBAC authorization to manage global system configurations, security rate limits, and server storage parameters.
                   </p>
                 </div>
               </div>
@@ -447,26 +592,72 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-400 uppercase">Role Level</div>
-                  <div className="text-base font-extrabold text-slate-900 dark:text-white mt-1">Super Admin / Owner</div>
+                  <div className="text-base font-extrabold text-slate-900 dark:text-white mt-1">
+                    Super Admin / Verified Owner
+                  </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-400 uppercase">Security Status</div>
                   <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center space-x-1">
                     <ShieldCheck className="w-4 h-4" />
-                    <span>2FA Enforced</span>
+                    <span>Dual-Owner RBAC Enforced</span>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-400 uppercase">Active Domain</div>
-                  <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">pdfsun.vercel.app</div>
+                  <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                    pdfsun.com
+                  </div>
                 </div>
               </div>
+
+              {/* Dynamic Server & System Configurations Form */}
+              <ServerSystemConfigForm currentUserProfile={currentUserProfile} />
             </div>
           )}
 
           {/* 1. Analytics Tab */}
           {effectiveActiveTab === "analytics" && (
             <div className="space-y-6">
+              {/* Real-Time Critical System Alert Dispatcher & Toast Manager */}
+              <AdminAlertSystem />
+
+              {/* Server Telemetry & System Status Widget */}
+              <ServerStatusWidget />
+
+              {/* Real-Time Infrastructure & System Resource Sparkline Monitor */}
+              <AdminSystemMonitor />
+
+              {/* Real-time Traffic & WebSocket Polling Stream */}
+              <RealTimeTrafficMonitor />
+
+              {/* Real-time API Latency & Response Gauge Monitor */}
+              <RealTimeApiLatencyMonitor />
+
+              {/* Enterprise Business Intelligence & Retention Growth Dashboard */}
+              <BusinessGrowthDashboard />
+
+              {/* User Engagement & Retention Recharts Overview */}
+              <UserEngagementOverview />
+
+              {/* Google Search Console SEO & Keyword Performance Dashboard */}
+              <SEOPerformanceDashboard />
+
+              {/* Gemini AI Model Token Consumption & Cost Monitor */}
+              <AITokenMonitor />
+
+              {/* Global Real-Time Traffic Heatmap & Geographic Distribution */}
+              <GlobalTrafficHeatmap />
+
+              {/* 24-Hour Server Performance & Latency Heatmap Matrix */}
+              <AdminPerformanceHeatmap />
+
+              {/* Statistical Anomaly & Outlier Detector Engine */}
+              <AdminAnomalyDetector />
+
+              {/* Automated Admin Email Performance Digest Scheduler */}
+              <AdminEmailDigest userEmail={currentUserProfile?.email} />
+
               {/* Real-time Dashboard Control Toolbar */}
               <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/90 via-indigo-900/90 to-slate-900 text-white shadow-xl border border-blue-800/40 space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -1180,7 +1371,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
           {/* 6. Website Settings Tab */}
           {effectiveActiveTab === "settings" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Site Title</label>
@@ -1220,6 +1411,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setLocalSettings({ ...localSettings, ownerName: e.target.value })}
                     className="w-full p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
                   />
+                </div>
+              </div>
+
+              {/* Backup Configuration Section (Emergency Offline Recovery) */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-900/20 via-indigo-900/20 to-slate-900/40 border border-blue-500/30 dark:border-indigo-500/30 space-y-4 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/20 dark:border-slate-800">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                      <DatabaseBackup className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                          Backup Configuration (Offline Emergency Recovery)
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/30">
+                          PROD READY
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Download an offline JSON snapshot containing all system parameters, secret keys, and rate limits for zero-downtime emergency recovery.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleExportBackup}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition flex items-center space-x-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download Backup JSON</span>
+                    </button>
+
+                    <label className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 cursor-pointer flex items-center space-x-2">
+                      <Upload className="w-4 h-4 text-indigo-400" />
+                      <span>Import Recovery JSON</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportBackupFile}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Scope Badges */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-black uppercase text-slate-400">
+                    Included in Offline Backup Snapshot:
+                  </span>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 flex items-center space-x-1">
+                      <span>🔑 Secret Key (ADMIN_SECRET_KEY)</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 flex items-center space-x-1">
+                      <span>⚡ Global Rate Limit (GLOBAL_RATE_LIMIT)</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 flex items-center space-x-1">
+                      <span>⏱️ Storage Retention & Thresholds</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 flex items-center space-x-1">
+                      <span>🌐 AdSense & Site Info</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 flex items-center space-x-1">
+                      <span>👥 User Permissions & RBAC</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1338,6 +1599,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* System Health Tab (Real-Time Recharts Metrics) */}
+          {effectiveActiveTab === "health" && (
+            <AdminSystemHealth />
+          )}
+
+          {/* System Activity Log Tab (Dual-Owner Exclusive) */}
+          {effectiveActiveTab === "activity_log" && (
+            isPlatformOwner ? (
+              <AdminActivityLog currentUserProfile={currentUserProfile} />
+            ) : (
+              <div className="p-8 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-3">
+                <div className="p-3 rounded-full bg-rose-500/20 text-rose-500 w-12 h-12 mx-auto flex items-center justify-center">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-black text-rose-600 dark:text-rose-400">
+                  Access Denied: Dual-Owner Security Clearance Required
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  The System Activity Log is restricted exclusively to Dual-Owners (Mukesh Kalonia & Mukesh Inland) to safeguard real-time login attempt records, configuration changes, and system exception telemetry.
+                </p>
+              </div>
+            )
           )}
 
           {/* 9. Backup & Restore Tab */}

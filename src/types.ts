@@ -113,6 +113,21 @@ export interface BlogPost {
   image: string;
 }
 
+export const DUAL_OWNER_EMAILS = [
+  "mukeshkalonia241@gmail.com",
+  "mukeshinland79@gmail.com",
+];
+
+export interface SystemConfig {
+  ADMIN_SECRET_KEY: string;
+  TEMP_STORAGE_RETENTION_MINUTES: number;
+  MAX_STORAGE_USAGE_THRESHOLD: number;
+  HEAVY_TRANSFORMATION_LIMIT: number;
+  GLOBAL_RATE_LIMIT: number;
+  BAD_REQUEST_AUTO_BLOCK_COUNT: number;
+  OWNER_ONLY_STEALTH_MODE: boolean;
+}
+
 export interface AdminSettings {
   siteName: string;
   domainName: string;

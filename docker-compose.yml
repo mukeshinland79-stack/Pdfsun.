@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  pdfsun-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdfsun_app_cluster
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - pdfsun_net
+
+  nginx-proxy:
+    image: nginx:1.26-alpine
+    container_name: pdfsun_nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - pdfsun-app
+    networks:
+      - pdfsun_net
+
+networks:
+  pdfsun_net:
+    driver: bridge

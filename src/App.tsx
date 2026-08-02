@@ -25,7 +25,7 @@ import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
 import { SEOManager } from "./components/SEOManager";
 import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
-import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount } from "./types";
+import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
@@ -164,6 +164,7 @@ export default function App() {
       { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
       { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
       { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
+      { id: "usr-05", name: "Mukesh Inland", email: "mukeshinland79@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
     ];
   });
 
@@ -320,7 +321,11 @@ export default function App() {
     }
   };
 
-  const canAccessAdmin = currentRole === "owner" || Boolean(userProfile?.hasAdminAccess);
+  const currentUserEmail = (userProfile?.email || "").toLowerCase().trim();
+  const isDualOwner = DUAL_OWNER_EMAILS.includes(currentUserEmail);
+  const canAccessAdmin =
+    currentRole !== "public" &&
+    (currentRole === "owner" || isDualOwner || Boolean(userProfile?.hasAdminAccess));
 
   const handleLogout = () => {
     setCurrentRole("public");
@@ -328,6 +333,10 @@ export default function App() {
   };
 
   const handleOpenAdminPanel = (tab?: string) => {
+    if (!canAccessAdmin) {
+      console.warn("Access denied: Admin panel is totally hidden and restricted for customer users.");
+      return;
+    }
     if (tab) setAdminPanelTab(tab);
     setAdminPanelOpen(true);
   };
@@ -509,21 +518,23 @@ export default function App() {
         onSelectRole={handleSelectRole}
       />
 
-      {/* Admin Panel Modal for Owner (Mukesh Kalonia) & Authorized Admins */}
-      <AdminPanel
-        isOpen={adminPanelOpen}
-        onClose={() => setAdminPanelOpen(false)}
-        adminSettings={adminSettings}
-        onUpdateSettings={setAdminSettings}
-        userAccounts={userAccounts}
-        onToggleAdminPermission={handleToggleAdminPermission}
-        onToggleUserStatus={handleToggleUserStatus}
-        onAddUserAccount={handleAddUserAccount}
-        initialTab={adminPanelTab}
-        onLogout={handleLogout}
-        isOwner={currentRole === "owner"}
-        currentUserProfile={userProfile}
-      />
+      {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}
+      {canAccessAdmin && (
+        <AdminPanel
+          isOpen={adminPanelOpen}
+          onClose={() => setAdminPanelOpen(false)}
+          adminSettings={adminSettings}
+          onUpdateSettings={setAdminSettings}
+          userAccounts={userAccounts}
+          onToggleAdminPermission={handleToggleAdminPermission}
+          onToggleUserStatus={handleToggleUserStatus}
+          onAddUserAccount={handleAddUserAccount}
+          initialTab={adminPanelTab}
+          onLogout={handleLogout}
+          isOwner={currentRole === "owner" || isDualOwner}
+          currentUserProfile={userProfile}
+        />
+      )}
 
       {/* User Dashboard Modal */}
       {userProfile && (
@@ -535,7 +546,7 @@ export default function App() {
           history={history}
           allTools={ALL_TOOLS}
           onSelectTool={handleSelectTool}
-          onOpenAdminPanel={() => setAdminPanelOpen(true)}
+          onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined}
         />
       )}
 

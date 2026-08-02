@@ -1,5 +1,5 @@
 import React from "react";
-import { UserProfile, ToolHistoryItem, ToolItem } from "../types";
+import { UserProfile, ToolHistoryItem, ToolItem, DUAL_OWNER_EMAILS } from "../types";
 import {
   User,
   Crown,
@@ -64,7 +64,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            {userProfile.role === "owner" && onOpenAdminPanel && (
+            {onOpenAdminPanel && (userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim()) || userProfile.hasAdminAccess) && (
               <button
                 onClick={() => {
                   onClose();
