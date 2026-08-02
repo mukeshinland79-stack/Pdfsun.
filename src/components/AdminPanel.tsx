@@ -62,6 +62,7 @@ import { AdminEmailDigest } from "./AdminEmailDigest";
 import { SEOPerformanceDashboard } from "./SEOPerformanceDashboard";
 import { AITokenMonitor } from "./AITokenMonitor";
 import { AdminSystemHealth } from "./AdminSystemHealth";
+import { ApiThrottlingManager } from "./ApiThrottlingManager";
 import { ALL_TOOLS } from "../data/toolsData";
 import {
   generateSitemapXml,
@@ -528,6 +529,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               >
                 <HeartPulse className="w-4 h-4 text-emerald-400" />
                 <span>System Health</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("throttling")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "throttling" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Sliders className="w-4 h-4 text-indigo-400" />
+                <span>API Performance & Throttling</span>
               </button>
 
               <button
@@ -1604,6 +1615,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* System Health Tab (Real-Time Recharts Metrics) */}
           {effectiveActiveTab === "health" && (
             <AdminSystemHealth />
+          )}
+
+          {/* API Performance & Throttling Tab (Dual-Owner Exclusive Control) */}
+          {effectiveActiveTab === "throttling" && (
+            <ApiThrottlingManager currentUserProfile={currentUserProfile} />
           )}
 
           {/* System Activity Log Tab (Dual-Owner Exclusive) */}

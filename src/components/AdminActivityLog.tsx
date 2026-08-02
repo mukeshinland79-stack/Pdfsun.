@@ -274,7 +274,7 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
             className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-sm transition"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
+            <span>Download Logs (CSV)</span>
           </button>
         </div>
       </div>
@@ -367,14 +367,25 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={clearAllLogs}
-            className="text-xs text-rose-500 hover:text-rose-600 font-bold flex items-center space-x-1"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear Stream</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={exportActivityCsv}
+              className="text-xs bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20 font-bold px-3 py-1 rounded-xl flex items-center space-x-1.5 transition border border-indigo-500/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Logs</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={clearAllLogs}
+              className="text-xs text-rose-500 hover:text-rose-600 font-bold flex items-center space-x-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Stream</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
