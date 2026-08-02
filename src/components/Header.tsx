@@ -42,6 +42,7 @@ import { useLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n";
 import { SearchOverlay } from "./SearchOverlay";
 import { SearchModal } from "./SearchModal";
 import { LanguageSelector } from "./LanguageSelector";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { usePWAStatus } from "../pwaRegister";
 
 interface HeaderProps {
@@ -267,8 +268,8 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Language Selector Component */}
-          <LanguageSelector />
+          {/* Language Switcher Component (English, Spanish, French & 30+ Languages) */}
+          <LanguageSwitcher />
 
           {/* PWA Offline / Install Badge */}
           {isOffline ? (
@@ -810,6 +811,14 @@ export const Header: React.FC<HeaderProps> = ({
                 );
               })}
             </div>
+          </div>
+
+          {/* Mobile Quick Language Switcher (EN, ES, FR) */}
+          <div className="space-y-1 py-1">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Language (Idioma / Langue)
+            </div>
+            <LanguageSwitcher variant="pills" className="w-full justify-between" />
           </div>
 
           <button

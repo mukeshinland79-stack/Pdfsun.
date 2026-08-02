@@ -1,28 +1,40 @@
 import React, { useState } from "react";
-import { ChevronDown, ShieldCheck, Lock } from "lucide-react";
+import { ChevronDown, ShieldCheck, HelpCircle } from "lucide-react";
+import { ToolItem } from "../types";
 import { FAQS } from "../data/toolsData";
+import { getToolFAQs } from "./SEOManager";
 
-export const FAQSection: React.FC = () => {
+export interface FAQSectionProps {
+  activeTool?: ToolItem | null;
+}
+
+export const FAQSection: React.FC<FAQSectionProps> = ({ activeTool }) => {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const displayFaqs = activeTool
+    ? getToolFAQs(activeTool).map((f) => ({ q: f.question, a: f.answer }))
+    : FAQS;
 
   return (
     <section id="faq" className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-3">
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Security & Privacy FAQ</span>
+          {activeTool ? <HelpCircle className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+          <span>{activeTool ? `${activeTool.name} FAQs` : "Security & Privacy FAQ"}</span>
         </div>
 
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          Frequently Asked Questions
+          {activeTool ? `Frequently Asked Questions about ${activeTool.name}` : "Frequently Asked Questions"}
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Everything you need to know about PDFSun security, data privacy, and browser operations.
+          {activeTool
+            ? `Everything you need to know about using ${activeTool.name} safely, freely, and efficiently.`
+            : "Everything you need to know about PDFSun security, data privacy, and browser operations."}
         </p>
       </div>
 
       <div className="space-y-3">
-        {FAQS.map((faq, idx) => {
+        {displayFaqs.map((faq, idx) => {
           const isOpen = openIdx === idx;
 
           return (

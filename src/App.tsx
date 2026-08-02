@@ -459,7 +459,7 @@ export default function App() {
         <TestimonialsSection />
 
         {/* FAQ Accordion */}
-        <FAQSection />
+        <FAQSection activeTool={activeTool} />
 
         {/* Newsletter Subscription Banner */}
         <NewsletterSubscription variant="standalone" />

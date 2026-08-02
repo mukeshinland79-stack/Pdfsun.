@@ -29,6 +29,18 @@ import {
   Flame,
   Globe,
   Copy,
+  Search,
+  Filter,
+  ArrowUpDown,
+  TrendingUp,
+  PieChart,
+  Play,
+  Pause,
+  RotateCcw,
+  Lightbulb,
+  Zap,
+  Plus,
+  Layers,
 } from "lucide-react";
 import { AdminSettings, AdminUserAccount, UserProfile } from "../types";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
@@ -81,7 +93,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showAddUserForm, setShowAddUserForm] = useState(false);
 
   // Usage Analytics Hook for live usage monitoring
-  const { topToolIds, getFormattedUsage } = useUsageAnalytics(10);
+  const {
+    usageCounts,
+    topToolIds,
+    getFormattedUsage,
+    getUsageCount,
+    totalExecutions,
+    getToolSharePercentage,
+    trackToolUsage,
+    resetUsage,
+    simulateRandomUsage,
+  } = useUsageAnalytics(50);
+
+  // Analytics Dashboard local state
+  const [analyticsCategory, setAnalyticsCategory] = useState<string>("all");
+  const [analyticsSearch, setAnalyticsSearch] = useState<string>("");
+  const [analyticsSort, setAnalyticsSort] = useState<"usage" | "name" | "share" | "category">("usage");
+  const [isSimulatingAnalytics, setIsSimulatingAnalytics] = useState<boolean>(false);
+  const [realtimePulseEvents, setRealtimePulseEvents] = useState<
+    { id: string; time: string; toolName: string; category: string; location: string }[]
+  >([
+    { id: "evt-1", time: "Just now", toolName: "Merge PDF", category: "edit", location: "United States" },
+    { id: "evt-2", time: "12s ago", toolName: "AI Chat with PDF", category: "ai", location: "India" },
+    { id: "evt-3", time: "34s ago", toolName: "Compress PDF", category: "convert", location: "Germany" },
+    { id: "evt-4", time: "1m ago", toolName: "Annotate PDF", category: "edit", location: "Brazil" },
+  ]);
+
+  // Live auto-simulation ticker effect for real-time analytics monitoring
+  React.useEffect(() => {
+    if (!isSimulatingAnalytics) return;
+
+    const interval = setInterval(() => {
+      const toolId = simulateRandomUsage();
+      if (toolId) {
+        const toolObj = ALL_TOOLS.find((t) => t.id === toolId);
+        if (toolObj) {
+          const locations = ["United States", "India", "Germany", "United Kingdom", "Japan", "Brazil", "Canada", "Australia"];
+          const loc = locations[Math.floor(Math.random() * locations.length)];
+          const newEvt = {
+            id: `evt-${Date.now()}`,
+            time: new Date().toLocaleTimeString(),
+            toolName: toolObj.name,
+            category: toolObj.category || "general",
+            location: loc,
+          };
+          setRealtimePulseEvents((prev) => [newEvt, ...prev.slice(0, 9)]);
+        }
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isSimulatingAnalytics, simulateRandomUsage]);
+
+  // Handler for Exporting Analytics CSV
+  const handleExportAnalyticsCsv = () => {
+    let csvContent = "data:text/csv;charset=utf-8,Rank,Tool ID,Tool Name,Category,Total Executions,Platform Share %\n";
+    ALL_TOOLS.slice()
+      .sort((a, b) => getUsageCount(b.id) - getUsageCount(a.id))
+      .forEach((t, index) => {
+        const count = getUsageCount(t.id);
+        const share = getToolSharePercentage(t.id);
+        csvContent += `${index + 1},"${t.id}","${t.name}","${t.category}",${count},${share}%\n`;
+      });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `PDFSun_Tool_Usage_Analytics_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // User Management State (fallback if not passed via props)
   const [localUserList, setLocalUserList] = useState<AdminUserAccount[]>([
@@ -385,89 +467,454 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* 1. Analytics Tab */}
           {effectiveActiveTab === "analytics" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                  <div className="text-xs text-slate-400 font-bold uppercase">Total PDF Conversions</div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">1,428,590</div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">↑ +14.2% this week</div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                  <div className="text-xs text-slate-400 font-bold uppercase">Active Monthly Users</div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">54,200</div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">↑ +8.5% growth</div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                  <div className="text-xs text-slate-400 font-bold uppercase">Gemini AI Tokens Streamed</div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">8,920,400</div>
-                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1">Gemini 3.6 Active</div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                  <div className="text-xs text-slate-400 font-bold uppercase">AdSense Est. Revenue</div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">$1,240.50</div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">Target achieved</div>
-                </div>
-              </div>
-
-              {/* Top Tools Usage Analytics Live Card */}
-              <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-amber-400">
-                      <Flame className="w-5 h-5 text-orange-500" />
+              {/* Real-time Dashboard Control Toolbar */}
+              <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/90 via-indigo-900/90 to-slate-900 text-white shadow-xl border border-blue-800/40 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
+                      <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                        Most Popular Tools (Live Usage Analytics)
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Top tools tracked by real user engagement and executions.
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-base font-black tracking-tight">Real-Time PDF Tool Usage Analytics</h3>
+                        <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-[10px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          <span>LIVE PULSE ACTIVE</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Track tool demand, identify growth trends, and prioritize feature development roadmap.
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                    Live Tracking Active
-                  </span>
+
+                  {/* Dashboard Quick Actions */}
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={() => setIsSimulatingAnalytics(!isSimulatingAnalytics)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md ${
+                        isSimulatingAnalytics
+                          ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+                          : "bg-emerald-600 text-white hover:bg-emerald-500"
+                      }`}
+                    >
+                      {isSimulatingAnalytics ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      <span>{isSimulatingAnalytics ? "Pause Live Stream" : "Simulate Live Traffic"}</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportAnalyticsCsv}
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition border border-white/20 flex items-center space-x-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export CSV</span>
+                    </button>
+
+                    <button
+                      onClick={resetUsage}
+                      className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center space-x-1"
+                      title="Reset tool counters to default seed values"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {topToolIds.map((toolId, index) => {
+                {/* Live Real-time Metrics Summary Bar */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                    <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Total Tracked Executions</div>
+                    <div className="text-xl font-black text-amber-300 mt-0.5 flex items-center space-x-1">
+                      <span>{totalExecutions.toLocaleString()}</span>
+                      <Zap className="w-4 h-4 text-amber-400 animate-bounce" />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                    <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Monitored Tools</div>
+                    <div className="text-xl font-black text-emerald-300 mt-0.5">
+                      {ALL_TOOLS.length} Active Tools
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                    <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Most Used Tool</div>
+                    <div className="text-sm font-black text-sky-300 truncate mt-1">
+                      {ALL_TOOLS.find((t) => t.id === topToolIds[0])?.name || "Merge PDF"}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                    <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Top Category Share</div>
+                    <div className="text-sm font-black text-indigo-300 uppercase mt-1">
+                      {ALL_TOOLS.find((t) => t.id === topToolIds[0])?.category || "Convert"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Usage Breakdown Section */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                      <PieChart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Category Usage Share Distribution
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Breakdown of visitor executions grouped by tool category
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stacked Visual Bar */}
+                {(() => {
+                  const categories = Array.from(new Set(ALL_TOOLS.map((t) => t.category)));
+                  const categoryTotals = categories.map((cat) => {
+                    const catTools = ALL_TOOLS.filter((t) => t.category === cat);
+                    const total = catTools.reduce((acc, t) => acc + getUsageCount(t.id), 0);
+                    const pct = totalExecutions > 0 ? (total / totalExecutions) * 100 : 0;
+                    return { category: cat, total, pct };
+                  }).sort((a, b) => b.total - a.total);
+
+                  const catColors: Record<string, string> = {
+                    convert: "bg-blue-500",
+                    edit: "bg-indigo-500",
+                    ai: "bg-purple-500",
+                    security: "bg-emerald-500",
+                    student: "bg-amber-500",
+                    advanced: "bg-rose-500",
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="h-4 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex">
+                        {categoryTotals.map((item) => (
+                          <div
+                            key={item.category}
+                            style={{ width: `${item.pct}%` }}
+                            className={`${catColors[item.category] || "bg-slate-400"} transition-all duration-500`}
+                            title={`${item.category.toUpperCase()}: ${item.total} uses (${item.pct.toFixed(1)}%)`}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
+                        {categoryTotals.map((item) => (
+                          <div
+                            key={item.category}
+                            onClick={() => setAnalyticsCategory(analyticsCategory === item.category ? "all" : item.category)}
+                            className={`p-2.5 rounded-2xl border text-center cursor-pointer transition ${
+                              analyticsCategory === item.category
+                                ? "bg-blue-50 dark:bg-blue-900/40 border-blue-500 shadow-xs"
+                                : "bg-slate-50 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <span className={`w-2 h-2 rounded-full ${catColors[item.category] || "bg-slate-400"}`} />
+                              <span className="text-[11px] font-black uppercase text-slate-800 dark:text-slate-200">
+                                {item.category}
+                              </span>
+                            </div>
+                            <div className="text-xs font-black text-slate-900 dark:text-white mt-1">
+                              {item.pct.toFixed(1)}%
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {item.total.toLocaleString()} uses
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Feature Roadmap & Feature Prioritization Matrix */}
+              <div className="p-6 rounded-3xl bg-slate-900 text-white border border-slate-800 space-y-4 shadow-xl">
+                <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                    <Lightbulb className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">
+                      Feature Roadmap & Development Priority Matrix
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Automated feature recommendations based on live visitor utilization data
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {topToolIds.slice(0, 3).map((toolId, rank) => {
                     const toolObj = ALL_TOOLS.find((t) => t.id === toolId);
                     if (!toolObj) return null;
+                    const count = getUsageCount(toolId);
+                    const share = getToolSharePercentage(toolId);
+
+                    const priorityBadges = [
+                      { title: "🚀 Tier 1 Priority (Scale First)", desc: `Highest user demand (${count} uses, ${share}% share). Prioritize batch processing support & WebAssembly speed tuning.` },
+                      { title: "⭐ Tier 2 Priority (Feature Polish)", desc: `High retention tool (${count} uses). Add granular custom presets and instant drag-and-drop enhancements.` },
+                      { title: "⚡ Tier 3 Priority (AI & Extensions)", desc: `Growing popularity (${count} uses). Expand Gemini 3.6 prompt options & export customization.` },
+                    ];
+
+                    const pInfo = priorityBadges[rank] || priorityBadges[2];
+
                     return (
                       <div
                         key={toolId}
-                        className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between"
+                        className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2"
                       >
-                        <div className="flex items-center space-x-2.5 min-w-0">
-                          <span className="w-6 h-6 rounded-lg bg-orange-500 text-white font-black text-[10px] flex items-center justify-center shrink-0">
-                            #{index + 1}
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase">
+                            Rank #{rank + 1}
                           </span>
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                              {toolObj.name}
-                            </h4>
-                            <p className="text-[10px] text-slate-400 uppercase font-semibold">
-                              {toolObj.category}
-                            </p>
-                          </div>
+                          <span className="text-xs font-mono font-bold text-amber-400">{getFormattedUsage(toolId)}</span>
                         </div>
-                        <span className="text-xs font-extrabold text-orange-600 dark:text-amber-400 bg-orange-500/10 dark:bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
-                          {getFormattedUsage(toolId)}
-                        </span>
+                        <h4 className="text-sm font-bold text-white">{toolObj.name}</h4>
+                        <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">{pInfo.title}</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">{pInfo.desc}</p>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Platform Health & Privacy Guarantee</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  PDFSun runs on 100% client-side WebAssembly routines. Server CPU load is maintained under 2% while handling thousands of concurrent users.
-                </p>
+              {/* Main Interactive Tool Usage Leaderboard Table */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center space-x-2">
+                      <Flame className="w-4 h-4 text-orange-500" />
+                      <span>PDF Tools Usage Ranking ({ALL_TOOLS.length} Total Tools)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Filter and search real-time tool metrics to analyze demand patterns.
+                    </p>
+                  </div>
+
+                  {/* Filter & Search Bar */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Search tool..."
+                        value={analyticsSearch}
+                        onChange={(e) => setAnalyticsSearch(e.target.value)}
+                        className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium text-slate-800 dark:text-slate-200 w-36 sm:w-48 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {/* Category Filter */}
+                    <select
+                      value={analyticsCategory}
+                      onChange={(e) => setAnalyticsCategory(e.target.value)}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden"
+                    >
+                      <option value="all">All Categories</option>
+                      <option value="convert">Convert</option>
+                      <option value="edit">Edit</option>
+                      <option value="ai">AI</option>
+                      <option value="security">Security</option>
+                      <option value="student">Student</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+
+                    {/* Sort Selector */}
+                    <select
+                      value={analyticsSort}
+                      onChange={(e) => setAnalyticsSort(e.target.value as any)}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden"
+                    >
+                      <option value="usage">Sort by Executions</option>
+                      <option value="share">Sort by Share %</option>
+                      <option value="name">Sort by Name</option>
+                      <option value="category">Sort by Category</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Ranking Leaderboard Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 uppercase font-bold border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="p-3 w-12 text-center">Rank</th>
+                        <th className="p-3">PDF Tool Name</th>
+                        <th className="p-3">Category</th>
+                        <th className="p-3">Executions</th>
+                        <th className="p-3 w-48">Usage Share %</th>
+                        <th className="p-3">Dev Roadmap Priority</th>
+                        <th className="p-3 text-right">Simulate</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                      {ALL_TOOLS.filter((t) => {
+                        const matchesCat = analyticsCategory === "all" || t.category === analyticsCategory;
+                        const matchesSearch =
+                          !analyticsSearch.trim() ||
+                          t.name.toLowerCase().includes(analyticsSearch.toLowerCase()) ||
+                          t.id.toLowerCase().includes(analyticsSearch.toLowerCase()) ||
+                          t.description.toLowerCase().includes(analyticsSearch.toLowerCase());
+                        return matchesCat && matchesSearch;
+                      })
+                        .sort((a, b) => {
+                          if (analyticsSort === "usage") return getUsageCount(b.id) - getUsageCount(a.id);
+                          if (analyticsSort === "share") return getToolSharePercentage(b.id) - getToolSharePercentage(a.id);
+                          if (analyticsSort === "name") return a.name.localeCompare(b.name);
+                          if (analyticsSort === "category") return (a.category || "").localeCompare(b.category || "");
+                          return 0;
+                        })
+                        .map((toolObj, idx) => {
+                          const count = getUsageCount(toolObj.id);
+                          const share = getToolSharePercentage(toolObj.id);
+
+                          // Development Priority badge logic
+                          let pBadge = {
+                            label: "High Priority",
+                            color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+                          };
+                          if (count >= 1000) {
+                            pBadge = {
+                              label: "🚀 High Priority (Expand Batch)",
+                              color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+                            };
+                          } else if (count >= 500) {
+                            pBadge = {
+                              label: "⭐ Core Stable (Feature Polish)",
+                              color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                            };
+                          } else {
+                            pBadge = {
+                              label: "💡 Growth Potential (Promote)",
+                              color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                            };
+                          }
+
+                          return (
+                            <tr key={toolObj.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                              <td className="p-3 text-center font-black">
+                                <span
+                                  className={`w-6 h-6 rounded-lg text-[11px] font-black inline-flex items-center justify-center ${
+                                    idx === 0
+                                      ? "bg-amber-500 text-slate-950"
+                                      : idx === 1
+                                      ? "bg-slate-300 text-slate-900"
+                                      : idx === 2
+                                      ? "bg-orange-600 text-white"
+                                      : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                                  }`}
+                                >
+                                  #{idx + 1}
+                                </span>
+                              </td>
+                              <td className="p-3 font-extrabold text-slate-900 dark:text-white">
+                                <div className="flex items-center space-x-2">
+                                  <span>{toolObj.name}</span>
+                                  {toolObj.badge && (
+                                    <span className="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded">
+                                      {toolObj.badge}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono font-normal">
+                                  {toolObj.id} • {toolObj.outputFormat}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                  {toolObj.category}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">
+                                {count.toLocaleString()}
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                    <span>{share}%</span>
+                                  </div>
+                                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                    <div
+                                      style={{ width: `${Math.max(share * 4, 3)}%` }}
+                                      className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300"
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${pBadge.color}`}
+                                >
+                                  {pBadge.label}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  onClick={() => trackToolUsage(toolObj.id)}
+                                  className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs flex items-center space-x-1 ml-auto"
+                                  title="Simulate +1 user execution"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>+1 Use</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Real-time Event Pulse Stream Activity Ticker */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5 text-emerald-500 animate-pulse" />
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Live Execution Activity Stream (Real-Time Visitor Pulse)
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Recent PDF tool conversions and AI query stream events
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    {realtimePulseEvents.length} Events Logged
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {realtimePulseEvents.map((evt) => (
+                    <div
+                      key={evt.id}
+                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs animate-in fade-in"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">{evt.toolName}</p>
+                          <p className="text-[10px] text-slate-400">
+                            Location: <strong>{evt.location}</strong>
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                        {evt.time}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

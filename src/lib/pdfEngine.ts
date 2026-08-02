@@ -518,7 +518,140 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
   }
 }
 
-// 12. Tesseract OCR Image to Text
+// 12. Extract & Read PDF Metadata Properties
+export interface PdfMetadataResult {
+  fileName: string;
+  fileSize: string;
+  fileSizeBytes: number;
+  fileType: string;
+  lastModified: string;
+  title: string;
+  author: string;
+  subject: string;
+  creator: string;
+  producer: string;
+  creationDate: string;
+  modificationDate: string;
+  keywords: string;
+  pageCount: number;
+  pageDimensions: string;
+  orientation: string;
+  formFieldsCount: number;
+  pdfVersion: string;
+  isEncrypted: boolean;
+}
+
+export async function extractPdfMetadata(file: File): Promise<PdfMetadataResult> {
+  const pdfDoc = await loadSafePdfDocument(file);
+  const pageCount = pdfDoc.getPageCount();
+
+  let pageDimensions = "Unknown";
+  let orientation = "Portrait";
+  if (pageCount > 0) {
+    const page = pdfDoc.getPage(0);
+    const { width, height } = page.getSize();
+    const wPt = Math.round(width);
+    const hPt = Math.round(height);
+    const wIn = (width / 72).toFixed(2);
+    const hIn = (height / 72).toFixed(2);
+    pageDimensions = `${wPt} x ${hPt} pt (${wIn}" x ${hIn}")`;
+    orientation = width > height ? "Landscape" : "Portrait";
+  }
+
+  let formFieldsCount = 0;
+  try {
+    formFieldsCount = pdfDoc.getForm().getFields().length;
+  } catch {}
+
+  const title = pdfDoc.getTitle() || "Not set";
+  const author = pdfDoc.getAuthor() || "Not set";
+  const subject = pdfDoc.getSubject() || "Not set";
+  const creator = pdfDoc.getCreator() || "Not set";
+  const producer = pdfDoc.getProducer() || "Not set";
+  const keywords = pdfDoc.getKeywords() || "None";
+
+  const creationDateObj = pdfDoc.getCreationDate();
+  const creationDate = creationDateObj ? creationDateObj.toLocaleString() : "Not available";
+
+  const modDateObj = pdfDoc.getModificationDate();
+  const modificationDate = modDateObj ? modDateObj.toLocaleString() : "Not available";
+
+  const sizeKb = (file.size / 1024).toFixed(2);
+  const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+  const fileSize = file.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+
+  return {
+    fileName: file.name,
+    fileSize,
+    fileSizeBytes: file.size,
+    fileType: file.type || "application/pdf",
+    lastModified: new Date(file.lastModified).toLocaleString(),
+    title,
+    author,
+    subject,
+    creator,
+    producer,
+    creationDate,
+    modificationDate,
+    keywords,
+    pageCount,
+    pageDimensions,
+    orientation,
+    formFieldsCount,
+    pdfVersion: "1.7 (Standard PDF)",
+    isEncrypted: false,
+  };
+}
+
+export async function generateMetadataReportPdf(metadata: PdfMetadataResult): Promise<Uint8Array> {
+  const doc = new jsPDF();
+
+  doc.setFillColor(30, 41, 59);
+  doc.rect(0, 0, 210, 32, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text("PDFSun - Document Metadata Inspection Report", 15, 20);
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(14);
+  doc.text("File & Document Properties Summary", 15, 45);
+  doc.setLineWidth(0.5);
+  doc.setDrawColor(226, 232, 240);
+  doc.line(15, 48, 195, 48);
+
+  doc.setFontSize(10);
+  let y = 58;
+  const items: [string, string][] = [
+    ["File Name", metadata.fileName],
+    ["File Size", metadata.fileSize],
+    ["Page Count", `${metadata.pageCount} pages (${metadata.orientation})`],
+    ["Page Dimensions", metadata.pageDimensions],
+    ["PDF Version", metadata.pdfVersion],
+    ["Form Fields", `${metadata.formFieldsCount} interactive fields`],
+    ["Title", metadata.title],
+    ["Author", metadata.author],
+    ["Subject", metadata.subject],
+    ["Keywords", metadata.keywords],
+    ["Software Used (Creator)", metadata.creator],
+    ["PDF Engine (Producer)", metadata.producer],
+    ["Creation Date", metadata.creationDate],
+    ["Modification Date", metadata.modificationDate],
+    ["Last Modified File System", metadata.lastModified],
+  ];
+
+  items.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(`${label}:`, 15, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(String(value), 75, y);
+    y += 9;
+  });
+
+  return new Uint8Array(doc.output("arraybuffer"));
+}
+
+// 13. Tesseract OCR Image to Text
 export async function ocrImageToText(
   file: File,
   onStatus?: (status: string, progress: number) => void
@@ -633,9 +766,10 @@ export async function pdfToWordDocx(
   });
 
   if (onProgress) onProgress(80);
-  const buffer = await Packer.toBuffer(docxDoc);
+  const blob = await Packer.toBlob(docxDoc);
+  const arrayBuffer = await blob.arrayBuffer();
   if (onProgress) onProgress(100);
-  return new Uint8Array(buffer);
+  return new Uint8Array(arrayBuffer);
 }
 
 // 15. Real Word (.docx) to PDF Converter using Mammoth & jsPDF

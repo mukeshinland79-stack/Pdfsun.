@@ -22,6 +22,7 @@ export interface ToolItem {
   badge?: string;
   supportedInput: string[];
   outputFormat: string;
+  faqs?: { question?: string; answer?: string; q?: string; a?: string }[];
 }
 
 export interface FileItem {

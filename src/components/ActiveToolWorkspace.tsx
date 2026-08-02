@@ -34,9 +34,11 @@ import {
   LayoutGrid,
   List,
   Eye,
+  EyeOff,
   ZoomIn,
   ArrowLeft,
   ArrowRight,
+  FileSearch,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -54,6 +56,9 @@ import {
   textToPdf,
   ocrImageToText,
   editPdfMetadata,
+  extractPdfMetadata,
+  generateMetadataReportPdf,
+  PdfMetadataResult,
   createBatchZip,
   downloadFile,
   createSamplePdfFile,
@@ -153,10 +158,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [watermarkPosition, setWatermarkPosition] = useState<"center" | "top-left" | "top-right" | "bottom-left" | "bottom-right">("center");
   const [pageNumPos, setPageNumPos] = useState<"bottom-center" | "bottom-right" | "top-right">("bottom-center");
   const [pdfPassword, setPdfPassword] = useState("");
+  const [pdfPasswordConfirm, setPdfPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [metaTitle, setMetaTitle] = useState("");
   const [metaAuthor, setMetaAuthor] = useState("Mukesh Kalonia");
   const [ocrResultText, setOcrResultText] = useState("");
   const [copyTextSuccess, setCopyTextSuccess] = useState(false);
+  const [extractedMetadata, setExtractedMetadata] = useState<PdfMetadataResult | null>(null);
+  const [copyMetadataSuccess, setCopyMetadataSuccess] = useState(false);
   const [showAnnotatorModal, setShowAnnotatorModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -534,6 +543,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputName = `PDFSun_Meta_${files[0].name}`;
           break;
 
+        case "read-pdf-metadata":
+          setStatusMessage("Reading and extracting document metadata properties...");
+          const metaRes = await extractPdfMetadata(files[0]);
+          setExtractedMetadata(metaRes);
+          outputBytes = await generateMetadataReportPdf(metaRes);
+          outputName = `PDFSun_Metadata_Report_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
+          break;
+
         case "ocr-image-to-text":
         case "ocr-pdf":
         case "ai-ocr":
@@ -690,8 +707,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "protect-pdf":
-          setStatusMessage("Encrypting PDF with secure password...");
-          outputBytes = await protectPdfWithPassword(files[0], pdfPassword || "123456", (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          if (!pdfPassword || pdfPassword.trim().length === 0) {
+            throw new Error("Please enter a security password to encrypt your PDF document.");
+          }
+          if (pdfPasswordConfirm && pdfPassword !== pdfPasswordConfirm) {
+            throw new Error("Passwords do not match. Please verify your confirmation password.");
+          }
+          setStatusMessage("Encrypting PDF document structure with password...");
+          outputBytes = await protectPdfWithPassword(files[0], pdfPassword, (p) => setProgress(45 + Math.round((p / 100) * 50)));
           outputName = `PDFSun_Protected_${files[0].name}`;
           break;
 
@@ -1451,15 +1474,129 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             )}
 
             {tool.id === "protect-pdf" && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Encryption Password</label>
-                <input
-                  type="password"
-                  value={pdfPassword}
-                  onChange={(e) => setPdfPassword(e.target.value)}
-                  placeholder="Enter strong password..."
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
-                />
+              <div className="space-y-3.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center space-x-2">
+                    <Lock className="w-4 h-4 text-orange-500 shrink-0" />
+                    <span>Set Document Encryption Password</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold px-2 py-0.5 rounded bg-emerald-500/10">
+                    Client-Side AES Encryption
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Password <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={pdfPassword}
+                        onChange={(e) => setPdfPassword(e.target.value)}
+                        placeholder="Enter encryption password..."
+                        className="w-full px-3 py-2 pr-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Confirm Password
+                    </label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={pdfPasswordConfirm}
+                      onChange={(e) => setPdfPasswordConfirm(e.target.value)}
+                      placeholder="Re-enter password to verify..."
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                {pdfPasswordConfirm && pdfPassword !== pdfPasswordConfirm && (
+                  <p className="text-[11px] font-bold text-rose-500 flex items-center space-x-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Passwords do not match</span>
+                  </p>
+                )}
+
+                {/* Password Strength Indicator */}
+                {pdfPassword && (
+                  <div className="space-y-1 pt-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">Password Strength:</span>
+                      <span className={`font-bold ${
+                        pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
+                          ? "text-emerald-500"
+                          : pdfPassword.length >= 6
+                          ? "text-amber-500"
+                          : "text-rose-500"
+                      }`}>
+                        {pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
+                          ? "Strong"
+                          : pdfPassword.length >= 6
+                          ? "Medium"
+                          : "Weak"}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
+                            ? "w-full bg-emerald-500"
+                            : pdfPassword.length >= 6
+                            ? "w-2/3 bg-amber-500"
+                            : "w-1/3 bg-rose-500"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Protection Restrictions */}
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 space-y-2 text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Security & Restrictions Applied:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center space-x-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Require password to open</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Prevent unauthorized editing</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Restrict text copying</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Standard PDF encryption spec</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "read-pdf-metadata" && (
+              <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-1.5">
+                <div className="font-bold text-orange-600 dark:text-amber-400 flex items-center space-x-2">
+                  <FileSearch className="w-4 h-4 text-orange-500" />
+                  <span>Read & Inspect PDF Document Properties</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Extracts embedded PDF properties including Title, Author, Creation Date, Modification Date, Creator Software, PDF Producer Engine, Page Count, Page Dimensions, and Keywords.
+                </p>
               </div>
             )}
 
@@ -1621,6 +1758,130 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 rows={6}
                 className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 font-mono border border-slate-200 dark:border-slate-700 focus:outline-none leading-relaxed"
               />
+            </div>
+          )}
+
+          {/* Read PDF Metadata Inspection Results Panel */}
+          {extractedMetadata && tool.id === "read-pdf-metadata" && (
+            <div className="space-y-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs animate-in fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-orange-500 text-white font-bold">
+                    <FileSearch className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                      Document Properties & Metadata
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Extracted from <span className="font-semibold text-slate-700 dark:text-slate-300">{extractedMetadata.fileName}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(extractedMetadata, null, 2));
+                      setCopyMetadataSuccess(true);
+                      setTimeout(() => setCopyMetadataSuccess(false), 2000);
+                    }}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center space-x-1.5 shadow-2xs border border-slate-200 dark:border-slate-600"
+                  >
+                    {copyMetadataSuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-emerald-500">JSON Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy JSON</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const summaryText = Object.entries(extractedMetadata)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join("\n");
+                      navigator.clipboard.writeText(summaryText);
+                      setCopyMetadataSuccess(true);
+                      setTimeout(() => setCopyMetadataSuccess(false), 2000);
+                    }}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center space-x-1.5 shadow-2xs border border-slate-200 dark:border-slate-600"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Copy Summary</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Metadata Key-Value Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Document Title</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.title}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Author</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.author}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Software Used (Creator)</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.creator}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">PDF Engine (Producer)</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.producer}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Creation Date</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.creationDate}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Modification Date</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.modificationDate}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Page Count & Layout</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.pageCount} pages ({extractedMetadata.orientation})</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Page Dimensions</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.pageDimensions}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Subject</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.subject}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Keywords</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{extractedMetadata.keywords}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">File Size & Spec</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.fileSize} • {extractedMetadata.pdfVersion}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-1">Form Fields</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{extractedMetadata.formFieldsCount} interactive fields</span>
+                </div>
+              </div>
             </div>
           )}
 

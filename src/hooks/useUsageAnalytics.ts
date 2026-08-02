@@ -29,9 +29,13 @@ export interface UsageAnalyticsHook {
   getFormattedUsage: (toolId: string) => string;
   isMostPopular: (toolId: string) => boolean;
   topToolIds: string[];
+  totalExecutions: number;
+  getToolSharePercentage: (toolId: string) => number;
+  resetUsage: () => void;
+  simulateRandomUsage: () => string;
 }
 
-export const useUsageAnalytics = (topLimit: number = 8): UsageAnalyticsHook => {
+export const useUsageAnalytics = (topLimit: number = 50): UsageAnalyticsHook => {
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -75,6 +79,21 @@ export const useUsageAnalytics = (topLimit: number = 8): UsageAnalyticsHook => {
     [usageCounts]
   );
 
+  // Total executions across all tools
+  const totalExecutions = useMemo(() => {
+    return Object.values(usageCounts).reduce((acc, curr) => acc + curr, 0);
+  }, [usageCounts]);
+
+  // Get tool share percentage
+  const getToolSharePercentage = useCallback(
+    (toolId: string): number => {
+      const count = usageCounts[toolId] || 0;
+      if (totalExecutions === 0) return 0;
+      return Number(((count / totalExecutions) * 100).toFixed(1));
+    },
+    [usageCounts, totalExecutions]
+  );
+
   // Format usage number into user-friendly text (e.g., "1.8k uses" or "980 uses")
   const getFormattedUsage = useCallback(
     (toolId: string): string => {
@@ -98,10 +117,29 @@ export const useUsageAnalytics = (topLimit: number = 8): UsageAnalyticsHook => {
   // Check if a tool is among the top popular tools
   const isMostPopular = useCallback(
     (toolId: string): boolean => {
-      return topToolIds.includes(toolId);
+      return topToolIds.slice(0, 8).includes(toolId);
     },
     [topToolIds]
   );
+
+  // Reset usage counters
+  const resetUsage = useCallback(() => {
+    setUsageCounts(DEFAULT_USAGE_COUNTS);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USAGE_COUNTS));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Simulate a random tool usage tick
+  const simulateRandomUsage = useCallback((): string => {
+    const keys = Object.keys(usageCounts);
+    if (keys.length === 0) return "";
+    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    trackToolUsage(randomKey);
+    return randomKey;
+  }, [usageCounts, trackToolUsage]);
 
   return {
     usageCounts,
@@ -110,5 +148,9 @@ export const useUsageAnalytics = (topLimit: number = 8): UsageAnalyticsHook => {
     getFormattedUsage,
     isMostPopular,
     topToolIds,
+    totalExecutions,
+    getToolSharePercentage,
+    resetUsage,
+    simulateRandomUsage,
   };
 };

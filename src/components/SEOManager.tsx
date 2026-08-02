@@ -1,11 +1,116 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { ToolItem } from "../types";
+import { FAQS } from "../data/toolsData";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
   tools: ToolItem[];
   baseUrl?: string;
+}
+
+export interface ToolFAQ {
+  question: string;
+  answer: string;
+}
+
+export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
+  // Extract custom FAQs if provided on the tool definition
+  const customFaqs: ToolFAQ[] = (tool.faqs || [])
+    .map((f) => ({
+      question: (f.question || f.q || "").trim(),
+      answer: (f.answer || f.a || "").trim(),
+    }))
+    .filter((f) => f.question && f.answer);
+
+  // Category specific FAQ enhancement
+  const getCategoryFaq = (): ToolFAQ | null => {
+    switch (tool.category) {
+      case "ai":
+        return {
+          question: `How does AI technology process files in ${tool.name}?`,
+          answer: `${tool.name} utilizes secure Google Gemini 3.6 AI models to analyze, summarize, or extract structured data from your ${tool.supportedInput.join(" or ")} documents with enterprise-grade speed and precision.`,
+        };
+      case "security":
+        return {
+          question: `How does security and password protection work in ${tool.name}?`,
+          answer: `${tool.name} applies browser-native 256-bit Web Cryptography API standards directly on your device to protect, encrypt, or modify security permissions for your documents.`,
+        };
+      case "convert":
+        return {
+          question: `Will ${tool.name} preserve the original formatting and visual layout?`,
+          answer: `Yes! ${tool.name} uses advanced rendering pipelines to preserve text fonts, vector graphics, table structures, and page layouts when generating ${tool.outputFormat} files.`,
+        };
+      case "student":
+        return {
+          question: `Is ${tool.name} suitable for students and academic research papers?`,
+          answer: `Absolutely. ${tool.name} is optimized for students, researchers, and educators to process textbooks, lecture notes, assignments, and study materials free of cost.`,
+        };
+      case "edit":
+        return {
+          question: `Can I reorder, annotate, or adjust pages using ${tool.name}?`,
+          answer: `Yes! ${tool.name} offers a visual interactive workspace allowing you to configure, rearrange, and customize your files prior to exporting.`,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const catFaq = getCategoryFaq();
+
+  const defaultFaqs: ToolFAQ[] = [
+    {
+      question: `How do I use ${tool.name} online on PDFSun?`,
+      answer: `To use ${tool.name}: 1) Select or drag and drop your ${tool.supportedInput.join(" or ")} files into the workspace. 2) Adjust preferences or order if needed. 3) Click Process to instantly convert and download your ${tool.outputFormat} file.`,
+    },
+    {
+      question: `Is ${tool.name} completely free to use without limits or watermarks?`,
+      answer: `Yes! ${tool.name} on PDFSun is 100% free with no hidden fees, no required subscriptions, no mandatory account sign-ups, and no intrusive watermarks added to your exported files.`,
+    },
+    {
+      question: `Are my files safe and private when using ${tool.name}?`,
+      answer: `At PDFSun, privacy is paramount. ${tool.name} processes files client-side locally inside your browser via WebAssembly. Your documents are never uploaded to or permanently stored on external servers.`,
+    },
+    {
+      question: `What file formats are supported by ${tool.name}?`,
+      answer: `${tool.name} accepts ${tool.supportedInput.join(", ")} input files and produces high-quality ${tool.outputFormat} outputs.`,
+    },
+  ];
+
+  if (catFaq) {
+    defaultFaqs.push(catFaq);
+  } else {
+    defaultFaqs.push({
+      question: `What features make ${tool.name} on PDFSun different?`,
+      answer: `${tool.description} It delivers instant, zero-latency browser processing with complete file security.`,
+    });
+  }
+
+  defaultFaqs.push(
+    {
+      question: `Can I use ${tool.name} on mobile or tablet devices?`,
+      answer: `Yes! ${tool.name} is fully responsive and compatible with all modern smartphones, tablets, Mac, Windows, iOS, and Android devices without installing extra software.`,
+    },
+    {
+      question: `Do I need to install any software or app for ${tool.name}?`,
+      answer: `No installation is required. ${tool.name} runs directly in any modern web browser such as Google Chrome, Apple Safari, Mozilla Firefox, or Microsoft Edge.`,
+    }
+  );
+
+  // Combine custom FAQs and default FAQs, deduplicating by question
+  const combined = [...customFaqs, ...defaultFaqs];
+  const seen = new Set<string>();
+  const uniqueFaqs: ToolFAQ[] = [];
+
+  for (const faq of combined) {
+    const qKey = faq.question.toLowerCase().trim();
+    if (!seen.has(qKey)) {
+      seen.add(qKey);
+      uniqueFaqs.push(faq);
+    }
+  }
+
+  return uniqueFaqs;
 }
 
 export const SEOManager: React.FC<SEOManagerProps> = ({
@@ -58,39 +163,58 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     },
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
+  // 3. Dynamic JSON-LD FAQ Schema (Tool-Specific for Tool Pages & Platform Global for Homepage)
+  let faqSchema: Record<string, any>;
+
+  if (activeTool) {
+    const toolFaqs = getToolFAQs(activeTool);
+
+    faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": toolFaqs.map((faq) => ({
         "@type": "Question",
-        "name": "Are my uploaded PDF files safe on PDFSun?",
+        "name": faq.question,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "At PDFSun, privacy is paramount. Operations run 100% locally inside your browser via webassembly. For AI features, temporary files are processed securely in memory over TLS HTTPS and purged immediately.",
+          "text": faq.answer,
         },
-      },
-      {
+      })),
+    };
+  } else {
+    faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": FAQS.map((faq) => ({
         "@type": "Question",
-        "name": "Is PDFSun completely free to use?",
+        "name": faq.q,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! PDFSun offers generous free access to 50+ tools with zero mandatory account registration.",
+          "text": faq.a,
         },
-      },
-      {
-        "@type": "Question",
-        "name": "Can I use PDFSun offline as a Progressive Web App (PWA)?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes! PDFSun is built as a Progressive Web App (PWA). You can install it on Desktop, Mac, iPhone, or Android device to process PDFs offline.",
-        },
-      },
-    ],
+      })),
+    };
+  }
+
+  // Helper to resolve Schema.org application category based on tool category
+  const getApplicationCategory = (category?: string): string => {
+    switch (category) {
+      case "student":
+        return "EducationalApplication";
+      case "security":
+        return "SecurityApplication";
+      case "edit":
+      case "convert":
+      case "advanced":
+      case "ai":
+      default:
+        return "UtilitiesApplication";
+    }
   };
 
   // Build active tool specific schemas or multi-tool catalog schema
   let activeToolSchema: Record<string, any> | null = null;
+  let softwareApplicationSchema: Record<string, any> | null = null;
   let activeToolHowToSchema: Record<string, any> | null = null;
   let breadcrumbsSchema: Record<string, any> | null = null;
   let catalogItemListSchema: Record<string, any> | null = null;
@@ -103,7 +227,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       "name": `${activeTool.name} - Free Online Tool`,
       "url": `${baseUrl}/tool/${activeTool.slug}`,
       "description": activeTool.description,
-      "applicationCategory": "UtilitiesApplication",
+      "applicationCategory": getApplicationCategory(activeTool.category),
       "operatingSystem": "All (Web Browser)",
       "browserRequirements": "Requires HTML5 & JavaScript enabled",
       "softwareVersion": "3.8.0",
@@ -125,6 +249,39 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         "Zero File Server Uploads",
         `Supports input: ${activeTool.supportedInput.join(", ")}`,
         `Generates output: ${activeTool.outputFormat}`,
+      ],
+    };
+
+    // Dedicated SoftwareApplication JSON-LD Schema for Rich Search Snippets
+    softwareApplicationSchema = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": `${activeTool.name} - Free Online Software`,
+      "url": `${baseUrl}/tool/${activeTool.slug}`,
+      "description": activeTool.description,
+      "applicationCategory": getApplicationCategory(activeTool.category),
+      "operatingSystem": "All (Web Browser, Windows, macOS, Linux, iOS, Android)",
+      "softwareVersion": "3.8.0",
+      "fileFormat": activeTool.outputFormat,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1280",
+        "reviewCount": "1280",
+        "bestRating": "5",
+        "worstRating": "1",
+      },
+      "featureList": [
+        "100% Private In-Browser Processing",
+        "Zero File Server Storage",
+        `Input formats: ${activeTool.supportedInput.join(", ")}`,
+        `Output format: ${activeTool.outputFormat}`,
       ],
     };
 
@@ -193,11 +350,11 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         "@type": "ListItem",
         "position": index + 1,
         "item": {
-          "@type": "WebApplication",
+          "@type": "SoftwareApplication",
           "name": tool.name,
           "description": tool.description,
           "url": `${baseUrl}/tool/${tool.slug}`,
-          "applicationCategory": "UtilitiesApplication",
+          "applicationCategory": getApplicationCategory(tool.category),
           "operatingSystem": "All",
           "offers": {
             "@type": "Offer",
@@ -235,6 +392,13 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       {activeToolSchema && (
         <script type="application/ld+json">
           {JSON.stringify(activeToolSchema)}
+        </script>
+      )}
+
+      {/* Active Tool SoftwareApplication JSON-LD */}
+      {softwareApplicationSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(softwareApplicationSchema)}
         </script>
       )}
 

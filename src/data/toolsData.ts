@@ -431,13 +431,27 @@ export const ALL_TOOLS: ToolItem[] = [
     id: "protect-pdf",
     name: "Protect PDF",
     slug: "protect-pdf",
-    description: "Encrypt your PDF with strong AES passwords to prevent unauthorized opening or printing.",
+    description: "Encrypt your PDF with strong passwords to prevent unauthorized opening, editing, or printing.",
     icon: "Lock",
     category: "security",
     isPopular: true,
     isPro: true,
     supportedInput: [".pdf"],
     outputFormat: "Encrypted PDF",
+    faqs: [
+      {
+        question: "How does PDF password protection work?",
+        answer: "Our Protect PDF tool encrypts your PDF file using browser-based password security to restrict unauthorized access, opening, and printing.",
+      },
+      {
+        question: "Is my password stored or uploaded to any server?",
+        answer: "No, all password encryption happens entirely inside your browser on your device. Neither your PDF nor your password is ever transmitted or stored on external servers.",
+      },
+      {
+        question: "Can I remove the password from my PDF later?",
+        answer: "Yes! If you know the password, you can use our Unlock PDF tool anytime to remove the password protection and restore full access.",
+      },
+    ],
   },
   {
     id: "unlock-pdf",
@@ -561,6 +575,19 @@ export const ALL_TOOLS: ToolItem[] = [
     category: "advanced",
     supportedInput: [".pdf"],
     outputFormat: "TXT File",
+  },
+  {
+    id: "read-pdf-metadata",
+    name: "Read PDF Metadata",
+    slug: "read-pdf-metadata",
+    description: "Extract and view hidden document properties like author, creation date, keywords, producer, and software used.",
+    icon: "FileSearch",
+    category: "advanced",
+    isPopular: true,
+    isStudentFavorite: true,
+    badge: "Inspect Info",
+    supportedInput: [".pdf"],
+    outputFormat: "Metadata Inspection / PDF Report",
   },
   {
     id: "pdf-metadata",

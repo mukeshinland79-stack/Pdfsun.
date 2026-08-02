@@ -32,7 +32,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Smart caching strategy for offline availability
+// Message Event Listener - For dynamic asset precaching & update triggers
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
+
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data.type === 'CACHE_URLS' && Array.isArray(event.data.urls)) {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) => {
+        return Promise.allSettled(
+          event.data.urls.map((url) =>
+            fetch(url, { cache: 'no-cache' })
+              .then((res) => {
+                if (res && res.status === 200) {
+                  return cache.put(url, res);
+                }
+              })
+              .catch(() => {})
+          )
+        );
+      })
+    );
+  }
+});
 self.addEventListener('fetch', (event) => {
   // Ignore non-GET requests or external extensions
   if (event.request.method !== 'GET') return;
@@ -66,7 +91,7 @@ self.addEventListener('fetch', (event) => {
           if (
             networkResponse &&
             networkResponse.status === 200 &&
-            (url.origin === location.origin || url.hostname.includes('cdnjs') || url.hostname.includes('jsdelivr'))
+            (url.origin === location.origin || url.hostname.includes('cdnjs') || url.hostname.includes('jsdelivr') || url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com'))
           ) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
