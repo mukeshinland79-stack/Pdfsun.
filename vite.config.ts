@@ -6,11 +6,14 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [tailwindcss(), react()],
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime'],
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

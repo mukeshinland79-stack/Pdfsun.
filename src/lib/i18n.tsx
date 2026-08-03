@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 
 export interface LanguageOption {
   code: string;
@@ -742,27 +742,45 @@ interface LanguageContextType {
   t: (key: string, fallback?: string) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const defaultLanguageOption = SUPPORTED_LANGUAGES[0];
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>(() => {
-    if (typeof window === "undefined") return "en";
+const defaultContextValue: LanguageContextType = {
+  currentLanguage: "en",
+  setLanguage: () => {},
+  languageOption: defaultLanguageOption,
+  isRtl: false,
+  t: (key: string, fallback?: string) => TRANSLATIONS.en?.[key] || fallback || key,
+};
+
+const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
+
+export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const [currentLanguage, setCurrentLanguageState] = useState<string>("en");
+
+  // Safely initialize language from storage or navigator after initial mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     try {
       const saved = localStorage.getItem("pdfsun_language");
       if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-        return saved;
+        setCurrentLanguageState(saved);
+        return;
       }
-      const navLang = typeof navigator !== "undefined" ? navigator.language : "en";
+      const navLang = typeof navigator !== "undefined" && navigator ? navigator.language : "en";
       const browserLang = navLang ? navLang.split("-")[0] : "en";
       const matched = SUPPORTED_LANGUAGES.find((l) => l.code === browserLang || l.code === navLang);
-      return matched ? matched.code : "en";
+      if (matched) {
+        setCurrentLanguageState(matched.code);
+      }
     } catch {
-      return "en";
+      // Fallback silently to default language "en"
     }
-  });
+  }, []);
 
-  const languageOption =
-    SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || SUPPORTED_LANGUAGES[0];
+  const languageOption = useMemo(
+    () => SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || defaultLanguageOption,
+    [currentLanguage]
+  );
   const isRtl = !!languageOption.isRtl;
 
   useEffect(() => {
@@ -781,42 +799,39 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [currentLanguage, isRtl]);
 
-  const setLanguage = (code: string) => {
+  const setLanguage = useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
       setCurrentLanguageState(code);
     }
-  };
+  }, []);
 
-  const t = (key: string, fallback?: string): string => {
-    const dict = TRANSLATIONS[currentLanguage] || TRANSLATIONS["en"];
-    if (dict && dict[key]) {
-      return dict[key];
-    }
-    if (TRANSLATIONS["en"] && TRANSLATIONS["en"][key]) {
-      return TRANSLATIONS["en"][key];
-    }
-    return fallback || key;
-  };
+  const t = useCallback(
+    (key: string, fallback?: string): string => {
+      const dict = TRANSLATIONS[currentLanguage] || TRANSLATIONS["en"];
+      if (dict && dict[key]) {
+        return dict[key];
+      }
+      if (TRANSLATIONS["en"] && TRANSLATIONS["en"][key]) {
+        return TRANSLATIONS["en"][key];
+      }
+      return fallback || key;
+    },
+    [currentLanguage]
+  );
+
+  const contextValue = useMemo(
+    () => ({ currentLanguage, setLanguage, languageOption, isRtl, t }),
+    [currentLanguage, setLanguage, languageOption, isRtl, t]
+  );
 
   return (
-    <LanguageContext.Provider value={{ currentLanguage, setLanguage, languageOption, isRtl, t }}>
-      {children}
+    <LanguageContext.Provider value={contextValue}>
+      {children || null}
     </LanguageContext.Provider>
   );
 };
 
 export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
-  if (!context) {
-    // Fallback if rendered outside provider
-    const languageOption = SUPPORTED_LANGUAGES[0];
-    return {
-      currentLanguage: "en",
-      setLanguage: () => {},
-      languageOption,
-      isRtl: false,
-      t: (key: string, fallback?: string) => TRANSLATIONS.en[key] || fallback || key,
-    };
-  }
-  return context;
+  return context || defaultContextValue;
 };

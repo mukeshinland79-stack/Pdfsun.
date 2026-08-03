@@ -1,5 +1,5 @@
 import React, { ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Copy, Check, Trash2, Bug } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -12,6 +12,7 @@ interface State {
   errorInfo: ErrorInfo | null;
   copied: boolean;
   showDetails: boolean;
+  clearedStorage: boolean;
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
@@ -21,6 +22,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     errorInfo: null,
     copied: false,
     showDetails: false,
+    clearedStorage: false,
   };
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
@@ -28,8 +30,29 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Unhandled runtime exception caught by ErrorBoundary:', error, errorInfo);
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] Unhandled runtime exception caught by ErrorBoundary:`, error);
+    if (errorInfo?.componentStack) {
+      console.error('Component Stack:', errorInfo.componentStack);
+    }
+    console.error('Error Details:', {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack,
+      componentStack: errorInfo?.componentStack,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+    });
+
     this.setState({ errorInfo });
+
+    // Dispatch event for telemetry or global error listeners if registered
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('app-runtime-error', {
+          detail: { error, errorInfo, timestamp },
+        })
+      );
+    }
   }
 
   private handleReset = () => {
@@ -39,7 +62,26 @@ export class ErrorBoundary extends React.Component<Props, State> {
       errorInfo: null,
       copied: false,
       showDetails: false,
+      clearedStorage: false,
     });
+  };
+
+  private handleClearStorageAndReload = () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.clear();
+      }
+      this.setState({ clearedStorage: true });
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    } catch (e) {
+      console.error('Failed to clear storage:', e);
+      window.location.reload();
+    }
   };
 
   private handleReload = () => {
@@ -47,11 +89,25 @@ export class ErrorBoundary extends React.Component<Props, State> {
   };
 
   private handleCopyError = () => {
-    const errorText = `Error: ${this.state.error?.message || 'Unknown error'}\n\nStack:\n${this.state.error?.stack || 'N/A'}\n\nComponent Stack:\n${this.state.errorInfo?.componentStack || 'N/A'}`;
+    const errorText = `[Error Report - ${new Date().toISOString()}]\nMessage: ${this.state.error?.message || 'Unknown error'}\nName: ${this.state.error?.name || 'Error'}\n\nStack:\n${this.state.error?.stack || 'N/A'}\n\nComponent Stack:\n${this.state.errorInfo?.componentStack || 'N/A'}`;
     navigator.clipboard.writeText(errorText).then(() => {
       this.setState({ copied: true });
       setTimeout(() => this.setState({ copied: false }), 2000);
     }).catch(() => {});
+  };
+
+  private getDiagnosticHint = (): string | null => {
+    const msg = (this.state.error?.message || '').toLowerCase();
+    if (msg.includes('usecontext') || msg.includes('usestate') || msg.includes('null')) {
+      return 'Diagnostic Tip: This issue may be caused by a component rendering outside its required Provider context or a stale cached state. Trying "Clear Storage & Reload" will reset application preferences safely.';
+    }
+    if (msg.includes('localstorage') || msg.includes('quota') || msg.includes('storage')) {
+      return 'Diagnostic Tip: Browser storage quota or permission issue detected. Clearing local cache may resolve this.';
+    }
+    if (msg.includes('failed to fetch') || msg.includes('network')) {
+      return 'Diagnostic Tip: Network connectivity problem detected. Check your connection and try reloading.';
+    }
+    return null;
   };
 
   public render() {
@@ -59,6 +115,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
       if (this.props.fallback) {
         return this.props.fallback;
       }
+
+      const diagnosticHint = this.getDiagnosticHint();
 
       return (
         <div className="min-h-screen bg-amber-50/40 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex items-center justify-center p-4 sm:p-6 select-none font-sans">
@@ -77,8 +135,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
               </div>
             </div>
 
-            <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl p-4 text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-mono break-words leading-relaxed">
-              {this.state.error?.message || 'An unexpected runtime error occurred.'}
+            <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl p-4 text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-mono break-words leading-relaxed space-y-2">
+              <div>{this.state.error?.message || 'An unexpected runtime error occurred.'}</div>
+              {diagnosticHint && (
+                <div className="text-xs text-amber-800 dark:text-amber-300 font-sans pt-2 border-t border-amber-200/60 dark:border-amber-900/50 flex items-start gap-2">
+                  <Bug className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <span>{diagnosticHint}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -89,6 +153,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Recovering Workspace
+              </button>
+
+              <button
+                type="button"
+                onClick={this.handleClearStorageAndReload}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/60 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 font-medium text-xs sm:text-sm transition-colors"
+                title="Reset stored settings and reload"
+              >
+                <Trash2 className="w-4 h-4" />
+                {this.state.clearedStorage ? 'Clearing...' : 'Clear Storage & Reload'}
               </button>
 
               <button
@@ -156,3 +230,4 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return this.props.children;
   }
 }
+
