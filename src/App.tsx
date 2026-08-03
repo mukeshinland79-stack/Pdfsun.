@@ -11,6 +11,7 @@ import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
 import { NewsletterSubscription } from "./components/NewsletterSubscription";
+import { EducationalAds } from "./components/EducationalAds";
 import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
 import { PolicyModals } from "./components/PolicyModals";
@@ -452,6 +453,9 @@ export default function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
+
+        {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}
+        <EducationalAds />
 
         {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
         {adPlacements.some((p) => p.id === "incontent-grid-ad") && (

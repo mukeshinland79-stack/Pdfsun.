@@ -498,9 +498,89 @@ app.get("/api/admin/system-stats", (req, res) => {
   });
 });
 
+// Security Headers & Canonical Domain Middleware
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+
+  const host = req.headers.host || "";
+  const proto = req.headers["x-forwarded-proto"] || req.protocol;
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    !host.includes("localhost") &&
+    !host.includes("127.0.0.1") &&
+    !host.includes("run.app") &&
+    (host === "pdfsun.com" || host === "www.pdfsun.com" || host === "www.pdfsun.in" || proto === "http")
+  ) {
+    return res.redirect(301, `https://pdfsun.in${req.originalUrl}`);
+  }
+
+  next();
+});
+
+// Dynamic Robots.txt
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain");
+  res.send(`User-agent: *
+Allow: /
+Disallow: /api/admin/
+
+Sitemap: https://pdfsun.in/sitemap.xml
+`);
+});
+
+// Dynamic Sitemap.xml
+app.get("/sitemap.xml", (req, res) => {
+  res.type("application/xml");
+  const tools = [
+    "",
+    "merge-pdf",
+    "split-pdf",
+    "compress-pdf",
+    "rotate-pdf",
+    "delete-pages",
+    "organize-pdf",
+    "protect-pdf",
+    "unlock-pdf",
+    "watermark-pdf",
+    "pdf-to-word",
+    "word-to-pdf",
+    "pdf-to-excel",
+    "excel-to-pdf",
+    "pdf-to-ppt",
+    "ppt-to-pdf",
+    "pdf-to-jpg",
+    "jpg-to-pdf",
+    "html-to-pdf",
+    "ocr-pdf",
+    "ai-summary",
+    "ai-chat"
+  ];
+
+  const sitemapEntries = tools
+    .map(
+      (slug) => `  <url>
+    <loc>https://pdfsun.in/${slug}</loc>
+    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${slug === "" ? "1.0" : "0.8"}</priority>
+  </url>`
+    )
+    .join("\n");
+
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries}
+</urlset>`);
+});
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", app: "PDFSun", domain: "pdfsun.com", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", app: "PDFSun", domain: "pdfsun.in", timestamp: new Date().toISOString() });
 });
 
 async function startServer() {

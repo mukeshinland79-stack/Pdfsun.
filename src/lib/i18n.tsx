@@ -8,7 +8,7 @@ export interface LanguageOption {
   isRtl?: boolean;
 }
 
-export const SUPPORTED_LANGUAGES: LanguageOption[] = [
+export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
   { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳" },
@@ -321,7 +321,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   gu: {
     home: "હોમ",
     allTools: "બધા PDF સાધનો",
-    aiSuite: "AI દસ્તાવેજ సూટ",
+    aiSuite: "AI દસ્તાવેજ સૂટ",
     searchPlaceholder: "50+ સાધનો શોધો...",
     history: "તાજેતરનો ઇતિહાસ",
     favorites: "મનપસંદ સાધનો",
@@ -666,7 +666,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     adManagement: "広告管理",
     websiteSettings: "Webサイト設定",
     reports: "レポート",
-    systemLogs: "系统ログ",
+    systemLogs: "システムログ",
     backupRestore: "バックアップと復元",
     heroTitle: "エンタープライズPDFツール＆AIドキュメントエンジン",
     heroSub: "100% ブラウザ内WebAssembly処理。プライベート、高速、安全。",
@@ -734,70 +734,137 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
 };
 
-interface LanguageContextType {
+export type TranslationParams = Record<string, string | number>;
+
+export interface LanguageContextType {
   currentLanguage: string;
   setLanguage: (code: string) => void;
   languageOption: LanguageOption;
   isRtl: boolean;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string) => string;
 }
 
-const defaultLanguageOption = SUPPORTED_LANGUAGES[0];
+const DEFAULT_LANGUAGE = "en";
+const STORAGE_KEY = "pdfsun_language";
+
+const defaultLanguageOption: LanguageOption =
+  SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) || SUPPORTED_LANGUAGES[0];
+
+const interpolate = (template: string, params?: TranslationParams): string => {
+  if (!params || typeof template !== "string") return template || "";
+  return Object.entries(params).reduce(
+    (acc, [key, val]) => acc.replace(new RegExp(`\\{${key}\\}`, "g"), String(val)),
+    template
+  );
+};
 
 const defaultContextValue: LanguageContextType = {
-  currentLanguage: "en",
+  currentLanguage: DEFAULT_LANGUAGE,
   setLanguage: () => {},
   languageOption: defaultLanguageOption,
   isRtl: false,
-  t: (key: string, fallback?: string) => TRANSLATIONS.en?.[key] || fallback || key,
+  t: (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string): string => {
+    let params: TranslationParams | undefined;
+    let fallbackText: string | undefined;
+
+    if (typeof paramsOrFallback === "string") {
+      fallbackText = paramsOrFallback;
+    } else {
+      params = paramsOrFallback;
+      fallbackText = fallback;
+    }
+
+    const dict = TRANSLATIONS[DEFAULT_LANGUAGE];
+    const rawTranslation = dict?.[key] ?? fallbackText ?? key;
+    return interpolate(rawTranslation, params);
+  },
 };
 
 const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>("en");
+  const [currentLanguage, setCurrentLanguageState] = useState<string>(DEFAULT_LANGUAGE);
 
-  // Safely initialize language from storage or navigator after initial mount
+  // Synchronize language state from localStorage or browser settings AFTER initial mount
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem("pdfsun_language");
-      if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-        setCurrentLanguageState(saved);
-        return;
+
+    const resolveInitialLanguage = (): string => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
+          return saved;
+        }
+
+        const nav = typeof navigator !== "undefined" && navigator ? navigator : null;
+        if (nav) {
+          const preferredLangs = Array.isArray(nav.languages) && nav.languages.length > 0
+            ? nav.languages
+            : [nav.language];
+
+          for (const rawLang of preferredLangs) {
+            if (!rawLang || typeof rawLang !== "string") continue;
+            const primaryLang = rawLang.split("-")[0].toLowerCase();
+            const matched = SUPPORTED_LANGUAGES.find(
+              (l) => l.code.toLowerCase() === rawLang.toLowerCase() || l.code.toLowerCase() === primaryLang
+            );
+            if (matched) return matched.code;
+          }
+        }
+      } catch {
+        // Handle security restrictions or private browsing quietly
       }
-      const navLang = typeof navigator !== "undefined" && navigator ? navigator.language : "en";
-      const browserLang = navLang ? navLang.split("-")[0] : "en";
-      const matched = SUPPORTED_LANGUAGES.find((l) => l.code === browserLang || l.code === navLang);
-      if (matched) {
-        setCurrentLanguageState(matched.code);
-      }
-    } catch {
-      // Fallback silently to default language "en"
+      return DEFAULT_LANGUAGE;
+    };
+
+    const initialLang = resolveInitialLanguage();
+    if (initialLang !== DEFAULT_LANGUAGE) {
+      setCurrentLanguageState(initialLang);
     }
+
+    // Handle cross-tab or multi-window language updates
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        if (SUPPORTED_LANGUAGES.some((l) => l.code === e.newValue)) {
+          setCurrentLanguageState(e.newValue);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
+
+  // Update HTML document direction (dir) and lang attributes, and sync localStorage
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, currentLanguage);
+    } catch {
+      // Ignore quota or private browsing errors
+    }
+
+    const matchedOption = SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage);
+    const isRtl = !!matchedOption?.isRtl;
+
+    document.documentElement.lang = currentLanguage;
+    document.documentElement.dir = isRtl ? "rtl" : "ltr";
+    if (isRtl) {
+      document.documentElement.classList.add("rtl");
+    } else {
+      document.documentElement.classList.remove("rtl");
+    }
+  }, [currentLanguage]);
 
   const languageOption = useMemo(
     () => SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || defaultLanguageOption,
     [currentLanguage]
   );
-  const isRtl = !!languageOption.isRtl;
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem("pdfsun_language", currentLanguage);
-    } catch {
-      // Ignore quota or security errors
-    }
-    if (isRtl) {
-      document.documentElement.dir = "rtl";
-      document.documentElement.classList.add("rtl");
-    } else {
-      document.documentElement.dir = "ltr";
-      document.documentElement.classList.remove("rtl");
-    }
-  }, [currentLanguage, isRtl]);
+  const isRtl = !!languageOption.isRtl;
 
   const setLanguage = useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
@@ -806,18 +873,56 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
   }, []);
 
   const t = useCallback(
-    (key: string, fallback?: string): string => {
-      const dict = TRANSLATIONS[currentLanguage] || TRANSLATIONS["en"];
-      if (dict && dict[key]) {
-        return dict[key];
+    (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string): string => {
+      let params: TranslationParams | undefined;
+      let fallbackText: string | undefined;
+
+      if (typeof paramsOrFallback === "string") {
+        fallbackText = paramsOrFallback;
+      } else {
+        params = paramsOrFallback;
+        fallbackText = fallback;
       }
-      if (TRANSLATIONS["en"] && TRANSLATIONS["en"][key]) {
-        return TRANSLATIONS["en"][key];
-      }
-      return fallback || key;
+
+      const currentDict = TRANSLATIONS[currentLanguage];
+      const defaultDict = TRANSLATIONS[DEFAULT_LANGUAGE];
+
+      const rawTranslation = currentDict?.[key] ?? defaultDict?.[key] ?? fallbackText ?? key;
+      return interpolate(rawTranslation, params);
     },
     [currentLanguage]
   );
+
+  // Dynamic DOM Translation Loop (Top <header> down to <main>, STRICTLY EXCLUDING <footer> container and descendants)
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const isInsideFooter = (node: Node): boolean => {
+      let current: Node | null = node;
+      while (current && current !== document.body) {
+        if (current.nodeType === Node.ELEMENT_NODE) {
+          const el = current as HTMLElement;
+          if (el.tagName.toLowerCase() === "footer" || el.closest("footer")) {
+            return true;
+          }
+        }
+        current = current.parentNode;
+      }
+      return false;
+    };
+
+    const headerAndMainElements = Array.from(document.querySelectorAll("header, main, [data-i18n]"));
+    headerAndMainElements.forEach((el) => {
+      if (isInsideFooter(el)) return; // STRICT DOM EXCLUSION RULE FOR FOOTER
+      const i18nKey = el.getAttribute("data-i18n");
+      if (i18nKey) {
+        const translated = t(i18nKey);
+        if (translated && translated !== i18nKey) {
+          el.textContent = translated;
+        }
+      }
+    });
+  }, [currentLanguage, t]);
 
   const contextValue = useMemo(
     () => ({ currentLanguage, setLanguage, languageOption, isRtl, t }),
@@ -826,7 +931,7 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
 
   return (
     <LanguageContext.Provider value={contextValue}>
-      {children || null}
+      {children ?? null}
     </LanguageContext.Provider>
   );
 };

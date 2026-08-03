@@ -1,7 +1,7 @@
 {
   "short_name": "PDFSun",
-  "name": "PDFSun - Free Online PDF & AI Suite",
-  "description": "Enterprise-grade, 100% private in-browser PDF suite offering 50+ free utilities: Merge, Split, Compress, AI Chat, OCR, e-Sign, and PDF Conversion.",
+  "name": "PDFSun – Smart PDF Tools Online",
+  "description": "Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

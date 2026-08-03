@@ -1,0 +1,30 @@
+{
+  "supportedLanguages": [
+    { "code": "en", "name": "English", "nativeName": "English", "flag": "🇺🇸" },
+    { "code": "hi", "name": "Hindi", "nativeName": "हिन्दी", "flag": "🇮🇳" },
+    { "code": "es", "name": "Spanish", "nativeName": "Español", "flag": "🇪🇸" },
+    { "code": "fr", "name": "French", "nativeName": "Français", "flag": "🇫🇷" },
+    { "code": "de", "name": "German", "nativeName": "Deutsch", "flag": "🇩🇪" },
+    { "code": "zh", "name": "Chinese", "nativeName": "中文", "flag": "🇨🇳" },
+    { "code": "ja", "name": "Japanese", "nativeName": "日本語", "flag": "🇯🇵" },
+    { "code": "ar", "name": "Arabic", "nativeName": "العربية", "flag": "🇸🇦", "isRtl": true }
+  ],
+  "translations": {
+    "en": {
+      "home": "Home",
+      "allTools": "All PDF Tools",
+      "aiSuite": "AI Tools",
+      "searchPlaceholder": "Search 50+ tools (Cmd+K)...",
+      "heroTitle": "Enterprise PDF Tools & AI Document Engine",
+      "heroSub": "100% Client-Side WebAssembly Processing. Private, Fast, & Secure."
+    },
+    "hi": {
+      "home": "मुख्य पृष्ठ",
+      "allTools": "सभी पीडीएफ उपकरण",
+      "aiSuite": "एआई दस्तावेज सूट",
+      "searchPlaceholder": "50+ उपकरण खोजें (Cmd+K)...",
+      "heroTitle": "इंटरप्राइज पीडीएफ टूल और एआई डॉक्यूमेंट इंजन",
+      "heroSub": "100% क्लाइंट-साइड वेबअसेंबली प्रोसेसिंग। सुरक्षित और तेज़।"
+    }
+  }
+}

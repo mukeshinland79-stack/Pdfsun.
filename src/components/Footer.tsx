@@ -296,7 +296,7 @@ export const Footer: React.FC<FooterProps> = ({
             <span>🇮🇳</span>
             <strong className="text-white">Proudly Made in India</strong>
             <span>•</span>
-            <span>© 2026 <strong className="text-white">PDFSun</strong>. All Rights Reserved.</span>
+            <span>© 2026 <strong className="text-white">PDFSun.in</strong>. All Rights Reserved.</span>
           </div>
 
           <div className="flex items-center space-x-2">

@@ -34,7 +34,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
     if (typeof window !== "undefined" && window.location && window.location.origin) {
       return window.location.origin;
     }
-    return "https://pdfsun.com";
+    return "https://pdfsun.in";
   });
 
   const [copied, setCopied] = useState(false);

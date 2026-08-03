@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                   PRO
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider">pdfsun.vercel.app</span>
+              <span className="text-[10px] font-bold text-slate-400 tracking-wider">pdfsun.in</span>
             </div>
           </div>
 

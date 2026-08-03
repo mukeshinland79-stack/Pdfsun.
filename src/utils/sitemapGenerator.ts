@@ -47,7 +47,7 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
     if (typeof window !== "undefined" && window.location && window.location.origin) {
       baseUrl = window.location.origin;
     } else {
-      baseUrl = "https://pdfsun.com";
+      baseUrl = "https://pdfsun.in";
     }
   }
   // Strip trailing slash

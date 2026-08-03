@@ -1,0 +1,51 @@
+/* PDFSun Global Theme Variables & Educational Ad Grid System */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #0f172a;
+  --accent-color: #2563eb;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-color: #e2e8f0;
+  --accent-hover: #1d4ed8;
+}
+
+.dark {
+  --bg-color: #0f172a;
+  --text-color: #f8fafc;
+  --accent-color: #3b82f6;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --accent-hover: #60a5fa;
+}
+
+/* Responsive Ad Grid Layout */
+.educational-ad-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .educational-ad-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Gently scale up and shift shadow on hover for engagement */
+.educational-ad-grid > * {
+  transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 350ms ease;
+  will-change: transform, box-shadow;
+}
+
+.educational-ad-grid > *:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 22px 40px -10px rgba(0, 0, 0, 0.18), 0 10px 20px -5px rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}

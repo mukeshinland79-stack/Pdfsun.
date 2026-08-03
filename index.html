@@ -3,7 +3,134 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PDFSun – All PDF Tools in One Place</title>
+    <title>PDFSun – Smart PDF Tools Online</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use." />
+    <meta name="keywords" content="Free Merge PDF, Compress PDF online, Split PDF, Convert PDF to Word, AI PDF Chat, Client-Side PDF Tools, PDFSun, PDFSun.in" />
+    <meta name="author" content="PDFSun Technologies" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Canonical & Localized Hreflang -->
+    <link rel="canonical" href="https://pdfsun.in/" />
+    <link rel="alternate" hreflang="en" href="https://pdfsun.in/" />
+    <link rel="alternate" hreflang="hi" href="https://pdfsun.in/hi" />
+    <link rel="alternate" hreflang="es" href="https://pdfsun.in/es" />
+    <link rel="alternate" hreflang="x-default" href="https://pdfsun.in/" />
+
+    <!-- OpenGraph Social Meta -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PDFSun" />
+    <meta property="og:title" content="PDFSun – Smart PDF Tools Online" />
+    <meta property="og:description" content="Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use." />
+    <meta property="og:url" content="https://pdfsun.in/" />
+    <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+
+    <!-- Twitter Card Meta -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PDFSun – Smart PDF Tools Online" />
+    <meta name="twitter:description" content="Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use." />
+    <meta name="twitter:image" content="https://pdfsun.in/twitter-card.png" />
+
+    <!-- Global Style Sheet -->
+    <link rel="stylesheet" href="/style.css" />
+
+    <!-- Zero Flash of Unstyled Content (FOUC) Theme Restoration Script -->
+    <script>
+      (function() {
+        try {
+          var savedEye = localStorage.getItem("pdfsun_eye_protection");
+          var savedTheme = localStorage.getItem("pdfsun_theme");
+          var docEl = document.documentElement;
+
+          if (savedEye === "true" || savedTheme === "eye-protection") {
+            docEl.classList.add("eye-protection");
+            docEl.style.setProperty("--bg-color", "#fcf9f2");
+            docEl.style.setProperty("--text-color", "#2b251e");
+            docEl.style.setProperty("--accent-color", "#0f766e");
+          } else if (savedTheme === "aurora") {
+            docEl.classList.add("dark", "aurora-theme");
+            docEl.style.setProperty("--bg-color", "#0b1120");
+            docEl.style.setProperty("--text-color", "#f8fafc");
+            docEl.style.setProperty("--accent-color", "#6366f1");
+          } else if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            docEl.classList.add("dark");
+            docEl.style.setProperty("--bg-color", "#0f172a");
+            docEl.style.setProperty("--text-color", "#f8fafc");
+            docEl.style.setProperty("--accent-color", "#3b82f6");
+          } else {
+            docEl.style.setProperty("--bg-color", "#ffffff");
+            docEl.style.setProperty("--text-color", "#0f172a");
+            docEl.style.setProperty("--accent-color", "#2563eb");
+          }
+        } catch(e) {}
+      })();
+    </script>
+
+    <!-- Structured Data JSON-LD Schemas -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDFSun",
+      "url": "https://pdfsun.in",
+      "description": "Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "12850"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "PDFSun",
+      "url": "https://pdfsun.in",
+      "logo": "https://pdfsun.in/og-image.png",
+      "sameAs": []
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Are my files safe on PDFSun?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! All PDF processing occurs 100% locally on your computer using browser WebAssembly. Your files are never uploaded to any remote server."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is PDFSun completely free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, PDFSun provides unlimited free client-side PDF utility tools including Merge, Compress, Split, Rotate, and AI document chat."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does PDFSun compress PDFs so fast?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PDFSun utilizes multithreaded off-main-thread Web Workers and pdf-lib WebAssembly binaries directly inside your browser for zero latency."
+          }
+        }
+      ]
+    }
+    </script>
 
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json" />

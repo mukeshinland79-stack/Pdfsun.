@@ -12,6 +12,19 @@ registerServiceWorker();
 
 // Silence benign Vite HMR WebSocket connection warnings in sandboxed preview
 if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const msg = args.map((a) => (typeof a === 'object' ? String(a?.message || JSON.stringify(a)) : String(a))).join(' ');
+    if (
+      msg.includes('WebSocket closed without opened') ||
+      msg.includes('failed to connect to websocket') ||
+      msg.includes('[vite] failed to connect')
+    ) {
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
   window.addEventListener('unhandledrejection', (event) => {
     const reasonStr = String(
       event.reason?.message ||
@@ -34,10 +47,27 @@ if (typeof window !== 'undefined') {
       }
     }
   });
+
+  window.addEventListener('error', (event) => {
+    const errorMsg = String(event.message || event.error?.message || '');
+    if (
+      errorMsg.includes('WebSocket') ||
+      errorMsg.includes('vite') ||
+      errorMsg.includes('closed without opened') ||
+      errorMsg.includes('failed to connect') ||
+      errorMsg.includes('ws://') ||
+      errorMsg.includes('wss://')
+    ) {
+      event.preventDefault();
+      if (typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+    }
+  });
 }
 
 // Global Pointerdown Ripple & Touch Feedback Engine for Interactive Buttons
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   document.addEventListener('pointerdown', (e) => {
     const target = (e.target as HTMLElement)?.closest('button, [role="button"], .btn-interactive, .btn-primary, .btn-secondary, .btn-accent, .btn-cta, a.btn');
     if (!target) return;
@@ -75,14 +105,17 @@ if (typeof window !== 'undefined') {
   });
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <LanguageProvider>
-        <HelmetProvider>
-          <App />
-        </HelmetProvider>
-      </LanguageProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-);
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <LanguageProvider>
+          <HelmetProvider>
+            <App />
+          </HelmetProvider>
+        </LanguageProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+}

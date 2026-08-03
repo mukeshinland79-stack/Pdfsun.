@@ -1,0 +1,42 @@
+{
+  "educationalAds": [
+    {
+      "id": "ad-iit-engineering",
+      "institution": "Indian Institute of Technology (IIT)",
+      "badge": "Sponsored / Worldwide Top Tier",
+      "title": "IIT World-Class Tech & Engineering Programs",
+      "subtitle": "Worldwide Best in Class Engineering & Tech Education",
+      "description": "Advance your technology career with prestigious certifications and master's degrees from IIT. Ranked among the top 50 engineering institutions globally.",
+      "metrics": [
+        "Top 1% Global Engineering",
+        "100% Placement Record",
+        "Advanced AI & Robotics Labs"
+      ],
+      "ctaText": "Explore IIT Admissions & Programs",
+      "ctaUrl": "https://jeeadv.ac.in",
+      "bannerUrl": "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80",
+      "logo": "🎓",
+      "accentGradient": "from-amber-500 via-orange-600 to-red-600",
+      "badgeStyle": "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+    },
+    {
+      "id": "ad-iim-management",
+      "institution": "Indian Institute of Management (IIM)",
+      "badge": "Sponsored / Worldwide Top Tier",
+      "title": "IIM Global Business & Executive Leadership",
+      "subtitle": "Global Excellence in Management & Leadership",
+      "description": "Transform into an enterprise leader with executive MBAs and corporate leadership diplomas from top IIMs. World-class standards in executive business education.",
+      "metrics": [
+        "AACSB & EQUIS Accredited",
+        "Global Alumni Network",
+        "Fortune 500 Leadership Focus"
+      ],
+      "ctaText": "Apply for IIM Management Programs",
+      "ctaUrl": "https://iimcat.ac.in",
+      "bannerUrl": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
+      "logo": "🏛️",
+      "accentGradient": "from-blue-600 via-indigo-600 to-purple-700",
+      "badgeStyle": "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
+    }
+  ]
+}
