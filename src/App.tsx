@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
+import { Analytics } from "@vercel/analytics/react";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
 import { ToolGrid } from "./components/ToolGrid";
@@ -590,6 +591,9 @@ export default function App() {
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
