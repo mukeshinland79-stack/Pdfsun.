@@ -34,14 +34,20 @@
 
 /* Gently scale up and shift shadow on hover for engagement */
 .educational-ad-grid > * {
+  border-radius: 1rem !important;
+  border: 1px solid #e2e8f0;
   transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1), 
               box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1), 
               border-color 350ms ease;
   will-change: transform, box-shadow;
 }
 
+.dark .educational-ad-grid > * {
+  border-color: #334155;
+}
+
 .educational-ad-grid > *:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 22px 40px -10px rgba(0, 0, 0, 0.18), 0 10px 20px -5px rgba(245, 158, 11, 0.25);
-  border-color: rgba(245, 158, 11, 0.5) !important;
+  border-color: #fbbf24 !important;
 }

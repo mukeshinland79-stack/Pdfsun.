@@ -36,6 +36,7 @@ interface ToolGridProps {
   setSelectedCategory: (cat: CategoryId) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  onPageChange?: (page: number, totalPages: number) => void;
 }
 
 export const ToolGrid: React.FC<ToolGridProps> = ({
@@ -46,9 +47,18 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   setSelectedCategory,
   searchQuery,
   setSearchQuery,
+  onPageChange,
 }) => {
   const { isMostPopular, getFormattedUsage, trackToolUsage } = useUsageAnalytics();
   const { getToolRating, rateTool } = useToolRatings();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 16;
+
+  // Reset page when category or search query changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
 
   // Filter tools based on category and search query
   const filteredTools = useMemo(() => {
@@ -74,6 +84,19 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       return matchesCategory && matchesSearch;
     });
   }, [selectedCategory, searchQuery, isMostPopular]);
+
+  const totalPages = Math.ceil(filteredTools.length / pageSize) || 1;
+
+  React.useEffect(() => {
+    if (onPageChange) {
+      onPageChange(currentPage, totalPages);
+    }
+  }, [currentPage, totalPages, onPageChange]);
+
+  const paginatedTools = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTools.slice(start, start + pageSize);
+  }, [filteredTools, currentPage, pageSize]);
 
   return (
     <section id="tools" className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
@@ -131,23 +154,72 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
       {/* Tools Grid Display */}
       {filteredTools.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredTools.map((tool) => (
-            <ToolCard
-              key={tool.id}
-              tool={tool}
-              isFavorite={favorites.includes(tool.id)}
-              onToggleFavorite={onToggleFavorite}
-              onSelectTool={(selected) => {
-                trackToolUsage(selected.id);
-                onSelectTool(selected);
-              }}
-              isMostPopular={isMostPopular(tool.id) || tool.isPopular}
-              usageFormatted={getFormattedUsage(tool.id)}
-              ratingState={getToolRating(tool.id)}
-              onRateTool={rateTool}
-            />
-          ))}
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {paginatedTools.map((tool) => (
+              <ToolCard
+                key={tool.id}
+                tool={tool}
+                isFavorite={favorites.includes(tool.id)}
+                onToggleFavorite={onToggleFavorite}
+                onSelectTool={(selected) => {
+                  trackToolUsage(selected.id);
+                  onSelectTool(selected);
+                }}
+                isMostPopular={isMostPopular(tool.id) || tool.isPopular}
+                usageFormatted={getFormattedUsage(tool.id)}
+                ratingState={getToolRating(tool.id)}
+                onRateTool={rateTool}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                PDF Sun - Page <span className="text-orange-500 font-black">{currentPage}</span> of {totalPages} ({filteredTools.length} total tools)
+              </div>
+              <div className="flex items-center space-x-1.5 flex-wrap justify-center">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => {
+                      setCurrentPage(page);
+                      document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition ${
+                      currentPage === page
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/20"
+                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="py-16 text-center space-y-3 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">

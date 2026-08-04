@@ -174,9 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div
             className="flex items-center space-x-2.5 cursor-pointer group"
             onClick={onGoHome}
-            title="PDFSun Home"
+            title="PDF Sun Home"
+            aria-label="PDF Sun Logo"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center transition group-hover:scale-105">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center transition group-hover:scale-105" title="PDF Sun Logo">
               <div className="w-full h-full bg-slate-950 dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
                 <Sun className="w-5 h-5 text-blue-400 animate-pulse" />
               </div>
@@ -184,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex flex-col">
               <div className="flex items-center space-x-1">
                 <span className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">
-                  PDFSun
+                  PDF Sun
                 </span>
                 <span className="text-[9px] uppercase tracking-wider font-black px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                   PRO

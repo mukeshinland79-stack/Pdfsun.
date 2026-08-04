@@ -77,8 +77,8 @@ export const Footer: React.FC<FooterProps> = ({
                 </div>
               </div>
               <div>
-                <span className="text-2xl font-black text-white tracking-tight">PDFSun</span>
-                <p className="text-[10px] font-bold text-amber-400 tracking-wider">PDFSun</p>
+                <span className="text-2xl font-black text-white tracking-tight">PDF Sun</span>
+                <p className="text-[10px] font-bold text-amber-400 tracking-wider">pdfsun.in</p>
               </div>
             </div>
 
@@ -89,7 +89,7 @@ export const Footer: React.FC<FooterProps> = ({
             <div className="space-y-1.5 pt-2 text-xs font-medium text-slate-400">
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-orange-500 shrink-0" />
-                <span>Website: <a href="https://pdfsun.vercel.app" target="_blank" rel="noreferrer" className="text-white font-mono hover:text-amber-400 hover:underline">https://pdfsun.vercel.app</a></span>
+                <span>Website: <a href="https://pdfsun.in" target="_blank" rel="noreferrer" className="text-white font-mono hover:text-amber-400 hover:underline">https://pdfsun.in</a></span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-orange-500 shrink-0" />
@@ -144,30 +144,37 @@ export const Footer: React.FC<FooterProps> = ({
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Policies</h4>
             <ul className="space-y-2 text-xs font-medium text-slate-400">
               <li>
+                <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:text-amber-400 transition">
+                  Home
+                </button>
+              </li>
+              <li>
                 <button onClick={() => onOpenPolicy("privacy")} className="hover:text-amber-400 transition">
                   Privacy Policy
                 </button>
               </li>
               <li>
                 <button onClick={() => onOpenPolicy("terms")} className="hover:text-amber-400 transition">
-                  Terms & Conditions
+                  Terms of Service
                 </button>
               </li>
               <li>
-                <button onClick={() => onOpenPolicy("cookie")} className="hover:text-amber-400 transition">
-                  Cookie Policy
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onOpenPolicy("refund")} className="hover:text-amber-400 transition">
-                  Refund Policy
+                <button onClick={onOpenContactModal} className="hover:text-amber-400 transition">
+                  Contact Us
                 </button>
               </li>
               <li>
                 <button onClick={() => onOpenPolicy("about")} className="hover:text-amber-400 transition">
-                  About PDFSun
+                  About Us
                 </button>
               </li>
+              {onOpenSitemapModal && (
+                <li>
+                  <button onClick={onOpenSitemapModal} className="hover:text-amber-400 transition">
+                    Sitemap
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -296,7 +303,7 @@ export const Footer: React.FC<FooterProps> = ({
             <span>🇮🇳</span>
             <strong className="text-white">Proudly Made in India</strong>
             <span>•</span>
-            <span>© 2026 <strong className="text-white">PDFSun.in</strong>. All Rights Reserved.</span>
+            <span>© 2026 <strong className="text-white">PDF Sun</strong>. All rights reserved.</span>
           </div>
 
           <div className="flex items-center space-x-2">

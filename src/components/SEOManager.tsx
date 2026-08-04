@@ -7,6 +7,8 @@ export interface SEOManagerProps {
   activeTool: ToolItem | null;
   tools: ToolItem[];
   baseUrl?: string;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export interface ToolFAQ {
@@ -116,25 +118,22 @@ export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
 export const SEOManager: React.FC<SEOManagerProps> = ({
   activeTool,
   tools,
-  baseUrl = "https://pdfsun.vercel.app",
+  baseUrl = "https://pdfsun.in",
+  currentPage,
+  totalPages,
 }) => {
   // 1. Base WebSite & SearchAction Schema
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "PDFSun",
+    "name": "PDF Sun",
     "url": baseUrl,
-    "description": "Enterprise-grade 100% private in-browser PDF software suite with 50+ free online PDF tools.",
+    "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.",
     "publisher": {
       "@type": "Organization",
-      "name": "PDFSun",
+      "name": "PDF Sun",
       "url": baseUrl,
-      "logo": `${baseUrl}/icon.png`,
-      "founder": {
-        "@type": "Person",
-        "name": "Mukesh Kalonia",
-        "jobTitle": "Lead Web Developer",
-      },
+      "logo": `${baseUrl}/og-image.png`,
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -150,17 +149,10 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "PDFSun",
+    "name": "PDF Sun",
     "url": baseUrl,
-    "logo": `${baseUrl}/icon.png`,
-    "sameAs": [
-      "https://github.com/mukeshkalonia/pdfsun",
-      "https://twitter.com/pdfsun",
-    ],
-    "founder": {
-      "@type": "Person",
-      "name": "Mukesh Kalonia",
-    },
+    "logo": `${baseUrl}/og-image.png`,
+    "sameAs": [],
   };
 
   // 3. Dynamic JSON-LD FAQ Schema (Tool-Specific for Tool Pages & Platform Global for Homepage)
@@ -373,6 +365,14 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
 
   return (
     <Helmet>
+      {/* Rel prev and next tags for paginated pages */}
+      {currentPage && currentPage > 1 && (
+        <link rel="prev" href={currentPage === 2 ? `${baseUrl}/` : `${baseUrl}/?page=${currentPage - 1}`} />
+      )}
+      {currentPage && totalPages && currentPage < totalPages && (
+        <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
+      )}
+
       {/* Global WebSite JSON-LD */}
       <script type="application/ld+json">
         {JSON.stringify(websiteSchema)}

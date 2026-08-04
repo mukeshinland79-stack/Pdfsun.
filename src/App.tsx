@@ -217,8 +217,8 @@ export default function App() {
 
   // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
-    siteName: "PDFSun",
-    domainName: "https://pdfsun.vercel.app",
+    siteName: "PDF Sun",
+    domainName: "https://pdfsun.in",
     supportEmail: "mukeshkalonia241@gmail.com",
     ownerName: "Mukesh Kalonia",
     maintenanceMode: false,
@@ -342,18 +342,37 @@ export default function App() {
     setAdminPanelOpen(true);
   };
 
+  // Pagination state tracking for SEO rel=prev/next tags
+  const [gridPagination, setGridPagination] = useState({ page: 1, totalPages: 1 });
+
   // Dynamic SEO Helmet variables
   const pageTitle = activeTool
-    ? `${activeTool.name} - Free Online PDF Tool | PDFSun`
-    : "PDFSun – All PDF Tools in One Place";
+    ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
+    : "PDF Sun - Free Online PDF Tools, Converter, Merge & Compress";
 
   const pageDescription = activeTool
-    ? `${activeTool.description} Free, fast, and 100% private client-side processing on PDFSun with zero server uploads.`
-    : "PDFSun is an enterprise-grade, 100% private in-browser PDF suite offering 50+ free utilities: Merge, Split, Compress, AI Chat, OCR, e-Sign, Watermark, and Convert PDFs instantly.";
+    ? `${activeTool.description} Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.`
+    : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.";
 
   const canonicalUrl = activeTool
-    ? `https://pdfsun.vercel.app/tool/${activeTool.slug}`
-    : "https://pdfsun.vercel.app/";
+    ? `https://pdfsun.in/?tool=${activeTool.slug}`
+    : "https://pdfsun.in/";
+
+  const ogTitle = activeTool
+    ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
+    : "PDF Sun - Free Online PDF Tools & Converter";
+
+  const ogDescription = activeTool
+    ? `${activeTool.description} Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.`
+    : "Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.";
+
+  const twitterTitle = activeTool
+    ? `${activeTool.name} - Free Online PDF Tool`
+    : "PDF Sun - Free Online PDF Tools";
+
+  const twitterDescription = activeTool
+    ? `${activeTool.description} Fast and secure online PDF tools at pdfsun.in`
+    : "Fast and secure online PDF tools at pdfsun.in";
 
   // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
   const adPlacements = calculateAdPlacements(
@@ -366,31 +385,38 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
       {/* Dynamic SEO JSON-LD Structured Data Management for Rich Search Snippets */}
-      <SEOManager activeTool={activeTool} tools={ALL_TOOLS} />
+      <SEOManager
+        activeTool={activeTool}
+        tools={ALL_TOOLS}
+        baseUrl="https://pdfsun.in"
+        currentPage={gridPagination.page}
+        totalPages={gridPagination.totalPages}
+      />
 
       {/* Dynamic SEO Head Management */}
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
+        <meta name="keywords" content="PDF Sun, pdf tools, online pdf converter, merge pdf, compress pdf, edit pdf online, pdfsun.in" />
+        <meta name="author" content="PDF Sun" />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+
         <link rel="canonical" href={canonicalUrl} />
+        <link rel="icon" href="/favicon.ico" />
 
         {/* Open Graph / Social Sharing */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content="PDFSun" />
-        <meta property="og:image" content="https://pdfsun.vercel.app/og-image.png" />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+        <meta property="og:site_name" content="PDF Sun" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content="https://pdfsun.vercel.app/twitter-image.png" />
-
-        {/* Indexing & Metadata */}
-        <meta name="robots" content="index, follow" />
-        <meta name="keywords" content="PDF converter, merge PDF, split PDF, compress PDF, AI PDF chat, OCR PDF, e-Sign PDF, watermark PDF, free online PDF tools, PDFSun" />
+        <meta name="twitter:title" content={twitterTitle} />
+        <meta name="twitter:description" content={twitterDescription} />
+        <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
 
       {/* Sticky Top Header */}
@@ -452,6 +478,7 @@ export default function App() {
           setSelectedCategory={setSelectedCategory}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onPageChange={(page, totalPages) => setGridPagination({ page, totalPages })}
         />
 
         {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}

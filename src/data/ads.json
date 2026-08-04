@@ -17,7 +17,9 @@
       "bannerUrl": "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80",
       "logo": "🎓",
       "accentGradient": "from-amber-500 via-orange-600 to-red-600",
-      "badgeStyle": "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+      "badgeStyle": "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
+      "readinessPercentage": 96,
+      "readinessLabel": "Global Tech & AI Readiness Index"
     },
     {
       "id": "ad-iim-management",
@@ -36,7 +38,9 @@
       "bannerUrl": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
       "logo": "🏛️",
       "accentGradient": "from-blue-600 via-indigo-600 to-purple-700",
-      "badgeStyle": "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
+      "badgeStyle": "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30",
+      "readinessPercentage": 94,
+      "readinessLabel": "Executive Leadership & Career Readiness"
     }
   ]
 }

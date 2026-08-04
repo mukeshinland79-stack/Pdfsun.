@@ -1,7 +1,7 @@
 {
-  "short_name": "PDFSun",
-  "name": "PDFSun – Smart PDF Tools Online",
-  "description": "Merge, Split, Compress, Convert, Edit and Protect PDF files online for free with PDFSun. Fast, secure and easy to use.",
+  "short_name": "PDF Sun",
+  "name": "PDF Sun - Free Online PDF Tools & Converter",
+  "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

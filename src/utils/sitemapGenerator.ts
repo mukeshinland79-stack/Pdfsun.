@@ -58,7 +58,7 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
 
   // 1. Core Platform Landing & Hub Pages
   const corePages = [
-    { path: "", priority: "1.0", changefreq: "daily" as const, title: "PDFSun - Free All-in-One Online PDF & AI Document Suite" },
+    { path: "", priority: "1.0", changefreq: "daily" as const, title: "PDF Sun - Free All-in-One Online PDF & AI Document Suite" },
     { path: "#tools", priority: "0.9", changefreq: "daily" as const, title: "All Online PDF Tools Index" },
     { path: "#ai-workspace", priority: "0.9", changefreq: "daily" as const, title: "Gemini 3.6 AI PDF Assistant & Summarizer" },
     { path: "#pricing", priority: "0.8", changefreq: "weekly" as const, title: "Pricing & Student Pro Plans" },
@@ -95,7 +95,7 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
       lastmod: today,
       changefreq,
       priority,
-      title: `${tool.name} - Free Online PDF Tool | PDFSun`,
+      title: `${tool.name} - Free Online PDF Tool | PDF Sun`,
       type: "tool",
     });
   });
@@ -107,7 +107,7 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
       lastmod: today,
       changefreq: "monthly",
       priority: "0.7",
-      title: `${post.title} | PDFSun Blog`,
+      title: `${post.title} | PDF Sun Blog`,
       type: "blog",
     });
   });
