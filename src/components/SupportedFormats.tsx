@@ -22,15 +22,15 @@ export const SupportedFormats: React.FC = () => {
           {SUPPORTED_FORMATS.map((fmt) => (
             <div
               key={fmt.ext}
-              className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs hover:border-orange-500 transition text-center space-y-1 group"
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-amber-500 dark:hover:border-amber-400 transition text-center space-y-1.5 group"
             >
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-orange-500/10 text-orange-600 dark:text-amber-400">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 {fmt.badge}
               </span>
-              <div className="text-base font-black text-slate-900 dark:text-white group-hover:text-orange-500 transition">
+              <div className="text-base font-black text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
                 .{fmt.ext}
               </div>
-              <p className="text-[10px] text-slate-400 line-clamp-1">{fmt.desc}</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium line-clamp-1">{fmt.desc}</p>
             </div>
           ))}
         </div>

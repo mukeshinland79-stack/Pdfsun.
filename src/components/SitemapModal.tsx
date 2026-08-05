@@ -112,7 +112,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                 type="text"
                 value={baseUrlInput}
                 onChange={(e) => setBaseUrlInput(e.target.value)}
-                placeholder="https://pdfsun.com"
+                placeholder="https://pdfsun.in"
                 className="w-full text-xs font-mono font-bold bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none"
               />
             </div>

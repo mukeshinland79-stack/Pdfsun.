@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  Sun,
   Share2,
   Combine,
   Scissors,
@@ -13,9 +14,13 @@ import {
   ChevronLeft,
   ArrowUp,
   Zap,
+  X,
+  Sparkles,
+  Settings,
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { QuickShareModal } from "./QuickShareModal";
 
 interface QuickActionsSidebarProps {
   onSelectTool: (tool: ToolItem) => void;
@@ -26,13 +31,15 @@ export const QuickActionsSidebar: React.FC<QuickActionsSidebarProps> = ({
   onSelectTool,
   activeTool = null,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [showShareModal, setShowShareModal] = useState<boolean>(false);
 
   // Monitor window scroll to reveal Back to Top helper button
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 400) {
+      if (window.scrollY > 350) {
         setShowScrollTop(true);
       } else {
         setShowScrollTop(false);
@@ -44,40 +51,106 @@ export const QuickActionsSidebar: React.FC<QuickActionsSidebarProps> = ({
   }, []);
 
   // Primary tools required by quick actions in exact priority order:
-  // 1. Share PDFSun (NEW)
-  // 2. Merge PDF
-  // 3. Split PDF
-  // 4. Compress PDF
+  // 1. Quick Share (NEW)
+  // 2. Merge PDF (MOST POPULAR)
+  // 3. Split PDF (FAST)
+  // 4. Compress PDF (ESSENTIAL)
   // 5. PDF to Word
-  // 6. Word to PDF
+  // 6. Word to PDF / System Options
   // 7. JPG to PDF
-  // 8. PDF to JPG
-  // 9. OCR PDF
-  const primaryToolSlugs = [
-    { slug: "share-pdfsun", name: "Share PDFSun", defaultIcon: Share2, color: "from-amber-400 to-orange-500", badge: "⭐ NEW" },
-    { slug: "merge-pdf", name: "Merge PDF", defaultIcon: Combine, color: "from-orange-500 to-amber-500", badge: "POPULAR" },
-    { slug: "split-pdf", name: "Split PDF", defaultIcon: Scissors, color: "from-blue-500 to-indigo-500", badge: "FAST" },
-    { slug: "compress-pdf", name: "Compress PDF", defaultIcon: Minimize2, color: "from-emerald-500 to-teal-500", badge: "ESSENTIAL" },
-    { slug: "pdf-to-word", name: "PDF to Word", defaultIcon: FileText, color: "from-sky-500 to-cyan-500", badge: null },
-    { slug: "word-to-pdf", name: "Word to PDF", defaultIcon: FileType, color: "from-purple-500 to-pink-500", badge: null },
-    { slug: "jpg-to-pdf", name: "JPG to PDF", defaultIcon: Image, color: "from-rose-500 to-red-500", badge: null },
-    { slug: "pdf-to-jpg", name: "PDF to JPG", defaultIcon: FileImage, color: "from-teal-500 to-emerald-500", badge: null },
-    { slug: "ai-ocr", name: "OCR PDF", defaultIcon: ScanText, color: "from-indigo-500 to-purple-500", badge: "AI" },
+  // 8. OCR PDF (AI)
+  const popupMenuItems = [
+    {
+      id: "quick-share",
+      name: "Quick Share",
+      badge: "NEW",
+      badgeBg: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+      icon: Share2,
+      color: "from-amber-400 to-amber-500",
+      action: "share",
+      slug: "share-pdfsun",
+    },
+    {
+      id: "merge-pdf",
+      name: "Merge PDF",
+      badge: "MOST POPULAR",
+      badgeBg: "bg-orange-500/20 text-orange-400 border-orange-500/40",
+      icon: Combine,
+      color: "from-orange-500 to-amber-500",
+      action: "tool",
+      slug: "merge-pdf",
+    },
+    {
+      id: "split-pdf",
+      name: "Split PDF",
+      badge: "FAST",
+      badgeBg: "bg-sky-500/20 text-sky-400 border-sky-500/40",
+      icon: Scissors,
+      color: "from-blue-500 to-indigo-500",
+      action: "tool",
+      slug: "split-pdf",
+    },
+    {
+      id: "compress-pdf",
+      name: "Compress PDF",
+      badge: "ESSENTIAL",
+      badgeBg: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+      icon: Minimize2,
+      color: "from-purple-500 to-indigo-500",
+      action: "tool",
+      slug: "compress-pdf",
+    },
+    {
+      id: "pdf-to-word",
+      name: "PDF to Word",
+      badge: null,
+      icon: FileText,
+      color: "from-sky-500 to-cyan-500",
+      action: "tool",
+      slug: "pdf-to-word",
+    },
+    {
+      id: "word-to-pdf",
+      name: "System Options",
+      badge: null,
+      icon: Settings,
+      color: "from-slate-500 to-slate-700",
+      action: "tool",
+      slug: "word-to-pdf",
+    },
+    {
+      id: "jpg-to-pdf",
+      name: "JPG to PDF",
+      badge: null,
+      icon: Image,
+      color: "from-rose-500 to-red-500",
+      action: "tool",
+      slug: "jpg-to-pdf",
+    },
+    {
+      id: "ai-ocr",
+      name: "OCR PDF",
+      badge: "AI",
+      badgeBg: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+      icon: ScanText,
+      color: "from-indigo-500 to-purple-500",
+      action: "tool",
+      slug: "ai-ocr",
+    },
   ];
 
-  // Resolve tools from dataset
-  const quickTools = primaryToolSlugs
-    .map((item) => {
-      const found = ALL_TOOLS.find((t) => t.slug === item.slug || t.id === item.slug);
-      return {
-        ...item,
-        toolObj: found || null,
-      };
-    })
-    .filter((item) => item.toolObj !== null);
+  const handleItemClick = (item: (typeof popupMenuItems)[0]) => {
+    if (item.action === "share") {
+      setShowShareModal(true);
+      setIsPopupOpen(false);
+      return;
+    }
 
-  const handleToolClick = (toolObj: ToolItem) => {
-    onSelectTool(toolObj);
+    const foundTool = ALL_TOOLS.find((t) => t.slug === item.slug || t.id === item.slug);
+    if (foundTool) {
+      onSelectTool(foundTool);
+      setIsPopupOpen(false);
+    }
   };
 
   const scrollToTop = () => {
@@ -85,107 +158,151 @@ export const QuickActionsSidebar: React.FC<QuickActionsSidebarProps> = ({
   };
 
   return (
-    <aside
-      aria-label="Quick Actions Sidebar"
-      className={`fixed right-3 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out hidden md:block ${
-        isExpanded ? "w-48" : "w-14"
-      }`}
-    >
-      <div className="bg-slate-900/90 dark:bg-slate-950/95 backdrop-blur-md border border-slate-700/60 dark:border-slate-800 rounded-2xl shadow-2xl p-2 relative text-slate-100 group">
-        {/* Header / Collapse Toggle */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 px-1">
-          {isExpanded ? (
-            <div className="flex items-center space-x-1.5 overflow-hidden">
-              <Zap className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
-              <span className="text-xs font-black uppercase tracking-wider text-slate-200 truncate">
-                Quick Actions
-              </span>
-            </div>
-          ) : (
-            <div className="mx-auto" title="Quick Actions">
-              <Zap className="w-4 h-4 text-amber-400" />
-            </div>
-          )}
-
+    <>
+      {/* 1. Floating Sun Trigger Icon (Bottom Right: 24px bottom, 24px right) */}
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end space-y-3 pointer-events-auto">
+        {/* Scroll To Top helper bubble if user scrolled down */}
+        {showScrollTop && !isPopupOpen && (
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            onClick={scrollToTop}
+            title="Scroll to Top"
+            className="w-10 h-10 rounded-full bg-slate-900/90 text-amber-400 border border-amber-500/40 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 backdrop-blur-md"
           >
-            {isExpanded ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
-            )}
+            <ArrowUp className="w-5 h-5 stroke-[2.5]" />
           </button>
-        </div>
+        )}
 
-        {/* Primary Tool Buttons List */}
-        <div className="space-y-1.5">
-          {quickTools.map((item) => {
-            if (!item.toolObj) return null;
-            const IconComponent = item.defaultIcon;
-            const isActive = activeTool?.id === item.toolObj.id;
+        {/* Sun Trigger Icon Button */}
+        <button
+          onClick={() => setIsPopupOpen(!isPopupOpen)}
+          aria-label="Toggle PDF Sun Quick Actions"
+          title="PDF Sun Quick Actions Menu"
+          className={`relative w-14 h-14 rounded-full bg-gradient-to-tr from-amber-400 via-amber-500 to-orange-500 p-0.5 flex items-center justify-center transition-all duration-300 active:scale-95 sun-breathe-glow ${
+            isPopupOpen ? "rotate-90 scale-105" : "hover:scale-110"
+          }`}
+        >
+          {/* Inner Rotating Rays Background */}
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-300 flex items-center justify-center relative overflow-hidden shadow-inner">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.4)_0%,transparent_70%)] animate-pulse" />
+            {isPopupOpen ? (
+              <X className="w-7 h-7 text-slate-950 font-black stroke-[3] relative z-10" />
+            ) : (
+              <div className="relative flex items-center justify-center">
+                <Sun className="w-8 h-8 text-slate-950 font-black stroke-[2.5] animate-[spin_12s_linear_infinite]" />
+                <Sparkles className="w-4 h-4 text-slate-950 absolute -top-1 -right-1 animate-bounce" />
+              </div>
+            )}
+          </div>
 
-            return (
-              <button
-                key={item.slug}
-                onClick={() => item.toolObj && handleToolClick(item.toolObj)}
-                title={`${item.toolObj.name} - ${item.toolObj.description}`}
-                className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 text-left relative overflow-hidden group/btn ${
-                  isActive
-                    ? "bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/50 text-orange-400 shadow-sm"
-                    : "hover:bg-slate-800/80 text-slate-300 hover:text-white border border-transparent"
-                }`}
-              >
-                {/* Icon Container with Gradient Accent */}
-                <div
-                  className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${item.color} flex items-center justify-center text-slate-950 font-bold shrink-0 shadow-xs group-hover/btn:scale-105 transition-transform`}
-                >
-                  <IconComponent className="w-4 h-4 stroke-[2.5]" />
+          {/* Active Badge Dot */}
+          {!isPopupOpen && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 border-2 border-slate-900"></span>
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* 2. Glassmorphic Quick Actions Popup Menu */}
+      {isPopupOpen && (
+        <>
+          {/* Backdrop blur click target */}
+          <div
+            className="fixed inset-0 z-[9998] bg-slate-950/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsPopupOpen(false)}
+          />
+
+          {/* Popup Container */}
+          <div
+            role="dialog"
+            aria-label="PDF Sun Quick Actions"
+            className="fixed bottom-24 right-4 sm:right-6 z-[9999] w-[92vw] max-w-xs sm:w-88 bg-[#0f172a]/95 backdrop-blur-xl border border-amber-400/40 rounded-3xl shadow-2xl shadow-amber-500/10 p-4 text-slate-100 animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-hidden"
+            style={{
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.25)",
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-amber-400/20">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                  <Sun className="w-4 h-4 text-slate-950 stroke-[3]" />
                 </div>
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wider bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                  ☀️ PDF SUN QUICK ACTIONS
+                </span>
+              </div>
+              <button
+                onClick={() => setIsPopupOpen(false)}
+                className="p-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-slate-700"
+                title="Close Quick Actions"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-                {/* Expanded Label & Badges */}
-                {isExpanded && (
-                  <div className="ml-2.5 flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate">
+            {/* Menu Items List */}
+            <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
+              {popupMenuItems.map((item) => {
+                const IconComponent = item.icon;
+                const foundTool = ALL_TOOLS.find((t) => t.slug === item.slug || t.id === item.slug);
+                const isActive = activeTool && foundTool && activeTool.id === foundTool.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-2xl transition-all duration-200 text-left group border ${
+                      isActive
+                        ? "bg-gradient-to-r from-amber-500/25 to-orange-500/25 border-amber-400/80 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                        : "bg-slate-900/60 hover:bg-white/15 border-slate-800 hover:border-amber-400/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.3)] text-slate-200 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 min-w-0">
+                      {/* Gradient Icon Badge */}
+                      <div
+                        className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${item.color} flex items-center justify-center text-slate-950 font-black shrink-0 shadow-sm group-hover:scale-105 transition-transform`}
+                      >
+                        <IconComponent className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-extrabold truncate tracking-wide">
                         {item.name}
                       </span>
-                      {item.badge && (
-                        <span className="text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-1 shrink-0">
-                          {item.badge}
-                        </span>
-                      )}
                     </div>
-                  </div>
-                )}
 
-                {/* Tooltip for collapsed mode */}
-                {!isExpanded && (
-                  <div className="absolute right-full mr-2 px-2.5 py-1 bg-slate-900 text-white text-xs font-bold rounded-md shadow-lg opacity-0 pointer-events-none group-hover/btn:opacity-100 transition-opacity whitespace-nowrap z-50 border border-slate-700">
-                    {item.toolObj.name}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    {/* Badge */}
+                    {item.badge && (
+                      <span
+                        className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          item.badgeBg || "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                        } ml-2 shrink-0 group-hover:scale-105 transition-transform`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Bottom Back To Top Action */}
-        {showScrollTop && (
-          <div className="pt-2 mt-2 border-t border-slate-800">
-            <button
-              onClick={scrollToTop}
-              title="Scroll to Top"
-              className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-amber-400 transition-colors text-xs font-bold space-x-1.5"
-            >
-              <ArrowUp className="w-4 h-4" />
-              {isExpanded && <span>Top</span>}
-            </button>
+            {/* Footer info banner */}
+            <div className="mt-3 pt-2.5 border-t border-amber-400/20 text-center">
+              <p className="text-[10px] text-slate-400 font-medium flex items-center justify-center space-x-1">
+                <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+                <span>Instant High-Speed PDF Tools & AI Engine</span>
+              </p>
+            </div>
           </div>
-        )}
-      </div>
-    </aside>
+        </>
+      )}
+
+      {/* Quick Share Modal when triggered from Quick Actions */}
+      {showShareModal && (
+        <QuickShareModal
+          fileName="PDFSun Enterprise Suite"
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+    </>
   );
 };

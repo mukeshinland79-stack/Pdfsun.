@@ -63,6 +63,7 @@ import { SEOPerformanceDashboard } from "./SEOPerformanceDashboard";
 import { AITokenMonitor } from "./AITokenMonitor";
 import { AdminSystemHealth } from "./AdminSystemHealth";
 import { ApiThrottlingManager } from "./ApiThrottlingManager";
+import { LiveAnalyticsDashboard } from "./LiveAnalyticsDashboard";
 import { ALL_TOOLS } from "../data/toolsData";
 import {
   generateSitemapXml,
@@ -617,7 +618,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-400 uppercase">Active Domain</div>
                   <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">
-                    pdfsun.com
+                    {adminSettings?.domainName?.replace(/^https?:\/\//, '') || "pdfsun.in"}
                   </div>
                 </div>
               </div>
@@ -630,6 +631,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* 1. Analytics Tab */}
           {effectiveActiveTab === "analytics" && (
             <div className="space-y-6">
+              {/* Real-Time Live Analytics Dashboard (SSE Stream Engine) */}
+              <LiveAnalyticsDashboard />
+
               {/* Real-Time Critical System Alert Dispatcher & Toast Manager */}
               <AdminAlertSystem />
 

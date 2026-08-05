@@ -44,32 +44,6 @@ export const Footer: React.FC<FooterProps> = ({
   return (
     <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Newsletter Subscription Bar */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-amber-950/20 border border-slate-800/90 shadow-xl backdrop-blur-md">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            <div className="lg:col-span-7">
-              <NewsletterSubscription />
-            </div>
-            <div className="lg:col-span-5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-2">
-              <h5 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Subscriber Perks</h5>
-              <ul className="text-xs text-slate-300 space-y-1.5 font-medium">
-                <li className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  <span>Early access to new Gemini 3.6 AI PDF utilities</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Exclusive document compression & security workflows</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  <span>Weekly productivity guides & keyboard shortcut cheat sheets</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
           {/* Brand Col */}

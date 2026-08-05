@@ -780,13 +780,13 @@ const defaultContextValue: LanguageContextType = {
   },
 };
 
-const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
+const LanguageContext = React.createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>(DEFAULT_LANGUAGE);
+  const [currentLanguage, setCurrentLanguageState] = React.useState<string>(DEFAULT_LANGUAGE);
 
   // Synchronize language state from localStorage or browser settings AFTER initial mount
-  useEffect(() => {
+  React.useEffect(() => {
     if (typeof window === "undefined") return;
 
     const resolveInitialLanguage = (): string => {
@@ -838,7 +838,7 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
   }, []);
 
   // Update HTML document direction (dir) and lang attributes, and sync localStorage
-  useEffect(() => {
+  React.useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     try {
@@ -859,20 +859,20 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
     }
   }, [currentLanguage]);
 
-  const languageOption = useMemo(
+  const languageOption = React.useMemo(
     () => SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || defaultLanguageOption,
     [currentLanguage]
   );
 
   const isRtl = !!languageOption.isRtl;
 
-  const setLanguage = useCallback((code: string) => {
+  const setLanguage = React.useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
       setCurrentLanguageState(code);
     }
   }, []);
 
-  const t = useCallback(
+  const t = React.useCallback(
     (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string): string => {
       let params: TranslationParams | undefined;
       let fallbackText: string | undefined;
@@ -894,7 +894,7 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
   );
 
   // Dynamic DOM Translation Loop (Top <header> down to <main>, STRICTLY EXCLUDING <footer> container and descendants)
-  useEffect(() => {
+  React.useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     const isInsideFooter = (node: Node): boolean => {
@@ -924,7 +924,7 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
     });
   }, [currentLanguage, t]);
 
-  const contextValue = useMemo(
+  const contextValue = React.useMemo(
     () => ({ currentLanguage, setLanguage, languageOption, isRtl, t }),
     [currentLanguage, setLanguage, languageOption, isRtl, t]
   );
@@ -937,6 +937,6 @@ export const LanguageProvider: React.FC<{ children?: React.ReactNode }> = ({ chi
 };
 
 export const useLanguage = (): LanguageContextType => {
-  const context = useContext(LanguageContext);
+  const context = React.useContext(LanguageContext);
   return context || defaultContextValue;
 };

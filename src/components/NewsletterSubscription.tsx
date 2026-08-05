@@ -131,6 +131,25 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
               Join over <strong>150,000+ professionals, students, and legal teams</strong>. Get exclusive tutorials, Gemini 3.6 AI prompt workflows, and early access to new PDFSun tools—delivered once a week.
             </p>
 
+            {/* Subscriber Perks List */}
+            <div className="pt-2 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 max-w-xl">
+              <h4 className="text-[11px] font-black text-amber-400 uppercase tracking-widest">SUBSCRIBER PERKS</h4>
+              <ul className="text-xs text-slate-300 space-y-1.5 font-medium">
+                <li className="flex items-center space-x-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <span>Early access to new Gemini 3.6 AI PDF utilities</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>Exclusive document compression & security workflows</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                  <span>Weekly productivity guides & keyboard shortcut cheat sheets</span>
+                </li>
+              </ul>
+            </div>
+
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 font-medium pt-2">
               <div className="flex items-center space-x-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />

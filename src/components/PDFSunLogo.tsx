@@ -333,8 +333,6 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
                 ? "text-black"
                 : isMonoLight
                 ? "text-white"
-                : isDarkText
-                ? "text-slate-900"
                 : "text-slate-900 dark:text-white"
             }`}
           >
@@ -348,7 +346,7 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
                 ? "text-slate-700"
                 : isMonoLight
                 ? "text-slate-200"
-                : "bg-gradient-to-r from-[#FF7A00] via-[#FF8A00] to-[#FFC107] bg-clip-text text-transparent"
+                : "text-amber-600 dark:text-amber-400"
             }`}
           >
             Sun

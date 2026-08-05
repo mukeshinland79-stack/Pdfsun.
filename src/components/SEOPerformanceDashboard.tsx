@@ -200,7 +200,7 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Domain: <strong className="text-emerald-400 font-mono">pdfsun.com</strong> &bull; Organic CTR, Google SERP positions, and search query trends.
+              Domain: <strong className="text-emerald-400 font-mono">pdfsun.in</strong> &bull; Organic CTR, Google SERP positions, and search query trends.
             </p>
           </div>
         </div>

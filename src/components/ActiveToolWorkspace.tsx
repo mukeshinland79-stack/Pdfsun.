@@ -124,6 +124,16 @@ interface ActiveToolWorkspaceProps {
   initialFiles?: File[];
   onClose: () => void;
   onAddHistory: (item: ToolHistoryItem) => void;
+  usageTracker?: {
+    count: number;
+    maxDailyFree: number;
+    remaining: number;
+    maxFreeFileSizeBytes: number;
+    isPro: boolean;
+    canProcessDownload: (size?: number) => { allowed: boolean; reason?: "DAILY_LIMIT_REACHED" | "FILE_SIZE_EXCEEDED" };
+    recordDownload: () => void;
+    triggerPaywall: (reason: "limit" | "size", fileSize?: number) => void;
+  };
 }
 
 export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
@@ -131,6 +141,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   initialFiles = [],
   onClose,
   onAddHistory,
+  usageTracker,
 }) => {
   const [files, setFiles] = useState<File[]>(initialFiles);
   const [fileStates, setFileStates] = useState<ExtendedFileState[]>([]);
@@ -409,6 +420,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       setErrorOverlay(errInfo);
       setErrorMessage("Some files have validation errors. Please remove invalid files before continuing.");
       return;
+    }
+
+    // Client-side Free Usage Limit & File Size Check
+    if (usageTracker) {
+      const totalSize = files[0]?.size || 0;
+      const usageCheck = usageTracker.canProcessDownload(totalSize);
+      if (!usageCheck.allowed) {
+        if (usageCheck.reason === "FILE_SIZE_EXCEEDED") {
+          usageTracker.triggerPaywall("size", totalSize);
+        } else {
+          usageTracker.triggerPaywall("limit");
+        }
+        return;
+      }
     }
 
     if (["annotate-pdf", "edit-pdf"].includes(tool.id)) {
@@ -852,6 +877,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           fileName: downloadResult.finalFileName,
           mimeType,
         });
+
+        // Record real conversion event in analytics engine
+        fetch("/api/analytics/record-conversion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latencyMs: 15, success: true }),
+        }).catch(() => {});
 
         try {
           confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });

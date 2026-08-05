@@ -30,9 +30,11 @@ import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
 import { SEOManager } from "./components/SEOManager";
 import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
+import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
+import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
@@ -340,17 +342,51 @@ export default function App() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
 
-  // Keyboard shortcut listener (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSearchModalOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  // Keyboard Shortcuts Manager Hook for custom power-user keybindings
+  const {
+    shortcuts,
+    shortcutsEnabled,
+    toggleShortcutsEnabled,
+    updateShortcutKeyCombo,
+    resetToDefaults,
+  } = useKeyboardShortcutsManager({
+    onSelectTool: (tool) => {
+      handleSelectTool(tool);
+    },
+    onToggleSearch: () => {
+      setSearchModalOpen((prev) => !prev);
+    },
+    onToggleShortcutsModal: () => {
+      setShortcutsModalOpen((prev) => !prev);
+    },
+    onCloseActiveModalOrWorkspace: () => {
+      if (searchModalOpen) setSearchModalOpen(false);
+      else if (shortcutsModalOpen) setShortcutsModalOpen(false);
+      else if (historyModalOpen) setHistoryModalOpen(false);
+      else if (authModalOpen) setAuthModalOpen(false);
+      else if (adminPanelOpen) setAdminPanelOpen(false);
+      else if (userDashboardOpen) setUserDashboardOpen(false);
+      else if (blogModalOpen) setBlogModalOpen(false);
+      else if (contactModalOpen) setContactModalOpen(false);
+      else if (sitemapModalOpen) setSitemapModalOpen(false);
+      else if (activePolicy) setActivePolicy(null);
+      else if (activeTool) setActiveTool(null);
+    },
+    onGoHome: () => {
+      setActiveTool(null);
+      setSearchModalOpen(false);
+      setShortcutsModalOpen(false);
+      setHistoryModalOpen(false);
+      setAuthModalOpen(false);
+      setAdminPanelOpen(false);
+      setUserDashboardOpen(false);
+      setBlogModalOpen(false);
+      setContactModalOpen(false);
+      setSitemapModalOpen(false);
+      setActivePolicy(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+  });
 
   // Usage Analytics hook
   const { trackToolUsage } = useUsageAnalytics();
@@ -564,6 +600,13 @@ export default function App() {
         {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}
         <EducationalAds />
 
+        {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
+        <DualAiFeatureBanner
+          onSelectTool={handleSelectTool}
+          onOpenSitemapModal={() => setSitemapModalOpen(true)}
+          onOpenContactModal={() => setContactModalOpen(true)}
+        />
+
         {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
         {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
           <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
@@ -722,6 +765,11 @@ export default function App() {
       <KeyboardShortcutsModal
         isOpen={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
+        shortcuts={shortcuts}
+        shortcutsEnabled={shortcutsEnabled}
+        onToggleEnabled={toggleShortcutsEnabled}
+        onUpdateShortcut={updateShortcutKeyCombo}
+        onResetToDefaults={resetToDefaults}
       />
 
       {/* Global Toast Error Notifications */}
