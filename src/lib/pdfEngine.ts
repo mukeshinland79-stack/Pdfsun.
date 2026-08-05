@@ -259,8 +259,19 @@ export interface WatermarkOptions {
   imageFile?: File | null;
   opacity?: number;
   fontSize?: number;
+  color?: string; // hex like #ef4444 or RGB string
+  fontFamily?: "Helvetica" | "TimesRoman" | "Courier";
+  imageScale?: number; // scale 0.1 to 1.0
   angle?: number;
-  position?: "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  position?: "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right" | "tile";
+}
+
+function parseHexToRgb(hexString: string) {
+  let clean = (hexString || "#ef4444").replace("#", "");
+  if (clean.length === 3) clean = clean.split("").map((c) => c + c).join("");
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return rgb(0.8, 0.1, 0.1);
+  return rgb(((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255);
 }
 
 export async function watermarkPdf(
@@ -281,6 +292,7 @@ export async function watermarkPdf(
       text: optionsOrText,
       opacity: opacityParam,
       fontSize: fontSizeParam,
+      color: "#dc2626",
       angle: 45,
       position: "center",
     };
@@ -291,6 +303,9 @@ export async function watermarkPdf(
       imageFile: optionsOrText.imageFile || null,
       opacity: optionsOrText.opacity ?? opacityParam,
       fontSize: optionsOrText.fontSize ?? fontSizeParam,
+      color: optionsOrText.color || "#dc2626",
+      fontFamily: optionsOrText.fontFamily || "Helvetica",
+      imageScale: optionsOrText.imageScale ?? 0.4,
       angle: optionsOrText.angle ?? 45,
       position: optionsOrText.position || "center",
     };
@@ -302,6 +317,9 @@ export async function watermarkPdf(
     imageFile = null,
     opacity = 0.35,
     fontSize = 42,
+    color = "#dc2626",
+    fontFamily = "Helvetica",
+    imageScale = 0.4,
     angle = 45,
     position = "center",
   } = opts;
@@ -320,55 +338,104 @@ export async function watermarkPdf(
     }
   }
 
-  const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  let font;
+  if (fontFamily === "TimesRoman") {
+    font = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  } else if (fontFamily === "Courier") {
+    font = await pdfDoc.embedFont(StandardFonts.CourierBold);
+  } else {
+    font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  }
+
+  const textColor = parseHexToRgb(color);
 
   for (let i = 0; i < total; i++) {
     const page = pages[i];
     const { width, height } = page.getSize();
 
     if (type === "image" && embeddedImage) {
-      const imgWidth = Math.min(220, width * 0.4);
-      const scaleFactor = imgWidth / embeddedImage.width;
+      const maxImgW = Math.min(width * imageScale, width * 0.8);
+      const scaleFactor = maxImgW / embeddedImage.width;
+      const imgWidth = maxImgW;
       const imgHeight = embeddedImage.height * scaleFactor;
 
-      let x = width / 2 - imgWidth / 2;
-      let y = height / 2 - imgHeight / 2;
+      if (position === "tile") {
+        const rows = 3;
+        const cols = 3;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = (width / cols) * c + width / (cols * 2) - imgWidth / 2;
+            const y = (height / rows) * r + height / (rows * 2) - imgHeight / 2;
+            page.drawImage(embeddedImage, {
+              x,
+              y,
+              width: imgWidth * 0.7,
+              height: imgHeight * 0.7,
+              opacity,
+              rotate: degrees(angle),
+            });
+          }
+        }
+      } else {
+        let x = width / 2 - imgWidth / 2;
+        let y = height / 2 - imgHeight / 2;
 
-      if (position === "top-left") { x = 40; y = height - imgHeight - 40; }
-      else if (position === "top-right") { x = width - imgWidth - 40; y = height - imgHeight - 40; }
-      else if (position === "bottom-left") { x = 40; y = 40; }
-      else if (position === "bottom-right") { x = width - imgWidth - 40; y = 40; }
+        if (position === "top-left") { x = 40; y = height - imgHeight - 40; }
+        else if (position === "top-right") { x = width - imgWidth - 40; y = height - imgHeight - 40; }
+        else if (position === "bottom-left") { x = 40; y = 40; }
+        else if (position === "bottom-right") { x = width - imgWidth - 40; y = 40; }
 
-      page.drawImage(embeddedImage, {
-        x,
-        y,
-        width: imgWidth,
-        height: imgHeight,
-        opacity,
-        rotate: degrees(angle),
-      });
+        page.drawImage(embeddedImage, {
+          x,
+          y,
+          width: imgWidth,
+          height: imgHeight,
+          opacity,
+          rotate: degrees(angle),
+        });
+      }
     } else {
       const watermarkString = text || "PDFSun Confidential";
       const textWidth = font.widthOfTextAtSize(watermarkString, fontSize);
       const textHeight = font.heightAtSize(fontSize);
 
-      let x = width / 2 - textWidth / 2;
-      let y = height / 2 - textHeight / 2;
+      if (position === "tile") {
+        const rows = 3;
+        const cols = 3;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = (width / cols) * c + width / (cols * 2) - textWidth / 2;
+            const y = (height / rows) * r + height / (rows * 2) - textHeight / 2;
+            page.drawText(watermarkString, {
+              x,
+              y,
+              size: Math.max(16, fontSize * 0.75),
+              font,
+              color: textColor,
+              opacity,
+              rotate: degrees(angle),
+            });
+          }
+        }
+      } else {
+        let x = width / 2 - textWidth / 2;
+        let y = height / 2 - textHeight / 2;
 
-      if (position === "top-left") { x = 40; y = height - textHeight - 40; }
-      else if (position === "top-right") { x = width - textWidth - 40; y = height - textHeight - 40; }
-      else if (position === "bottom-left") { x = 40; y = 40; }
-      else if (position === "bottom-right") { x = width - textWidth - 40; y = height - textHeight - 40; }
+        if (position === "top-left") { x = 40; y = height - textHeight - 40; }
+        else if (position === "top-right") { x = width - textWidth - 40; y = height - textHeight - 40; }
+        else if (position === "bottom-left") { x = 40; y = 40; }
+        else if (position === "bottom-right") { x = width - textWidth - 40; y = height - textHeight - 40; }
 
-      page.drawText(watermarkString, {
-        x,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0.8, 0.1, 0.1),
-        opacity,
-        rotate: degrees(angle),
-      });
+        page.drawText(watermarkString, {
+          x,
+          y,
+          size: fontSize,
+          font,
+          color: textColor,
+          opacity,
+          rotate: degrees(angle),
+        });
+      }
     }
 
     if (onProgress) {

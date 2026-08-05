@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
 import { ToolGrid } from "./components/ToolGrid";
 import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
 import { AIChatWorkspace } from "./components/AIChatWorkspace";
+import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
 import { SupportedFormats } from "./components/SupportedFormats";
 import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
@@ -345,6 +346,13 @@ export default function App() {
   // Pagination state tracking for SEO rel=prev/next tags
   const [gridPagination, setGridPagination] = useState({ page: 1, totalPages: 1 });
 
+  const handleGridPageChange = useCallback((page: number, totalPages: number) => {
+    setGridPagination((prev) => {
+      if (prev.page === page && prev.totalPages === totalPages) return prev;
+      return { page, totalPages };
+    });
+  }, []);
+
   // Dynamic SEO Helmet variables
   const pageTitle = activeTool
     ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
@@ -478,7 +486,7 @@ export default function App() {
           setSelectedCategory={setSelectedCategory}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          onPageChange={(page, totalPages) => setGridPagination({ page, totalPages })}
+          onPageChange={handleGridPageChange}
         />
 
         {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}
@@ -523,7 +531,15 @@ export default function App() {
 
       {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
-        activeTool.isAi ? (
+        activeTool.id === "watermark-pdf" ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+            <WatermarkPdfTool
+              initialFile={activeToolFiles[0] || null}
+              onClose={() => setActiveTool(null)}
+              onAddHistory={addHistory}
+            />
+          </div>
+        ) : activeTool.isAi ? (
           <AIChatWorkspace
             tool={activeTool}
             initialFiles={activeToolFiles}

@@ -87,11 +87,22 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
   const totalPages = Math.ceil(filteredTools.length / pageSize) || 1;
 
+  const onPageChangeRef = React.useRef(onPageChange);
   React.useEffect(() => {
-    if (onPageChange) {
-      onPageChange(currentPage, totalPages);
+    onPageChangeRef.current = onPageChange;
+  });
+
+  const lastNotifiedPageRef = React.useRef<{ page: number; totalPages: number } | null>(null);
+
+  React.useEffect(() => {
+    const last = lastNotifiedPageRef.current;
+    if (!last || last.page !== currentPage || last.totalPages !== totalPages) {
+      lastNotifiedPageRef.current = { page: currentPage, totalPages };
+      if (onPageChangeRef.current) {
+        onPageChangeRef.current(currentPage, totalPages);
+      }
     }
-  }, [currentPage, totalPages, onPageChange]);
+  }, [currentPage, totalPages]);
 
   const paginatedTools = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
