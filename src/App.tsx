@@ -7,6 +7,8 @@ import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
 import { AIChatWorkspace } from "./components/AIChatWorkspace";
 import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
 import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
+import { ProtectPdfTool } from "./components/ProtectPdfTool";
+import { SharePdfSunModal } from "./components/SharePdfSunModal";
 import { SupportedFormats } from "./components/SupportedFormats";
 import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
@@ -38,6 +40,8 @@ export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora
 export default function App() {
   // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
+  // Ref to track theme initialization status
+  const themeInitialized = useRef(false);
 
   // Enhanced Multi-Theme State (System Auto, Light, Dark, Eye Protection, Aurora Glass)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -63,10 +67,11 @@ export default function App() {
   const isSystemDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const darkMode = themeMode === "dark" || themeMode === "aurora" || (themeMode === "system" && isSystemDark);
 
-  const handleSetDarkMode = (val: boolean) => {
+  const handleSetDarkMode = useCallback((val: boolean) => {
     setThemeMode(val ? "dark" : "light");
-  };
+  }, []);
 
+  // Theme DOM Application & Persistence Effect
   useEffect(() => {
     const root = document.documentElement;
 
@@ -74,7 +79,9 @@ export default function App() {
       root.classList.remove("dark", "eye-protection", "aurora-theme");
       let active = mode;
       if (mode === "system") {
-        active = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        active = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
       }
 
       if (active === "dark") {
@@ -86,21 +93,33 @@ export default function App() {
       }
     };
 
-    const applyThemeWithTransition = (mode: ThemeMode) => {
-      let timer: NodeJS.Timeout | undefined;
+    let timer: NodeJS.Timeout | undefined;
 
-      // Enable smooth cross-fade transition class for theme switches
+    // Ref-based check for theme initialization
+    if (!themeInitialized.current) {
+      themeInitialized.current = true;
+      updateClasses(themeMode);
+      isInitialMount.current = false;
+    } else {
       if (!isInitialMount.current) {
         root.classList.add("theme-transitioning");
       }
 
-      // Modern View Transitions API cross-fade if supported
-      if (!isInitialMount.current && "startViewTransition" in document && typeof (document as any).startViewTransition === "function") {
-        (document as any).startViewTransition(() => {
-          updateClasses(mode);
-        });
+      if ("startViewTransition" in document && typeof (document as any).startViewTransition === "function") {
+        try {
+          const vt = (document as any).startViewTransition(() => {
+            updateClasses(themeMode);
+          });
+          if (vt && vt.finished && typeof vt.finished.catch === "function") {
+            vt.finished.catch(() => {
+              // Ignore transition abort errors gracefully
+            });
+          }
+        } catch (e) {
+          updateClasses(themeMode);
+        }
       } else {
-        updateClasses(mode);
+        updateClasses(themeMode);
       }
 
       if (!isInitialMount.current) {
@@ -108,50 +127,80 @@ export default function App() {
           root.classList.remove("theme-transitioning");
         }, 320);
       }
+    }
 
-      return timer;
-    };
-
-    const cleanupTimer = applyThemeWithTransition(themeMode);
-    isInitialMount.current = false;
-
-    localStorage.setItem("pdfsun_theme", themeMode);
-    localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
-    localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
-
-    // Global listener for system theme preference changes:
-    // Listens for OS dark/light schedule changes even if a specific manual theme is set, when syncWithSystem is active!
-    let mediaQuery: MediaQueryList | undefined;
-    const handleSystemChange = (e: MediaQueryListEvent) => {
-      if (syncWithSystem || themeMode === "system") {
-        const nextTheme: ThemeMode = e.matches ? "dark" : "light";
-        setThemeMode(nextTheme);
-        applyThemeWithTransition(nextTheme);
-      }
-    };
-
-    if (typeof window !== "undefined" && window.matchMedia) {
-      mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      mediaQuery.addEventListener("change", handleSystemChange);
+    try {
+      localStorage.setItem("pdfsun_theme", themeMode);
+      localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
+      localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
+    } catch (e) {
+      console.error("Failed to save theme preferences to localStorage:", e);
     }
 
     return () => {
-      if (cleanupTimer) clearTimeout(cleanupTimer);
-      if (mediaQuery) mediaQuery.removeEventListener("change", handleSystemChange);
+      if (timer) clearTimeout(timer);
     };
   }, [themeMode, syncWithSystem]);
 
+  // Dedicated system theme media query listener effect with strict dependency control & cleanup
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      if (!syncWithSystem && themeMode !== "system") return;
+
+      const nextTheme: ThemeMode = e.matches ? "dark" : "light";
+      setThemeMode((prevTheme) => {
+        // Prevent recursive state update if the theme is already updated
+        if (prevTheme === nextTheme) return prevTheme;
+        if (syncWithSystem || prevTheme === "system") {
+          return nextTheme;
+        }
+        return prevTheme;
+      });
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleSystemChange);
+    } else if ((mediaQuery as any).addListener) {
+      (mediaQuery as any).addListener(handleSystemChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleSystemChange);
+      } else if ((mediaQuery as any).removeListener) {
+        (mediaQuery as any).removeListener(handleSystemChange);
+      }
+    };
+  }, [syncWithSystem, themeMode]);
+
   // Role & Authentication state
-  const [currentRole, setCurrentRole] = useState<UserRole>("owner"); // Owner/Admin mode for Mukesh Kalonia
-  const [userProfile, setUserProfile] = useState<UserProfile | null>({
-    id: "owner-001",
-    name: "Mukesh Kalonia",
-    email: "mukeshkalonia241@gmail.com",
-    role: "owner",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-    plan: "Team Enterprise",
-    joinedDate: "Founder & Owner",
-    hasAdminAccess: true,
+  // Public customers default to "public" mode with null userProfile unless authenticated
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    try {
+      const savedRole = localStorage.getItem("pdfsun_user_role") as UserRole;
+      if (savedRole && ["owner", "user", "public"].includes(savedRole)) {
+        return savedRole;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return "public";
+  });
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    try {
+      const savedProfile = localStorage.getItem("pdfsun_user_profile");
+      if (savedProfile) {
+        return JSON.parse(savedProfile);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
   });
 
   // User Accounts State with persistent Admin Permission control
@@ -318,9 +367,22 @@ export default function App() {
     if (profile) {
       const match = userAccounts.find((a) => a.email === profile.email);
       const hasAdmin = role === "owner" || (match ? match.hasAdminAccess : Boolean(profile.hasAdminAccess));
-      setUserProfile({ ...profile, hasAdminAccess: hasAdmin });
+      const updatedProfile = { ...profile, hasAdminAccess: hasAdmin };
+      setUserProfile(updatedProfile);
+      try {
+        localStorage.setItem("pdfsun_user_role", role);
+        localStorage.setItem("pdfsun_user_profile", JSON.stringify(updatedProfile));
+      } catch (e) {
+        console.error(e);
+      }
     } else {
       setUserProfile(null);
+      try {
+        localStorage.removeItem("pdfsun_user_role");
+        localStorage.removeItem("pdfsun_user_profile");
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -328,11 +390,20 @@ export default function App() {
   const isDualOwner = DUAL_OWNER_EMAILS.includes(currentUserEmail);
   const canAccessAdmin =
     currentRole !== "public" &&
-    (currentRole === "owner" || isDualOwner || Boolean(userProfile?.hasAdminAccess));
+    userProfile !== null &&
+    (currentRole === "owner" || (Boolean(userProfile?.hasAdminAccess) && (isDualOwner || userProfile?.role === "owner")));
 
   const handleLogout = () => {
     setCurrentRole("public");
     setUserProfile(null);
+    setAdminPanelOpen(false);
+    setUserDashboardOpen(false);
+    try {
+      localStorage.removeItem("pdfsun_user_role");
+      localStorage.removeItem("pdfsun_user_profile");
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleOpenAdminPanel = (tab?: string) => {
@@ -548,6 +619,19 @@ export default function App() {
               onAddHistory={addHistory}
             />
           </div>
+        ) : activeTool.id === "share-pdfsun" ? (
+          <SharePdfSunModal
+            isOpen={true}
+            onClose={() => setActiveTool(null)}
+          />
+        ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+            <ProtectPdfTool
+              initialFile={activeToolFiles[0] || null}
+              onClose={() => setActiveTool(null)}
+              onAddHistory={addHistory}
+            />
+          </div>
         ) : activeTool.isAi ? (
           <AIChatWorkspace
             tool={activeTool}
@@ -575,7 +659,7 @@ export default function App() {
       />
 
       {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}
-      {canAccessAdmin && (
+      {canAccessAdmin && adminPanelOpen && (
         <AdminPanel
           isOpen={adminPanelOpen}
           onClose={() => setAdminPanelOpen(false)}
@@ -593,7 +677,7 @@ export default function App() {
       )}
 
       {/* User Dashboard Modal */}
-      {userProfile && (
+      {userProfile && userDashboardOpen && (
         <UserDashboard
           isOpen={userDashboardOpen}
           onClose={() => setUserDashboardOpen(false)}

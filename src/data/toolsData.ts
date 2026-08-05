@@ -3,6 +3,19 @@ import { ToolItem } from "../types";
 export const ALL_TOOLS: ToolItem[] = [
   // --- STUDENT & POPULAR CONVERT & AI HIGHLIGHTS ---
   {
+    id: "share-pdfsun",
+    name: "Share PDFSun",
+    slug: "share-pdfsun",
+    description: "Share PDFSun with friends, classmates & colleagues via WhatsApp, Socials, or QR Code.",
+    icon: "Share2",
+    category: "convert",
+    isPopular: true,
+    isStudentFavorite: true,
+    badge: "⭐ NEW",
+    supportedInput: [],
+    outputFormat: "Share Link / QR",
+  },
+  {
     id: "merge-pdf",
     name: "Merge PDF",
     slug: "merge-pdf",

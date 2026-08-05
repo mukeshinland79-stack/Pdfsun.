@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
+  Share2,
   Combine,
   Scissors,
   Minimize2,
-  Edit3,
   FileText,
-  Sparkles,
+  FileType,
+  Image,
+  FileImage,
+  ScanText,
   ChevronRight,
   ChevronLeft,
   ArrowUp,
@@ -40,14 +43,26 @@ export const QuickActionsSidebar: React.FC<QuickActionsSidebarProps> = ({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Primary tools required by quick actions
+  // Primary tools required by quick actions in exact priority order:
+  // 1. Share PDFSun (NEW)
+  // 2. Merge PDF
+  // 3. Split PDF
+  // 4. Compress PDF
+  // 5. PDF to Word
+  // 6. Word to PDF
+  // 7. JPG to PDF
+  // 8. PDF to JPG
+  // 9. OCR PDF
   const primaryToolSlugs = [
-    { slug: "merge-pdf", name: "Merge", defaultIcon: Combine, color: "from-orange-500 to-amber-500", badge: "POPULAR" },
-    { slug: "split-pdf", name: "Split", defaultIcon: Scissors, color: "from-blue-500 to-indigo-500", badge: "FAST" },
-    { slug: "compress-pdf", name: "Compress", defaultIcon: Minimize2, color: "from-emerald-500 to-teal-500", badge: "ESSENTIAL" },
-    { slug: "edit-pdf", name: "Edit", defaultIcon: Edit3, color: "from-purple-500 to-pink-500", badge: "PRO" },
+    { slug: "share-pdfsun", name: "Share PDFSun", defaultIcon: Share2, color: "from-amber-400 to-orange-500", badge: "⭐ NEW" },
+    { slug: "merge-pdf", name: "Merge PDF", defaultIcon: Combine, color: "from-orange-500 to-amber-500", badge: "POPULAR" },
+    { slug: "split-pdf", name: "Split PDF", defaultIcon: Scissors, color: "from-blue-500 to-indigo-500", badge: "FAST" },
+    { slug: "compress-pdf", name: "Compress PDF", defaultIcon: Minimize2, color: "from-emerald-500 to-teal-500", badge: "ESSENTIAL" },
     { slug: "pdf-to-word", name: "PDF to Word", defaultIcon: FileText, color: "from-sky-500 to-cyan-500", badge: null },
-    { slug: "ai-pdf-chat", name: "AI Chat", defaultIcon: Sparkles, color: "from-amber-400 to-orange-500", badge: "AI" },
+    { slug: "word-to-pdf", name: "Word to PDF", defaultIcon: FileType, color: "from-purple-500 to-pink-500", badge: null },
+    { slug: "jpg-to-pdf", name: "JPG to PDF", defaultIcon: Image, color: "from-rose-500 to-red-500", badge: null },
+    { slug: "pdf-to-jpg", name: "PDF to JPG", defaultIcon: FileImage, color: "from-teal-500 to-emerald-500", badge: null },
+    { slug: "ai-ocr", name: "OCR PDF", defaultIcon: ScanText, color: "from-indigo-500 to-purple-500", badge: "AI" },
   ];
 
   // Resolve tools from dataset
