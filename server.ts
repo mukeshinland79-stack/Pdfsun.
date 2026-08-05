@@ -7,6 +7,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
+import { ALL_TOOLS } from "./src/data/toolsData";
 
 dotenv.config();
 
@@ -536,40 +537,29 @@ Sitemap: https://pdfsun.in/sitemap.xml
 // Dynamic Sitemap.xml
 app.get("/sitemap.xml", (req, res) => {
   res.type("application/xml");
-  const tools = [
-    "",
-    "merge-pdf",
-    "split-pdf",
-    "compress-pdf",
-    "rotate-pdf",
-    "delete-pages",
-    "organize-pdf",
-    "protect-pdf",
-    "unlock-pdf",
-    "watermark-pdf",
-    "pdf-to-word",
-    "word-to-pdf",
-    "pdf-to-excel",
-    "excel-to-pdf",
-    "pdf-to-ppt",
-    "ppt-to-pdf",
-    "pdf-to-jpg",
-    "jpg-to-pdf",
-    "html-to-pdf",
-    "ocr-pdf",
-    "ai-summary",
-    "ai-chat"
-  ];
+  
+  // Collect unique slugs from all tools plus root and static pages
+  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us"];
+  const toolSlugs = ALL_TOOLS.map((t) => t.slug).filter(Boolean);
+  const allSlugs = Array.from(new Set([...staticSlugs, ...toolSlugs]));
 
-  const sitemapEntries = tools
-    .map(
-      (slug) => `  <url>
-    <loc>https://pdfsun.in/${slug}</loc>
-    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>${slug === "" ? "1.0" : "0.8"}</priority>
-  </url>`
-    )
+  const today = new Date().toISOString().split("T")[0];
+
+  const sitemapEntries = allSlugs
+    .map((slug) => {
+      const isHome = slug === "";
+      const isTool = toolSlugs.includes(slug);
+      const priority = isHome ? "1.0" : isTool ? "0.8" : "0.5";
+      const changefreq = isHome ? "daily" : "weekly";
+      const urlPath = slug ? `/${slug}` : "";
+
+      return `  <url>
+    <loc>https://pdfsun.in${urlPath}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    })
     .join("\n");
 
   res.send(`<?xml version="1.0" encoding="UTF-8"?>

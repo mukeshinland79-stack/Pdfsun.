@@ -173,10 +173,21 @@ export const Footer: React.FC<FooterProps> = ({
                   About Us
                 </button>
               </li>
+              <li>
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-amber-400 transition flex items-center space-x-1 font-bold text-amber-400"
+                  title="View Dynamic XML Sitemap"
+                >
+                  <span>XML Sitemap (.xml)</span>
+                </a>
+              </li>
               {onOpenSitemapModal && (
                 <li>
                   <button onClick={onOpenSitemapModal} className="hover:text-amber-400 transition">
-                    Sitemap
+                    Visual Sitemap
                   </button>
                 </li>
               )}
