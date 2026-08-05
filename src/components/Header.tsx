@@ -45,6 +45,8 @@ import { SearchModal } from "./SearchModal";
 import { LanguageSelector } from "./LanguageSelector";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { usePWAStatus } from "../pwaRegister";
+import { PDFSunLogo } from "./PDFSunLogo";
+import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 
 interface HeaderProps {
   darkMode: boolean;
@@ -103,6 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [showBrandShowcase, setShowBrandShowcase] = useState(false);
 
   const themeDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -171,29 +174,21 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         {/* Brand Section */}
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <div
-            className="flex items-center space-x-2.5 cursor-pointer group"
+          <PDFSunLogo
+            layout="horizontal"
+            size="md"
             onClick={onGoHome}
-            title="PDF Sun Home"
-            aria-label="PDF Sun Logo"
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowBrandShowcase(true)}
+            className="hidden xl:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition shadow-xs"
+            title="PDFSun Brand Guidelines & Master Logo Kit"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center transition group-hover:scale-105" title="PDF Sun Logo">
-              <div className="w-full h-full bg-slate-950 dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
-                <Sun className="w-5 h-5 text-blue-400 animate-pulse" />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center space-x-1">
-                <span className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">
-                  PDF Sun
-                </span>
-                <span className="text-[9px] uppercase tracking-wider font-black px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  PRO
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider">pdfsun.in</span>
-            </div>
-          </div>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Brand Kit</span>
+          </button>
 
           {/* Direct Home Link */}
           <button
@@ -958,6 +953,11 @@ export const Header: React.FC<HeaderProps> = ({
         onSelectTool={onSelectTool}
         favorites={favorites}
       />
+
+      {/* Brand Identity Master Showcase Modal */}
+      {showBrandShowcase && (
+        <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+      )}
     </header>
   );
 };

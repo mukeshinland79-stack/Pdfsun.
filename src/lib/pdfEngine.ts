@@ -1547,3 +1547,70 @@ export function downloadFile(
 
   return { success: true, finalFileName, bytesCount };
 }
+
+// PDF Metadata Interfaces and Helper Functions
+export interface PdfMetadataInfo {
+  title: string;
+  author: string;
+  subject: string;
+  keywords: string;
+  creator: string;
+  producer: string;
+  creationDate?: string;
+  modificationDate?: string;
+  pageCount: number;
+  fileSize: number;
+}
+
+export async function getPdfMetadata(file: File): Promise<PdfMetadataInfo> {
+  const pdfDoc = await loadSafePdfDocument(file);
+  const title = pdfDoc.getTitle() || "";
+  const author = pdfDoc.getAuthor() || "";
+  const subject = pdfDoc.getSubject() || "";
+  const keywords = pdfDoc.getKeywords() || "";
+  const creator = pdfDoc.getCreator() || "";
+  const producer = pdfDoc.getProducer() || "";
+  const creationDateObj = pdfDoc.getCreationDate();
+  const modDateObj = pdfDoc.getModificationDate();
+
+  return {
+    title,
+    author,
+    subject,
+    keywords,
+    creator,
+    producer,
+    creationDate: creationDateObj ? creationDateObj.toISOString() : undefined,
+    modificationDate: modDateObj ? modDateObj.toISOString() : undefined,
+    pageCount: pdfDoc.getPageCount(),
+    fileSize: file.size,
+  };
+}
+
+export async function updatePdfMetadata(
+  file: File,
+  newMetadata: Partial<PdfMetadataInfo>,
+  onProgress?: (percent: number) => void
+): Promise<Uint8Array> {
+  if (onProgress) onProgress(15);
+  const pdfDoc = await loadSafePdfDocument(file);
+  if (onProgress) onProgress(40);
+
+  if (newMetadata.title !== undefined) pdfDoc.setTitle(newMetadata.title);
+  if (newMetadata.author !== undefined) pdfDoc.setAuthor(newMetadata.author);
+  if (newMetadata.subject !== undefined) pdfDoc.setSubject(newMetadata.subject);
+  if (newMetadata.keywords !== undefined) {
+    const kwArray = newMetadata.keywords
+      ? newMetadata.keywords.split(",").map((k) => k.trim()).filter(Boolean)
+      : [];
+    pdfDoc.setKeywords(kwArray);
+  }
+  if (newMetadata.creator !== undefined) pdfDoc.setCreator(newMetadata.creator);
+  if (newMetadata.producer !== undefined) pdfDoc.setProducer(newMetadata.producer);
+  pdfDoc.setModificationDate(new Date());
+
+  if (onProgress) onProgress(75);
+  const bytes = await pdfDoc.save();
+  if (onProgress) onProgress(100);
+  return bytes;
+}

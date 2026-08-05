@@ -6,6 +6,7 @@ import { ToolGrid } from "./components/ToolGrid";
 import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
 import { AIChatWorkspace } from "./components/AIChatWorkspace";
 import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
+import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
 import { SupportedFormats } from "./components/SupportedFormats";
 import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
@@ -534,6 +535,14 @@ export default function App() {
         activeTool.id === "watermark-pdf" ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <WatermarkPdfTool
+              initialFile={activeToolFiles[0] || null}
+              onClose={() => setActiveTool(null)}
+              onAddHistory={addHistory}
+            />
+          </div>
+        ) : ["edit-pdf-metadata", "pdf-metadata", "read-pdf-metadata"].includes(activeTool.id) ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+            <EditPdfMetadataTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
               onAddHistory={addHistory}

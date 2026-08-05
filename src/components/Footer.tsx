@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { PolicyType } from "../types";
 import { NewsletterSubscription } from "./NewsletterSubscription";
+import { PDFSunLogo } from "./PDFSunLogo";
+import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 
 interface FooterProps {
   onOpenPolicy: (policy: PolicyType) => void;
@@ -37,6 +39,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenContactModal,
   onOpenSitemapModal,
 }) => {
+  const [showBrandShowcase, setShowBrandShowcase] = React.useState(false);
+
   return (
     <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -70,21 +74,22 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-400 p-0.5 shadow-md flex items-center justify-center">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Sun className="w-5 h-5 text-amber-400" />
-                </div>
-              </div>
-              <div>
-                <span className="text-2xl font-black text-white tracking-tight">PDF Sun</span>
-                <p className="text-[10px] font-bold text-amber-400 tracking-wider">pdfsun.in</p>
-              </div>
-            </div>
+            <PDFSunLogo layout="horizontal" size="lg" theme="dark" showTagline />
 
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-              Powerful PDF Tools for Everyone. Merge, split, compress, convert, edit, and analyze documents with cutting-edge Gemini 3.6 AI and local browser encryption.
+              PDFSun (pdfsun.in) — Your Smart Document Companion. Merge, split, compress, convert, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.
             </p>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowBrandShowcase(true)}
+                className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-bold transition shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Brand Identity Guidelines & Logo Kit</span>
+              </button>
+            </div>
 
             <div className="space-y-1.5 pt-2 text-xs font-medium text-slate-400">
               <div className="flex items-center space-x-2">
@@ -316,6 +321,11 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Brand Identity Master Showcase Modal */}
+      {showBrandShowcase && (
+        <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+      )}
     </footer>
   );
 };
