@@ -6,7 +6,14 @@ import mammoth from "mammoth";
 import * as XLSX from "xlsx";
 import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTable, TableRow, TableCell, WidthType } from "docx";
 import PptxGenJS from "pptxgenjs";
+import * as pdfjsLib from "pdfjs-dist";
 import { readLargeFileChunked } from "./fileValidationService";
+
+if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
+    pdfjsLib.version || "4.10.38"
+  }/pdf.worker.min.mjs`;
+}
 
 // Helper to read File as ArrayBuffer
 export async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
@@ -45,7 +52,7 @@ export async function fileToBase64(file: File): Promise<string> {
   return commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
 }
 
-// Helper to safely load a PDFDocument, falling back to creating a valid PDF if file has no PDF header
+// Helper to safely load a PDFDocument, throwing a clear error if unparseable
 export async function loadSafePdfDocument(
   file: File,
   onFileProgress?: (percent: number) => void
@@ -58,28 +65,15 @@ export async function loadSafePdfDocument(
   try {
     return await PDFDocument.load(bytes, { ignoreEncryption: true });
   } catch (err: any) {
-    console.warn(`Could not parse PDF header for ${file.name}, converting to clean PDF...`, err);
-    let textContent = "";
-    try {
-      textContent = await fileToText(file);
-    } catch {
-      textContent = `Content of ${file.name}`;
-    }
-    if (!textContent || textContent.trim().length === 0) {
-      textContent = `Document: ${file.name}`;
-    }
-    const safePdfBytes = textToPdf(textContent, file.name);
-    return await PDFDocument.load(safePdfBytes);
+    console.error(`Error loading PDF "${file.name}":`, err);
+    throw new Error(
+      `Failed to load PDF "${file.name}": The file may be corrupted, password-protected, or not a valid PDF document.`
+    );
   }
 }
 
 export function createSamplePdfFile(fileName: string = "PDFSun_Sample.pdf"): File {
-  const bytes = textToPdf(
-    "Welcome to PDFSun Enterprise PDF Tools.\n\nThis is a sample PDF document created for processing.",
-    "PDFSun Document"
-  );
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  return new File([blob], fileName, { type: "application/pdf" });
+  throw new Error("Sample PDF generation disabled. Please upload a real PDF document to process.");
 }
 
 // 1. Merge PDFs
@@ -563,25 +557,40 @@ export function textToPdf(text: string, title: string = "Document"): Uint8Array 
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-// 11. Extract raw text from File (simulated or real string parsing)
+// 11. Extract raw text from File using pdfjsLib
 export async function extractTextFromPdfFile(file: File): Promise<string> {
   if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".xml")) {
     return await fileToText(file);
   }
 
   try {
-    const pdfDoc = await loadSafePdfDocument(file);
-    const pageCount = pdfDoc.getPageCount();
+    const arrayBuffer = await fileToArrayBuffer(file);
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    let fullText = "";
 
-    // Standard pdf-lib doesn't extract plain text stream easily without pdfjs,
-    // so we build a fallback clean text structure and page inventory:
-    let extracted = `Document: ${file.name}\nTotal Pages: ${pageCount}\nFile Size: ${(file.size / 1024).toFixed(1)} KB\n\n`;
-    for (let i = 0; i < pageCount; i++) {
-      extracted += `--- PAGE ${i + 1} ---\n[PDF Page Content stream extracted cleanly from ${file.name}]\n\n`;
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(" ");
+      if (pageText.trim()) {
+        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+      }
     }
-    return extracted;
-  } catch (e: any) {
-    return `Content extracted from ${file.name} for AI analysis and processing.`;
+
+    if (!fullText.trim()) {
+      throw new Error(`No readable text content found in "${file.name}". If this is a scanned document, please use the OCR tool.`);
+    }
+
+    return fullText.trim();
+  } catch (err: any) {
+    if (err.message && err.message.includes("No readable text content found")) {
+      throw err;
+    }
+    console.error("PDF text extraction error:", err);
+    throw new Error(`Failed to extract text from "${file.name}": ${err?.message || "Invalid or unreadable PDF"}`);
   }
 }
 
@@ -859,7 +868,7 @@ export async function wordToPdf(
   if (onProgress) onProgress(60);
 
   if (!rawText || rawText.trim().length === 0) {
-    rawText = `Document: ${file.name}\n\n[Word Document Content Processed cleanly by PDFSun Word Engine]`;
+    throw new Error(`Could not extract readable text from "${file.name}". The Word file may be empty or corrupted.`);
   }
 
   const pdfBytes = textToPdf(rawText, file.name.replace(/\.[^/.]+$/, ""));
@@ -985,38 +994,39 @@ export async function pdfToPowerPointPptx(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const pdfDoc = await loadSafePdfDocument(file);
-  const pageCount = pdfDoc.getPageCount();
+  if (onProgress) onProgress(10);
+  const arrayBuffer = await fileToArrayBuffer(file);
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pageCount = pdf.numPages;
 
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_16x9";
 
-  for (let i = 0; i < pageCount; i++) {
-    const slide = pptx.addSlide();
-    slide.addText(`Slide ${i + 1} - ${file.name}`, {
-      x: 0.5,
-      y: 0.5,
-      w: 9.0,
-      h: 0.8,
-      fontSize: 22,
-      bold: true,
-      color: "003366",
-    });
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
 
-    slide.addText(`PDF Page ${i + 1} converted slide layout.\nHigh resolution vector slide presentation.`, {
-      x: 0.8,
-      y: 1.8,
-      w: 8.4,
-      h: 4.0,
-      fontSize: 14,
-      color: "333333",
-    });
+    if (ctx) {
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      const imgDataUrl = canvas.toDataURL("image/png");
+      const slide = pptx.addSlide();
+      slide.addImage({
+        data: imgDataUrl,
+        x: 0,
+        y: 0,
+        w: "100%",
+        h: "100%",
+      });
+    }
 
-    if (onProgress) onProgress(20 + Math.round(((i + 1) / pageCount) * 60));
+    if (onProgress) onProgress(10 + Math.round((i / pageCount) * 75));
   }
 
-  if (onProgress) onProgress(85);
+  if (onProgress) onProgress(90);
   const buffer = await pptx.write({ outputType: "arraybuffer" });
   if (onProgress) onProgress(100);
   return new Uint8Array(buffer as ArrayBuffer);
@@ -1028,22 +1038,31 @@ export async function pdfToImagesZip(
   format: "jpg" | "png" = "jpg",
   onProgress?: (percent: number) => void
 ): Promise<Blob> {
-  if (onProgress) onProgress(20);
-  const pdfDoc = await loadSafePdfDocument(file);
-  const pageCount = pdfDoc.getPageCount();
+  if (onProgress) onProgress(10);
+  const arrayBuffer = await fileToArrayBuffer(file);
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pageCount = pdf.numPages;
   const zip = new JSZip();
 
   const baseName = file.name.replace(/\.[^/.]+$/, "");
 
-  for (let i = 0; i < pageCount; i++) {
-    const singleDoc = await PDFDocument.create();
-    const [page] = await singleDoc.copyPages(pdfDoc, [i]);
-    singleDoc.addPage(page);
-    const pdfBytes = await singleDoc.save();
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
 
-    // Store page image representation in zip
-    zip.file(`${baseName}_page_${i + 1}.${format}`, pdfBytes);
-    if (onProgress) onProgress(20 + Math.round(((i + 1) / pageCount) * 70));
+    if (ctx) {
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      const mimeType = format === "png" ? "image/png" : "image/jpeg";
+      const dataUrl = canvas.toDataURL(mimeType, 0.92);
+      const base64Data = dataUrl.split(",")[1];
+      zip.file(`${baseName}_page_${i}.${format}`, base64Data, { base64: true });
+    }
+
+    if (onProgress) onProgress(10 + Math.round((i / pageCount) * 85));
   }
 
   const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -1067,7 +1086,11 @@ export async function htmlToPdf(
     .replace(/\n\s*\n/g, "\n\n")
     .trim();
 
-  const pdfBytes = textToPdf(cleanText || "HTML Webpage Content", file.name.replace(/\.[^/.]+$/, ""));
+  if (!cleanText) {
+    throw new Error(`The HTML document "${file.name}" contains no renderable text.`);
+  }
+
+  const pdfBytes = textToPdf(cleanText, file.name.replace(/\.[^/.]+$/, ""));
   if (onProgress) onProgress(100);
   return pdfBytes;
 }
@@ -1403,21 +1426,7 @@ export async function extractImagesFromPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Blob> {
-  if (onProgress) onProgress(20);
-  const pdfDoc = await loadSafePdfDocument(file);
-  const zip = new JSZip();
-
-  const pages = pdfDoc.getPages();
-  pages.forEach((page, i) => {
-    // Generate clean image representation for each page
-    const bytes = textToPdf(`Extracted Image Page ${i + 1} from ${file.name}`, "PDF Image Asset");
-    zip.file(`extracted_image_page_${i + 1}.png`, bytes);
-  });
-
-  if (onProgress) onProgress(80);
-  const zipBlob = await zip.generateAsync({ type: "blob" });
-  if (onProgress) onProgress(100);
-  return zipBlob;
+  return pdfToImagesZip(file, "png", onProgress);
 }
 
 // 36. Convert to ISO Standard PDF/A
@@ -1439,7 +1448,10 @@ export async function convertToPdfA(
 export async function epubToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
   if (onProgress) onProgress(20);
   const text = await fileToText(file);
-  const pdfBytes = textToPdf(text || "eBook EPUB Content", file.name.replace(/\.[^/.]+$/, ""));
+  if (!text || !text.trim()) {
+    throw new Error(`The EPUB file "${file.name}" is empty or unreadable.`);
+  }
+  const pdfBytes = textToPdf(text, file.name.replace(/\.[^/.]+$/, ""));
   if (onProgress) onProgress(100);
   return pdfBytes;
 }
@@ -1448,7 +1460,10 @@ export async function rtfToPdf(file: File, onProgress?: (percent: number) => voi
   if (onProgress) onProgress(20);
   const text = await fileToText(file);
   const cleanRtf = text.replace(/\\par/g, "\n").replace(/\\?[a-z0-9]+/gi, "").trim();
-  const pdfBytes = textToPdf(cleanRtf || "Rich Text Content", file.name.replace(/\.[^/.]+$/, ""));
+  if (!cleanRtf) {
+    throw new Error(`The RTF document "${file.name}" contains no readable text.`);
+  }
+  const pdfBytes = textToPdf(cleanRtf, file.name.replace(/\.[^/.]+$/, ""));
   if (onProgress) onProgress(100);
   return pdfBytes;
 }
@@ -1456,7 +1471,10 @@ export async function rtfToPdf(file: File, onProgress?: (percent: number) => voi
 export async function xmlToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
   if (onProgress) onProgress(20);
   const text = await fileToText(file);
-  const pdfBytes = textToPdf(text || "<xml></xml>", file.name.replace(/\.[^/.]+$/, ""));
+  if (!text || !text.trim()) {
+    throw new Error(`The XML file "${file.name}" is empty or invalid.`);
+  }
+  const pdfBytes = textToPdf(text, file.name.replace(/\.[^/.]+$/, ""));
   if (onProgress) onProgress(100);
   return pdfBytes;
 }

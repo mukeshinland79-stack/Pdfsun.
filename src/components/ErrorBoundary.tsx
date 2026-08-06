@@ -1,5 +1,6 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Copy, Check, Trash2, Bug } from 'lucide-react';
+import { logError } from '../services/errorReporter';
 
 interface Props {
   children: ReactNode;
@@ -35,6 +36,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (errorInfo?.componentStack) {
       console.error('Component Stack:', errorInfo.componentStack);
     }
+    
+    // Log exception to telemetry monitoring queue
+    logError(error, "fatal", {
+      componentStack: errorInfo?.componentStack,
+      location: "ErrorBoundary",
+    });
+
     console.error('Error Details:', {
       message: error?.message,
       name: error?.name,

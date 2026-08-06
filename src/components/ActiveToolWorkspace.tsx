@@ -61,6 +61,7 @@ import {
   PdfMetadataResult,
   createBatchZip,
   downloadFile,
+  fileToText,
   createSamplePdfFile,
   fileToBase64,
   pdfToWordDocx,
@@ -780,8 +781,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "scan-to-pdf":
+          if (!files || files.length === 0) {
+            throw new Error("Please upload or capture image frames to scan into a PDF document.");
+          }
           setStatusMessage("Scanning frames to clean PDF document...");
-          outputBytes = files.length > 0 ? await imagesToPdf(files) : textToPdf("PDFSun Web Cam Scan Document", "Scanned Document");
+          outputBytes = await imagesToPdf(files);
           outputName = `PDFSun_Scan_${Date.now()}.pdf`;
           break;
 
@@ -851,15 +855,25 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "txt-to-pdf":
-          setStatusMessage("Converting text to PDF...");
-          outputBytes = textToPdf("Sample text converted into PDF document via PDFSun.", "PDFSun TXT Document");
-          outputName = "PDFSun_Converted_Text.pdf";
+          if (!files[0]) {
+            throw new Error("Please upload a .txt file to convert to PDF.");
+          }
+          setStatusMessage("Converting text file to PDF...");
+          const textFileContent = await fileToText(files[0]);
+          if (!textFileContent || !textFileContent.trim()) {
+            throw new Error("The selected text file is empty.");
+          }
+          outputBytes = textToPdf(textFileContent, files[0].name.replace(/\.[^/.]+$/, ""));
+          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
 
         default:
+          if (!files[0]) {
+            throw new Error(`Please upload a document to run ${tool.name}.`);
+          }
           setStatusMessage(`Processing ${tool.name}...`);
-          outputBytes = await compressPdf(files[0] || createSamplePdfFile(), 0.8, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_${tool.slug}_${files[0]?.name || "processed.pdf"}`;
+          outputBytes = await compressPdf(files[0], 0.8, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          outputName = `PDFSun_${tool.slug}_${files[0].name}`;
           break;
       }
 
