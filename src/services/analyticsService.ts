@@ -120,11 +120,12 @@ class AnalyticsService {
   subscribeToLiveMetrics(options: AnalyticsStreamOptions): () => void {
     let isDisposed = false;
     let socket: WebSocket | null = null;
-    let pingInterval: NodeJS.Timeout | null = null;
+    let pingInterval: ReturnType<typeof setInterval> | null = null;
     let unsubscribeFb: Unsubscribe | null = null;
     let eventSource: EventSource | null = null;
-    let retryTimer: NodeJS.Timeout | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let retryCount = 0;
+    let isDisconnectHandled = false;
 
     const getWsUrl = (): string => {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -132,8 +133,39 @@ class AnalyticsService {
       return `${protocol}//${host}/ws/analytics`;
     };
 
+    const handleWsDisconnect = () => {
+      if (isDisconnectHandled) return;
+      isDisconnectHandled = true;
+
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+
+      if (socket) {
+        const currentSocket = socket;
+        socket = null;
+        try {
+          if (
+            currentSocket.readyState === WebSocket.OPEN ||
+            currentSocket.readyState === WebSocket.CONNECTING
+          ) {
+            currentSocket.close();
+          }
+        } catch {
+          // ignore close errors
+        }
+      }
+
+      if (isDisposed) return;
+
+      // Try SSE / Firebase fallback
+      fallbackToSseOrFirebase();
+    };
+
     const connectWebSocket = () => {
       if (isDisposed) return;
+      isDisconnectHandled = false;
 
       const currentStatus = retryCount === 0 ? "connecting" : "reconnecting";
       options.onStatusChange?.(currentStatus);
@@ -151,7 +183,11 @@ class AnalyticsService {
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
             if (socket && socket.readyState === WebSocket.OPEN) {
-              socket.send(JSON.stringify({ type: "ping" }));
+              try {
+                socket.send(JSON.stringify({ type: "ping" }));
+              } catch {
+                // ignore write errors
+              }
             }
           }, 10000);
         };
@@ -174,7 +210,7 @@ class AnalyticsService {
 
         socket.onerror = (err) => {
           if (isDisposed) return;
-          console.warn("WebSocket error, trying fallback stream:", err);
+          console.warn("WebSocket analytics stream notice, switching to SSE fallback:", err);
           handleWsDisconnect();
         };
 
@@ -188,22 +224,6 @@ class AnalyticsService {
           fallbackToSseOrFirebase();
         }
       }
-    };
-
-    const handleWsDisconnect = () => {
-      if (pingInterval) {
-        clearInterval(pingInterval);
-        pingInterval = null;
-      }
-      if (socket) {
-        socket.close();
-        socket = null;
-      }
-
-      if (isDisposed) return;
-
-      // Try SSE / Firebase fallback
-      fallbackToSseOrFirebase();
     };
 
     const fallbackToSseOrFirebase = () => {
@@ -226,7 +246,7 @@ class AnalyticsService {
           try {
             const parsed = JSON.parse(event.data);
             if (parsed && typeof parsed.activeUsersOnline === "number") {
-              options.onData(parsed);
+              options.onData(normalizeAnalyticsData(parsed));
               options.onStatusChange?.("live");
             }
           } catch (err) {
@@ -237,12 +257,16 @@ class AnalyticsService {
         eventSource.onerror = () => {
           if (isDisposed) return;
           if (eventSource) {
-            eventSource.close();
+            try {
+              eventSource.close();
+            } catch {
+              // ignore
+            }
             eventSource = null;
           }
           fallbackToFirebaseOrRest();
         };
-      } catch (sseErr) {
+      } catch {
         fallbackToFirebaseOrRest();
       }
     };

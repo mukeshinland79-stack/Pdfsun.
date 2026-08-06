@@ -112,10 +112,17 @@ export default function App() {
           const vt = (document as any).startViewTransition(() => {
             updateClasses(themeMode);
           });
-          if (vt && vt.finished && typeof vt.finished.catch === "function") {
-            vt.finished.catch(() => {
-              // Ignore transition abort errors gracefully
-            });
+          if (vt) {
+            if (vt.ready && typeof vt.ready.catch === "function") {
+              vt.ready.catch(() => {
+                // Ignore view transition abort/ready errors gracefully
+              });
+            }
+            if (vt.finished && typeof vt.finished.catch === "function") {
+              vt.finished.catch(() => {
+                // Ignore view transition abort/finished errors gracefully
+              });
+            }
           }
         } catch (e) {
           updateClasses(themeMode);

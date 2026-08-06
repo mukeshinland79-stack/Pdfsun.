@@ -18,7 +18,9 @@ if (typeof window !== 'undefined') {
     if (
       msg.includes('WebSocket closed without opened') ||
       msg.includes('failed to connect to websocket') ||
-      msg.includes('[vite] failed to connect')
+      msg.includes('[vite] failed to connect') ||
+      msg.includes('Transition was aborted') ||
+      msg.includes('invalid state')
     ) {
       return;
     }
@@ -39,7 +41,9 @@ if (typeof window !== 'undefined') {
       reasonStr.includes('closed without opened') ||
       reasonStr.includes('failed to connect') ||
       reasonStr.includes('ws://') ||
-      reasonStr.includes('wss://')
+      reasonStr.includes('wss://') ||
+      reasonStr.includes('Transition was aborted') ||
+      reasonStr.includes('invalid state')
     ) {
       event.preventDefault();
       if (typeof event.stopPropagation === 'function') {
@@ -56,7 +60,9 @@ if (typeof window !== 'undefined') {
       errorMsg.includes('closed without opened') ||
       errorMsg.includes('failed to connect') ||
       errorMsg.includes('ws://') ||
-      errorMsg.includes('wss://')
+      errorMsg.includes('wss://') ||
+      errorMsg.includes('Transition was aborted') ||
+      errorMsg.includes('invalid state')
     ) {
       event.preventDefault();
       if (typeof event.stopPropagation === 'function') {
