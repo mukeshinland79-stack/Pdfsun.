@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         {/* Brand Section */}
-        <div className="flex items-center space-x-3 sm:space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4 shrink-0">
           <PDFSunLogo
             layout="horizontal"
             size="md"
@@ -183,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setShowBrandShowcase(true)}
-            className="hidden xl:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition shadow-xs"
+            className="hidden xl:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition shadow-xs whitespace-nowrap"
             title="PDFSun Brand Guidelines & Master Logo Kit"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -193,19 +193,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Direct Home Link */}
           <button
             onClick={onGoHome}
-            className="hidden lg:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="hidden lg:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
           >
             <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>{t("home", "Home")}</span>
           </button>
-        </div>
-
-        {/* Center Professional Feature & Status Highlight (Replacing Search Bar) */}
-        <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{t("promo.privacy", "100% In-Browser Privacy")}</span>
-          <span className="text-slate-300 dark:text-slate-600">•</span>
-          <span className="text-blue-600 dark:text-blue-400 font-bold">{t("promo.utilities", "50+ Pro PDF Utilities")}</span>
         </div>
 
         {/* Nav Items & Dropdowns */}
@@ -216,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
               onMouseEnter={() => setToolsDropdownOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
             >
               <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>{t("allTools", "All PDF Tools")}</span>
@@ -258,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* AI Tools Suite Pill */}
           <button
             onClick={() => onSelectTool(aiTools[0])}
-            className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/20 transition shadow-xs"
+            className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/20 transition shadow-xs whitespace-nowrap"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>{t("aiSuite", "AI Suite")}</span>
@@ -273,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* PWA Offline / Install Badge */}
           {isOffline ? (
             <div
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold shrink-0"
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold shrink-0 whitespace-nowrap"
               title="You are currently offline. Client-side PDF tools remain fully functional."
             >
               <WifiOff className="w-3.5 h-3.5" />
@@ -283,7 +275,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={installPWA}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition text-xs font-bold shadow-xs shrink-0"
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition text-xs font-bold shadow-xs shrink-0 whitespace-nowrap"
               title="Install PDFSun App for offline desktop & mobile access"
             >
               <Download className="w-3.5 h-3.5" />
@@ -295,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setSearchOverlayOpen(true)}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-xs"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-xs whitespace-nowrap"
             title="Search 50+ PDF Tools (Ctrl+K)"
             aria-label="Open tool search modal"
           >
@@ -536,7 +528,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center space-x-1">
                 <button
                   onClick={onOpenAuthModal}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1"
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1 whitespace-nowrap"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>{t("loginRegister", "Login / Register")}</span>

@@ -83,10 +83,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-blue-500/15 via-indigo-500/15 to-sky-500/10 blur-3xl pointer-events-none rounded-full" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
-        {/* Brand Trust Badge */}
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 dark:bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-wide">
-          <ShieldCheck className="w-4 h-4 text-blue-600" />
-          <span>{t("badges.brandTrust", "PDFSun • Enterprise Grade • 100% Client-Side Privacy")}</span>
+        {/* Trust Badge Pills Container */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {/* Badge 1: 100% In-Browser Privacy */}
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="font-bold">{t("badges.privacyTitle", "100% In-Browser Privacy")}</span>
+            <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
+            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.privacySub", "Client-side WebAssembly processing")}</span>
+          </div>
+
+          {/* Badge 2: 50+ Pro PDF Utilities */}
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
+            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="font-bold">{t("badges.utilitiesTitle", "50+ Pro PDF Utilities")}</span>
+            <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
+            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.utilitiesSub", "Complete PDF suite")}</span>
+          </div>
         </div>
 
         {/* Headline */}
