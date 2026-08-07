@@ -1,47 +1,45 @@
 {
   "nav": {
-    "home": "Home",
-    "allTools": "All PDF Tools",
-    "aiSuite": "AI Tools",
-    "history": "Recent History",
-    "favorites": "Favorite Tools"
+    "home": "Inicio",
+    "allTools": "Todas las herramientas PDF",
+    "aiSuite": "Herramientas IA",
+    "pricing": "Precios",
+    "loginRegister": "Iniciar sesión / Registrarse"
   },
   "hero": {
-    "title": "Professional PDF & Document Tools",
-    "subtitle": "Fast, secure, and easy-to-use PDF converter & editing suite"
+    "title": "Motor de documentos y herramientas PDF para empresas",
+    "subtitle": "Procesamiento WebAssembly 100% en el cliente. Privado, rápido y seguro."
   },
   "quick_actions": {
-    "merge": "Merge PDF",
-    "split": "Split PDF",
-    "compress": "Compress PDF",
-    "convert": "Convert PDF"
+    "merge": "Combinar PDF",
+    "split": "Dividir PDF",
+    "compress": "Comprimir PDF",
+    "edit": "Editar PDF"
   },
   "badges": {
-    "free": "100% Free",
-    "secure": "Client-side Privacy",
-    "fast": "Lightning Fast"
+    "privacyTitle": "Privacidad 100% en el navegador",
+    "privacySub": "Procesamiento WebAssembly en el cliente",
+    "utilitiesTitle": "Más de 50 utilidades PDF Pro",
+    "utilitiesSub": "Suite PDF completa"
   },
   "promo": {
-    "title": "Transform Your Workflow",
-    "description": "Process documents securely without file size limits"
+    "privacy": "Privacidad 100% en el navegador",
+    "utilities": "Más de 50 utilidades PDF Pro"
   },
   "toolkit": {
-    "popular": "Popular Tools",
-    "ai": "AI Assistant Tools",
-    "convert": "Convert & Export",
-    "edit": "Edit & Annotate"
+    "popular": "Herramientas PDF populares",
+    "ai": "Herramientas PDF de IA",
+    "all": "Todas las utilidades"
   },
   "tools": {
-    "pdfToWord": "PDF to Word",
-    "wordToPdf": "Word to PDF",
-    "mergePdf": "Merge PDF",
-    "splitPdf": "Split PDF",
-    "compressPdf": "Compress PDF"
+    "mergePdf": "Combinar PDF",
+    "splitPdf": "Dividir PDF",
+    "compressPdf": "Comprimir PDF",
+    "chatWithPdf": "Chatear con PDF"
   },
   "footer": {
-    "copyright": "© PDFSun. All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "Todos los derechos reservados.",
+    "privacyPolicy": "Política de privacidad",
+    "termsOfService": "Términos de servicio"
   }
 }

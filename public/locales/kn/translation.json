@@ -1,47 +1,45 @@
 {
   "nav": {
-    "home": "Home",
-    "allTools": "All PDF Tools",
-    "aiSuite": "AI Tools",
-    "history": "Recent History",
-    "favorites": "Favorite Tools"
+    "home": "Home (kn)",
+    "allTools": "All PDF Tools (kn)",
+    "aiSuite": "AI Tools (kn)",
+    "pricing": "Pricing (kn)",
+    "loginRegister": "Login / Register (kn)"
   },
   "hero": {
-    "title": "Professional PDF & Document Tools",
-    "subtitle": "Fast, secure, and easy-to-use PDF converter & editing suite"
+    "title": "Enterprise PDF Tools & Document Engine (kn)",
+    "subtitle": "100% Client-Side WebAssembly Processing (kn)"
   },
   "quick_actions": {
     "merge": "Merge PDF",
     "split": "Split PDF",
     "compress": "Compress PDF",
-    "convert": "Convert PDF"
+    "edit": "Edit PDF"
   },
   "badges": {
-    "free": "100% Free",
-    "secure": "Client-side Privacy",
-    "fast": "Lightning Fast"
+    "privacyTitle": "100% In-Browser Privacy",
+    "privacySub": "Client-side WebAssembly processing",
+    "utilitiesTitle": "50+ Pro PDF Utilities",
+    "utilitiesSub": "Complete PDF suite"
   },
   "promo": {
-    "title": "Transform Your Workflow",
-    "description": "Process documents securely without file size limits"
+    "privacy": "100% In-Browser Privacy",
+    "utilities": "50+ Pro PDF Utilities"
   },
   "toolkit": {
-    "popular": "Popular Tools",
-    "ai": "AI Assistant Tools",
-    "convert": "Convert & Export",
-    "edit": "Edit & Annotate"
+    "popular": "Popular PDF Tools",
+    "ai": "AI PDF Tools",
+    "all": "All Utilities"
   },
   "tools": {
-    "pdfToWord": "PDF to Word",
-    "wordToPdf": "Word to PDF",
     "mergePdf": "Merge PDF",
     "splitPdf": "Split PDF",
-    "compressPdf": "Compress PDF"
+    "compressPdf": "Compress PDF",
+    "chatWithPdf": "Chat with PDF"
   },
   "footer": {
-    "copyright": "© PDFSun. All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "All rights reserved.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   }
 }

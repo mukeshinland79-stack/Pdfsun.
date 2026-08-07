@@ -1,47 +1,45 @@
 {
   "nav": {
-    "home": "Home",
-    "allTools": "All PDF Tools",
-    "aiSuite": "AI Tools",
-    "history": "Recent History",
-    "favorites": "Favorite Tools"
+    "home": "الرئيسية",
+    "allTools": "جميع أدوات PDF",
+    "aiSuite": "أدوات الذكاء الاصطناعي",
+    "pricing": "الأسعار",
+    "loginRegister": "تسجيل الدخول / التسجيل"
   },
   "hero": {
-    "title": "Professional PDF & Document Tools",
-    "subtitle": "Fast, secure, and easy-to-use PDF converter & editing suite"
+    "title": "أدوات PDF ومحرك المستندات للمؤسسات",
+    "subtitle": "معالجة WebAssembly 100٪ على جانب العميل. خاص وسريع وآمن."
   },
   "quick_actions": {
-    "merge": "Merge PDF",
-    "split": "Split PDF",
-    "compress": "Compress PDF",
-    "convert": "Convert PDF"
+    "merge": "دمج PDF",
+    "split": "تقسيم PDF",
+    "compress": "ضغط PDF",
+    "edit": "تعديل PDF"
   },
   "badges": {
-    "free": "100% Free",
-    "secure": "Client-side Privacy",
-    "fast": "Lightning Fast"
+    "privacyTitle": "خصوصية 100٪ داخل المتصفح",
+    "privacySub": "معالجة WebAssembly على جانب العميل",
+    "utilitiesTitle": "أكثر من 50 أداة PDF احترافية",
+    "utilitiesSub": "حزمة PDF كاملة"
   },
   "promo": {
-    "title": "Transform Your Workflow",
-    "description": "Process documents securely without file size limits"
+    "privacy": "خصوصية 100٪ داخل المتصفح",
+    "utilities": "أكثر من 50 أداة PDF احترافية"
   },
   "toolkit": {
-    "popular": "Popular Tools",
-    "ai": "AI Assistant Tools",
-    "convert": "Convert & Export",
-    "edit": "Edit & Annotate"
+    "popular": "أدوات PDF الشائعة",
+    "ai": "أدوات PDF للذكاء الاصطناعي",
+    "all": "جميع الأدوات"
   },
   "tools": {
-    "pdfToWord": "PDF to Word",
-    "wordToPdf": "Word to PDF",
-    "mergePdf": "Merge PDF",
-    "splitPdf": "Split PDF",
-    "compressPdf": "Compress PDF"
+    "mergePdf": "دمج PDF",
+    "splitPdf": "تقسيم PDF",
+    "compressPdf": "ضغط PDF",
+    "chatWithPdf": "الدردشة مع PDF"
   },
   "footer": {
-    "copyright": "© PDFSun. All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "جميع الحقوق محفوظة.",
+    "privacyPolicy": "سياسة الخصوصية",
+    "termsOfService": "شروط الخدمة"
   }
 }

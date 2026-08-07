@@ -1,47 +1,45 @@
 {
   "nav": {
-    "home": "Home",
-    "allTools": "All PDF Tools",
-    "aiSuite": "AI Tools",
-    "history": "Recent History",
-    "favorites": "Favorite Tools"
+    "home": "मुख्य पृष्ठ",
+    "allTools": "सभी पीडीएफ उपकरण",
+    "aiSuite": "एआई टूल",
+    "pricing": "मूल्य निर्धारण",
+    "loginRegister": "लॉगिन / पंजीकरण"
   },
   "hero": {
-    "title": "Professional PDF & Document Tools",
-    "subtitle": "Fast, secure, and easy-to-use PDF converter & editing suite"
+    "title": "एंटरप्राइज पीडीएफ टूल और दस्तावेज इंजन",
+    "subtitle": "100% क्लाइंट-साइड वेबअसेंबली प्रोसेसिंग। निजी, तेज़ और सुरक्षित।"
   },
   "quick_actions": {
-    "merge": "Merge PDF",
-    "split": "Split PDF",
-    "compress": "Compress PDF",
-    "convert": "Convert PDF"
+    "merge": "पीडीएफ जोड़ें",
+    "split": "पीडीएफ अलग करें",
+    "compress": "पीडीएफ कंप्रेस करें",
+    "edit": "पीडीएफ संपादित करें"
   },
   "badges": {
-    "free": "100% Free",
-    "secure": "Client-side Privacy",
-    "fast": "Lightning Fast"
+    "privacyTitle": "100% इन-ब्राउज़र गोपनीयता",
+    "privacySub": "क्लाइंट-साइड वेबअसेंबली प्रोसेसिंग",
+    "utilitiesTitle": "50+ प्रो पीडीएफ उपयोगिताएँ",
+    "utilitiesSub": "पूर्ण पीडीएफ सूट"
   },
   "promo": {
-    "title": "Transform Your Workflow",
-    "description": "Process documents securely without file size limits"
+    "privacy": "100% इन-ब्राउज़र गोपनीयता",
+    "utilities": "50+ प्रो पीडीएफ उपयोगिताएँ"
   },
   "toolkit": {
-    "popular": "Popular Tools",
-    "ai": "AI Assistant Tools",
-    "convert": "Convert & Export",
-    "edit": "Edit & Annotate"
+    "popular": "लोकप्रिय पीडीएफ उपकरण",
+    "ai": "एआई पीडीएफ उपकरण",
+    "all": "सभी उपयोगिताएँ"
   },
   "tools": {
-    "pdfToWord": "PDF to Word",
-    "wordToPdf": "Word to PDF",
-    "mergePdf": "Merge PDF",
-    "splitPdf": "Split PDF",
-    "compressPdf": "Compress PDF"
+    "mergePdf": "पीडीएफ जोड़ें",
+    "splitPdf": "पीडीएफ अलग करें",
+    "compressPdf": "पीडीएफ कंप्रेस करें",
+    "chatWithPdf": "पीडीएफ के साथ चैट करें"
   },
   "footer": {
-    "copyright": "© PDFSun. All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "सर्वाधिकार सुरक्षित।",
+    "privacyPolicy": "गोपनीयता नीति",
+    "termsOfService": "सेवा की शर्तें"
   }
 }

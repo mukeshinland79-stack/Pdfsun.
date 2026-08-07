@@ -94,12 +94,16 @@ export const Header: React.FC<HeaderProps> = ({
   const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
   const { isOffline, isInstallable, installPWA } = usePWAStatus();
 
-  // Admin access rule: Dual Owners (Mukesh Kalonia & Mukesh Inland) OR user explicitly granted admin access
+  // Admin / Owner-Only access rule: Strictly check if user is authenticated AND holds owner role, dual owner email, or admin access flag
   const userEmail = (userProfile?.email || "").toLowerCase().trim();
   const isDualOwnerEmail = DUAL_OWNER_EMAILS.includes(userEmail);
-  const hasAdminRights = canAccessAdmin !== undefined 
-    ? (canAccessAdmin && (currentRole === "owner" || isDualOwnerEmail || Boolean(userProfile?.hasAdminAccess)))
-    : ((currentRole === "owner" || isDualOwnerEmail) || Boolean(userProfile?.hasAdminAccess));
+  const isAuthenticated = userProfile !== null;
+  const isAdminOrOwner = isAuthenticated && (
+    currentRole === "owner" ||
+    isDualOwnerEmail ||
+    Boolean(userProfile?.hasAdminAccess)
+  );
+  const hasAdminRights = isAdminOrOwner;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
@@ -171,137 +175,135 @@ export const Header: React.FC<HeaderProps> = ({
         scrolled ? "shadow-md" : "shadow-xs"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-        {/* Brand Section */}
-        <div className="flex items-center space-x-3 sm:space-x-4 shrink-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 lg:gap-6">
+        {/* Zone 1: Left Zone (Brand Logo & Navigation Dropdowns) */}
+        <div className="flex items-center space-x-3 lg:space-x-4 shrink-0">
           <PDFSunLogo
             layout="horizontal"
             size="md"
             onClick={onGoHome}
           />
 
+          {/* Core Navigation Links & Dropdowns (Desktop lg+) */}
+          <div className="hidden lg:flex items-center space-x-2">
+            {/* Direct Home Link */}
+            <button
+              onClick={onGoHome}
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+            >
+              <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{t("home", "Home")}</span>
+            </button>
+
+            {/* PDF Tools Mega Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
+                onMouseEnter={() => setToolsDropdownOpen(true)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+              >
+                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>{t("allTools", "All PDF Tools")}</span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              {toolsDropdownOpen && (
+                <div
+                  onMouseLeave={() => setToolsDropdownOpen(false)}
+                  className="absolute top-full left-0 w-80 mt-1 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 grid grid-cols-1 gap-1 z-50 animate-in fade-in slide-in-from-top-2"
+                >
+                  <div className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {t("popularTools", "Popular Tools")}
+                  </div>
+                  {popularTools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      onClick={() => {
+                        onSelectTool(tool);
+                        setToolsDropdownOpen(false);
+                      }}
+                      className="flex items-center space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition text-slate-700 dark:text-slate-200 group"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition">
+                        {tool.name[0]}
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          {tool.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 line-clamp-1">{tool.description}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* AI Tools Suite Pill */}
+            <button
+              onClick={() => onSelectTool(aiTools[0])}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/20 transition shadow-xs whitespace-nowrap"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{t("aiSuite", "AI Suite")}</span>
+              <span className="text-[9px] px-1.5 py-0.2 bg-blue-600 text-white rounded-full font-mono font-bold">
+                3.6
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Zone 2: Center Zone (Compact Search Bar Trigger) */}
+        <div className="flex-1 max-w-xs sm:max-w-sm lg:max-w-md mx-2 flex justify-center">
           <button
             type="button"
-            onClick={() => setShowBrandShowcase(true)}
-            className="hidden xl:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition shadow-xs whitespace-nowrap"
-            title="PDFSun Brand Guidelines & Master Logo Kit"
+            onClick={() => setSearchOverlayOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap cursor-pointer"
+            title="Search 50+ PDF Tools (Ctrl+K)"
+            aria-label="Open tool search modal"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{t("nav.brandKit", "Brand Kit")}</span>
-          </button>
-
-          {/* Direct Home Link */}
-          <button
-            onClick={onGoHome}
-            className="hidden lg:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
-          >
-            <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>{t("home", "Home")}</span>
+            <div className="flex items-center space-x-2 min-w-0">
+              <Search className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                {t("searchTools", "Search 50+ PDF tools...")}
+              </span>
+            </div>
+            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-2">
+              Ctrl+K
+            </kbd>
           </button>
         </div>
 
-        {/* Nav Items & Dropdowns */}
-        <div className="flex items-center space-x-1.5 sm:space-x-2">
-
-          {/* PDF Tools Mega Dropdown */}
-          <div className="relative hidden md:block">
-            <button
-              onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
-              onMouseEnter={() => setToolsDropdownOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
-            >
-              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>{t("allTools", "All PDF Tools")}</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-            </button>
-
-            {toolsDropdownOpen && (
-              <div
-                onMouseLeave={() => setToolsDropdownOpen(false)}
-                className="absolute top-full left-0 w-80 mt-1 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 grid grid-cols-1 gap-1 z-50 animate-in fade-in slide-in-from-top-2"
-              >
-                <div className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  {t("popularTools", "Popular Tools")}
-                </div>
-                {popularTools.map((tool) => (
-                  <button
-                    key={tool.id}
-                    onClick={() => {
-                      onSelectTool(tool);
-                      setToolsDropdownOpen(false);
-                    }}
-                    className="flex items-center space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition text-slate-700 dark:text-slate-200 group"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition">
-                      {tool.name[0]}
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                        {tool.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 line-clamp-1">{tool.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* AI Tools Suite Pill */}
-          <button
-            onClick={() => onSelectTool(aiTools[0])}
-            className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/20 transition shadow-xs whitespace-nowrap"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>{t("aiSuite", "AI Suite")}</span>
-            <span className="text-[9px] px-1.5 py-0.2 bg-blue-600 text-white rounded-full font-mono font-bold">
-              3.6
-            </span>
-          </button>
-
-          {/* Language Switcher Component (English, Spanish, French & 30+ Languages) */}
+        {/* Zone 3: Right Zone (Language, Theme, Auth & Mobile Menu) */}
+        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 ml-auto">
+          {/* Language Switcher */}
           <LanguageSwitcher />
 
           {/* PWA Offline / Install Badge */}
           {isOffline ? (
             <div
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold shrink-0 whitespace-nowrap"
+              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold shrink-0 whitespace-nowrap"
               title="You are currently offline. Client-side PDF tools remain fully functional."
             >
               <WifiOff className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Offline Mode</span>
+              <span>Offline Mode</span>
             </div>
           ) : isInstallable ? (
             <button
               type="button"
               onClick={installPWA}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition text-xs font-bold shadow-xs shrink-0 whitespace-nowrap"
+              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition text-xs font-bold shadow-xs shrink-0 whitespace-nowrap"
               title="Install PDFSun App for offline desktop & mobile access"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Install App</span>
+              <span>Install App</span>
             </button>
           ) : null}
-
-          {/* Quick Search Modal Trigger Button */}
-          <button
-            type="button"
-            onClick={() => setSearchOverlayOpen(true)}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-xs whitespace-nowrap"
-            title="Search 50+ PDF Tools (Ctrl+K)"
-            aria-label="Open tool search modal"
-          >
-            <Search className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">Search</span>
-            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-slate-500 dark:text-slate-400">
-              Ctrl+K
-            </kbd>
-          </button>
 
           {/* Favorites Counter */}
           <button
             onClick={onOpenFavorites}
-            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition relative"
+            className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition relative"
             title={t("favorites", "Favorite Tools")}
           >
             <Star className={`w-4 h-4 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : ""}`} />
@@ -315,7 +317,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* History Button */}
           <button
             onClick={onOpenHistory}
-            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             title={t("history", "Recent History")}
           >
             <Clock className="w-4 h-4" />
@@ -759,27 +761,36 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile Menu Toggle (< 1024px) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Responsive Mobile Drawer Menu */}
+      {/* Responsive Mobile & Tablet Slide-over Drawer Menu (< 1024px) */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3 animate-in slide-in-from-top">
+        <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2">
 
-          {/* Mobile Language Switcher Row */}
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {t("language", "Language")}
-            </span>
-            <LanguageSelector compact={false} />
-          </div>
+          {/* Mobile Quick Search Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setSearchOverlayOpen(true);
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+          >
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>{t("searchTools", "Search 50+ PDF tools...")}</span>
+            </div>
+            <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400">Ctrl+K</kbd>
+          </button>
 
           {/* Mobile Theme Switcher Row */}
           <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
@@ -817,111 +828,134 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Mobile Quick Language Switcher (EN, ES, FR) */}
-          <div className="space-y-1 py-1">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Language (Idioma / Langue)
-            </div>
-            <LanguageSwitcher variant="pills" className="w-full justify-between" />
-          </div>
-
-          <button
-            onClick={onGoHome}
-            className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
-          >
-            <Home className="w-4 h-4 text-blue-600" />
-            <span>{t("home", "Home")}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              onSelectTool(aiTools[0]);
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between p-3 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold text-xs"
-          >
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4" />
-              <span>{t("aiSuite", "AI Tools")}</span>
-            </div>
-            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">GEMINI 3.6</span>
-          </button>
-
-          {/* ADMIN MOBILE MENU OPTIONS - Shown ONLY to Owner or users explicitly granted Admin access */}
-          {hasAdminRights && (
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 space-y-1">
-              <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center space-x-1">
-                <Crown className="w-3.5 h-3.5" />
-                <span>Admin Menu {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminPanel("profile");
-                }}
-                className="w-full p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-              >
-                Admin Profile
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminPanel("analytics");
-                }}
-                className="w-full p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-              >
-                Analytics Dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminPanel("users");
-                }}
-                className="w-full p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-              >
-                User Management
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminPanel("files");
-                }}
-                className="w-full p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-              >
-                File Management
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAdminPanel("ads");
-                }}
-                className="w-full p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-              >
-                Advertisement Management
-              </button>
-            </div>
-          )}
-
-          {currentRole === "user" && (
+          {/* Mobile Navigation Links */}
+          <div className="space-y-1">
             <button
               onClick={() => {
+                onGoHome();
                 setMobileMenuOpen(false);
-                onOpenUserDashboard();
               }}
-              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 transition"
             >
-              <User className="w-4 h-4 text-blue-600" />
-              <span>{t("dashboard", "User Dashboard")}</span>
+              <Home className="w-4 h-4 text-blue-600" />
+              <span>{t("home", "Home")}</span>
             </button>
+
+            <button
+              onClick={() => {
+                onSelectTool(aiTools[0]);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold text-xs"
+            >
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4" />
+                <span>{t("aiSuite", "AI PDF Tools")}</span>
+              </div>
+              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">GEMINI 3.6</span>
+            </button>
+          </div>
+
+          {/* ADMIN MOBILE MENU OPTIONS - Strict RBAC: Shown ONLY if user is authenticated AND holds Admin/Owner role */}
+          {isAdminOrOwner && (
+            <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-1">
+              <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center space-x-1">
+                <Crown className="w-3.5 h-3.5 text-amber-500" />
+                <span>Admin Owner Controls {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 pt-1">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("profile");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Admin Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("analytics");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Analytics
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("users");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Users
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("files");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Files
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("ads");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Ads
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAdminPanel("settings");
+                  }}
+                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Settings
+                </button>
+              </div>
+            </div>
           )}
 
-          {currentRole === "public" && (
+          {/* LOGGED IN CUSTOMER DASHBOARD */}
+          {isAuthenticated && !isAdminOrOwner && (
+            <div className="space-y-1 pt-1">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenUserDashboard();
+                }}
+                className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
+              >
+                <User className="w-4 h-4 text-blue-600" />
+                <span>{t("dashboard", "User Dashboard")}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>{t("logout", "Logout")}</span>
+              </button>
+            </div>
+          )}
+
+          {/* GUEST LOGIN BUTTON */}
+          {!isAuthenticated && (
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenAuthModal();
               }}
-              className="w-full p-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center space-x-2"
+              className="w-full p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-xs"
             >
               <User className="w-4 h-4" />
               <span>{t("loginRegister", "Login / Register")}</span>

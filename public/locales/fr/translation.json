@@ -1,47 +1,45 @@
 {
   "nav": {
-    "home": "Home",
-    "allTools": "All PDF Tools",
-    "aiSuite": "AI Tools",
-    "history": "Recent History",
-    "favorites": "Favorite Tools"
+    "home": "Accueil",
+    "allTools": "Tous les outils PDF",
+    "aiSuite": "Outils IA",
+    "pricing": "Tarifs",
+    "loginRegister": "Connexion / Inscription"
   },
   "hero": {
-    "title": "Professional PDF & Document Tools",
-    "subtitle": "Fast, secure, and easy-to-use PDF converter & editing suite"
+    "title": "Moteur de documents et outils PDF d enterprise",
+    "subtitle": "Traitement WebAssembly 100% côté client. Privé, rapide et sécurisé."
   },
   "quick_actions": {
-    "merge": "Merge PDF",
-    "split": "Split PDF",
-    "compress": "Compress PDF",
-    "convert": "Convert PDF"
+    "merge": "Fusionner PDF",
+    "split": "Diviser PDF",
+    "compress": "Compresser PDF",
+    "edit": "Éditer PDF"
   },
   "badges": {
-    "free": "100% Free",
-    "secure": "Client-side Privacy",
-    "fast": "Lightning Fast"
+    "privacyTitle": "Confidentialité 100% dans le navigateur",
+    "privacySub": "Traitement WebAssembly côté client",
+    "utilitiesTitle": "50+ utilitaires PDF Pro",
+    "utilitiesSub": "Suite PDF complète"
   },
   "promo": {
-    "title": "Transform Your Workflow",
-    "description": "Process documents securely without file size limits"
+    "privacy": "Confidentialité 100% dans le navigateur",
+    "utilities": "50+ utilitaires PDF Pro"
   },
   "toolkit": {
-    "popular": "Popular Tools",
-    "ai": "AI Assistant Tools",
-    "convert": "Convert & Export",
-    "edit": "Edit & Annotate"
+    "popular": "Outils PDF populaires",
+    "ai": "Outils PDF IA",
+    "all": "Tous les utilitaires"
   },
   "tools": {
-    "pdfToWord": "PDF to Word",
-    "wordToPdf": "Word to PDF",
-    "mergePdf": "Merge PDF",
-    "splitPdf": "Split PDF",
-    "compressPdf": "Compress PDF"
+    "mergePdf": "Fusionner PDF",
+    "splitPdf": "Diviser PDF",
+    "compressPdf": "Compresser PDF",
+    "chatWithPdf": "Discuter avec le PDF"
   },
   "footer": {
-    "copyright": "© PDFSun. All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "Tous droits réservés.",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfService": "Conditions d utilisation"
   }
 }
