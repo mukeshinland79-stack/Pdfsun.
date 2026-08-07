@@ -812,7 +812,7 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       backend: {
-        loadPath: "/locales/{{lng}}/translation.json",
+        loadPath: "/public/locales/{{lng}}/translation.json",
       },
       resources: bundledResources,
       lng: initialLanguage,
