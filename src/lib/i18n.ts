@@ -93,7 +93,7 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       backend: {
-        loadPath: ["/locales/{{lng}}/translation.json", "/public/locales/{{lng}}/translation.json"],
+        loadPath: "/public/locales/{{lng}}/translation.json",
       },
       lng: initialLanguage,
       fallbackLng: DEFAULT_LANGUAGE,
@@ -207,10 +207,16 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
       }
 
       if (i18n.isInitialized && i18n.exists(key)) {
-        return i18n.t(key, params as Record<string, unknown>);
+        const res = i18n.t(key, params as Record<string, unknown>);
+        if (typeof res === "string") return res;
+        if (typeof res === "number" || typeof res === "boolean") return String(res);
+        return fallbackText || key;
       }
 
-      return i18n.t(key, { ...params, defaultValue: fallbackText || key });
+      const res = i18n.t(key, { ...params, defaultValue: fallbackText || key });
+      if (typeof res === "string") return res;
+      if (typeof res === "number" || typeof res === "boolean") return String(res);
+      return fallbackText || key;
     },
     [currentLanguage]
   );

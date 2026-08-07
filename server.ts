@@ -93,7 +93,8 @@ function verifyDualOwnerAccess(req: express.Request, res: express.Response, next
     .find((row) => row.startsWith("pdfsun_admin_session="))
     ?.split("=")[1];
 
-  const providedToken = (authHeader as string)?.replace("Bearer ", "").trim() || cookieToken;
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   const isVerifiedDualOwner = DUAL_OWNER_EMAILS.includes(userEmail);
   const isCorrectSecretKey = providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345");
@@ -718,6 +719,10 @@ app.get("/sitemap.xml", (req, res) => {
 ${sitemapEntries}
 </urlset>`);
 });
+
+// Serve public locales and assets statically
+app.use("/public", express.static(path.join(process.cwd(), "public")));
+app.use("/locales", express.static(path.join(process.cwd(), "public/locales")));
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

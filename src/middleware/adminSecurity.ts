@@ -21,7 +21,8 @@ export const DUAL_OWNER_EMAILS = [
  * Escapes HTML characters to prevent XSS in reflected error pages
  */
 function escapeHtml(str: string): string {
-  return str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] || m));
+  const safeStr = typeof str === "string" ? str : String(str ?? "");
+  return safeStr.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] || m));
 }
 
 /**
@@ -77,7 +78,8 @@ export function dualOwnerSecurityMiddleware(req: Request, res: Response, next: N
     .find((row) => row.startsWith("pdfsun_admin_session="))
     ?.split("=")[1];
 
-  const providedToken = (authHeader as string)?.replace("Bearer ", "").trim() || cookieToken;
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   const isDualOwner = DUAL_OWNER_EMAILS.includes(userEmail);
   const isValidAdminToken = providedToken && (providedToken === process.env.ADMIN_SECRET_KEY || providedToken === "12345");
@@ -113,7 +115,8 @@ export function adminSecurityMiddleware(req: Request, res: Response, next: NextF
     .find((row) => row.startsWith("pdfsun_admin_session="))
     ?.split("=")[1];
 
-  const providedToken = (authHeader as string)?.replace("Bearer ", "").trim() || cookieToken;
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   // Validate ADMIN_SECRET_KEY
   if (!providedToken || providedToken !== ADMIN_SECRET_KEY) {
@@ -153,7 +156,8 @@ export function requireAdminApiAuth(req: Request, res: Response, next: NextFunct
     .find((row) => row.startsWith("pdfsun_admin_session="))
     ?.split("=")[1];
 
-  const providedToken = (authHeader as string)?.replace("Bearer ", "").trim() || cookieToken;
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   if (!providedToken || providedToken !== ADMIN_SECRET_KEY) {
     return res.status(404).json({

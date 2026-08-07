@@ -33,7 +33,8 @@ export function adminStealthMiddleware(req: Request, res: Response, next: NextFu
     .find((row) => row.startsWith("pdfsun_admin_session="))
     ?.split("=")[1];
 
-  const providedToken = (authHeader as string)?.replace("Bearer ", "") || cookieToken;
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   // Session Hijacking Protection: Verify IP & User-Agent fingerprint consistency
   const sessionFingerprint = (req.headers["x-session-fingerprint"] as string) || "";
@@ -159,5 +160,6 @@ export function getClientIp(req: Request): string {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] || m));
+  const safeStr = typeof str === "string" ? str : String(str ?? "");
+  return safeStr.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] || m));
 }
