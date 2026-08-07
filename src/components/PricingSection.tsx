@@ -69,38 +69,38 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
   const [refundTxId, setRefundTxId] = useState<string>("");
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
 
-  // High-Conversion Pricing Tiers Matrix
+  // High-Conversion Pricing Tiers Matrix (Ordered Left to Right)
   const plans: PlanTier[] = [
     {
       id: "free",
-      name: "Free Tier",
-      badge: "START FREE",
-      badgeBg: "bg-slate-700/60 text-slate-300 border-slate-600",
-      description: "Core WebAssembly PDF processing for occasional quick tasks.",
+      name: "Free Plan",
+      badge: "FREE FOREVER",
+      badgeBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+      description: "Basic WebAssembly PDF processing with daily task limits.",
       billingType: "free",
       priceINR: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "₹0",
         labelYearly: "₹0",
-        subtextMonthly: "Forever free",
-        subtextYearly: "Forever free",
+        subtextMonthly: "Free forever / 3 daily limit",
+        subtextYearly: "Free forever / 3 daily limit",
       },
       priceUSD: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "$0",
         labelYearly: "$0",
-        subtextMonthly: "Forever free",
-        subtextYearly: "Forever free",
+        subtextMonthly: "Free forever / 3 daily limit",
+        subtextYearly: "Free forever / 3 daily limit",
       },
       guaranteeText: "100% Free Forever",
       popular: false,
       features: [
-        "3 Free Downloads/Conversions per 24h",
+        "3 Free tasks per 24 hours",
         "Up to 15 MB file size limit",
-        "100% Client-side privacy & zero server logs",
-        "Standard WebAssembly processing engine",
+        "100% In-browser privacy & zero server logs",
+        "Standard WebAssembly processing",
         "Basic PDF tools (Merge, Split, Compress)",
       ],
       cta: "Current Free Plan",
@@ -109,8 +109,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     {
       id: "flexi",
       name: "Flexi Pack",
-      badge: "NO SUBSCRIPTION NEEDED",
-      badgeBg: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+      badge: "ONE-TIME TOP-UP",
+      badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
       priceINR: {
@@ -138,16 +138,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         "Use on all premium PDF & AI OCR tools",
         "Up to 500 MB max file size support",
         "Pay once — zero recurring charges",
-        "Single-user instant top-up",
-        "Strictly Non-Refundable",
+        "Single-user instant credit top-up",
       ],
-      cta: "Buy 50 Credits",
+      cta: "Buy 50 Credits — ₹99",
     },
     {
       id: "pro-monthly",
       name: "Pro Sun Monthly",
-      badge: "FLEXIBLE",
-      badgeBg: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+      badge: "FLEXIBLE RECURRING",
+      badgeBg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
       description: "Full unlimited power for active power users & students.",
       billingType: "subscription",
       priceINR: {
@@ -155,7 +154,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         yearly: 199,
         labelMonthly: "₹199",
         labelYearly: "₹199",
-        subtextMonthly: "Equivalent to ~₹6.6 / day",
+        subtextMonthly: "Billed monthly at ₹199",
         subtextYearly: "Billed monthly at ₹199",
       },
       priceUSD: {
@@ -163,7 +162,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         yearly: 2.99,
         labelMonthly: "$2.99",
         labelYearly: "$2.99",
-        subtextMonthly: "Equivalent to ~$0.10 / day",
+        subtextMonthly: "Billed monthly at $2.99",
         subtextYearly: "Billed monthly at $2.99",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
@@ -182,31 +181,31 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       id: "pro-yearly",
       name: "Pro Sun Annual",
       badge: "MOST POPULAR • SAVE 40%",
-      badgeBg: "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black border-amber-400",
-      description: "Best value subscription for professionals & growing teams.",
+      badgeBg: "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black border-amber-400 shadow-xs",
+      description: "Best value subscription for professionals & active users.",
       billingType: "subscription",
       priceINR: {
         monthly: 199,
         yearly: 1499,
-        labelMonthly: "₹1499",
-        labelYearly: "₹1499",
-        subtextMonthly: "Equivalent to ~₹125 / month",
-        subtextYearly: "Equivalent to ~₹125 / month",
+        labelMonthly: "₹1,499",
+        labelYearly: "₹1,499",
+        subtextMonthly: "₹1,499 / Year (~₹125/month)",
+        subtextYearly: "₹1,499 / Year (~₹125/month)",
       },
       priceUSD: {
         monthly: 2.99,
         yearly: 19.99,
         labelMonthly: "$19.99",
         labelYearly: "$19.99",
-        subtextMonthly: "Equivalent to ~$1.66 / month",
-        subtextYearly: "Equivalent to ~$1.66 / month",
+        subtextMonthly: "$19.99 / Year (~$1.66/month)",
+        subtextYearly: "$19.99 / Year (~$1.66/month)",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
       popular: true,
       features: [
         "EVERYTHING in Monthly Plan",
-        "Save 40% vs monthly billing",
-        "Dedicated priority server bandwidth",
+        "Save 40% vs monthly rate",
+        "Dedicated priority processing bandwidth",
         "Multi-device cloud sync",
         "24/7 Priority Support Desk",
       ],
@@ -215,9 +214,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     {
       id: "enterprise",
       name: "Enterprise / Team Plan",
-      badge: "TEAMS & BUSINESS",
-      badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-      description: "Unlimited power and multi-user seats for organizations and teams.",
+      badge: "5 SEATS & ADMIN TOOLS",
+      badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      description: "Comprehensive team license with admin controls & multi-user seats.",
       billingType: "enterprise",
       priceINR: {
         monthly: 3999,
@@ -453,7 +452,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       </div>
 
       {/* Pricing Cards Grid (5 Responsive Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
         {plans.map((plan) => {
           const isYearly = billingCycle === "yearly";
           const isAnnualHighlighted = isYearly && plan.id === "pro-yearly";
@@ -496,9 +495,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           return (
             <div
               key={plan.id}
-              className={`relative rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0f172a]/95 backdrop-blur-xl border transition-all duration-300 flex flex-col justify-between shadow-xl hover:-translate-y-1 ${
+              className={`relative rounded-3xl p-5 sm:p-6 bg-white dark:bg-[#0f172a]/95 backdrop-blur-xl border transition-all duration-300 flex flex-col justify-between shadow-xl hover:-translate-y-1 ${
                 isCardHighlighted
-                  ? "border-amber-500 dark:border-amber-400 shadow-[0_0_35px_rgba(234,179,8,0.25)] ring-2 ring-amber-500/50 dark:ring-amber-400/50 scale-[1.02]"
+                  ? "border-amber-500 dark:border-amber-400 shadow-[0_0_35px_rgba(234,179,8,0.25)] ring-2 ring-amber-500/50 dark:ring-amber-400/50 xl:-translate-y-2 scale-[1.01]"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
               }`}
             >
