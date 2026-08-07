@@ -612,62 +612,51 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         })}
       </div>
 
-      {/* Legal Guardrails & Refund Terms Disclaimer */}
-      <div className="p-5 rounded-2xl bg-slate-100/80 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 text-xs leading-relaxed max-w-5xl mx-auto backdrop-blur-md shadow-xs space-y-1.5">
-        <div className="flex items-center space-x-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Disclaimer &amp; Refund Terms</span>
+      {/* Redesigned Pricing Disclaimer, Refund Policy & Trust Guarantee Section */}
+      <div className="max-w-4xl mx-auto my-10 p-8 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center shadow-sm flex flex-col items-center justify-center">
+        {/* Top Row — Centered Trust Icons (3 Pill Badges) */}
+        <div className="inline-flex flex-wrap items-center justify-center gap-3 mb-6 text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            7-Day 100% Guarantee
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+            <Lock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            Cancel Anytime (Zero Lock-in)
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+            <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            Instant Self-Service Refund
+          </span>
         </div>
-        <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs leading-relaxed">
-          First 7 Days 100% Money-Back Guarantee applies exclusively to first-time plan purchases within 7 days of transaction date, provided less than 30% of monthly quota/credits have been consumed. Payment gateway handling fees (up to 3%) are non-refundable. Subscriptions can be canceled anytime with 1-click to prevent auto-renewal.
+
+        {/* Middle Section — The Centered Disclaimer & Terms */}
+        <span className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 block text-center">
+          DISCLAIMER &amp; REFUND TERMS
+        </span>
+        <p className="max-w-2xl mx-auto text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal text-center mb-6">
+          First 7 Days 100% Money-Back Guarantee applies exclusively to first-time plan purchases if less than 30% of quotas are consumed. Payment gateway handling fees (up to 3%) are non-refundable. Subscriptions can be canceled anytime with instant self-service access.
         </p>
-      </div>
 
-      {/* Trust Badges Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs">
-        <div className="flex items-center justify-center space-x-3 text-center sm:text-left">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-            <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-xs">256-Bit SSL Encryption</h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400">Bank-grade payment security</p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center space-x-3 text-center sm:text-left">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-            <RefreshCw className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-xs">First 7 Days 100% Guarantee</h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400">100% 1-click self-service refund</p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center space-x-3 text-center sm:text-left">
-          <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-            <Lock className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-xs">Cancel Anytime</h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400">Zero hidden contracts or lock-in</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Self-Service Refund Portal Button Footer */}
-      <div className="text-center pt-2">
-        <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-          Already subscribed? Need an invoice or 1-click self-service refund?{" "}
+        {/* Bottom Row — Centered Action Links */}
+        <div className="text-xs font-medium text-slate-500 text-center inline-flex flex-wrap items-center justify-center gap-2">
+          <span>Already subscribed?</span>
+          <button
+            type="button"
+            onClick={() => alert("To download your official GST/Tax invoice, please log in or check your order confirmation email.")}
+            className="text-blue-600 hover:underline cursor-pointer font-semibold"
+          >
+            Get Official Invoice
+          </button>
+          <span>·</span>
           <button
             type="button"
             onClick={() => setRefundModalOpen(true)}
-            className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 font-bold underline underline-offset-4 transition"
+            className="text-blue-600 hover:underline cursor-pointer font-semibold"
           >
-            Click here.
+            Request 1-Click Refund
           </button>
-        </p>
+        </div>
       </div>
 
       {/* Simulated Payment Gateway Modal */}
