@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode, FC } from "react";
+import i18n from "i18next";
+import { initReactI18next, I18nextProvider } from "react-i18next";
+import HttpBackend from "i18next-http-backend";
 
 export interface LanguageOption {
   code: string;
@@ -39,6 +42,10 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", flag: "🇮🇩" },
   { code: "th", name: "Thai", nativeName: "ไทย", flag: "🇹🇭" },
   { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳" },
+  { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱" },
+  { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷", isRtl: true },
+  { code: "uk", name: "Ukrainian", nativeName: "Українська", flag: "🇺🇦" },
 ];
 
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -750,6 +757,75 @@ const STORAGE_KEY = "pdfsun_language";
 const defaultLanguageOption: LanguageOption =
   SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) || SUPPORTED_LANGUAGES[0];
 
+// RTL languages helper: Arabic (ar), Urdu (ur), Persian/Farsi (fa)
+export const RTL_LANGUAGES = ["ar", "ur", "fa"];
+
+export const isRtlLanguage = (code: string): boolean => {
+  const lang = SUPPORTED_LANGUAGES.find((l) => l.code === code);
+  return !!lang?.isRtl || RTL_LANGUAGES.includes(code);
+};
+
+// Initial language resolution from localStorage or browser settings
+const getInitialLanguage = (): string => {
+  if (typeof window === "undefined") return DEFAULT_LANGUAGE;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("pdfsun_lang");
+    if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
+      return saved;
+    }
+
+    const nav = typeof navigator !== "undefined" && navigator ? navigator : null;
+    if (nav) {
+      const preferredLangs = Array.isArray(nav.languages) && nav.languages.length > 0
+        ? nav.languages
+        : [nav.language];
+
+      for (const rawLang of preferredLangs) {
+        if (!rawLang || typeof rawLang !== "string") continue;
+        const primaryLang = rawLang.split("-")[0].toLowerCase();
+        const matched = SUPPORTED_LANGUAGES.find(
+          (l) => l.code.toLowerCase() === rawLang.toLowerCase() || l.code.toLowerCase() === primaryLang
+        );
+        if (matched) return matched.code;
+      }
+    }
+  } catch {
+    // Ignore storage quota or private browsing errors
+  }
+  return DEFAULT_LANGUAGE;
+};
+
+const initialLanguage = getInitialLanguage();
+
+// Convert TRANSLATIONS dictionary into i18next resources format for instant fallback
+const bundledResources = Object.keys(TRANSLATIONS).reduce((acc, lang) => {
+  acc[lang] = {
+    translation: TRANSLATIONS[lang],
+  };
+  return acc;
+}, {} as Record<string, { translation: Record<string, string> }>);
+
+// Initialize i18next singleton
+if (!i18n.isInitialized) {
+  i18n
+    .use(HttpBackend)
+    .use(initReactI18next)
+    .init({
+      backend: {
+        loadPath: "/locales/{{lng}}/translation.json",
+      },
+      resources: bundledResources,
+      lng: initialLanguage,
+      fallbackLng: DEFAULT_LANGUAGE,
+      interpolation: {
+        escapeValue: false, // React handles XSS safety
+      },
+      react: {
+        useSuspense: false,
+      },
+    });
+}
+
 const interpolate = (template: string, params?: TranslationParams): string => {
   if (!params || typeof template !== "string") return template || "";
   return Object.entries(params).reduce(
@@ -780,75 +856,40 @@ const defaultContextValue: LanguageContextType = {
   },
 };
 
-const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
+export const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>(DEFAULT_LANGUAGE);
+  const [currentLanguage, setCurrentLanguageState] = useState<string>(initialLanguage);
 
-  // Synchronize language state from localStorage or browser settings AFTER initial mount
+  // Sync state if i18n changes language externally or via storage
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const resolveInitialLanguage = (): string => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-          return saved;
-        }
-
-        const nav = typeof navigator !== "undefined" && navigator ? navigator : null;
-        if (nav) {
-          const preferredLangs = Array.isArray(nav.languages) && nav.languages.length > 0
-            ? nav.languages
-            : [nav.language];
-
-          for (const rawLang of preferredLangs) {
-            if (!rawLang || typeof rawLang !== "string") continue;
-            const primaryLang = rawLang.split("-")[0].toLowerCase();
-            const matched = SUPPORTED_LANGUAGES.find(
-              (l) => l.code.toLowerCase() === rawLang.toLowerCase() || l.code.toLowerCase() === primaryLang
-            );
-            if (matched) return matched.code;
-          }
-        }
-      } catch {
-        // Handle security restrictions or private browsing quietly
-      }
-      return DEFAULT_LANGUAGE;
-    };
-
-    const initialLang = resolveInitialLanguage();
-    if (initialLang !== DEFAULT_LANGUAGE) {
-      setCurrentLanguageState(initialLang);
-    }
-
-    // Handle cross-tab or multi-window language updates
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        if (SUPPORTED_LANGUAGES.some((l) => l.code === e.newValue)) {
-          setCurrentLanguageState(e.newValue);
-        }
+    const handleLanguageChanged = (lng: string) => {
+      if (lng && SUPPORTED_LANGUAGES.some((l) => l.code === lng)) {
+        setCurrentLanguageState(lng);
       }
     };
-
-    window.addEventListener("storage", handleStorageChange);
+    i18n.on("languageChanged", handleLanguageChanged);
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      i18n.off("languageChanged", handleLanguageChanged);
     };
   }, []);
 
-  // Update HTML document direction (dir) and lang attributes, and sync localStorage
+  // Update HTML document direction (dir) and lang attributes, and sync localStorage and i18n
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
+    if (i18n.language !== currentLanguage) {
+      i18n.changeLanguage(currentLanguage);
+    }
+
     try {
       localStorage.setItem(STORAGE_KEY, currentLanguage);
+      localStorage.setItem("pdfsun_lang", currentLanguage);
     } catch {
       // Ignore quota or private browsing errors
     }
 
-    const matchedOption = SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage);
-    const isRtl = !!matchedOption?.isRtl;
+    const isRtl = isRtlLanguage(currentLanguage);
 
     document.documentElement.lang = currentLanguage;
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
@@ -864,11 +905,12 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
     [currentLanguage]
   );
 
-  const isRtl = !!languageOption.isRtl;
+  const isRtl = isRtlLanguage(currentLanguage);
 
   const setLanguage = useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
       setCurrentLanguageState(code);
+      i18n.changeLanguage(code);
     }
   }, []);
 
@@ -882,6 +924,10 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
       } else {
         params = paramsOrFallback;
         fallbackText = fallback;
+      }
+
+      if (i18n.isInitialized && i18n.exists(key)) {
+        return i18n.t(key, params);
       }
 
       const currentDict = TRANSLATIONS[currentLanguage];
@@ -930,9 +976,11 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
   );
 
   return (
-    <LanguageContext.Provider value={contextValue}>
-      {children ?? null}
-    </LanguageContext.Provider>
+    <I18nextProvider i18n={i18n}>
+      <LanguageContext.Provider value={contextValue}>
+        {children ?? null}
+      </LanguageContext.Provider>
+    </I18nextProvider>
   );
 };
 
@@ -940,3 +988,6 @@ export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
   return context || defaultContextValue;
 };
+
+export { i18n };
+export default i18n;

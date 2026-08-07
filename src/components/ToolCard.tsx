@@ -59,10 +59,11 @@ import {
   FileCode2,
 } from "lucide-react";
 import { ToolItem } from "../types";
-import { ToolRating, ToolRatingProps } from "./ToolRating";
+import { ToolRating } from "./ToolRating";
 import { QuickTipTooltip } from "./QuickTipTooltip";
 import { ProFeatureIcon } from "./ProFeatureIcon";
 import { ProFeatureBadge } from "./ProFeatureBadge";
+import { useLanguage } from "../lib/i18n";
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   Combine,
@@ -145,7 +146,11 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   ratingState,
   onRateTool,
 }) => {
+  const { t } = useLanguage();
   const IconComponent = ICON_MAP[tool.icon] || FileText;
+
+  const translatedName = t(`tools.${tool.id}.name`, tool.name);
+  const translatedDesc = t(`tools.${tool.id}.desc`, tool.description);
 
   return (
     <div
@@ -177,35 +182,35 @@ export const ToolCard: React.FC<ToolCardProps> = ({
             {isMostPopular && (
               <span
                 className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-orange-500/15 to-amber-500/15 text-orange-600 dark:text-amber-400 border border-orange-500/30"
-                title="Most Popular Tool"
+                title={t("badges.mostPopular", "Most Popular Tool")}
               >
                 <Flame className="w-3 h-3 text-orange-500 fill-orange-500 shrink-0" />
-                <span>Most Popular</span>
+                <span>{t("badges.mostPopular", "Most Popular")}</span>
               </span>
             )}
 
             {tool.isPro && (
-              <ProFeatureIcon variant="pill" size="xs" label="PRO" />
+              <ProFeatureIcon variant="pill" size="xs" label={t("badges.pro", "PRO")} />
             )}
 
             {tool.isAi && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>AI</span>
+                <span>{t("badges.ai", "AI")}</span>
               </span>
             )}
 
             {tool.isStudentFavorite && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20" title="Student Essential">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20" title={t("badges.student", "Student Essential")}>
                 <GraduationCap className="w-3 h-3 mr-0.5" />
-                <span>Student</span>
+                <span>{t("badges.student", "Student")}</span>
               </span>
             )}
 
             <button
               onClick={(e) => onToggleFavorite(e, tool.id)}
               className="p-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              title={isFavorite ? t("favorites.remove", "Remove from favorites") : t("favorites.add", "Add to favorites")}
             >
               <Star className={`w-4 h-4 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
             </button>
@@ -216,19 +221,19 @@ export const ToolCard: React.FC<ToolCardProps> = ({
         <div className="space-y-1 mb-2">
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
             <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-amber-400 transition">
-              {tool.name}
+              {translatedName}
             </h3>
             {tool.isPro && (
-              <ProFeatureBadge size="xs" tooltip="Pro Feature - Enterprise PDF Processing" />
+              <ProFeatureBadge size="xs" tooltip={t("badges.proTooltip", "Pro Feature - Enterprise PDF Processing")} />
             )}
             {tool.badge && (
               <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded bg-orange-500 text-white">
-                {tool.badge}
+                {t(`badges.${tool.badge.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, tool.badge)}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-            {tool.description}
+            {translatedDesc}
           </p>
         </div>
       </div>
@@ -236,7 +241,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
       {/* Footer Info & Arrow */}
       <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
         <div className="flex items-center space-x-1.5 font-medium text-slate-400">
-          <span>Output: {tool.outputFormat}</span>
+          <span>{t("tools.outputFormat", "Output")}: {tool.outputFormat}</span>
           {usageFormatted && (
             <span className="text-[10px] font-semibold text-orange-600/80 dark:text-amber-400/80">
               • {usageFormatted}
@@ -244,7 +249,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
           )}
         </div>
         <span className="flex items-center space-x-1 font-bold text-orange-600 dark:text-amber-400 group-hover:translate-x-1 transition">
-          <span>Open Tool</span>
+          <span>{t("tools.openTool", "Open Tool")}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </span>
       </div>

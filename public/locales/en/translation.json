@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "title": "PDFSun.in",
+    "home": "Home",
+    "allTools": "All PDF Tools",
+    "aiSuite": "AI Tools",
+    "search": "Search 50+ tools (Cmd+K)...",
+    "brandKit": "Brand Kit",
+    "searchBtn": "Search",
+    "history": "Recent History",
+    "favorites": "Favorite Tools",
+    "login": "Login",
+    "register": "Register",
+    "profile": "Profile",
+    "dashboard": "User Dashboard",
+    "settings": "Settings"
+  },
+  "hero": {
+    "title": "All-in-One Enterprise PDF & AI Solution",
+    "subtitle": "Merge, compress, edit, convert, optical character recognition (OCR), and chat with PDFs powered by Gemini 3.6 AI.",
+    "chooseFiles": "Choose Files from Device",
+    "dropzoneTitle": "Drop PDF files here or click to browse",
+    "dropzoneActiveTitle": "Release files to launch tool workspace",
+    "dropzoneActiveSub": "Drop now to start processing instantly"
+  },
+  "quick_actions": {
+    "title": "Popular Quick Actions",
+    "mergePdf": "Merge PDF",
+    "compressPdf": "Compress PDF",
+    "pdfToWord": "PDF to Word",
+    "chatWithPdf": "AI Chat with PDF",
+    "aiSummary": "AI Summary"
+  },
+  "badges": {
+    "brandTrust": "PDFSun • Enterprise Grade • 100% Client-Side Privacy",
+    "ultraFast": "Ultra Fast Speed",
+    "ultraFastDesc": "Local browser acceleration engine.",
+    "noStorage": "No Storage Purge",
+    "noStorageDesc": "Zero permanent file retention guarantee.",
+    "geminiAi": "Gemini 3.6 AI",
+    "geminiAiDesc": "Smart chat, summary & translation.",
+    "tools50": "50+ Working Tools",
+    "tools50Desc": "Complete PDF conversion suite.",
+    "mostPopular": "Most Popular",
+    "pro": "PRO",
+    "ai": "AI",
+    "student": "Student Essential",
+    "proTooltip": "Pro Feature - Enterprise PDF Processing"
+  },
+  "promo": {
+    "privacy": "100% In-Browser Privacy",
+    "utilities": "50+ Pro PDF Utilities"
+  },
+  "toolkit": {
+    "title": "Comprehensive PDF Toolkit",
+    "subtitle": "Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.",
+    "filterPlaceholder": "Filter 50+ tools...",
+    "toolsCount": "Tools"
+  },
+  "categories": {
+    "all": "All 50+ Tools",
+    "popular": "Most Popular",
+    "ai": "AI Power Tools",
+    "convert": "Convert & Export",
+    "edit": "Edit & Organize",
+    "student": "Student Essentials",
+    "security": "Security & Sign"
+  },
+  "tools": {
+    "outputFormat": "Output",
+    "openTool": "Open Tool"
+  }
+}

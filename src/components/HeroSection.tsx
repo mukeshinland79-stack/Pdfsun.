@@ -72,9 +72,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const quickTags = [
     { name: t("mergePdf", "Merge PDF"), toolId: "merge-pdf", icon: Combine },
     { name: t("compressPdf", "Compress PDF"), toolId: "compress-pdf", icon: Minimize2 },
-    { name: "PDF to Word", toolId: "pdf-to-word", icon: FileText },
+    { name: t("pdfToWord", "PDF to Word"), toolId: "pdf-to-word", icon: FileText },
     { name: t("chatWithPdf", "AI Chat with PDF"), toolId: "ai-chat-pdf", icon: Sparkles },
-    { name: "AI Summary", toolId: "ai-pdf-summary", icon: Zap },
+    { name: t("aiSummary", "AI Summary"), toolId: "ai-pdf-summary", icon: Zap },
   ];
 
   return (
@@ -86,7 +86,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Brand Trust Badge */}
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 dark:bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-wide">
           <ShieldCheck className="w-4 h-4 text-blue-600" />
-          <span>PDFSun • Enterprise Grade • 100% Client-Side Privacy</span>
+          <span>{t("badges.brandTrust", "PDFSun • Enterprise Grade • 100% Client-Side Privacy")}</span>
         </div>
 
         {/* Headline */}
@@ -113,7 +113,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={onOpenSearch}
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:opacity-90 transition flex items-center space-x-1.5"
           >
-            <span>Search</span>
+            <span>{t("nav.searchBtn", "Search")}</span>
             <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-white/20 rounded text-[10px]">⌘K</kbd>
           </button>
         </div>
@@ -141,17 +141,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isDragActive
-                  ? "Release files to launch tool workspace"
+                  ? t("dropzoneActiveTitle", "Release files to launch tool workspace")
                   : t("dropzoneTitle", "Drop PDF files here or click to browse")}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {isDragActive ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                    Drop now to start processing instantly
+                    {t("dropzoneActiveSub", "Drop now to start processing instantly")}
                   </span>
                 ) : (
                   <>
-                    or <span className="text-blue-600 dark:text-blue-400 font-semibold underline">Choose Files from Device</span>
+                    {t("or", "or")} <span className="text-blue-600 dark:text-blue-400 font-semibold underline">{t("hero.chooseFiles", "Choose Files from Device")}</span>
                   </>
                 )}
               </p>
@@ -170,7 +170,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Popular Quick Tools Pills */}
         <div className="pt-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Popular Quick Actions</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{t("quick_actions.title", "Popular Quick Actions")}</p>
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
             {quickTags.map((tag) => {
               const tool = ALL_TOOLS.find((t) => t.id === tag.toolId);
@@ -196,32 +196,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
             <Zap className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">Ultra Fast Speed</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Local browser acceleration engine.</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.ultraFast", "Ultra Fast Speed")}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.ultraFastDesc", "Local browser acceleration engine.")}</div>
             </div>
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
             <Lock className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">No Storage Purge</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Zero permanent file retention guarantee.</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.noStorage", "No Storage Purge")}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.noStorageDesc", "Zero permanent file retention guarantee.")}</div>
             </div>
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
             <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">Gemini 3.6 AI</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Smart chat, summary & translation.</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.geminiAi", "Gemini 3.6 AI")}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.geminiAiDesc", "Smart chat, summary & translation.")}</div>
             </div>
           </div>
 
           <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
             <FileCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">50+ Working Tools</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Complete PDF conversion suite.</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.tools50", "50+ Working Tools")}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.tools50Desc", "Complete PDF conversion suite.")}</div>
             </div>
           </div>
         </div>

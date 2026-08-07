@@ -187,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="PDFSun Brand Guidelines & Master Logo Kit"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Brand Kit</span>
+            <span>{t("nav.brandKit", "Brand Kit")}</span>
           </button>
 
           {/* Direct Home Link */}
@@ -203,9 +203,9 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Professional Feature & Status Highlight (Replacing Search Bar) */}
         <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 text-xs font-semibold">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>100% In-Browser Privacy</span>
+          <span>{t("promo.privacy", "100% In-Browser Privacy")}</span>
           <span className="text-slate-300 dark:text-slate-600">•</span>
-          <span className="text-blue-600 dark:text-blue-400 font-bold">50+ Pro PDF Utilities</span>
+          <span className="text-blue-600 dark:text-blue-400 font-bold">{t("promo.utilities", "50+ Pro PDF Utilities")}</span>
         </div>
 
         {/* Nav Items & Dropdowns */}

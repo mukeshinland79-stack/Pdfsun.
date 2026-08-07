@@ -16,6 +16,7 @@ import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
 import { ToolCard } from "./ToolCard";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { useToolRatings } from "../hooks/useToolRatings";
+import { useLanguage } from "../lib/i18n";
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
   Grid,
@@ -49,6 +50,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   setSearchQuery,
   onPageChange,
 }) => {
+  const { t } = useLanguage();
   const { isMostPopular, getFormattedUsage, trackToolUsage } = useUsageAnalytics();
   const { getToolRating, rateTool } = useToolRatings();
 
@@ -115,10 +117,10 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Comprehensive PDF Toolkit
+            {t("toolkit.title", "Comprehensive PDF Toolkit")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.
+            {t("toolkit.subtitle", "Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.")}
           </p>
         </div>
 
@@ -130,12 +132,12 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter 50+ tools..."
+              placeholder={t("toolkit.filterPlaceholder", "Filter 50+ tools...")}
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-orange-500"
             />
           </div>
           <div className="px-3 py-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-amber-400 text-xs font-bold whitespace-nowrap">
-            {filteredTools.length} Tools
+            {filteredTools.length} {t("toolkit.toolsCount", "Tools")}
           </div>
         </div>
       </div>
@@ -157,7 +159,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               }`}
             >
               <IconComp className={`w-4 h-4 ${isActive ? "text-white" : "text-orange-500"}`} />
-              <span>{cat.label}</span>
+              <span>{t(`categories.${cat.id}`, cat.label)}</span>
             </button>
           );
         })}
