@@ -182,7 +182,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t(
                 "searchModalPlaceholder",
-                "Search 50+ PDF tools by name, action or extension (e.g. Merge, OCR, Compress)..."
+                `Search ${ALL_TOOLS.length} PDF tools by name, action or extension (e.g. Merge, OCR, Compress)...`
               )}
               className="w-full bg-transparent text-sm sm:text-base font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
             />

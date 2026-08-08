@@ -331,7 +331,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       ],
     };
   } else {
-    // Catalog ItemList Schema indexing ALL 50+ PDF tools for Rich Catalog Search Snippets
+    // Catalog ItemList Schema indexing ALL PDF tools for Rich Catalog Search Snippets
     catalogItemListSchema = {
       "@context": "https://schema.org",
       "@type": "ItemList",

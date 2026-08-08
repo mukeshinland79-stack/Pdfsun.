@@ -15,6 +15,7 @@ import {
 interface PricingSectionProps {
   onSuccessUpgrade?: () => void;
   isProUser?: boolean;
+  onOpenPolicy?: (policy: "privacy" | "terms" | "cookie" | "refund" | "about") => void;
 }
 
 export interface PlanTier {
@@ -49,7 +50,7 @@ export interface PlanTier {
   disabled?: boolean;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false }) => {
+export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false, onOpenPolicy }) => {
   const [currency, setCurrency] = useState<"INR" | "USD">(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -612,51 +613,56 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         })}
       </div>
 
-      {/* Redesigned Pricing Disclaimer, Refund Policy & Trust Guarantee Section */}
-      <div className="max-w-4xl mx-auto my-10 p-8 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center shadow-sm flex flex-col items-center justify-center">
-        {/* Top Row — Centered Trust Icons (3 Pill Badges) */}
-        <div className="inline-flex flex-wrap items-center justify-center gap-3 mb-6 text-xs font-semibold text-slate-700 dark:text-slate-300">
+      {/* Disclaimer & Refund Terms Section */}
+      <div className="max-w-4xl mx-auto my-8 p-6 sm:p-8 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center shadow-sm flex flex-col items-center justify-center space-y-4">
+        {/* Top Row — Centered Trust Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            7-Day 100% Guarantee
+            <span>🛡</span>
+            <span>7-Day Guarantee</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
-            <Lock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            Cancel Anytime (Zero Lock-in)
+            <span>🔓</span>
+            <span>Cancel Anytime</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-            <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            Instant Self-Service Refund
+            <span>⚡</span>
+            <span>Fast Refund Processing</span>
           </span>
         </div>
 
-        {/* Middle Section — The Centered Disclaimer & Terms */}
-        <span className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 block text-center">
-          DISCLAIMER &amp; REFUND TERMS
-        </span>
-        <p className="max-w-2xl mx-auto text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal text-center mb-6">
-          First 7 Days 100% Money-Back Guarantee applies exclusively to first-time plan purchases if less than 30% of quotas are consumed. Payment gateway handling fees (up to 3%) are non-refundable. Subscriptions can be canceled anytime with instant self-service access.
-        </p>
+        {/* Heading */}
+        <h3 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 text-center">
+          Disclaimer &amp; Refund Terms
+        </h3>
 
-        {/* Bottom Row — Centered Action Links */}
-        <div className="text-xs font-medium text-slate-500 text-center inline-flex flex-wrap items-center justify-center gap-2">
-          <span>Already subscribed?</span>
-          <button
-            type="button"
-            onClick={() => alert("To download your official GST/Tax invoice, please log in or check your order confirmation email.")}
-            className="text-blue-600 hover:underline cursor-pointer font-semibold"
-          >
-            Get Official Invoice
-          </button>
-          <span>·</span>
-          <button
-            type="button"
-            onClick={() => setRefundModalOpen(true)}
-            className="text-blue-600 hover:underline cursor-pointer font-semibold"
-          >
-            Request 1-Click Refund
-          </button>
-        </div>
+        {/* Disclaimer Text */}
+        <p className="max-w-3xl mx-auto text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal text-center">
+          7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends. Refunds are processed through available self-service or support options. All purchases are subject to our{" "}
+          {onOpenPolicy ? (
+            <button
+              type="button"
+              onClick={() => onOpenPolicy("terms")}
+              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer inline"
+            >
+              Terms of Service
+            </button>
+          ) : (
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Terms of Service</span>
+          )}{" "}
+          and{" "}
+          {onOpenPolicy ? (
+            <button
+              type="button"
+              onClick={() => onOpenPolicy("refund")}
+              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer inline"
+            >
+              Refund Policy
+            </button>
+          ) : (
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Refund Policy</span>
+          )}.
+        </p>
       </div>
 
       {/* Simulated Payment Gateway Modal */}

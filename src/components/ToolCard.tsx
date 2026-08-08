@@ -57,6 +57,11 @@ import {
   FileCode,
   AlignLeft,
   FileCode2,
+  Share2,
+  Grid,
+  RefreshCw,
+  Sliders,
+  Shield,
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ToolRating } from "./ToolRating";
@@ -119,6 +124,13 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   FileCode,
   AlignLeft,
   FileCode2,
+  Share2,
+  Grid,
+  GraduationCap,
+  Flame,
+  RefreshCw,
+  Sliders,
+  Shield,
 };
 
 interface ToolCardProps {
@@ -239,20 +251,28 @@ export const ToolCard: React.FC<ToolCardProps> = ({
       </div>
 
       {/* Footer Info & Arrow */}
-      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
-        <div className="flex items-center space-x-1.5 font-medium text-slate-400">
-          <span>{t("tools.outputFormat", "Output")}: {tool.outputFormat}</span>
-          {usageFormatted && (
-            <span className="text-[10px] font-semibold text-orange-600/80 dark:text-amber-400/80">
-              • {usageFormatted}
+      {(() => {
+        const inputLabel = tool.supportedInput && tool.supportedInput.length > 0
+          ? tool.supportedInput.map((i) => i.replace(".", "").toUpperCase()).slice(0, 2).join("/")
+          : "PDF";
+        return (
+          <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+            <div className="flex items-center space-x-1 font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 font-mono text-[10px]">
+                {inputLabel}
+              </span>
+              <ArrowRight className="w-3 h-3 text-orange-500 shrink-0" />
+              <span className="px-1.5 py-0.5 rounded bg-orange-50 dark:bg-amber-950/50 text-orange-700 dark:text-amber-300 border border-orange-200/50 dark:border-amber-800/40 font-mono text-[10px]">
+                {tool.outputFormat}
+              </span>
+            </div>
+            <span className="flex items-center space-x-1 font-bold text-orange-600 dark:text-amber-400 group-hover:translate-x-1 transition shrink-0 ml-2">
+              <span>{t("tools.openTool", "Open Tool")}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </span>
-          )}
-        </div>
-        <span className="flex items-center space-x-1 font-bold text-orange-600 dark:text-amber-400 group-hover:translate-x-1 transition">
-          <span>{t("tools.openTool", "Open Tool")}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </span>
-      </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

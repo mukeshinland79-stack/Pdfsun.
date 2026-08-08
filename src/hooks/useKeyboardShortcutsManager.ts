@@ -24,7 +24,7 @@ const DEFAULT_SHORTCUTS: ShortcutDefinition[] = [
   {
     id: "search",
     name: "Global Tool Search",
-    description: "Open instant search bar for all 50+ PDF tools",
+    description: `Open instant search bar for all ${ALL_TOOLS.length} PDF tools`,
     keyCombo: "Ctrl+K",
     category: "navigation",
   },

@@ -13,6 +13,8 @@ import {
   Gift,
 } from "lucide-react";
 
+import { ALL_TOOLS } from "../data/toolsData";
+
 interface SideSkyscraperAdsProps {
   onSelectTool?: (toolSlug: string) => void;
 }
@@ -45,7 +47,7 @@ export const SideSkyscraperAds: React.FC<SideSkyscraperAdsProps> = ({ onSelectTo
       tagline: "Ultra-fast WebAssembly client-side compression & OCR.",
       tag: "ADSENSE",
       accent: "from-blue-600 to-indigo-600",
-      cta: "Explore 50+ Tools",
+      cta: `Explore ${ALL_TOOLS.length} Tools`,
       slug: "compress-pdf",
     },
     {

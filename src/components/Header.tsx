@@ -259,13 +259,13 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={() => setSearchOverlayOpen(true)}
             className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap cursor-pointer"
-            title="Search 50+ PDF Tools (Ctrl+K)"
+            title={`Search ${ALL_TOOLS.length} PDF Tools (Ctrl+K)`}
             aria-label="Open tool search modal"
           >
             <div className="flex items-center space-x-2 min-w-0">
               <Search className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                {t("searchTools", "Search 50+ PDF tools...")}
+                {t("searchTools", `Search ${ALL_TOOLS.length} PDF tools...`)}
               </span>
             </div>
             <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-2">
@@ -787,7 +787,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>{t("searchTools", "Search 50+ PDF tools...")}</span>
+              <span>{t("searchTools", `Search ${ALL_TOOLS.length} PDF tools...`)}</span>
             </div>
             <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400">Ctrl+K</kbd>
           </button>
@@ -967,7 +967,7 @@ export const Header: React.FC<HeaderProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               <span>{t("privacyNote", "100% Local Privacy")}</span>
             </span>
-            <span className="font-mono text-[10px]">pdfsun.vercel.app</span>
+            <span className="font-mono text-[10px]">pdfsun.in</span>
           </div>
         </div>
       )}

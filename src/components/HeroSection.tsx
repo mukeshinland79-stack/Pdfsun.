@@ -93,10 +93,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.privacySub", "Client-side WebAssembly processing")}</span>
           </div>
 
-          {/* Badge 2: 50+ Pro PDF Utilities */}
+          {/* Badge 2: Pro PDF Utilities */}
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
             <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="font-bold">{t("badges.utilitiesTitle", "50+ Pro PDF Utilities")}</span>
+            <span className="font-bold">{t("badges.utilitiesTitle", `${ALL_TOOLS.length} Pro PDF Utilities`)}</span>
             <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
             <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.utilitiesSub", "Complete PDF suite")}</span>
           </div>
@@ -117,7 +117,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <Search className="w-5 h-5 text-blue-600 ml-3" />
           <input
             type="text"
-            placeholder={t("searchPlaceholder", "Search 50+ tools (Cmd+K)...")}
+            placeholder={t("searchPlaceholder", `Search ${ALL_TOOLS.length} tools (Cmd+K)...`)}
             onClick={onOpenSearch}
             readOnly
             className="w-full bg-transparent px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
@@ -233,7 +233,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
             <FileCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.tools50", "50+ Working Tools")}</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.tools50", `${ALL_TOOLS.length} Working Tools`)}</div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.tools50Desc", "Complete PDF conversion suite.")}</div>
             </div>
           </div>

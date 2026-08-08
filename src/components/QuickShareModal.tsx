@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getPublicShareUrl } from "../utils/siteConfig";
 import {
   Share2,
   Copy,
@@ -34,7 +35,7 @@ export const QuickShareModal: React.FC<QuickShareModalProps> = ({
 
   // Generate deterministic share URL slug
   const shareSlug = `share_${Math.random().toString(36).substring(2, 10)}`;
-  const shareUrl = `https://pdfsun.vercel.app/d/${shareSlug}`;
+  const shareUrl = getPublicShareUrl(shareSlug);
   const shareTitle = `Processed PDF Document: ${fileName}`;
   const shareText = `Check out my processed PDF document "${fileName}" on PDFSun. Download or view it securely:`;
 

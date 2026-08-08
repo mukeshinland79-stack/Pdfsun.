@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getPublicShareUrl } from "../utils/siteConfig";
 import {
   Cloud,
   Mail,
@@ -100,7 +101,7 @@ export const QuickActionsFloatingMenu: React.FC<QuickActionsFloatingMenuProps> =
   };
 
   const handleCopyShareLink = () => {
-    const shareableUrl = `https://pdfsun.vercel.app/d/share_${Math.random().toString(36).substring(2, 10)}`;
+    const shareableUrl = getPublicShareUrl(`share_${Math.random().toString(36).substring(2, 10)}`);
     navigator.clipboard.writeText(shareableUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);

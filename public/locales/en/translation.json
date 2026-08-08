@@ -23,7 +23,7 @@
   "badges": {
     "privacyTitle": "100% In-Browser Privacy",
     "privacySub": "Client-side WebAssembly processing",
-    "utilitiesTitle": "50+ Pro PDF Utilities",
+    "utilitiesTitle": "Pro PDF Utilities",
     "utilitiesSub": "Complete PDF suite",
     "ultraFast": "Ultra Fast Speed",
     "ultraFastDesc": "Local browser acceleration engine.",
@@ -31,7 +31,7 @@
     "noStorageDesc": "Zero permanent file retention guarantee.",
     "geminiAi": "Gemini 3.6 AI",
     "geminiAiDesc": "Smart chat, summary & translation.",
-    "tools50": "50+ Working Tools",
+    "tools50": "Working Tools",
     "tools50Desc": "Complete PDF conversion suite.",
     "mostPopular": "Most Popular Tool",
     "pro": "PRO",
@@ -41,15 +41,15 @@
   },
   "promo": {
     "privacy": "100% In-Browser Privacy",
-    "utilities": "50+ Pro PDF Utilities"
+    "utilities": "Pro PDF Utilities"
   },
   "toolkit": {
     "popular": "Popular PDF Tools",
     "ai": "AI PDF Tools",
     "all": "All Utilities",
     "title": "Comprehensive PDF Toolkit",
-    "subtitle": "Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.",
-    "filterPlaceholder": "Filter 50+ tools...",
+    "subtitle": "Enterprise working tools for students, lawyers, researchers, and professionals.",
+    "filterPlaceholder": "Filter tools...",
     "toolsCount": "Tools"
   },
   "tools": {
@@ -103,7 +103,7 @@
   "aiSummary": "AI Summary",
   "heroTitle": "Enterprise PDF Tools & AI Document Engine",
   "heroSub": "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.",
-  "searchPlaceholder": "Search 50+ tools (Cmd+K)...",
+  "searchPlaceholder": "Search tools (Cmd+K)...",
   "dropzoneActiveTitle": "Release files to launch tool workspace",
   "dropzoneTitle": "Drop PDF files here or click to browse",
   "dropzoneActiveSub": "Drop now to start processing instantly",
@@ -113,8 +113,8 @@
   "Password Required": "Please enter a password to protect your PDF.",
   "Password Too Short": "Your password should be at least 4 characters long.",
   "Passwords Do Not Match": "Please ensure the confirmation password matches.",
-  "searchModalPlaceholder": "Search 50+ PDF tools by name, action or extension (e.g. Merge, OCR, Compress)...",
-  "searchOverlayPlaceholder": "Search 50+ tools across platform (Type or press Ctrl+/)...",
+  "searchModalPlaceholder": "Search PDF tools by name, action or extension (e.g. Merge, OCR, Compress)...",
+  "searchOverlayPlaceholder": "Search tools across platform (Type or press Ctrl+/)...",
   "Invalid File Type": "Please select a valid PDF file.",
   "helvetica": "normal",
   "extracted": {
@@ -684,7 +684,7 @@
     "users": "Users",
     "files": "Files",
     "ads": "Ads",
-    "pdfsunvercelapp": "pdfsun.vercel.app",
+    "pdfsunvercelapp": "pdfsun.in",
     "attr_open_tool_search_modal": "Open tool search modal",
     "attr_you_are_currently_offline_client_side_pd": "You are currently offline. Client-side PDF tools remain fully functional.",
     "attr_sync_with_system_automatically_listen_to": "Sync with System: Automatically listen to OS light/dark schedule changes",
@@ -1033,7 +1033,10 @@
     "promise": "Promise",
     "down_to": "down to",
     "void_promise": "void\n): Promise",
-    "nginx1240_ubuntu": "nginx/1.24.0 (Ubuntu)"
+    "nginx1240_ubuntu": "nginx/1.24.0 (Ubuntu)",
+    "7_day_guarantee": "7-Day Guarantee",
+    "fast_refund_processing": "Fast Refund Processing",
+    "refund_policy": "Refund Policy"
   },
-  "searchTools": "Search 50+ PDF tools..."
+  "searchTools": "Search PDF tools..."
 }

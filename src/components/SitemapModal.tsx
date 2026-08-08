@@ -30,12 +30,7 @@ interface SitemapModalProps {
 }
 
 export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) => {
-  const [baseUrlInput, setBaseUrlInput] = useState<string>(() => {
-    if (typeof window !== "undefined" && window.location && window.location.origin) {
-      return window.location.origin;
-    }
-    return "https://pdfsun.in";
-  });
+  const [baseUrlInput, setBaseUrlInput] = useState<string>("https://pdfsun.in");
 
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"urls" | "raw" | "stats">("urls");

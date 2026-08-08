@@ -592,7 +592,7 @@ export default function App() {
           <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
         )}
 
-        {/* 50+ PDF Tools Filterable Grid */}
+        {/* PDF Tools Filterable Grid */}
         <ToolGrid
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
@@ -623,7 +623,7 @@ export default function App() {
         <SupportedFormats />
 
         {/* Pricing Comparison */}
-        <PricingSection />
+        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} />
 
         {/* Testimonials */}
         <TestimonialsSection />

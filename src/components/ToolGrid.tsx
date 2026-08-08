@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Grid,
   GraduationCap,
@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { ToolItem, CategoryId } from "../types";
 import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
-import { ToolCard } from "./ToolCard";
+import { LazyToolCard } from "./LazyToolCard";
+import { VirtualizedToolGrid } from "./VirtualizedToolGrid";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { useToolRatings } from "../hooks/useToolRatings";
 import { useLanguage } from "../lib/i18n";
@@ -55,11 +56,16 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   const { getToolRating, rateTool } = useToolRatings();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"virtualized" | "infinite" | "paged">("virtualized");
+  const [visibleCount, setVisibleCount] = useState(16);
   const pageSize = 16;
 
-  // Reset page when category or search query changes
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset page & visible count when category or search query changes
   React.useEffect(() => {
     setCurrentPage(1);
+    setVisibleCount(16);
   }, [selectedCategory, searchQuery]);
 
   // Filter tools based on category and search query
@@ -87,6 +93,24 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     });
   }, [selectedCategory, searchQuery, isMostPopular]);
 
+  // Observer for infinite scroll mode
+  useEffect(() => {
+    if (viewMode !== "infinite" || !sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setVisibleCount((prev) => Math.min(filteredTools.length, prev + 16));
+        }
+      },
+      { rootMargin: "300px 0px", threshold: 0.01 }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [viewMode, filteredTools.length, visibleCount]);
+
   const totalPages = Math.ceil(filteredTools.length / pageSize) || 1;
 
   const onPageChangeRef = React.useRef(onPageChange);
@@ -111,6 +135,13 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     return filteredTools.slice(start, start + pageSize);
   }, [filteredTools, currentPage, pageSize]);
 
+  const displayedTools = useMemo(() => {
+    if (viewMode === "infinite") {
+      return filteredTools.slice(0, visibleCount);
+    }
+    return paginatedTools;
+  }, [viewMode, filteredTools, visibleCount, paginatedTools]);
+
   return (
     <section id="tools" className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
       {/* Category Tabs Header */}
@@ -120,22 +151,59 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
             {t("toolkit.title", "Comprehensive PDF Toolkit")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t("toolkit.subtitle", "Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.")}
+            {t("toolkit.subtitle", `${ALL_TOOLS.length} enterprise working tools for students, lawyers, researchers, and professionals.`)}
           </p>
         </div>
 
-        {/* Live Filter Counter & Search Bar */}
-        <div className="w-full md:w-auto flex items-center space-x-2">
+        {/* Live Filter Counter, View Mode & Search Bar */}
+        <div className="w-full md:w-auto flex flex-wrap items-center space-x-2 gap-y-2">
           <div className="relative w-full md:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("toolkit.filterPlaceholder", "Filter 50+ tools...")}
+              placeholder={t("toolkit.filterPlaceholder", `Filter ${ALL_TOOLS.length} tools...`)}
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-orange-500"
             />
           </div>
+
+          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+            <button
+              onClick={() => setViewMode("virtualized")}
+              className={`px-2.5 py-1 rounded-lg transition ${
+                viewMode === "virtualized"
+                  ? "bg-orange-500 text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+              title="Virtualized grid rendering with react-window"
+            >
+              Virtualized
+            </button>
+            <button
+              onClick={() => setViewMode("infinite")}
+              className={`px-2.5 py-1 rounded-lg transition ${
+                viewMode === "infinite"
+                  ? "bg-orange-500 text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+              title="Auto-load tools as you scroll"
+            >
+              Lazy Load
+            </button>
+            <button
+              onClick={() => setViewMode("paged")}
+              className={`px-2.5 py-1 rounded-lg transition ${
+                viewMode === "paged"
+                  ? "bg-orange-500 text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+              title="Paginated view mode"
+            >
+              Paged
+            </button>
+          </div>
+
           <div className="px-3 py-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-amber-400 text-xs font-bold whitespace-nowrap">
             {filteredTools.length} {t("toolkit.toolsCount", "Tools")}
           </div>
@@ -168,27 +236,68 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       {/* Tools Grid Display */}
       {filteredTools.length > 0 ? (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {paginatedTools.map((tool) => (
-              <ToolCard
-                key={tool.id}
-                tool={tool}
-                isFavorite={favorites.includes(tool.id)}
-                onToggleFavorite={onToggleFavorite}
-                onSelectTool={(selected) => {
-                  trackToolUsage(selected.id);
-                  onSelectTool(selected);
-                }}
-                isMostPopular={isMostPopular(tool.id) || tool.isPopular}
-                usageFormatted={getFormattedUsage(tool.id)}
-                ratingState={getToolRating(tool.id)}
-                onRateTool={rateTool}
-              />
-            ))}
-          </div>
+          {viewMode === "virtualized" ? (
+            <VirtualizedToolGrid
+              tools={filteredTools}
+              favorites={favorites}
+              onToggleFavorite={onToggleFavorite}
+              onSelectTool={(selected) => {
+                trackToolUsage(selected.id);
+                onSelectTool(selected);
+              }}
+              isMostPopular={(id) => isMostPopular(id) || !!filteredTools.find((t) => t.id === id)?.isPopular}
+              getFormattedUsage={getFormattedUsage}
+              getToolRating={getToolRating}
+              onRateTool={rateTool}
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {displayedTools.map((tool) => (
+                <LazyToolCard
+                  key={tool.id}
+                  tool={tool}
+                  isFavorite={favorites.includes(tool.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  onSelectTool={(selected) => {
+                    trackToolUsage(selected.id);
+                    onSelectTool(selected);
+                  }}
+                  isMostPopular={isMostPopular(tool.id) || tool.isPopular}
+                  usageFormatted={getFormattedUsage(tool.id)}
+                  ratingState={getToolRating(tool.id)}
+                  onRateTool={rateTool}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Infinite Scroll Sentinel & Manual Trigger */}
+          {viewMode === "infinite" && (
+            <div className="pt-4 flex flex-col items-center justify-center space-y-3">
+              {visibleCount < filteredTools.length ? (
+                <>
+                  <div ref={sentinelRef} className="h-6 w-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-slate-400 animate-pulse">
+                      Scroll to lazy-load more tools...
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setVisibleCount((prev) => Math.min(filteredTools.length, prev + 16))}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition"
+                  >
+                    Load More Tools ({filteredTools.length - visibleCount} remaining)
+                  </button>
+                </>
+              ) : (
+                <div className="text-xs text-slate-400 font-medium">
+                  Showing all {filteredTools.length} tools
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {viewMode === "paged" && totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400">
                 PDF Sun - Page <span className="text-orange-500 font-black">{currentPage}</span> of {totalPages} ({filteredTools.length} total tools)

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Sparkles, Zap, ArrowRight, X, CheckCircle2 } from "lucide-react";
+import { ALL_TOOLS } from "../data/toolsData";
 
 interface AdSensePlaceholderProps {
   slotId?: string;
@@ -103,7 +104,7 @@ export const AdSensePlaceholder: React.FC<AdSensePlaceholderProps> = ({
             href="#tools"
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-500/20 flex items-center space-x-1.5 group"
           >
-            <span>Explore 50+ Tools</span>
+            <span>Explore {ALL_TOOLS.length} Tools</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </a>
 

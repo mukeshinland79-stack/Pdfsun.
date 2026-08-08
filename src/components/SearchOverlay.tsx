@@ -163,7 +163,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("searchOverlayPlaceholder", "Search 50+ tools across platform (Type or press Ctrl+/)...")}
+              placeholder={t("searchOverlayPlaceholder", `Search ${ALL_TOOLS.length} tools across platform (Type or press Ctrl+/)...`)}
               className="w-full bg-transparent text-sm sm:text-base font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
             />
             {query && (

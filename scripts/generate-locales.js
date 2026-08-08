@@ -39,7 +39,7 @@ const defaultBaseKeys = {
   badges: {
     privacyTitle: "100% In-Browser Privacy",
     privacySub: "Client-side WebAssembly processing",
-    utilitiesTitle: "50+ Pro PDF Utilities",
+    utilitiesTitle: "57 Pro PDF Utilities",
     utilitiesSub: "Complete PDF suite",
     ultraFast: "Ultra Fast Speed",
     noStorage: "No Storage Purge",
@@ -47,15 +47,15 @@ const defaultBaseKeys = {
   },
   promo: {
     privacy: "100% In-Browser Privacy",
-    utilities: "50+ Pro PDF Utilities"
+    utilities: "57 Pro PDF Utilities"
   },
   toolkit: {
     popular: "Popular PDF Tools",
     ai: "AI PDF Tools",
     all: "All Utilities",
     title: "Comprehensive PDF Toolkit",
-    subtitle: "Over 50+ enterprise working tools for students, lawyers, researchers, and professionals.",
-    filterPlaceholder: "Filter 50+ tools...",
+    subtitle: "Over 57 enterprise working tools for students, lawyers, researchers, and professionals.",
+    filterPlaceholder: "Filter 57 tools...",
     toolsCount: "Tools"
   },
   tools: {

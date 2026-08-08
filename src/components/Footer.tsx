@@ -21,6 +21,7 @@ import { PolicyType } from "../types";
 import { NewsletterSubscription } from "./NewsletterSubscription";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
+import { ALL_TOOLS } from "../data/toolsData";
 
 interface FooterProps {
   onOpenPolicy: (policy: PolicyType) => void;
@@ -92,7 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button onClick={onOpenAllTools} className="hover:text-amber-400 transition">
-                  All PDF Tools (50+)
+                  All PDF Tools ({ALL_TOOLS.length})
                 </button>
               </li>
               <li>

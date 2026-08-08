@@ -43,12 +43,8 @@ function getIsoDate(): string {
  */
 export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
   let baseUrl = customBaseUrl?.trim();
-  if (!baseUrl) {
-    if (typeof window !== "undefined" && window.location && window.location.origin) {
-      baseUrl = window.location.origin;
-    } else {
-      baseUrl = "https://pdfsun.in";
-    }
+  if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("run.app") || baseUrl.includes("vercel.app")) {
+    baseUrl = "https://pdfsun.in";
   }
   // Strip trailing slash
   baseUrl = baseUrl.replace(/\/+$/, "");
