@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode, FC } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode, FC, createElement } from "react";
 import i18n from "i18next";
 import HttpBackend from "i18next-http-backend";
 
@@ -133,10 +133,10 @@ const defaultContextValue: LanguageContextType = {
 export const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = React.useState<string>(initialLanguage);
+  const [currentLanguage, setCurrentLanguageState] = useState<string>(initialLanguage);
 
   // Sync state if i18n changes language externally
-  React.useEffect(() => {
+  useEffect(() => {
     const handleLanguageChanged = (lng: string) => {
       if (lng && SUPPORTED_LANGUAGES.some((l) => l.code === lng)) {
         setCurrentLanguageState(lng);
@@ -149,7 +149,7 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
   }, []);
 
   // Update HTML document direction (dir) to 'rtl' for 'ar', 'ur', 'fa', save to localStorage, and sync i18n
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     if (i18n.language !== currentLanguage) {
@@ -175,21 +175,21 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
     }
   }, [currentLanguage]);
 
-  const languageOption = React.useMemo(
+  const languageOption = useMemo(
     () => SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || defaultLanguageOption,
     [currentLanguage]
   );
 
   const isRtl = isRtlLanguage(currentLanguage);
 
-  const setLanguage = React.useCallback((code: string) => {
+  const setLanguage = useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
       setCurrentLanguageState(code);
       i18n.changeLanguage(code);
     }
   }, []);
 
-  const t = React.useCallback(
+  const t = useCallback(
     (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string): string => {
       let params: TranslationParams | undefined;
       let fallbackText: string | undefined;
@@ -216,12 +216,12 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
     [currentLanguage]
   );
 
-  const contextValue = React.useMemo(
+  const contextValue = useMemo(
     () => ({ currentLanguage, setLanguage, languageOption, isRtl, t }),
     [currentLanguage, setLanguage, languageOption, isRtl, t]
   );
 
-  return React.createElement(
+  return createElement(
     LanguageContext.Provider,
     { value: contextValue },
     children ?? null

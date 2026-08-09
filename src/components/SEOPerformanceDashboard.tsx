@@ -149,8 +149,8 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
 
   const filteredKeywords = mockKeywordRankings.filter(
     (k) =>
-      k.query.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      k.targetUrl.toLowerCase().includes(searchTerm.toLowerCase())
+      (k.query || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (k.targetUrl || "").toLowerCase().includes((searchTerm || "").toLowerCase())
   );
 
   const totalClicks = mockKeywordRankings.reduce((sum, k) => sum + k.clicks, 0);

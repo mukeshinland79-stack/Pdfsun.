@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         (e.metaKey || e.ctrlKey) &&
-        (e.key === "/" || e.key.toLowerCase() === "k")
+        (e.key === "/" || (e.key && e.key.toLowerCase() === "k"))
       ) {
         e.preventDefault();
         setSearchOverlayOpen((prev) => !prev);

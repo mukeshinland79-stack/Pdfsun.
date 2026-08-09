@@ -952,9 +952,12 @@ app.get("/api/health", (req, res) => {
 });
 
 async function startServer() {
+  const httpServer = http.createServer(app);
+  setupAnalyticsWebSocket(httpServer);
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -978,9 +981,6 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
-
-  const httpServer = http.createServer(app);
-  setupAnalyticsWebSocket(httpServer);
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`[PDFSun App Server] Server running on http://0.0.0.0:${PORT}`);

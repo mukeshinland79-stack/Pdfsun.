@@ -238,7 +238,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
             {tool.isPro && (
               <ProFeatureBadge size="xs" tooltip={t("badges.proTooltip", "Pro Feature - Enterprise PDF Processing")} />
             )}
-            {tool.badge && (
+            {Boolean(tool.badge) && typeof tool.badge === "string" && (
               <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded bg-orange-500 text-white">
                 {t(`badges.${tool.badge.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, tool.badge)}
               </span>

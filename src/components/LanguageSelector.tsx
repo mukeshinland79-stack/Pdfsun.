@@ -52,9 +52,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     if (!q) return SUPPORTED_LANGUAGES;
     return SUPPORTED_LANGUAGES.filter(
       (lang) =>
-        lang.name.toLowerCase().includes(q) ||
-        lang.nativeName.toLowerCase().includes(q) ||
-        lang.code.toLowerCase().includes(q)
+        (lang.name || "").toLowerCase().includes(q) ||
+        (lang.nativeName || "").toLowerCase().includes(q) ||
+        (lang.code || "").toLowerCase().includes(q)
     );
   }, [searchQuery]);
 

@@ -16,9 +16,9 @@ export const BlogModal: React.FC<BlogModalProps> = ({ isOpen, onClose }) => {
 
   const filteredPosts = BLOG_POSTS.filter(
     (p) =>
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+      (p.title || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
+      (p.category || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
+      (p.excerpt || "").toLowerCase().includes((searchQuery || "").toLowerCase())
   );
 
   return (

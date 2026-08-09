@@ -18,7 +18,7 @@ export interface DetailedErrorInfo {
  */
 export function parseHumanFriendlyError(err: any, fileName?: string): DetailedErrorInfo {
   const rawMsg = typeof err === "string" ? err : err?.message || String(err || "Unknown error");
-  const lowerMsg = rawMsg.toLowerCase();
+  const lowerMsg = (rawMsg || "").toLowerCase();
 
   // 1. Password Protected / Encrypted PDF
   if (

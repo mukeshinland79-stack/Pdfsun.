@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Sun,
   Mail,
@@ -40,7 +40,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenContactModal,
   onOpenSitemapModal,
 }) => {
-  const [showBrandShowcase, setShowBrandShowcase] = React.useState(false);
+  const [showBrandShowcase, setShowBrandShowcase] = useState(false);
 
   return (
     <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">

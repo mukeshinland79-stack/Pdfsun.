@@ -51,7 +51,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   // Handle global Ctrl+K / Cmd+K and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (isOpen) {
           onClose();
@@ -99,8 +99,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       return (
         (tool.name || "").toLowerCase().includes(q) ||
         (tool.description || "").toLowerCase().includes(q) ||
-        (tool.badge && tool.badge.toLowerCase().includes(q)) ||
-        (tool.category && tool.category.toLowerCase().includes(q)) ||
+        (typeof tool.badge === "string" && tool.badge.toLowerCase().includes(q)) ||
+        (typeof tool.category === "string" && tool.category.toLowerCase().includes(q)) ||
         (tool.supportedInput && tool.supportedInput.some((ext) => (ext || "").toLowerCase().includes(q)))
       );
     });

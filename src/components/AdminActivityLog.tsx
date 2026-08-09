@@ -193,10 +193,10 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.ipAddress.includes(searchTerm);
+      (log.action || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (log.userEmail || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (log.details || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (log.ipAddress || "").includes(searchTerm);
 
     const matchesCategory = categoryFilter === "all" || log.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || log.status === statusFilter;

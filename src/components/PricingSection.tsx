@@ -283,8 +283,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     setSelectedPlanAmount(amount);
     setSelectedPlanRazorpayLink(plan.razorpayLink || "");
 
-    // If Razorpay Link is available & currency is INR, trigger direct window open
-    if (currency === "INR" && plan.razorpayLink) {
+    // If Razorpay Link is available, trigger direct window open
+    if (plan.razorpayLink) {
       try {
         window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
       } catch (err) {
@@ -293,46 +293,22 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     }
 
     try {
-      if (currency === "INR") {
-        // Trigger Razorpay Flow
-        const res = await fetch("/api/create-razorpay-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId: plan.id,
-            amount,
-            currency: "INR",
-            userEmail: "user@pdfsun.in",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setActiveGatewayModal("razorpay");
-        } else {
-          setActiveGatewayModal("razorpay");
-        }
-      } else {
-        // Trigger Stripe Flow
-        const res = await fetch("/api/create-stripe-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId: plan.id,
-            amount,
-            currency: "USD",
-            userEmail: "user@pdfsun.in",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setActiveGatewayModal("stripe");
-        } else {
-          setActiveGatewayModal("stripe");
-        }
-      }
+      // Always trigger Razorpay Flow
+      const res = await fetch("/api/create-razorpay-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan.id,
+          amount,
+          currency: currency === "INR" ? "INR" : "USD",
+          userEmail: "user@pdfsun.in",
+        }),
+      });
+      const data = await res.json();
+      setActiveGatewayModal("razorpay");
     } catch (e) {
       console.error("Payment initiation error:", e);
-      setActiveGatewayModal(currency === "INR" ? "razorpay" : "stripe");
+      setActiveGatewayModal("razorpay");
     } finally {
       setIsProcessing(false);
     }
@@ -349,9 +325,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
 
     setActiveGatewayModal(null);
     alert(
-      `🎉 Success! Payment of ${currency === "INR" ? "₹" : "$"}${selectedPlanAmount} processed via ${
-        activeGatewayModal === "razorpay" ? "Razorpay (UPI / Cards)" : "Stripe"
-      }. Your PDFSun plan is now active!`
+      `🎉 Success! Payment of ${currency === "INR" ? "₹" : "$"}${selectedPlanAmount} processed via Razorpay. Your PDFSun plan is now active!`
     );
     window.location.reload();
   };
@@ -422,7 +396,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             </button>
             <button
               type="button"
-              aria-label="Switch Currency to USD Stripe"
+              aria-label="Switch Currency to USD Razorpay"
               onClick={() => setCurrency("USD")}
               className={`px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 ${
                 currency === "USD"
@@ -431,7 +405,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>🌎 USD ($) Stripe</span>
+              <span>🌎 USD ($) Razorpay</span>
             </button>
           </div>
 
@@ -617,9 +591,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center space-x-1">
                     <CreditCard className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                     <span>
-                      {currency === "INR"
-                        ? "Razorpay (GPay, PhonePe, Cards)"
-                        : "Stripe (Cards, Apple Pay, GPay)"}
+                      Razorpay (UPI, Netbanking, Cards, Auto-pay)
                     </span>
                   </p>
                 )}
@@ -692,7 +664,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">
-                    {activeGatewayModal === "razorpay" ? "Razorpay Payment Gateway" : "Stripe Checkout"}
+                    Razorpay Payment Gateway
                   </h3>
                   <p className="text-[11px] text-slate-400">Secure Order Verification</p>
                 </div>
@@ -720,7 +692,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               <div className="flex justify-between">
                 <span className="text-slate-400">Gateway:</span>
                 <span className="font-bold text-emerald-400">
-                  {activeGatewayModal === "razorpay" ? "Razorpay (UPI / Cards / Netbanking)" : "Stripe (Global Credit Cards)"}
+                  Razorpay (UPI / Cards / Netbanking / Subscriptions)
                 </span>
               </div>
             </div>

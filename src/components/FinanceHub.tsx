@@ -331,9 +331,9 @@ export const FinanceHub: React.FC = () => {
   };
 
   const filteredTransactions = (data?.transactions || []).filter(tx => {
-    const matchesSearch = tx.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          tx.gateway.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (tx.email || "").toLowerCase().includes((searchQuery || "").toLowerCase()) || 
+                          (tx.id || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
+                          (tx.gateway || "").toLowerCase().includes((searchQuery || "").toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || tx.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -502,36 +502,24 @@ export const FinanceHub: React.FC = () => {
                 <button
                   onClick={() => handleGatewayToggle('RAZORPAY')}
                   disabled={switchingGateway}
-                  className={`p-4 rounded-xl border flex flex-col justify-between transition ${
-                    currentData.activeGateway === 'RAZORPAY'
-                      ? 'bg-blue-950/50 border-blue-500 text-blue-200 ring-2 ring-blue-500/30'
-                      : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:border-neutral-700'
-                  }`}
+                  className="p-4 rounded-xl border flex flex-col justify-between transition bg-blue-950/50 border-blue-500 text-blue-200 ring-2 ring-blue-500/30"
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-extrabold text-sm text-blue-400">Razorpay</span>
-                    {currentData.activeGateway === 'RAZORPAY' && <Check className="w-4 h-4 text-blue-400" />}
+                    <span className="font-extrabold text-sm text-blue-400">Razorpay (Active)</span>
+                    <Check className="w-4 h-4 text-blue-400" />
                   </div>
-                  <p className="text-[10px] text-neutral-400 text-left">India UPI, Netbanking, Cards</p>
-                  <span className="mt-2 text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded w-max">T+1 Settlement</span>
+                  <p className="text-[10px] text-neutral-400 text-left">India & Global UPI, Netbanking, Cards</p>
+                  <span className="mt-2 text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded w-max">Primary Active Gateway</span>
                 </button>
 
-                <button
-                  onClick={() => handleGatewayToggle('STRIPE')}
-                  disabled={switchingGateway}
-                  className={`p-4 rounded-xl border flex flex-col justify-between transition ${
-                    currentData.activeGateway === 'STRIPE'
-                      ? 'bg-indigo-950/50 border-indigo-500 text-indigo-200 ring-2 ring-indigo-500/30'
-                      : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:border-neutral-700'
-                  }`}
-                >
+                <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/50 text-neutral-500 flex flex-col justify-between opacity-60">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-extrabold text-sm text-indigo-400">Stripe</span>
-                    {currentData.activeGateway === 'STRIPE' && <Check className="w-4 h-4 text-indigo-400" />}
+                    <span className="font-extrabold text-sm text-neutral-400">Stripe</span>
+                    <span className="text-[10px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded">Disabled</span>
                   </div>
-                  <p className="text-[10px] text-neutral-400 text-left">Global Cards, USD/EUR Payments</p>
-                  <span className="mt-2 text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded w-max">Instant Webhooks</span>
-                </button>
+                  <p className="text-[10px] text-neutral-500 text-left">Global Cards (Disabled for now)</p>
+                  <span className="mt-2 text-[10px] bg-neutral-900 text-neutral-500 px-2 py-0.5 rounded w-max">Paused</span>
+                </div>
               </div>
 
               {/* Quick Bank Details Summary */}
@@ -942,42 +930,31 @@ export const FinanceHub: React.FC = () => {
             </div>
 
             {/* Stripe Health */}
-            <div className="bg-neutral-900 border border-indigo-900/30 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4 opacity-75">
               <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
-                  <h2 className="text-base font-bold text-indigo-400">Stripe Live Gateway</h2>
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <h2 className="text-base font-bold text-neutral-400">Stripe Gateway (Paused)</h2>
                 </div>
-                <span className="text-xs bg-emerald-950 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-800/50">
-                  HEALTHY (92ms)
+                <span className="text-xs bg-amber-950 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-800/50">
+                  DISABLED FOR NOW
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">API Endpoint Status</span>
-                  <span className="text-emerald-400 font-bold">200 OK (Ping Active)</span>
+                  <span className="text-neutral-400">Gateway Status</span>
+                  <span className="text-amber-400 font-bold">Paused by Admin</span>
                 </div>
                 <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">Webhook Listener</span>
-                  <span className="text-indigo-400 font-mono">https://pdfsun.in/api/webhooks/stripe</span>
-                </div>
-                <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">24h Success Rate</span>
-                  <span className="text-neutral-200 font-bold">99.9%</span>
+                  <span className="text-neutral-400">Primary Active Gateway</span>
+                  <span className="text-blue-400 font-mono">Razorpay (Active)</span>
                 </div>
               </div>
 
-              <button 
-                onClick={() => handleGatewayToggle('STRIPE')}
-                className={`w-full py-2.5 rounded-xl font-bold text-xs transition border ${
-                  currentData.activeGateway === 'STRIPE'
-                    ? 'bg-indigo-600 text-white border-indigo-500'
-                    : 'bg-neutral-950 text-indigo-400 border-indigo-900/50 hover:bg-neutral-800'
-                }`}
-              >
-                {currentData.activeGateway === 'STRIPE' ? 'Currently Active Primary Gateway' : 'Switch to Stripe Primary'}
-              </button>
+              <div className="w-full py-2.5 rounded-xl font-bold text-xs text-center bg-neutral-950 text-neutral-500 border border-neutral-800">
+                Stripe Integration Disabled
+              </div>
             </div>
 
           </div>

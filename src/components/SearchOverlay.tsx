@@ -72,7 +72,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
           ? tool.isPopular
           : selectedCategory === "ai"
           ? tool.isAi
-          : tool.category?.toLowerCase() === selectedCategory;
+          : (tool.category || "").toLowerCase() === selectedCategory;
 
       if (!matchesCategory) return false;
       if (!q) return true;
@@ -80,8 +80,8 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       return (
         (tool.name || "").toLowerCase().includes(q) ||
         (tool.description || "").toLowerCase().includes(q) ||
-        (tool.badge && tool.badge.toLowerCase().includes(q)) ||
-        (tool.category && tool.category.toLowerCase().includes(q))
+        (typeof tool.badge === "string" && tool.badge.toLowerCase().includes(q)) ||
+        (typeof tool.category === "string" && tool.category.toLowerCase().includes(q))
       );
     });
   }, [query, selectedCategory]);

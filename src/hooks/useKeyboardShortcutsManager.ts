@@ -191,10 +191,10 @@ export function useKeyboardShortcutsManager(options: UseKeyboardShortcutsOptions
     const keyPart = parts.find((p) => !["alt", "ctrl", "cmd", "shift"].includes(p));
     if (!keyPart) return false;
 
-    let eventKey = e.key.toLowerCase();
+    let eventKey = (e.key || "").toLowerCase();
     if (eventKey === " ") eventKey = "space";
 
-    const keyMatch = eventKey === keyPart.toLowerCase();
+    const keyMatch = eventKey === (keyPart || "").toLowerCase();
 
     return altMatch && ctrlMatch && shiftMatch && keyMatch;
   };

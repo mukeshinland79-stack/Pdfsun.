@@ -211,9 +211,9 @@ export async function validateFile(
       }
       if (cleanAllowed.endsWith("/*")) {
         const category = cleanAllowed.split("/")[0];
-        return file.type.toLowerCase().startsWith(`${category}/`);
+        return (file.type || "").toLowerCase().startsWith(`${category}/`);
       }
-      return file.type.toLowerCase() === cleanAllowed;
+      return (file.type || "").toLowerCase() === cleanAllowed;
     });
 
     // If format is a common document format (images, docx, txt, csv, pptx), allow auto-conversion rather than failing
@@ -238,7 +238,7 @@ export async function validateFile(
   }
 
   // 5. Advanced PDF Header & EOF Trailer Integrity Checks
-  const isClaimedPdf = ext === "pdf" || file.type.toLowerCase() === "application/pdf";
+  const isClaimedPdf = ext === "pdf" || (file.type || "").toLowerCase() === "application/pdf";
   if (isClaimedPdf) {
     const hasValidPdfHeader = await checkPdfHeaderIntegrity(file);
     if (!hasValidPdfHeader) {

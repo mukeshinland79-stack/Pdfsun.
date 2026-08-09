@@ -982,9 +982,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         const matchesCat = analyticsCategory === "all" || t.category === analyticsCategory;
                         const matchesSearch =
                           !analyticsSearch.trim() ||
-                          t.name.toLowerCase().includes(analyticsSearch.toLowerCase()) ||
-                          t.id.toLowerCase().includes(analyticsSearch.toLowerCase()) ||
-                          t.description.toLowerCase().includes(analyticsSearch.toLowerCase());
+                          (t.name || "").toLowerCase().includes((analyticsSearch || "").toLowerCase()) ||
+                          (t.id || "").toLowerCase().includes((analyticsSearch || "").toLowerCase()) ||
+                          (t.description || "").toLowerCase().includes((analyticsSearch || "").toLowerCase());
                         return matchesCat && matchesSearch;
                       })
                         .sort((a, b) => {
