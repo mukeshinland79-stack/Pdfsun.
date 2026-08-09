@@ -78,8 +78,8 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       if (!q) return true;
 
       return (
-        tool.name.toLowerCase().includes(q) ||
-        tool.description.toLowerCase().includes(q) ||
+        (tool.name || "").toLowerCase().includes(q) ||
+        (tool.description || "").toLowerCase().includes(q) ||
         (tool.badge && tool.badge.toLowerCase().includes(q)) ||
         (tool.category && tool.category.toLowerCase().includes(q))
       );

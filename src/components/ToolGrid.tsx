@@ -83,10 +83,10 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         matchesSearch =
-          tool.name.toLowerCase().includes(q) ||
-          tool.description.toLowerCase().includes(q) ||
-          tool.outputFormat.toLowerCase().includes(q) ||
-          tool.supportedInput.some((ext) => ext.toLowerCase().includes(q));
+          (tool.name || "").toLowerCase().includes(q) ||
+          (tool.description || "").toLowerCase().includes(q) ||
+          (tool.outputFormat || "").toLowerCase().includes(q) ||
+          (tool.supportedInput || []).some((ext) => (ext || "").toLowerCase().includes(q));
       }
 
       return matchesCategory && matchesSearch;

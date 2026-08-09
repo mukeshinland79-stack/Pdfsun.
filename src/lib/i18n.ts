@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode, FC } from "react";
 import i18n from "i18next";
-import { initReactI18next, I18nextProvider } from "react-i18next";
 import HttpBackend from "i18next-http-backend";
 
 export interface LanguageOption {
@@ -17,7 +16,7 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்", flag: "🇮🇳" },
   { code: "te", name: "Telugu", nativeName: "తెలుగు", flag: "🇮🇳" },
-  { code: "mr", name: "Marathi", nativeName: "मराठी", flag: "🇮🇳" },
+  { code: "mr", name: "Marathi", nativeName: "મરાઠી", flag: "🇮🇳" },
   { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી", flag: "🇮🇳" },
   { code: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ", flag: "🇮🇳" },
   { code: "ml", name: "Malayalam", nativeName: "മലയാളം", flag: "🇮🇳" },
@@ -90,18 +89,14 @@ const initialLanguage = getInitialLanguage();
 if (!i18n.isInitialized) {
   i18n
     .use(HttpBackend)
-    .use(initReactI18next)
     .init({
       backend: {
-        loadPath: "/public/locales/{{lng}}/translation.json",
+        loadPath: "/locales/{{lng}}/translation.json",
       },
       lng: initialLanguage,
       fallbackLng: DEFAULT_LANGUAGE,
       interpolation: {
-        escapeValue: false, // React handles XSS safety
-      },
-      react: {
-        useSuspense: false,
+        escapeValue: false,
       },
     });
 }
@@ -138,10 +133,10 @@ const defaultContextValue: LanguageContextType = {
 export const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>(initialLanguage);
+  const [currentLanguage, setCurrentLanguageState] = React.useState<string>(initialLanguage);
 
   // Sync state if i18n changes language externally
-  useEffect(() => {
+  React.useEffect(() => {
     const handleLanguageChanged = (lng: string) => {
       if (lng && SUPPORTED_LANGUAGES.some((l) => l.code === lng)) {
         setCurrentLanguageState(lng);
@@ -154,7 +149,7 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
   }, []);
 
   // Update HTML document direction (dir) to 'rtl' for 'ar', 'ur', 'fa', save to localStorage, and sync i18n
-  useEffect(() => {
+  React.useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     if (i18n.language !== currentLanguage) {
@@ -180,21 +175,21 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
     }
   }, [currentLanguage]);
 
-  const languageOption = useMemo(
+  const languageOption = React.useMemo(
     () => SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage) || defaultLanguageOption,
     [currentLanguage]
   );
 
   const isRtl = isRtlLanguage(currentLanguage);
 
-  const setLanguage = useCallback((code: string) => {
+  const setLanguage = React.useCallback((code: string) => {
     if (SUPPORTED_LANGUAGES.some((l) => l.code === code)) {
       setCurrentLanguageState(code);
       i18n.changeLanguage(code);
     }
   }, []);
 
-  const t = useCallback(
+  const t = React.useCallback(
     (key: string, paramsOrFallback?: TranslationParams | string, fallback?: string): string => {
       let params: TranslationParams | undefined;
       let fallbackText: string | undefined;
@@ -221,15 +216,15 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
     [currentLanguage]
   );
 
-  const contextValue = useMemo(
+  const contextValue = React.useMemo(
     () => ({ currentLanguage, setLanguage, languageOption, isRtl, t }),
     [currentLanguage, setLanguage, languageOption, isRtl, t]
   );
 
   return React.createElement(
-    I18nextProvider,
-    { i18n },
-    React.createElement(LanguageContext.Provider, { value: contextValue }, children ?? null)
+    LanguageContext.Provider,
+    { value: contextValue },
+    children ?? null
   );
 };
 

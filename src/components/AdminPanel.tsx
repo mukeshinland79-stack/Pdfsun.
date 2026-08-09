@@ -43,9 +43,11 @@ import {
   Zap,
   Plus,
   Layers,
+  Wallet,
 } from "lucide-react";
 import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
 import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
+import { FinanceHub } from "./FinanceHub";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { RealTimeTrafficMonitor } from "./RealTimeTrafficMonitor";
 import { ServerStatusWidget } from "./ServerStatusWidget";
@@ -473,6 +475,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab("finance")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "finance" || effectiveActiveTab === "finance_hub" ? "bg-amber-500 text-slate-950 font-bold shadow-xs" : "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Finance Hub</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab("ads")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
                   effectiveActiveTab === "ads" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -575,6 +587,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Tab Content Body */}
         <div className="flex-1 p-6 overflow-y-auto">
+          {/* Finance Hub Tab */}
+          {(effectiveActiveTab === "finance" || effectiveActiveTab === "finance_hub") && <FinanceHub />}
+
           {/* 0. Admin Profile Tab */}
           {effectiveActiveTab === "profile" && (
             <div className="space-y-6">

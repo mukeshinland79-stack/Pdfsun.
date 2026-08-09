@@ -29,6 +29,7 @@ import {
   HelpCircle,
   BookOpen,
   UserCheck,
+  Wallet,
   Download,
   WifiOff,
   Eye,
@@ -163,9 +164,9 @@ export const Header: React.FC<HeaderProps> = ({
   const filteredSearchTools = headerSearchQuery.trim()
     ? ALL_TOOLS.filter(
         (t) =>
-          t.name.toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
-          t.description.toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
-          t.category.toLowerCase().includes(headerSearchQuery.toLowerCase())
+          (t.name || "").toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
+          (t.description || "").toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
+          (t.category || "").toLowerCase().includes(headerSearchQuery.toLowerCase())
       )
     : [];
 
@@ -581,6 +582,17 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
                       <span>{t("analyticsDashboard", "Analytics Dashboard")}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onOpenAdminPanel("finance");
+                      }}
+                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition"
+                    >
+                      <Wallet className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{t("financeHub", "Finance Hub")}</span>
                     </button>
 
                     <button
