@@ -737,6 +737,12 @@ export default function App() {
           allTools={ALL_TOOLS}
           onSelectTool={handleSelectTool}
           onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined}
+          onOpenPricing={() => {
+            setUserDashboardOpen(false);
+            setTimeout(() => {
+              document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+          }}
         />
       )}
 

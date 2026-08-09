@@ -73,7 +73,8 @@
   "aiSuite": "AI Suite",
   "favorites": {
     "remove": "Remove from favorites",
-    "add": "Add to favorites"
+    "add": "Add to favorites",
+    "title": "Favorites"
   },
   "history": "Recent History",
   "adminPanel": "Admin",

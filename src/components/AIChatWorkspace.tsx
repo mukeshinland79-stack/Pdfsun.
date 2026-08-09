@@ -23,6 +23,9 @@ import {
 import { ToolItem, ToolHistoryItem } from "../types";
 import { extractTextFromPdfFile, textToPdf, downloadFile } from "../lib/pdfEngine";
 
+const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
+import { SocialShareWidget } from "./SocialShareWidget";
+
 interface AIChatWorkspaceProps {
   tool: ToolItem;
   initialFiles?: File[];
@@ -602,6 +605,21 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             )}
           </div>
         </div>
+
+        {/* Social Share Widget */}
+        <SocialShareWidget toolId={tool.id} toolName={tool.name} description={tool.description} />
+
+        {/* Asynchronous Lazy-Loaded Feedback & Rating Widget */}
+        <React.Suspense
+          fallback={
+            <div className="mt-8 p-4 text-center text-xs text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-center justify-center space-x-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+              <span>Loading feedback widget...</span>
+            </div>
+          }
+        >
+          <FeedbackWidget toolId={tool.id} toolName={tool.name} />
+        </React.Suspense>
       </div>
     </div>
   );

@@ -44,10 +44,14 @@ import {
   Plus,
   Layers,
   Wallet,
+  MessageSquare,
 } from "lucide-react";
 import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
 import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
 import { FinanceHub } from "./FinanceHub";
+import { AdminCommentModeration } from "./AdminCommentModeration";
+import { AdminFeedbackModeration } from "./AdminFeedbackModeration";
+import { AdminFeedbackOverviewDashboard } from "./AdminFeedbackOverviewDashboard";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { RealTimeTrafficMonitor } from "./RealTimeTrafficMonitor";
 import { ServerStatusWidget } from "./ServerStatusWidget";
@@ -485,6 +489,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab("comments")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "comments" ? "bg-emerald-600 text-white shadow-xs font-bold" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-400" />
+                <span>Comments & Reviews</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("feedback_overview")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "feedback_overview" ? "bg-indigo-600 text-white shadow-xs font-bold" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 text-indigo-400" />
+                <span>Overview Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("feedback_moderation")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "feedback_moderation" ? "bg-blue-600 text-white shadow-xs font-bold" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <MessageSquare className="w-4 h-4 text-blue-400" />
+                <span>Feedback Moderation</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab("ads")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
                   effectiveActiveTab === "ads" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -589,6 +623,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex-1 p-6 overflow-y-auto">
           {/* Finance Hub Tab */}
           {(effectiveActiveTab === "finance" || effectiveActiveTab === "finance_hub") && <FinanceHub />}
+
+          {/* Comments & Moderation Tab */}
+          {effectiveActiveTab === "comments" && (
+            <AdminCommentModeration currentUserEmail={currentUserProfile?.email} />
+          )}
+
+          {/* Overview Dashboard Tab (Firestore tool_feedback analytics) */}
+          {effectiveActiveTab === "feedback_overview" && (
+            <AdminFeedbackOverviewDashboard />
+          )}
+
+          {/* Feedback Moderation Tab (Firestore tool_feedback collection) */}
+          {effectiveActiveTab === "feedback_moderation" && (
+            <AdminFeedbackModeration />
+          )}
 
           {/* 0. Admin Profile Tab */}
           {effectiveActiveTab === "profile" && (

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { UserProfile, ToolHistoryItem, ToolItem, DUAL_OWNER_EMAILS } from "../types";
+import { PaymentHistory } from "./PaymentHistory";
 import {
   User,
   Crown,
@@ -14,6 +15,8 @@ import {
   HardDrive,
   Settings,
   CheckCircle,
+  Receipt,
+  LayoutDashboard,
 } from "lucide-react";
 
 interface UserDashboardProps {
@@ -25,6 +28,7 @@ interface UserDashboardProps {
   allTools: ToolItem[];
   onSelectTool: (tool: ToolItem) => void;
   onOpenAdminPanel?: () => void;
+  onOpenPricing?: () => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -36,7 +40,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   allTools,
   onSelectTool,
   onOpenAdminPanel,
+  onOpenPricing,
 }) => {
+  const [activeTab, setActiveTab] = useState<"overview" | "payments">("overview");
+
   if (!isOpen) return null;
 
   const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
@@ -45,17 +52,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
       <div className="bg-white dark:bg-[#0f172a] rounded-3xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <div className="p-6 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-6 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <img
               src={userProfile.avatar}
               alt={userProfile.name}
-              className="w-12 h-12 rounded-2xl object-cover ring-2 ring-blue-600/30"
+              className="w-12 h-12 rounded-2xl object-cover ring-2 ring-blue-600/30 shrink-0"
             />
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">{userProfile.name}</h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-blue-600 text-white uppercase">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500 text-slate-950 uppercase">
                   {userProfile.plan}
                 </span>
               </div>
@@ -63,7 +70,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             {onOpenAdminPanel && (userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim()) || userProfile.hasAdminAccess) && (
               <button
                 onClick={() => {
@@ -79,16 +86,48 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* Dashboard Navigation Tabs */}
+        <div className="px-6 pt-3 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-2 text-xs font-extrabold">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-4 py-2.5 rounded-t-2xl border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+              activeTab === "overview"
+                ? "border-amber-500 text-amber-500 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Overview &amp; Tools</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("payments")}
+            className={`px-4 py-2.5 rounded-t-2xl border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+              activeTab === "payments"
+                ? "border-amber-500 text-amber-500 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Payment History &amp; Subscriptions</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+        </div>
+
         {/* Dashboard Content */}
         <div className="p-6 overflow-y-auto space-y-6">
-          {/* Overview Stats */}
+          {activeTab === "payments" ? (
+            <PaymentHistory userProfile={userProfile} onOpenPricing={onOpenPricing} />
+          ) : (
+            <>
+              {/* Overview Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
@@ -186,8 +225,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
+  </div>
+</div>
   );
 };

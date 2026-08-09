@@ -201,15 +201,24 @@ export const LanguageProvider: FC<{ children?: ReactNode }> = ({ children }) => 
         fallbackText = fallback;
       }
 
+      const isValidString = (val: unknown): val is string => {
+        if (typeof val !== "string") return false;
+        // Catch i18next object return error messages
+        if (val.includes("returned an object") || val.includes("key ") && val.includes("instead of string")) {
+          return false;
+        }
+        return true;
+      };
+
       if (i18n.isInitialized && i18n.exists(key)) {
         const res = i18n.t(key, params as Record<string, unknown>);
-        if (typeof res === "string") return res;
+        if (isValidString(res)) return res;
         if (typeof res === "number" || typeof res === "boolean") return String(res);
         return fallbackText || key;
       }
 
       const res = i18n.t(key, { ...params, defaultValue: fallbackText || key });
-      if (typeof res === "string") return res;
+      if (isValidString(res)) return res;
       if (typeof res === "number" || typeof res === "boolean") return String(res);
       return fallbackText || key;
     },

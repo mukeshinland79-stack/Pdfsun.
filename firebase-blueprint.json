@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "feedback_comments": {
+      "title": "Feedback & Reviews",
+      "description": "User ratings, 5-star reviews, and tool feedback comments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique comment ID" },
+        "toolId": { "type": "string", "description": "Associated tool identifier" },
+        "toolName": { "type": "string", "description": "Human readable name of the tool" },
+        "userName": { "type": "string", "description": "User display name" },
+        "userEmail": { "type": "string", "description": "Optional contact email" },
+        "rating": { "type": "number", "description": "5-star rating value (1-5)" },
+        "comment": { "type": "string", "description": "User review text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of creation" },
+        "helpfulCount": { "type": "number", "description": "Number of upvotes" },
+        "status": { "type": "string", "description": "Review moderation status: approved, pending, or spam" },
+        "verifiedUser": { "type": "boolean", "description": "Whether user is verified" }
+      },
+      "required": ["toolId", "rating", "comment", "createdAt"]
+    },
+    "quick_feedback": {
+      "title": "Quick Tool Ratings",
+      "description": "Aggregated 1-click Likes and Dislikes per tool ID.",
+      "type": "object",
+      "properties": {
+        "toolId": { "type": "string", "description": "Tool ID" },
+        "likes": { "type": "number", "description": "Total like count" },
+        "dislikes": { "type": "number", "description": "Total dislike count" }
+      },
+      "required": ["toolId", "likes", "dislikes"]
+    },
+    "tool_feedback": {
+      "title": "Tool Feedback Ratings",
+      "description": "User ratings and feedback comments for tools.",
+      "type": "object",
+      "properties": {
+        "toolId": { "type": "string", "description": "Tool ID" },
+        "rating": { "type": "number", "description": "1-5 Star Rating" },
+        "comment": { "type": "string", "description": "User feedback text" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "userEmail": { "type": "string", "description": "User email address" }
+      },
+      "required": ["toolId", "rating", "comment", "timestamp"]
+    }
+  }
+}

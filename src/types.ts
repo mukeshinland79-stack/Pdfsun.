@@ -128,6 +128,31 @@ export interface SystemConfig {
   OWNER_ONLY_STEALTH_MODE: boolean;
 }
 
+export interface UserComment {
+  id: string;
+  toolId: string;
+  toolName: string;
+  userName: string;
+  userEmail?: string;
+  rating: number; // 1 to 5
+  comment: string;
+  createdAt: string;
+  status: "approved" | "pending" | "rejected" | "spam";
+  ipHash: string;
+  helpfulCount: number;
+  helpfulIpHashes?: string[];
+  spamScore?: number;
+  flaggedReason?: string;
+  verifiedUser?: boolean;
+}
+
+export interface ToolQuickFeedback {
+  toolId: string;
+  likes: number;
+  dislikes: number;
+  votedIps?: string[];
+}
+
 export interface AdminSettings {
   siteName: string;
   domainName: string;

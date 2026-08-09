@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Feedback & Comments Collection
+    match /feedback_comments/{commentId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'createdAt'])
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Quick Tool Ratings Collection
+    match /quick_feedback/{toolId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if request.auth != null;
+    }
+
+    // Tool Feedback Ratings Collection
+    match /tool_feedback/{feedbackId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'timestamp']);
+      allow update, delete: if true;
+    }
+  }
+}

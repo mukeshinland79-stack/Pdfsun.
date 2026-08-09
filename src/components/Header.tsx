@@ -305,7 +305,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenFavorites}
             className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition relative"
-            title={t("favorites", "Favorite Tools")}
+            title={t("favorites.title", "Favorite Tools")}
           >
             <Star className={`w-4 h-4 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : ""}`} />
             {favorites.length > 0 && (
@@ -742,7 +742,7 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                     >
                       <Star className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{t("favorites", "Favorites")}</span>
+                      <span>{t("favorites.title", "Favorites")}</span>
                     </button>
 
                     <button

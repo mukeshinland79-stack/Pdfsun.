@@ -44,6 +44,9 @@ import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
+
+const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
+import { SocialShareWidget } from "./SocialShareWidget";
 import {
   mergePdfs,
   splitPdf,
@@ -2176,6 +2179,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
+
+      {/* Social Share Widget */}
+      <SocialShareWidget toolId={tool.id} toolName={tool.name} description={tool.description} />
+
+      {/* Asynchronous Lazy-Loaded Feedback & Rating Widget */}
+      <React.Suspense fallback={
+        <div className="mt-10 p-6 text-center text-xs text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-center justify-center space-x-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+          <span>Loading feedback widget...</span>
+        </div>
+      }>
+        <FeedbackWidget toolId={tool.id} toolName={tool.name} />
+      </React.Suspense>
 
       {/* Quick Actions Floating Menu upon successful PDF processing */}
       <QuickActionsFloatingMenu
