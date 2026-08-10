@@ -16,6 +16,7 @@ import {
   Mic,
   MicOff,
   ArrowUpDown,
+  CornerUpLeft,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem } from "../types";
@@ -796,9 +797,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                               onClick={() => {
                                 setQuery(item);
                                 saveRecentSearch(item);
-                                inputRef.current?.focus();
+                                if (inputRef.current) {
+                                  inputRef.current.focus();
+                                  inputRef.current.setSelectionRange(item.length, item.length);
+                                }
                               }}
-                              className="flex items-center space-x-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                              className="flex items-center space-x-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer text-left"
+                              title={`Click to copy "${item}" into search input`}
+                              aria-label={`Copy "${item}" into search input`}
                             >
                               <History className="w-3 h-3 text-slate-400 group-hover:text-blue-500 transition" />
                               <span>{item}</span>
@@ -807,6 +813,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                   {count}x
                                 </span>
                               )}
+                              <CornerUpLeft className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity ml-0.5" />
                             </button>
                             <button
                               type="button"
@@ -815,7 +822,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                 removeRecentSearch(item);
                               }}
                               className="ml-1.5 p-0.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
-                              title="Remove search"
+                              title="Remove from recent searches"
+                              aria-label={`Remove "${item}" from recent searches`}
                             >
                               <X className="w-3 h-3" />
                             </button>

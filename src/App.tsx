@@ -28,6 +28,7 @@ import { BlogModal } from "./components/BlogModal";
 import { ContactSupportModal } from "./components/ContactSupportModal";
 import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
+import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
@@ -348,6 +349,21 @@ export default function App() {
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
+  const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isPaymentSuccess =
+        window.location.pathname === "/payment-success" ||
+        window.location.search.includes("razorpay_payment_id") ||
+        window.location.search.includes("payment_id") ||
+        window.location.search.includes("payment_status=success");
+
+      if (isPaymentSuccess) {
+        setPaymentSuccessModalOpen(true);
+      }
+    }
+  }, []);
 
   // Keyboard Shortcuts Manager Hook for custom power-user keybindings
   const {
@@ -754,6 +770,18 @@ export default function App() {
 
       {/* Dynamic sitemap.xml SEO Generator Modal */}
       <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
+
+      {/* Payment Success Redirect Modal */}
+      <PaymentSuccessModal
+        isOpen={paymentSuccessModalOpen}
+        onClose={() => setPaymentSuccessModalOpen(false)}
+        userProfile={userProfile}
+        onRefreshProfile={() => window.location.reload()}
+        onStartProcessing={() => {
+          setPaymentSuccessModalOpen(false);
+          document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
 
       {/* Policies & Help Modals */}
       <PolicyModals policy={activePolicy} onClose={() => setActivePolicy(null)} />

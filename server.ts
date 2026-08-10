@@ -558,33 +558,40 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   let creditsAdded = 0;
   let membershipType = "";
 
-  // 1. Flexi Pack (₹99 - 50 Lifetime Credits) -> plink_TNVaEM74eyNQXw
+  // 1. Flexi Pack (₹99 - 100 Lifetime Credits) -> https://rzp.io/rzp/pdfsun-flexi
   if (
     paymentLinkId === "plink_TNVaEM74eyNQXw" ||
+    paymentLinkId === "plink_pdfsun_flexi" ||
+    paymentLinkId.includes("pdfsun-flexi") ||
     planId === "flexi" ||
     amountPaisa === 9900 ||
     payment.description?.toLowerCase().includes("flexi") ||
+    payment.description?.includes("100 Credits") ||
     payment.description?.includes("50 Credits")
   ) {
-    activatedAction = "FLEXI_PACK_50_CREDITS_ADDED";
-    creditsAdded = 50;
+    activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
+    creditsAdded = 100;
     membershipType = "flexi";
-    console.log(`[Razorpay Webhook Auto-Activation] Added 50 Lifetime Credits (Link: plink_TNVaEM74eyNQXw) to account (${userEmail}). Amount: ₹${amountPaisa / 100}`);
+    console.log(`[Razorpay Webhook Auto-Activation] Added 100 Instant Processing Credits (Link: pdfsun-flexi) to account (${userEmail}). Amount: ₹${amountPaisa / 100}`);
   }
-  // 2. Pro Sun Monthly (₹199 / month) -> plink_TNVIn12A8mraUf
+  // 2. Pro Sun Monthly (₹199 / month) -> https://rzp.io/rzp/pdfsun-monthly
   else if (
     paymentLinkId === "plink_TNVIn12A8mraUf" ||
+    paymentLinkId === "plink_pdfsun_monthly" ||
+    paymentLinkId.includes("pdfsun-monthly") ||
     planId === "pro-monthly" ||
     amountPaisa === 19900 ||
     subscription.plan_id?.toLowerCase().includes("monthly")
   ) {
     activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
     membershipType = "pro-monthly";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Monthly Membership (Link: plink_TNVIn12A8mraUf) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
+    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Monthly Membership (Link: pdfsun-monthly) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
-  // 3. Pro Sun Annual (₹1,499 / year) -> plink_TNVqrjIUkML9tK
+  // 3. Pro Sun Annual (₹1,499 / year) -> https://rzp.io/rzp/pdfsun-annual
   else if (
     paymentLinkId === "plink_TNVqrjIUkML9tK" ||
+    paymentLinkId === "plink_pdfsun_annual" ||
+    paymentLinkId.includes("pdfsun-annual") ||
     planId === "pro-yearly" ||
     amountPaisa === 149900 ||
     subscription.plan_id?.toLowerCase().includes("yearly") ||
@@ -592,18 +599,20 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   ) {
     activatedAction = "PRO_ANNUAL_MEMBERSHIP_ACTIVATED";
     membershipType = "pro-yearly";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Annual Membership (Link: plink_TNVqrjIUkML9tK) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
+    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Annual Membership (Link: pdfsun-annual) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
-  // 4. Enterprise Plan (₹3,999 / year - 5 User Seats + Admin Tools) -> plink_TNVtCUOhX6OR3D
+  // 4. Enterprise Plan (₹3,999 / year - 5 User Seats + Admin Tools) -> https://rzp.io/rzp/pdfsun-enterprise
   else if (
     paymentLinkId === "plink_TNVtCUOhX6OR3D" ||
+    paymentLinkId === "plink_pdfsun_enterprise" ||
+    paymentLinkId.includes("pdfsun-enterprise") ||
     planId === "enterprise" ||
     amountPaisa === 399900 ||
     subscription.plan_id?.toLowerCase().includes("enterprise")
   ) {
     activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
     membershipType = "enterprise";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Enterprise Plan (Link: plink_TNVtCUOhX6OR3D) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
+    console.log(`[Razorpay Webhook Auto-Activation] Activated Enterprise Plan (Link: pdfsun-enterprise) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
   else {
     // Default Fallback by Amount
@@ -617,8 +626,8 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
       activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
       membershipType = "pro-monthly";
     } else {
-      activatedAction = "FLEXI_PACK_50_CREDITS_ADDED";
-      creditsAdded = 50;
+      activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
+      creditsAdded = 100;
       membershipType = "flexi";
     }
   }
@@ -729,13 +738,13 @@ app.post("/api/create-razorpay-order", (req, res) => {
     const keyId = process.env.RAZORPAY_KEY_ID || "rzp_live_pdfsun_key";
 
     const razorpayLinks: Record<string, string> = {
-      flexi: "https://rzp.io/rzp/kq9FOIG",
-      "pro-monthly": "https://rzp.io/rzp/QQ2Y2AX",
-      "pro-yearly": "https://rzp.io/rzp/1AWNnMk",
-      enterprise: "https://rzp.io/rzp/8f8i6nH",
+      flexi: "https://rzp.io/rzp/pdfsun-flexi",
+      "pro-monthly": "https://rzp.io/rzp/pdfsun-monthly",
+      "pro-yearly": "https://rzp.io/rzp/pdfsun-annual",
+      enterprise: "https://rzp.io/rzp/pdfsun-enterprise",
     };
 
-    const razorpayLink = razorpayLinks[planId] || "https://rzp.io/rzp/QQ2Y2AX";
+    const razorpayLink = razorpayLinks[planId] || "https://rzp.io/rzp/pdfsun-monthly";
 
     console.log(`[Razorpay Order Engine] Created ${orderId} / ${subscriptionId} for ${userEmail || "user"} (${currency} ₹${amount}) -> Link: ${razorpayLink}`);
 

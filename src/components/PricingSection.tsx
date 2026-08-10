@@ -117,16 +117,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
-      paymentLinkId: "plink_TNVaEM74eyNQXw",
-      razorpayLink: "https://rzp.io/rzp/kq9FOIG",
+      paymentLinkId: "plink_pdfsun_flexi",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-flexi",
       priceINR: {
         monthly: 99,
         yearly: 99,
         oneTime: 99,
         labelMonthly: "₹99",
         labelYearly: "₹99",
-        subtextMonthly: "50 Lifetime Credits (No Expiry)",
-        subtextYearly: "50 Lifetime Credits (No Expiry)",
+        subtextMonthly: "100 Lifetime Credits (No Expiry)",
+        subtextYearly: "100 Lifetime Credits (No Expiry)",
       },
       priceUSD: {
         monthly: 1.99,
@@ -134,19 +134,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         oneTime: 1.99,
         labelMonthly: "$1.99",
         labelYearly: "$1.99",
-        subtextMonthly: "50 Lifetime Credits (No Expiry)",
-        subtextYearly: "50 Lifetime Credits (No Expiry)",
+        subtextMonthly: "100 Lifetime Credits (No Expiry)",
+        subtextYearly: "100 Lifetime Credits (No Expiry)",
       },
       guaranteeText: "Strictly Non-Refundable",
       popular: false,
       features: [
-        "50 Lifetime Credits (No Expiry)",
+        "100 Instant Processing Credits (No Expiry)",
         "Use on all premium PDF & AI OCR tools",
         "Up to 500 MB max file size support",
         "Pay once — zero recurring charges",
         "Single-user instant credit top-up",
       ],
-      cta: "Buy 50 Credits — ₹99",
+      cta: "Buy 100 Credits — ₹99",
     },
     {
       id: "pro-monthly",
@@ -155,8 +155,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       badgeBg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
       description: "Full unlimited power for active power users & students.",
       billingType: "subscription",
-      paymentLinkId: "plink_TNVIn12A8mraUf",
-      razorpayLink: "https://rzp.io/rzp/QQ2Y2AX",
+      paymentLinkId: "plink_pdfsun_monthly",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-monthly",
       priceINR: {
         monthly: 199,
         yearly: 199,
@@ -192,8 +192,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       badgeBg: "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black border-amber-400 shadow-xs",
       description: "Best value subscription for professionals & active users.",
       billingType: "subscription",
-      paymentLinkId: "plink_TNVqrjIUkML9tK",
-      razorpayLink: "https://rzp.io/rzp/1AWNnMk",
+      paymentLinkId: "plink_pdfsun_annual",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-annual",
       priceINR: {
         monthly: 199,
         yearly: 1499,
@@ -228,8 +228,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
       description: "Comprehensive team license with admin controls & multi-user seats.",
       billingType: "enterprise",
-      paymentLinkId: "plink_TNVtCUOhX6OR3D",
-      razorpayLink: "https://rzp.io/rzp/8f8i6nH",
+      paymentLinkId: "plink_pdfsun_enterprise",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
       priceINR: {
         monthly: 3999,
         yearly: 3999,
@@ -327,9 +327,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
   const completePaymentSimulation = () => {
     try {
       if (selectedPlanName.toLowerCase().includes("flexi")) {
-        // Add 50 Lifetime Credits for Flexi Pack (₹99)
+        // Add 100 Lifetime Credits for Flexi Pack (₹99)
         const currentCredits = parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "0", 10);
-        localStorage.setItem("pdfsun_user_credits_v1", (currentCredits + 50).toString());
+        localStorage.setItem("pdfsun_user_credits_v1", (currentCredits + 100).toString());
       } else {
         // Activate Pro Membership
         localStorage.setItem("pdfsun_user_plan_v1", "pro");
@@ -342,7 +342,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
 
     setActiveGatewayModal(null);
     const successMsg = selectedPlanName.toLowerCase().includes("flexi")
-      ? `🎉 Success! Payment of ₹${selectedPlanAmount} processed via Razorpay. 50 Lifetime Credits added to your PDFSun account!`
+      ? `🎉 Success! Payment of ₹${selectedPlanAmount} processed via Razorpay. 100 Instant Processing Credits added to your PDFSun account!`
       : `🎉 Success! Payment of ${currency === "INR" ? "₹" : "$"}${selectedPlanAmount} processed via Razorpay. Your ${selectedPlanName} plan is now active!`;
     alert(successMsg);
     window.location.reload();
@@ -619,7 +619,21 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         })}
       </div>
 
-      {/* Disclaimer & Refund Terms Section */}
+      {/* Security & Trust Bar (Directly below Pricing Table) */}
+      <div className="max-w-5xl mx-auto my-6 p-4 rounded-2xl bg-slate-900/90 dark:bg-slate-900/80 border border-amber-500/30 text-white shadow-lg flex flex-wrap items-center justify-around gap-4 text-xs font-bold">
+        <div className="flex items-center space-x-2 text-emerald-400">
+          <Lock className="w-4 h-4 shrink-0 text-emerald-400 stroke-[2.5]" />
+          <span>🔒 256-Bit SSL Encrypted Connection</span>
+        </div>
+        <div className="flex items-center space-x-2 text-blue-400">
+          <ShieldCheck className="w-4 h-4 shrink-0 text-blue-400 stroke-[2.5]" />
+          <span>🛡️ Razorpay Verified Partner (UPI, Cards, NetBanking)</span>
+        </div>
+        <div className="flex items-center space-x-2 text-amber-400">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+          <span>⚡ Instant Automated Delivery</span>
+        </div>
+      </div>
       <div className="max-w-4xl mx-auto my-8 p-6 sm:p-8 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center shadow-sm flex flex-col items-center justify-center space-y-4">
         {/* Top Row — Centered Trust Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
