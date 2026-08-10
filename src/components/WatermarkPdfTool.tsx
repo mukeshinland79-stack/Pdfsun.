@@ -187,7 +187,7 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
 
   // Execute Watermarking Process
   const handleApplyWatermark = async () => {
-    if (!file) return;
+    if (!file || isProcessing) return;
 
     setIsProcessing(true);
     setProgress(10);

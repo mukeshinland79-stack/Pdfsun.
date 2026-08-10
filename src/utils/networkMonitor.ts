@@ -238,7 +238,7 @@ class NetworkMonitorManager {
     this.originalFetch = window.fetch.bind(window);
     const monitor = this;
 
-    window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    const customFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
       const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
       // Skip interception for SSE streams or WebSockets
@@ -252,6 +252,21 @@ class NetworkMonitorManager {
         return monitor.originalFetch!(input, init);
       }
     };
+
+    try {
+      Object.defineProperty(window, "fetch", {
+        value: customFetch,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    } catch {
+      try {
+        (window as any).fetch = customFetch;
+      } catch {
+        // Fallback
+      }
+    }
 
     this.isIntercepting = true;
     console.log("[NetworkMonitor] Global fetch interceptor enabled.");

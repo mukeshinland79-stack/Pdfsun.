@@ -24,6 +24,7 @@ import {
   approveToolFeedbackInFirestore,
   deleteToolFeedbackFromFirestore,
 } from "./src/lib/firebase";
+import { idempotencyMiddleware } from "./src/server/middleware/idempotencyMiddleware";
 
 dotenv.config();
 
@@ -144,6 +145,8 @@ app.use(
     },
   })
 );
+
+app.use(idempotencyMiddleware);
 
 // Helper to safely get Gemini client
 function getGeminiClient() {

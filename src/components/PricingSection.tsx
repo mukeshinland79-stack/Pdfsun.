@@ -25,6 +25,7 @@ export interface PlanTier {
   badgeBg: string;
   description: string;
   billingType: "free" | "one-time" | "subscription" | "enterprise";
+  paymentLinkId?: string;
   razorpayLink?: string;
   priceINR: {
     monthly: number;
@@ -117,7 +118,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
       paymentLinkId: "plink_TNVaEM74eyNQXw",
-      razorpayLink: "https://rzp.io/i/plink_TNVaEM74eyNQXw",
+      razorpayLink: "https://rzp.io/rzp/kq9FOIG",
       priceINR: {
         monthly: 99,
         yearly: 99,
@@ -155,7 +156,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       description: "Full unlimited power for active power users & students.",
       billingType: "subscription",
       paymentLinkId: "plink_TNVIn12A8mraUf",
-      razorpayLink: "https://rzp.io/i/plink_TNVIn12A8mraUf",
+      razorpayLink: "https://rzp.io/rzp/QQ2Y2AX",
       priceINR: {
         monthly: 199,
         yearly: 199,
@@ -192,7 +193,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       description: "Best value subscription for professionals & active users.",
       billingType: "subscription",
       paymentLinkId: "plink_TNVqrjIUkML9tK",
-      razorpayLink: "https://rzp.io/i/plink_TNVqrjIUkML9tK",
+      razorpayLink: "https://rzp.io/rzp/1AWNnMk",
       priceINR: {
         monthly: 199,
         yearly: 1499,
@@ -228,7 +229,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       description: "Comprehensive team license with admin controls & multi-user seats.",
       billingType: "enterprise",
       paymentLinkId: "plink_TNVtCUOhX6OR3D",
-      razorpayLink: "https://rzp.io/i/plink_TNVtCUOhX6OR3D",
+      razorpayLink: "https://rzp.io/rzp/8f8i6nH",
       priceINR: {
         monthly: 3999,
         yearly: 3999,
@@ -290,7 +291,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     // If Razorpay Link is available, trigger direct window open
     if (plan.razorpayLink) {
       try {
-        window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
+        const opened = window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
+        if (!opened || opened.closed || typeof opened.closed === "undefined") {
+          // If popup blocker intercepted, redirect current tab or fallback gracefully
+          window.location.href = plan.razorpayLink;
+          return;
+        }
       } catch (err) {
         console.warn("Could not auto-open Razorpay window:", err);
       }

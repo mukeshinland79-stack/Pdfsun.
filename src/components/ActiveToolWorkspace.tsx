@@ -114,6 +114,7 @@ import { AnnotatePdfWorkspace } from "./AnnotatePdfWorkspace";
 import { QuickShareModal } from "./QuickShareModal";
 import { ToolRating } from "./ToolRating";
 import { useToolRatings } from "../hooks/useToolRatings";
+import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
 
@@ -185,6 +186,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
 
   const { getToolRating, rateTool } = useToolRatings();
+  const { isLocked, isLockedRef, executeWithLock, cancelExecution } = useExecutionLock();
 
   // Download Extracted OCR Text Helper
   const handleDownloadOcrText = (textOverride?: string) => {
@@ -389,6 +391,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   };
 
   const handleCancelProcess = () => {
+    cancelExecution();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -406,13 +409,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   };
 
   const executeProcess = async () => {
-    // Check if any files are present
-    if (files.length === 0 && !["txt-to-pdf", "scan-to-pdf"].includes(tool.id)) {
-      const errInfo = parseHumanFriendlyError("Please select at least one file to process.");
-      setErrorOverlay(errInfo);
-      setErrorMessage("Please select at least one file to process.");
+    // Prevent duplicate triggers synchronously before async state updates
+    if (isProcessing || isLockedRef.current) {
+      console.warn("[ActiveToolWorkspace] Execution locked: duplicate command trigger suppressed.");
       return;
     }
+
+    await executeWithLock(
+      async (executionSignal) => {
+        // Check if any files are present
+        if (files.length === 0 && !["txt-to-pdf", "scan-to-pdf"].includes(tool.id)) {
+          const errInfo = parseHumanFriendlyError("Please select at least one file to process.");
+          setErrorOverlay(errInfo);
+          setErrorMessage("Please select at least one file to process.");
+          return;
+        }
 
     // Check if any files failed validation
     const invalidFileState = fileStates.find((fs) => !fs.isValid);
@@ -945,6 +956,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     } finally {
       abortControllerRef.current = null;
     }
+      },
+      {
+        actionName: `pdf-process:${tool.id}`,
+        payloadId: files.map((f) => `${f.name}:${f.size}`).join("|") || Date.now(),
+        debounceMs: 400,
+      }
+    );
   };
 
   return (
@@ -2148,10 +2166,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
           <button
             onClick={executeProcess}
-            disabled={isProcessing || isValidating}
+            disabled={isProcessing || isLocked || isValidating}
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/20 hover:opacity-95 disabled:opacity-50 transition flex items-center space-x-2"
           >
-            {isProcessing ? (
+            {isProcessing || isLocked ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>Streaming & Processing...</span>

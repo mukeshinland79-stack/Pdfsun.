@@ -6,6 +6,10 @@ import './index.css';
 import { LanguageProvider } from './lib/i18n';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { registerServiceWorker } from './pwaRegister';
+import { setupGlobalFetchInterceptor } from './lib/fetchInterceptor';
+
+// Initialize global network fetch interceptor to handle errors, 4xx/5xx responses, and timeouts
+setupGlobalFetchInterceptor();
 
 // Register Service Worker for PWA Offline Capability
 registerServiceWorker();

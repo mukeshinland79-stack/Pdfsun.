@@ -168,8 +168,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
   // Execute PDF Encryption
   const handleProtectPdf = async () => {
-    if (!file) {
-      triggerErrorToast("No PDF Uploaded", "Please select a PDF document first.");
+    if (!file || isProcessing) {
+      if (!file) triggerErrorToast("No PDF Uploaded", "Please select a PDF document first.");
       return;
     }
 
