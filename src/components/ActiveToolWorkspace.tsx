@@ -2361,4 +2361,3 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     </div>
   );
 };
-
