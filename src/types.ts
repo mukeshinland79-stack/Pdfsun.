@@ -81,6 +81,7 @@ export interface UserProfile {
   plan: string;
   joinedDate: string;
   hasAdminAccess?: boolean;
+  isPro?: boolean;
 }
 
 export interface AdminUserAccount {

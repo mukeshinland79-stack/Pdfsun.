@@ -54,12 +54,22 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [syncing, setSyncing] = useState<boolean>(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [filterType, setFilterType] = useState<"all" | "subscriptions" | "flexi">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "subscriptions" | "flexi">("all");
   const [selectedInvoice, setSelectedInvoice] = useState<PaymentTransaction | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeSubscription, setActiveSubscription] = useState<any>(null);
+  const [flexiCredits, setFlexiCredits] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "100", 10);
+    } catch {
+      return 100;
+    }
+  });
 
-  // Fetch payment history from server API & localStorage
+  // Fetch payment history & subscription status from server API
   const fetchPaymentHistory = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -69,6 +79,9 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       let apiTransactions: PaymentTransaction[] = [];
       if (res.ok) {
         const data = await res.json();
+        if (data.subscription) {
+          setActiveSubscription(data.subscription);
+        }
         if (data.success && Array.isArray(data.transactions)) {
           apiTransactions = data.transactions.map((tx: any) => ({
             id: tx.id || `pay_rzp_${Math.random().toString(36).substring(2, 8)}`,
@@ -142,6 +155,35 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     fetchPaymentHistory();
   }, [fetchPaymentHistory]);
 
+  // Sync Payment Status Fallback Button Logic
+  const handleSyncPaymentStatus = async () => {
+    try {
+      setSyncing(true);
+      setSyncMessage(null);
+      const email = userProfile.email || "mukeshinland79@gmail.com";
+      const res = await fetch("/api/user/sync-payment-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncMessage(`✅ Sync Complete: Account set to ${data.badgeStatus}! Total Paid: ₹${data.totalPaidINR} INR.`);
+        if (data.subscription) {
+          setActiveSubscription(data.subscription);
+        }
+        await fetchPaymentHistory();
+      } else {
+        setSyncMessage(`⚠️ Sync Notice: ${data.error || "Unable to sync payment status."}`);
+      }
+    } catch (err) {
+      setSyncMessage("❌ Error triggering payment status sync.");
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMessage(null), 6000);
+    }
+  };
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(text);
@@ -157,7 +199,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
     if (!matchesSearch) return false;
 
-    if (filterType === "subscriptions") {
+    if (activeTab === "subscriptions") {
       return (
         tx.plan.toLowerCase().includes("pro") ||
         tx.plan.toLowerCase().includes("monthly") ||
@@ -165,7 +207,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         tx.plan.toLowerCase().includes("annual")
       );
     }
-    if (filterType === "flexi") {
+    if (activeTab === "flexi") {
       return tx.plan.toLowerCase().includes("flexi") || tx.plan.toLowerCase().includes("credit");
     }
 
@@ -177,11 +219,34 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     .filter((tx) => tx.status === "COMPLETED" || tx.status === "SUCCESS")
     .reduce((acc, tx) => acc + (tx.amountINR || 0), 0);
 
-  const activePlanName = userProfile.plan?.toUpperCase() || "PRO SUN MONTHLY";
+  const hasActivePaidPlan =
+    totalSpentINR > 0 ||
+    userProfile.plan?.toLowerCase().includes("pro") ||
+    (activeSubscription && activeSubscription.status === "active");
+
+  const badgeStatus = hasActivePaidPlan ? "PRO CUSTOMER" : "FREE CUSTOMER";
+  const activePlanName = activeSubscription?.plan_id === "pro-yearly"
+    ? "PRO SUN ANNUAL (₹1,499/yr)"
+    : activeSubscription?.plan_id === "enterprise"
+    ? "ENTERPRISE PLAN (₹3,999/yr)"
+    : "PRO SUN MONTHLY (₹199/mo)";
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Top Banner: Subscription Summary & Active Plan */}
+      {/* Sync Status Banner Feedback */}
+      {syncMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs flex items-center justify-between shadow-lg animate-in fade-in duration-300">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+            <span>{syncMessage}</span>
+          </div>
+          <button onClick={() => setSyncMessage(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Top Banner: User Profile Card & Billing Overview */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-xl relative overflow-hidden">
         {/* Background Decorative Glow */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
@@ -190,9 +255,13 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center space-x-1.5">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center space-x-1.5 border ${
+                hasActivePaidPlan
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                  : "bg-slate-700/50 border-slate-600 text-slate-300"
+              }`}>
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Verified Razorpay Account</span>
+                <span>STATUS: {badgeStatus}</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
                 Webhook Verified (Secret: 905065)
@@ -201,7 +270,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
             <div>
               <h2 className="text-xl font-black tracking-tight text-white flex items-center space-x-2">
-                <span>Active Subscription & Billing</span>
+                <span>Account Billing &amp; Subscriptions</span>
                 <Crown className="w-5 h-5 text-amber-400 fill-amber-400/20" />
               </h2>
               <p className="text-xs text-slate-400 mt-1">
@@ -211,7 +280,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
             <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
               <div className="bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Plan</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Tier</span>
                 <span className="font-extrabold text-amber-300 text-sm">{activePlanName}</span>
               </div>
 
@@ -224,183 +293,306 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Gateway Engine</span>
                 <span className="font-bold text-sky-300 flex items-center space-x-1">
                   <Zap className="w-3.5 h-3.5 fill-sky-300" />
-                  <span>Razorpay Live UPI & Subscriptions</span>
+                  <span>Razorpay Live UPI &amp; Subscriptions</span>
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+            {/* Fallback "Sync Payment Status" Button */}
+            <button
+              onClick={handleSyncPaymentStatus}
+              disabled={syncing}
+              className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
+              title="Sync Payment Status with Razorpay Backend"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+              <span>{syncing ? "Syncing..." : "Sync Payment Status"}</span>
+            </button>
+
             {onOpenPricing && (
               <button
                 onClick={onOpenPricing}
                 className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 fill-slate-950" />
-                <span>Upgrade / Upgrade Plan →</span>
+                <span>Upgrade Plan →</span>
               </button>
             )}
-
-            <button
-              onClick={fetchPaymentHistory}
-              disabled={refreshing}
-              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center cursor-pointer"
-              title="Refresh Razorpay Transactions"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-amber-400" : ""}`} />
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
+      {/* Navigation Tabs: All Transactions, Subscriptions, Flexi Credits */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
           <button
-            onClick={() => setFilterType("all")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              filterType === "all"
+            onClick={() => setActiveTab("all")}
+            className={`px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 ${
+              activeTab === "all"
                 ? "bg-amber-500 text-slate-950 shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            All Transactions ({transactions.length})
+            <Receipt className="w-3.5 h-3.5" />
+            <span>All Transactions ({transactions.length})</span>
           </button>
           <button
-            onClick={() => setFilterType("subscriptions")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              filterType === "subscriptions"
+            onClick={() => setActiveTab("subscriptions")}
+            className={`px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 ${
+              activeTab === "subscriptions"
                 ? "bg-amber-500 text-slate-950 shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            Subscriptions
+            <Crown className="w-3.5 h-3.5" />
+            <span>Subscriptions</span>
           </button>
           <button
-            onClick={() => setFilterType("flexi")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              filterType === "flexi"
+            onClick={() => setActiveTab("flexi")}
+            className={`px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 ${
+              activeTab === "flexi"
                 ? "bg-amber-500 text-slate-950 shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            Flexi Credits
+            <Zap className="w-3.5 h-3.5" />
+            <span>Flexi Credits ({flexiCredits})</span>
           </button>
         </div>
 
-        <div className="relative flex-1 max-w-xs">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by Payment ID, Plan..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          />
-        </div>
-      </div>
-
-      {/* Transactions List */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-          <span className="flex items-center space-x-1.5">
-            <Receipt className="w-4 h-4 text-amber-500" />
-            <span>Successful Transactions &amp; Receipts ({filteredTransactions.length})</span>
-          </span>
-          <span className="text-[10px] text-slate-400 font-normal">
-            Gateway: Razorpay (India)
-          </span>
-        </h3>
-
-        {loading ? (
-          <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center space-y-3">
-            <RefreshCw className="w-6 h-6 animate-spin text-amber-500 mx-auto" />
-            <p className="text-xs text-slate-400 font-medium">Fetching payment history from Razorpay...</p>
-          </div>
-        ) : filteredTransactions.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center space-y-2">
-            <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No transactions found matching criteria</p>
-            <p className="text-[11px] text-slate-400">Upgrade your account or buy Flexi Credits to populate your transaction log.</p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {filteredTransactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 hover:border-amber-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm group"
-              >
-                <div className="flex items-start space-x-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition">
-                        {tx.plan}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center space-x-1">
-                        <CheckCircle className="w-3 h-3" />
-                        <span>{tx.status}</span>
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                        {tx.gateway}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center space-x-1 font-mono">
-                        <span>Payment ID:</span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{tx.id}</span>
-                        <button
-                          onClick={() => handleCopy(tx.id)}
-                          className="hover:text-amber-500 p-0.5"
-                          title="Copy Payment ID"
-                        >
-                          {copiedId === tx.id ? (
-                            <Check className="w-3 h-3 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                        </button>
-                      </span>
-
-                      <span>•</span>
-
-                      <span className="flex items-center space-x-1">
-                        <Clock className="w-3 h-3 text-slate-400" />
-                        <span>{tx.date}</span>
-                      </span>
-
-                      <span>•</span>
-
-                      <span className="text-slate-400">{tx.paymentMethod || "UPI / Razorpay Gateway"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-700/50">
-                  <div className="text-right">
-                    <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
-                      ₹{tx.amountINR?.toLocaleString() || "199"}.00
-                    </div>
-                    <div className="text-[10px] text-slate-400">INR (Tax Included)</div>
-                  </div>
-
-                  <button
-                    onClick={() => setSelectedInvoice(tx)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shrink-0"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Receipt</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+        {activeTab === "all" && (
+          <div className="relative flex-1 max-w-xs">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by Payment ID, Plan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            />
           </div>
         )}
       </div>
+
+      {/* TAB 1: ALL TRANSACTIONS */}
+      {activeTab === "all" && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span className="flex items-center space-x-1.5">
+              <Receipt className="w-4 h-4 text-amber-500" />
+              <span>All Receipts &amp; Payment History ({filteredTransactions.length})</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-normal">
+              Gateway: Razorpay Live (India)
+            </span>
+          </h3>
+
+          {loading ? (
+            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+              <RefreshCw className="w-6 h-6 animate-spin text-amber-500 mx-auto" />
+              <p className="text-xs text-slate-400 font-medium">Fetching payment records from Razorpay...</p>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+              <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No transactions found matching criteria</p>
+              <p className="text-[11px] text-slate-400">Upgrade your account or buy Flexi Credits to populate your transaction log.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 hover:border-amber-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm group"
+                >
+                  <div className="flex items-start space-x-3.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition">
+                          {tx.plan}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center space-x-1">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>{tx.status}</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                          {tx.gateway}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center space-x-1 font-mono">
+                          <span>Payment ID:</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{tx.id}</span>
+                          <button
+                            onClick={() => handleCopy(tx.id)}
+                            className="hover:text-amber-500 p-0.5"
+                            title="Copy Payment ID"
+                          >
+                            {copiedId === tx.id ? (
+                              <Check className="w-3 h-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </span>
+
+                        <span>•</span>
+
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>{tx.date}</span>
+                        </span>
+
+                        <span>•</span>
+
+                        <span className="text-slate-400">{tx.paymentMethod || "UPI / Razorpay Gateway"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-700/50">
+                    <div className="text-right">
+                      <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                        ₹{tx.amountINR?.toLocaleString() || "199"}.00
+                      </div>
+                      <div className="text-[10px] text-slate-400">INR (Tax Included)</div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedInvoice(tx)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shrink-0"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Receipt</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: SUBSCRIPTIONS */}
+      {activeTab === "subscriptions" && (
+        <div className="space-y-4">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-wider border border-emerald-500/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>{hasActivePaidPlan ? "🟢 ACTIVE SUBSCRIPTION" : "⚪ FREE CUSTOMER TIER"}</span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white pt-1">
+                  {activePlanName}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  User ID: <span className="font-semibold text-slate-700 dark:text-slate-200">{userProfile.email}</span>
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                {onOpenPricing && (
+                  <button
+                    onClick={onOpenPricing}
+                    className="px-4 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider hover:bg-amber-400 transition"
+                  >
+                    Upgrade / Change Plan
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Activation Date</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono text-sm">
+                  {activeSubscription?.activated_at ? new Date(activeSubscription.activated_at).toLocaleDateString() : new Date().toLocaleDateString()}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Next Renewal / Expiry</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
+                  {activeSubscription?.expires_at ? new Date(activeSubscription.expires_at).toLocaleDateString() : "30 Days Active"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Payment Method</span>
+                <span className="font-bold text-sky-500 font-mono text-sm">
+                  Razorpay Live UPI &amp; Subscriptions
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5">
+              <div className="font-bold text-amber-700 dark:text-amber-300 flex items-center space-x-1.5">
+                <Sparkles className="w-4 h-4" />
+                <span>Subscription Auto-Sync &amp; Unrestricted Access Active</span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                Your subscription provides unlimited access to all 40+ PDF tools on <strong>pdfsun.in</strong> (Merge, Compress, Split, Convert, Edit, Watermark, and AI Chat PDF). No daily limits or manual refreshes needed.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: FLEXI CREDITS */}
+      {activeTab === "flexi" && (
+        <div className="space-y-4">
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white border border-slate-700 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 pb-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-500/40">
+                  <Zap className="w-3.5 h-3.5 fill-amber-300" />
+                  <span>Flexi Credit Balance</span>
+                </div>
+                <div className="text-3xl font-black text-amber-400 font-mono pt-1">
+                  {flexiCredits} <span className="text-sm font-normal text-slate-300">Lifetime Credits Available</span>
+                </div>
+              </div>
+
+              {onOpenPricing && (
+                <button
+                  onClick={onOpenPricing}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider hover:scale-102 transition shadow-lg"
+                >
+                  Buy 100 Credits for ₹99
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Recent Credit Activity &amp; Usage Ledger</h4>
+              <div className="divide-y divide-slate-800 rounded-2xl bg-slate-900/80 border border-slate-700/60 text-xs overflow-hidden">
+                <div className="p-3 flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-amber-300">+100 Flexi Credits Added</span>
+                    <span className="block text-[10px] text-slate-400">Flexi Pack Purchase via Razorpay UPI (₹99)</span>
+                  </div>
+                  <span className="text-emerald-400 font-black font-mono">+100</span>
+                </div>
+                <div className="p-3 flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-slate-200">PDF Compression &amp; Optimization</span>
+                    <span className="block text-[10px] text-slate-400">Completed via Client Local Browser Memory</span>
+                  </div>
+                  <span className="text-slate-400 font-mono">0 Credits (Free Tool)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Official Tax Invoice & GST Receipt Modal */}
       {selectedInvoice && (

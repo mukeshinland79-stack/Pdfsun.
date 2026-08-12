@@ -213,6 +213,37 @@ export default function App() {
     return null;
   });
 
+  // Automated Subscription Sync Effect for logged in or active users
+  useEffect(() => {
+    const syncUserSubscriptionState = async () => {
+      const email = userProfile?.email || "mukeshinland79@gmail.com";
+      try {
+        const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            const isPro = Boolean(data.isPro || data.totalPaidINR > 0);
+            const badge = data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
+
+            if (userProfile && (userProfile.plan !== badge || userProfile.isPro !== isPro)) {
+              const updatedProfile: UserProfile = {
+                ...userProfile,
+                plan: badge,
+                isPro: isPro,
+              };
+              setUserProfile(updatedProfile);
+              localStorage.setItem("pdfsun_user_profile", JSON.stringify(updatedProfile));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[App Subscription Sync] Error checking subscription status:", err);
+      }
+    };
+
+    syncUserSubscriptionState();
+  }, [userProfile?.email]);
+
   // User Accounts State with persistent Admin Permission control
   const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
     try {
