@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Check,
   CheckCircle2,
@@ -11,12 +11,16 @@ import {
   Star,
   Globe,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
+import { PaymentBlinkingRedirectModal } from "./PaymentBlinkingRedirectModal";
+import { UserProfile } from "../types";
 
 interface PricingSectionProps {
   onSuccessUpgrade?: () => void;
   isProUser?: boolean;
   onOpenPolicy?: (policy: "privacy" | "terms" | "cookie" | "refund" | "about") => void;
+  userProfile?: UserProfile | null;
 }
 
 export interface PlanTier {
@@ -53,7 +57,9 @@ export interface PlanTier {
   disabled?: boolean;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false, onOpenPolicy }) => {
+export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false, onOpenPolicy, userProfile }) => {
+  const currentUserId = (userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
+
   const [currency, setCurrency] = useState<"INR" | "USD">(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -73,6 +79,45 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
   const [refundModalOpen, setRefundModalOpen] = useState<boolean>(false);
   const [refundTxId, setRefundTxId] = useState<string>("");
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
+
+  // Sequential 3-Step Blinking Redirect Modal & User Subscription State
+  const [blinkingModalOpen, setBlinkingModalOpen] = useState<boolean>(false);
+  const [activePaymentDetails, setActivePaymentDetails] = useState<{
+    planName: string;
+    paymentId: string;
+    amountStr: string;
+    planId: string;
+  } | null>(null);
+
+  const [userSubscription, setUserSubscription] = useState<{
+    id: string;
+    user_id: string;
+    plan_id: string;
+    status: "pending" | "active" | "expired";
+    activated_at: string;
+    expires_at: string;
+    payment_id: string;
+  } | null>(null);
+
+  // Fetch real-time active user subscription bound to User ID
+  const fetchUserSubscription = async () => {
+    try {
+      const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`);
+      const data = await res.json();
+      if (data.success && data.subscription) {
+        setUserSubscription(data.subscription);
+        if (data.isPro) {
+          setActivePlanId(data.subscription.plan_id);
+        }
+      }
+    } catch (err) {
+      console.warn("Error fetching user subscription:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserSubscription();
+  }, [currentUserId]);
 
   // High-Conversion Pricing Tiers Matrix (Ordered Left to Right)
   const plans: PlanTier[] = [
@@ -339,18 +384,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           },
           handler: async function (response: any) {
             console.log("[Razorpay Pop-up Modal] Payment completed successfully:", response);
+            const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
 
-            // Synchronously verify payment on server
+            // Synchronously verify payment on server & activate user subscription
             try {
               await fetch("/api/razorpay/verify-payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_payment_id: payId,
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_signature: response.razorpay_signature,
                   planId: plan.id,
-                  userEmail: "user@pdfsun.in",
+                  userEmail: currentUserId,
                 }),
               });
             } catch (e) {
@@ -367,13 +413,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               setActivePlanId(plan.id);
             }
 
-            if (onSuccessUpgrade) {
-              onSuccessUpgrade();
-            }
-
-            // Redirect to payment success modal/URL
-            const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
-            window.location.href = `/payment-success?razorpay_payment_id=${payId}&plan=${encodeURIComponent(plan.name)}&amount=${currency === "INR" ? "₹" + amount : "$" + amount}`;
+            // Trigger Sequential 3-Step Blinking Redirect Modal
+            setActivePaymentDetails({
+              planName: plan.name,
+              paymentId: payId,
+              amountStr: currency === "INR" ? `₹${amount}` : `$${amount}`,
+              planId: plan.id,
+            });
+            setBlinkingModalOpen(true);
           },
           modal: {
             ondismiss: function () {
@@ -410,28 +457,61 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     }
   };
 
-  const completePaymentSimulation = () => {
-    try {
-      if (selectedPlanName.toLowerCase().includes("flexi")) {
-        // Add 100 Lifetime Credits for Flexi Pack (₹99)
-        const currentCredits = parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "0", 10);
-        localStorage.setItem("pdfsun_user_credits_v1", (currentCredits + 100).toString());
-      } else {
-        // Activate Pro Membership
-        localStorage.setItem("pdfsun_user_plan_v1", "pro");
-      }
-    } catch {}
+  const completePaymentSimulation = async () => {
+    let targetPlanId = "pro-yearly";
+    if (selectedPlanName.toLowerCase().includes("flexi")) {
+      targetPlanId = "flexi";
+      const currentCredits = parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "0", 10);
+      localStorage.setItem("pdfsun_user_credits_v1", (currentCredits + 100).toString());
+    } else if (selectedPlanName.toLowerCase().includes("monthly")) {
+      targetPlanId = "pro-monthly";
+      localStorage.setItem("pdfsun_user_plan_v1", "pro-monthly");
+    } else if (selectedPlanName.toLowerCase().includes("enterprise") || selectedPlanName.toLowerCase().includes("team")) {
+      targetPlanId = "enterprise";
+      localStorage.setItem("pdfsun_user_plan_v1", "enterprise");
+    } else {
+      targetPlanId = "pro-yearly";
+      localStorage.setItem("pdfsun_user_plan_v1", "pro-yearly");
+    }
 
-    if (onSuccessUpgrade) {
-      onSuccessUpgrade();
+    const payId = `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
+
+    try {
+      await fetch("/api/user/activate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          planId: targetPlanId,
+          paymentId: payId,
+        }),
+      });
+    } catch (e) {
+      console.warn("Backend activation call sync error:", e);
     }
 
     setActiveGatewayModal(null);
-    const successMsg = selectedPlanName.toLowerCase().includes("flexi")
-      ? `🎉 Success! Payment of ₹${selectedPlanAmount} processed via Razorpay. 100 Instant Processing Credits added to your PDFSun account!`
-      : `🎉 Success! Payment of ${currency === "INR" ? "₹" : "$"}${selectedPlanAmount} processed via Razorpay. Your ${selectedPlanName} plan is now active!`;
-    alert(successMsg);
-    window.location.reload();
+    setActivePaymentDetails({
+      planName: selectedPlanName || "Pro Sun Annual",
+      paymentId: payId,
+      amountStr: currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`,
+      planId: targetPlanId,
+    });
+    setBlinkingModalOpen(true);
+  };
+
+  const handleBlinkingModalComplete = () => {
+    setBlinkingModalOpen(false);
+    fetchUserSubscription();
+    if (onSuccessUpgrade) {
+      onSuccessUpgrade();
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`plan-card-${activePaymentDetails?.planId || "pro-yearly"}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
   };
 
   const handleRequestRefund = async (e: React.FormEvent) => {
@@ -587,11 +667,20 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             }
           }
 
+          const isPlanActiveForUser =
+            userSubscription &&
+            userSubscription.user_id.toLowerCase() === currentUserId.toLowerCase() &&
+            userSubscription.status === "active" &&
+            userSubscription.plan_id === plan.id;
+
           return (
             <div
               key={plan.id}
+              id={`plan-card-${plan.id}`}
               className={`relative rounded-3xl p-5 sm:p-6 bg-white dark:bg-[#0f172a]/95 backdrop-blur-xl border transition-all duration-300 flex flex-col justify-between shadow-xl hover:-translate-y-1 ${
-                isCardHighlighted
+                isPlanActiveForUser
+                  ? "border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)]"
+                  : isCardHighlighted
                   ? "border-amber-500 dark:border-amber-400 shadow-[0_0_35px_rgba(234,179,8,0.25)] ring-2 ring-amber-500/50 dark:ring-amber-400/50 xl:-translate-y-2 scale-[1.01]"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
               }`}
@@ -669,9 +758,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan)}
-                  disabled={plan.disabled || (isProUser && plan.id !== "flexi") || isProcessing}
+                  disabled={plan.disabled || (isPlanActiveForUser) || isProcessing}
                   className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 ${
-                    (isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi"
+                    isPlanActiveForUser
                       ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/50 shadow-emerald-500/10 cursor-default"
                       : isCardHighlighted
                       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20"
@@ -680,10 +769,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                       : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700"
                   }`}
                 >
-                  {(isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi" ? (
+                  {isPlanActiveForUser ? (
                     <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>🟢 Plan Activated</span>
+                      <span>🟢 CURRENTLY ACTIVE PLAN</span>
                     </span>
                   ) : (
                     <>
@@ -693,12 +782,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   )}
                 </button>
 
-                {/* Active Validity Metadata */}
-                {(isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi" && (
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold text-center flex items-center justify-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span>Active Tier: {plan.name} • Valid Until Aug 2027</span>
-                  </p>
+                {/* STICKY "PLAN ACTIVATED" BADGE DIRECTLY BELOW PLAN CARD */}
+                {isPlanActiveForUser && (
+                  <div className="mt-3 p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border-2 border-emerald-500 shadow-xl shadow-emerald-500/20 text-center animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden">
+                    <div className="relative space-y-1">
+                      <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[11px] uppercase tracking-wider border border-emerald-500/40">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
+                        <span>PLAN ACTIVATED</span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 truncate">
+                        Bound to User ID: <span className="text-emerald-600 dark:text-emerald-400 font-black">{currentUserId}</span>
+                      </p>
+
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                        Expires: {new Date(userSubscription.expires_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Payment Methods Info */}
@@ -996,6 +1098,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           </div>
         </div>
       )}
+
+      {/* Sequential 3-Step Blinking Redirect Modal */}
+      <PaymentBlinkingRedirectModal
+        isOpen={blinkingModalOpen}
+        onComplete={handleBlinkingModalComplete}
+        planName={activePaymentDetails?.planName || "Pro Sun Plan"}
+        paymentId={activePaymentDetails?.paymentId || "pay_rzp_live"}
+        userId={currentUserId}
+        amountStr={activePaymentDetails?.amountStr || "₹199"}
+      />
     </section>
   );
 };

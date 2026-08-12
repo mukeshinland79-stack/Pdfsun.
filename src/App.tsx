@@ -647,7 +647,7 @@ export default function App() {
         <SupportedFormats />
 
         {/* Pricing Comparison */}
-        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} />
+        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
 
         {/* Testimonials */}
         <TestimonialsSection />

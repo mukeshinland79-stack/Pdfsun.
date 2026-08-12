@@ -562,6 +562,110 @@ app.use("/api/analytics", analyticsRouter);
 // In-Memory Idempotency Store for Processed Razorpay Payments / Events
 const processedRazorpayEvents = new Set<string>();
 
+// ==========================================
+// USER SUBSCRIPTION & PLAN ACTIVATION ENGINE
+// ==========================================
+export interface UserSubscriptionRecord {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: "pending" | "active" | "expired";
+  activated_at: string;
+  expires_at: string;
+  payment_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const SUBSCRIPTIONS_FILE = path.join(process.cwd(), "user_subscriptions.json");
+let userSubscriptionsStore: Record<string, UserSubscriptionRecord> = {};
+
+function loadSubscriptionsStore() {
+  try {
+    if (fs.existsSync(SUBSCRIPTIONS_FILE)) {
+      const data = fs.readFileSync(SUBSCRIPTIONS_FILE, "utf-8");
+      userSubscriptionsStore = JSON.parse(data);
+    } else {
+      const now = new Date();
+      const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      userSubscriptionsStore["mukeshinland79@gmail.com"] = {
+        id: "sub_rzp_initial_01",
+        user_id: "mukeshinland79@gmail.com",
+        plan_id: "pro-monthly",
+        status: "active",
+        activated_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+        payment_id: "pay_rzp_live_init",
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      };
+    }
+  } catch (err) {
+    console.error("[SubscriptionsStore] Error loading user_subscriptions.json:", err);
+  }
+}
+
+function saveSubscriptionsStore() {
+  try {
+    fs.writeFileSync(SUBSCRIPTIONS_FILE, JSON.stringify(userSubscriptionsStore, null, 2), "utf-8");
+  } catch (err) {
+    console.error("[SubscriptionsStore] Error saving user_subscriptions.json:", err);
+  }
+}
+
+loadSubscriptionsStore();
+
+function activateUserSubscription(userId: string, planId: string, paymentId?: string): UserSubscriptionRecord {
+  const normalizedUserId = (userId || "user@pdfsun.in").toLowerCase().trim();
+  const now = new Date();
+  let durationDays = 30;
+
+  if (planId === "pro-yearly" || planId === "enterprise") {
+    durationDays = 365;
+  } else if (planId === "flexi") {
+    durationDays = 3650; // 10 years / lifetime
+  }
+
+  const activatedAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const pId = paymentId || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
+
+  const record: UserSubscriptionRecord = {
+    id: `sub_rzp_${Math.random().toString(36).substring(2, 12)}`,
+    user_id: normalizedUserId,
+    plan_id: planId || "pro-monthly",
+    status: "active",
+    activated_at: activatedAt,
+    expires_at: expiresAt,
+    payment_id: pId,
+    created_at: activatedAt,
+    updated_at: activatedAt,
+  };
+
+  userSubscriptionsStore[normalizedUserId] = record;
+  saveSubscriptionsStore();
+  console.log(`[Subscription Engine] Activated plan '${planId}' for user '${normalizedUserId}' until ${expiresAt}`);
+  return record;
+}
+
+// Background Cron Task: Automatically check & expire subscriptions every 5 minutes
+setInterval(() => {
+  const now = new Date();
+  let expiredCount = 0;
+  for (const userId in userSubscriptionsStore) {
+    const sub = userSubscriptionsStore[userId];
+    if (sub.status === "active" && new Date(sub.expires_at) <= now) {
+      sub.status = "expired";
+      sub.updated_at = now.toISOString();
+      expiredCount++;
+      console.log(`[Subscription Expiry Engine] Plan '${sub.plan_id}' for user '${userId}' expired at ${sub.expires_at}. Status updated to EXPIRED.`);
+    }
+  }
+  if (expiredCount > 0) {
+    saveSubscriptionsStore();
+  }
+}, 5 * 60 * 1000);
+
 // Helper function to process Razorpay Event & Auto-Activate Plans or Credits
 function processRazorpayAutoActivation(payload: any, eventType: string) {
   const payment = payload?.payment?.entity || payload?.payment || {};
@@ -592,7 +696,6 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
     activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
     creditsAdded = 100;
     membershipType = "flexi";
-    console.log(`[Razorpay Webhook Auto-Activation] Added 100 Instant Processing Credits (Link: pdfsun-flexi) to account (${userEmail}). Amount: ₹${amountPaisa / 100}`);
   }
   // 2. Pro Sun Monthly (₹199 / month) -> https://rzp.io/rzp/pdfsun-monthly
   else if (
@@ -605,7 +708,6 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   ) {
     activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
     membershipType = "pro-monthly";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Monthly Membership (Link: pdfsun-monthly) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
   // 3. Pro Sun Annual (₹1,499 / year) -> https://rzp.io/rzp/pdfsun-annual
   else if (
@@ -619,7 +721,6 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   ) {
     activatedAction = "PRO_ANNUAL_MEMBERSHIP_ACTIVATED";
     membershipType = "pro-yearly";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Pro Annual Membership (Link: pdfsun-annual) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
   // 4. Enterprise Plan (₹3,999 / year - 5 User Seats + Admin Tools) -> https://rzp.io/rzp/pdfsun-enterprise
   else if (
@@ -632,10 +733,8 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   ) {
     activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
     membershipType = "enterprise";
-    console.log(`[Razorpay Webhook Auto-Activation] Activated Enterprise Plan (Link: pdfsun-enterprise) for ${userEmail}. Amount: ₹${amountPaisa / 100}`);
   }
   else {
-    // Default Fallback by Amount
     if (amountPaisa >= 399900) {
       activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
       membershipType = "enterprise";
@@ -652,6 +751,9 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
     }
   }
 
+  // Bind to user subscription record directly
+  const activeSubRecord = activateUserSubscription(userEmail, membershipType || "pro-monthly", payment.id || order.id);
+
   return {
     userEmail,
     planId: planId || membershipType,
@@ -659,6 +761,7 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
     membershipType,
     creditsAdded,
     amountINR: amountPaisa / 100,
+    subscription: activeSubRecord,
     timestamp: new Date().toISOString(),
   };
 }
@@ -866,6 +969,9 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
       financeHubData.transactions.unshift(newTx as any);
     }
 
+    // Automatically bind & activate subscription record for user ID
+    const activeSub = activateUserSubscription(userEmail || "user@pdfsun.in", planId || "pro-monthly", newTx.id);
+
     res.json({
       success: true,
       verified: true,
@@ -874,7 +980,76 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
       planId: planId || "pro-monthly",
       userEmail: userEmail || "user@pdfsun.in",
       transaction: newTx,
+      subscription: activeSub,
       message: "Payment verified successfully. Membership / credits activated!",
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint to retrieve active user subscription record with automated real-time expiry check
+app.all("/api/user/subscription", (req, res) => {
+  try {
+    const userId = (
+      req.headers["x-user-id"] ||
+      req.headers["x-user-email"] ||
+      req.query.userId ||
+      req.query.email ||
+      req.body?.userId ||
+      req.body?.email ||
+      "mukeshinland79@gmail.com"
+    )
+      .toString()
+      .toLowerCase()
+      .trim();
+
+    const now = new Date();
+    let sub = userSubscriptionsStore[userId];
+
+    if (sub && sub.status === "active" && new Date(sub.expires_at) <= now) {
+      sub.status = "expired";
+      sub.updated_at = now.toISOString();
+      saveSubscriptionsStore();
+    }
+
+    if (!sub) {
+      return res.json({
+        success: true,
+        userId,
+        status: "inactive",
+        isPro: false,
+        subscription: null,
+      });
+    }
+
+    const isActive = sub.status === "active" && new Date(sub.expires_at) > now;
+
+    res.json({
+      success: true,
+      userId,
+      status: sub.status,
+      isPro: isActive,
+      subscription: sub,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint to activate / renew user plan directly
+app.post("/api/user/activate-plan", (req, res) => {
+  try {
+    const { userId, planId, paymentId } = req.body || {};
+    if (!userId || !planId) {
+      return res.status(400).json({ success: false, error: "userId and planId are required" });
+    }
+
+    const sub = activateUserSubscription(userId, planId, paymentId);
+    res.json({
+      success: true,
+      message: "Subscription activated successfully",
+      subscription: sub,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
