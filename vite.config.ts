@@ -16,6 +16,8 @@ export default defineConfig(() => {
       include: [
         'react',
         'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
         'motion',
         'react-helmet-async',
         'i18next',

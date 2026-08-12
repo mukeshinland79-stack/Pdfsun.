@@ -204,7 +204,14 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
 
     // Ignore background noise endpoints (telemetry, vite websockets, local static translation files, third-party fonts/analytics/scripts)
     const isTelemetryEndpoint = urlStr.includes("/api/telemetry") || urlStr.includes("/api/health") || urlStr.includes("/api/ping");
-    const isViteHmrNoise = urlStr.includes("ws:") || urlStr.includes("wss:") || urlStr.includes("__vite");
+    const isViteHmrNoise =
+      urlStr.includes("ws:") ||
+      urlStr.includes("wss:") ||
+      urlStr.includes("__vite") ||
+      urlStr.includes("@vite") ||
+      urlStr.includes("/src/") ||
+      urlStr.includes("/.vite/") ||
+      urlStr.includes("node_modules");
     const isStaticTranslation = urlStr.includes("/locales/");
     const isExternalFontOrAnalytics =
       urlStr.includes("fonts.gstatic.com") ||

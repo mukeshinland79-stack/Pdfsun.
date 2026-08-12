@@ -1,16 +1,26 @@
 // PDFSun Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'pdfsun-v1';
+const CACHE_NAME = 'pdfsun-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json'
 ];
 
+// Detect development or preview environment
+const isDev =
+  self.location.hostname.includes('ais-dev') ||
+  self.location.hostname.includes('localhost') ||
+  self.location.hostname.includes('127.0.0.1');
+
 // Install Event - Precache App Shell
 self.addEventListener('install', (event) => {
+  if (isDev) {
+    self.skipWaiting();
+    return;
+  }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[PDFSun SW] Pre-caching app shell and core assets');
+      console.log('[PDFSun SW] Pre-caching app shell');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
@@ -21,20 +31,26 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => {
-            console.log('[PDFSun SW] Removing stale cache:', name);
+        cacheNames.map((name) => {
+          if (isDev || name !== CACHE_NAME) {
+            console.log('[PDFSun SW] Purging cache:', name);
             return caches.delete(name);
-          })
+          }
+        })
       );
-    }).then(() => self.clients.claim())
+    }).then(async () => {
+      if (isDev) {
+        console.log('[PDFSun SW] Unregistering dev service worker');
+        await self.registration.unregister();
+      }
+      return self.clients.claim();
+    })
   );
 });
 
 // Message Event Listener - For dynamic asset precaching & update triggers
 self.addEventListener('message', (event) => {
-  if (!event.data) return;
+  if (isDev || !event.data) return;
 
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -58,21 +74,30 @@ self.addEventListener('message', (event) => {
     );
   }
 });
+
 self.addEventListener('fetch', (event) => {
+  // Completely bypass Service Worker in development mode
+  if (isDev) return;
+
   // Ignore non-GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Bypass cache for Vite dev server, node_modules, HMR, and versioned pre-bundled chunks
+  // ALWAYS bypass cache for Vite dev server, node_modules, HMR, source code, and versioned JS pre-bundled chunks
   if (
     url.pathname.includes('/node_modules/') ||
     url.pathname.includes('/.vite/') ||
     url.pathname.includes('/@vite/') ||
     url.pathname.includes('/@fs/') ||
+    url.pathname.includes('/src/') ||
     url.search.includes('v=') ||
+    url.search.includes('t=') ||
     url.pathname.endsWith('.tsx') ||
-    url.pathname.endsWith('.ts')
+    url.pathname.endsWith('.ts') ||
+    url.pathname.endsWith('.jsx') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.mjs')
   ) {
     return;
   }
@@ -96,27 +121,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-While-Revalidate strategy for static assets (JS, CSS, images, WASM, fonts)
+  // Network-first strategy for static assets (images, WASM, fonts)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            (url.origin === location.origin || url.hostname.includes('cdnjs') || url.hostname.includes('jsdelivr') || url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com'))
-          ) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          }
-          return networkResponse;
-        })
-        .catch((err) => {
-          // Silent catch on offline network failure for assets already cached
-          return cachedResponse;
-        });
-
-      return cachedResponse || fetchPromise;
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (
+          networkResponse &&
+          networkResponse.status === 200 &&
+          (url.origin === location.origin ||
+            url.hostname.includes('cdnjs') ||
+            url.hostname.includes('jsdelivr') ||
+            url.hostname.includes('fonts.googleapis.com') ||
+            url.hostname.includes('fonts.gstatic.com'))
+        ) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
+
