@@ -804,6 +804,15 @@ export const Header: React.FC<HeaderProps> = ({
             <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400">Ctrl+K</kbd>
           </button>
 
+          {/* Mobile Language Switcher Row */}
+          <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+              <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{t("language", "Language")}</span>
+            </span>
+            <LanguageSwitcher variant="pills" />
+          </div>
+
           {/* Mobile Theme Switcher Row */}
           <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">

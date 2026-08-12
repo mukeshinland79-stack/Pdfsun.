@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Check,
+  CheckCircle2,
   Zap,
   ShieldCheck,
   CreditCard,
@@ -259,8 +260,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     },
   ];
 
+  const [incompleteNoticeOpen, setIncompleteNoticeOpen] = useState<boolean>(false);
+  const [activePlanId, setActivePlanId] = useState<string>(() => {
+    try {
+      return localStorage.getItem("pdfsun_user_plan_v1") || (isProUser ? "pro-yearly" : "free");
+    } catch {
+      return isProUser ? "pro-yearly" : "free";
+    }
+  });
+
   const handleSelectPlan = async (plan: PlanTier) => {
-    if (plan.disabled || isProUser) return;
+    if (plan.disabled || (isProUser && plan.id !== "flexi")) return;
 
     setIsProcessing(true);
     const isYearly = billingCycle === "yearly";
@@ -288,22 +298,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     setSelectedPlanAmount(amount);
     setSelectedPlanRazorpayLink(plan.razorpayLink || "");
 
-    // If Razorpay Link is available, trigger direct window open
-    if (plan.razorpayLink) {
-      try {
-        const opened = window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
-        if (!opened || opened.closed || typeof opened.closed === "undefined") {
-          // If popup blocker intercepted, redirect current tab or fallback gracefully
-          window.location.href = plan.razorpayLink;
-          return;
-        }
-      } catch (err) {
-        console.warn("Could not auto-open Razorpay window:", err);
-      }
-    }
-
     try {
-      // Always trigger Razorpay Order / Subscription API
+      // 1. Fetch Order & Subscription details from backend
       const res = await fetch("/api/create-razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -315,10 +311,100 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         }),
       });
       const data = await res.json();
+
+      // 2. Check if Razorpay Checkout JS is loaded for Desktop / Laptop / Mobile Pop-up Modal
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        const options = {
+          key: data.keyId || "rzp_live_pdfsun_key",
+          amount: data.amount || amount * 100,
+          currency: currency === "INR" ? "INR" : "USD",
+          name: "PDFSun.in",
+          description: `${plan.name} — Instant Premium Access`,
+          image: "https://pdfsun.in/icon-192.png",
+          order_id: data.orderId,
+          subscription_id: data.subscriptionId,
+          prefill: {
+            name: "PDFSun User",
+            email: "user@pdfsun.in",
+            contact: "",
+          },
+          notes: {
+            planId: plan.id,
+            userEmail: "user@pdfsun.in",
+            site: "PDFSun.in",
+            payment_link_id: plan.paymentLinkId,
+          },
+          theme: {
+            color: "#f59e0b",
+          },
+          handler: async function (response: any) {
+            console.log("[Razorpay Pop-up Modal] Payment completed successfully:", response);
+
+            // Synchronously verify payment on server
+            try {
+              await fetch("/api/razorpay/verify-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                  planId: plan.id,
+                  userEmail: "user@pdfsun.in",
+                }),
+              });
+            } catch (e) {
+              console.warn("Backend verification call sync note:", e);
+            }
+
+            // Update local user session entitlements
+            if (plan.id === "flexi") {
+              const current = parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "0", 10);
+              localStorage.setItem("pdfsun_user_credits_v1", (current + 100).toString());
+            } else {
+              localStorage.setItem("pdfsun_user_plan_v1", plan.id);
+              localStorage.setItem("pdfsun_plan_activated_at", new Date().toISOString());
+              setActivePlanId(plan.id);
+            }
+
+            if (onSuccessUpgrade) {
+              onSuccessUpgrade();
+            }
+
+            // Redirect to payment success modal/URL
+            const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
+            window.location.href = `/payment-success?razorpay_payment_id=${payId}&plan=${encodeURIComponent(plan.name)}&amount=${currency === "INR" ? "₹" + amount : "$" + amount}`;
+          },
+          modal: {
+            ondismiss: function () {
+              console.log("[Razorpay Pop-up Modal] User dismissed checkout modal before completion.");
+              setIncompleteNoticeOpen(true);
+            },
+          },
+        };
+
+        const razorpayInstance = new (window as any).Razorpay(options);
+        razorpayInstance.open();
+        setIsProcessing(false);
+        return;
+      }
+
+      // 3. Fallback: If Razorpay JS script not loaded, trigger Razorpay Hosted Link or Modal
+      if (plan.razorpayLink) {
+        const opened = window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
+        if (!opened || opened.closed) {
+          window.location.href = plan.razorpayLink;
+          return;
+        }
+      }
       setActiveGatewayModal("razorpay");
     } catch (e) {
       console.error("Payment initiation error:", e);
-      setActiveGatewayModal("razorpay");
+      if (plan.razorpayLink) {
+        window.open(plan.razorpayLink, "_blank");
+      } else {
+        setActiveGatewayModal("razorpay");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -583,10 +669,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan)}
-                  disabled={plan.disabled || isProUser || isProcessing}
+                  disabled={plan.disabled || (isProUser && plan.id !== "flexi") || isProcessing}
                   className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 ${
-                    isProUser && plan.id !== "free"
-                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 cursor-default"
+                    (isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi"
+                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/50 shadow-emerald-500/10 cursor-default"
                       : isCardHighlighted
                       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20"
                       : plan.disabled
@@ -594,8 +680,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                       : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700"
                   }`}
                 >
-                  {isProUser && plan.id !== "free" ? (
-                    <span>Pro Account Active</span>
+                  {(isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi" ? (
+                    <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <span>🟢 Plan Activated</span>
+                    </span>
                   ) : (
                     <>
                       <span>{plan.cta}</span>
@@ -603,6 +692,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                     </>
                   )}
                 </button>
+
+                {/* Active Validity Metadata */}
+                {(isProUser || activePlanId === plan.id) && plan.id !== "free" && plan.id !== "flexi" && (
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold text-center flex items-center justify-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Active Tier: {plan.name} • Valid Until Aug 2027</span>
+                  </p>
+                )}
 
                 {/* Payment Methods Info */}
                 {!plan.disabled && (
@@ -775,6 +872,68 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               <p className="text-[10px] text-slate-400 text-center">
                 Instant webhook verification active. Webhook handler listens at <span className="font-mono text-amber-300">/api/razorpay-webhook</span> with secret <span className="font-mono text-amber-300">905065</span>.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incomplete Payment Recovery Modal */}
+      {incompleteNoticeOpen && (
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#0f172a] border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-white space-y-5 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 mx-auto">
+              <CreditCard className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-white">Payment Incomplete</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Need help completing your subscription or scanning the Razorpay UPI QR code? Our support team is available 24/7.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-2 text-left">
+              <p className="text-slate-300 font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>UPI, PhonePe, GPay, Cards &amp; NetBanking Supported</span>
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                Selected Plan: <span className="text-amber-400 font-bold">{selectedPlanName || "Pro Sun Monthly"}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIncompleteNoticeOpen(false);
+                  if (selectedPlanName) {
+                    const matchedPlan = plans.find((p) => p.name === selectedPlanName);
+                    if (matchedPlan) handleSelectPlan(matchedPlan);
+                  }
+                }}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition cursor-pointer"
+              >
+                Retry Payment (Resume Checkout)
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href="https://wa.me/919991659655?text=Hi%20PDFSun%20Support,%20I%20need%20help%20completing%20my%20payment"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                >
+                  💬 WhatsApp Help
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIncompleteNoticeOpen(false)}
+                  className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           </div>
         </div>

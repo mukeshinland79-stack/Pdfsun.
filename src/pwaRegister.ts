@@ -194,6 +194,32 @@ export function registerServiceWorker(options?: {
     return;
   }
 
+  // In development mode, unregister any existing service worker to prevent stale Vite HMR / pre-bundle caching
+  const isDev = Boolean(
+    (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') ||
+    (typeof window !== 'undefined' && (
+      window.location.hostname.includes('ais-dev') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('127.0.0.1')
+    ))
+  );
+
+  if (isDev) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        for (const key of keys) {
+          caches.delete(key);
+        }
+      });
+    }
+    return;
+  }
+
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(SW_URL)

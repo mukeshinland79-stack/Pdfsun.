@@ -137,6 +137,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Static Favicon and Brand Asset Handlers
+app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
+  const faviconPath = path.join(process.cwd(), "public", "favicon.svg");
+  if (fs.existsSync(faviconPath)) {
+    res.setHeader("Content-Type", "image/svg+xml");
+    return res.sendFile(faviconPath);
+  }
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#f97316"/><text x="32" y="42" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
+});
+
+app.get(["/icon-192.png", "/icon-512.png", "/og-image.png"], (_req, res) => {
+  const iconPath = path.join(process.cwd(), "public", "favicon.svg");
+  if (fs.existsSync(iconPath)) {
+    res.setHeader("Content-Type", "image/svg+xml");
+    return res.sendFile(iconPath);
+  }
+  res.status(200).send("");
+});
+
 app.use(
   express.json({
     limit: "50mb",

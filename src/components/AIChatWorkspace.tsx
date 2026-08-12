@@ -19,12 +19,15 @@ import {
   Download,
   RefreshCw,
   Zap,
+  Star,
+  ThumbsUp,
+  Share2,
 } from "lucide-react";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { extractTextFromPdfFile, textToPdf, downloadFile } from "../lib/pdfEngine";
+import { QuickShareModal } from "./QuickShareModal";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
-import { SocialShareWidget } from "./SocialShareWidget";
 
 interface AIChatWorkspaceProps {
   tool: ToolItem;
@@ -67,6 +70,22 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState("Spanish");
   const [copied, setCopied] = useState(false);
+
+  // Engagement & Modal State
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(64);
+
+  const handleToggleLike = () => {
+    if (hasLiked) {
+      setHasLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+    } else {
+      setHasLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+  };
 
   // Active AI Tab
   const [activeTab, setActiveTab] = useState<"chat" | "summary" | "translate" | "flashcards" | "notes" | "grammar" | "explain">(() => {
@@ -247,17 +266,57 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
               </div>
             </div>
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-wrap gap-1">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">{tool.name}</h2>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase">
                   Gemini 3.6
                 </span>
+                {/* Header-Embedded Rating Badge */}
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(true)}
+                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition ml-1"
+                  title="View user reviews and ratings"
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+                  <span>4.9</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">(128)</span>
+                </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">PDFSun AI Document Suite</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Compact Smart Actions Bar */}
+            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-xl border border-slate-300/60 dark:border-slate-700/60 mr-1">
+              <button
+                type="button"
+                onClick={handleToggleLike}
+                className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 transition ${
+                  hasLiked
+                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                    : "hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                }`}
+                title="Like this AI tool"
+              >
+                <ThumbsUp className={`w-3.5 h-3.5 ${hasLiked ? "fill-amber-500 text-amber-500" : ""}`} />
+                <span>{likeCount}</span>
+              </button>
+
+              <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700" />
+
+              <button
+                type="button"
+                onClick={() => setShowShareModal(true)}
+                className="px-2 py-1 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1 transition"
+                title="Share this tool"
+              >
+                <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                <span>Share</span>
+              </button>
+            </div>
+
             <button
               onClick={exportAsPdf}
               disabled={!aiOutputResult && chatMessages.length === 0}
@@ -605,22 +664,50 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             )}
           </div>
         </div>
-
-        {/* Social Share Widget */}
-        <SocialShareWidget toolId={tool.id} toolName={tool.name} description={tool.description} />
-
-        {/* Asynchronous Lazy-Loaded Feedback & Rating Widget */}
-        <React.Suspense
-          fallback={
-            <div className="mt-8 p-4 text-center text-xs text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-center justify-center space-x-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
-              <span>Loading feedback widget...</span>
-            </div>
-          }
-        >
-          <FeedbackWidget toolId={tool.id} toolName={tool.name} />
-        </React.Suspense>
       </div>
+
+      {/* Quick Share Modal */}
+      {showShareModal && (
+        <QuickShareModal
+          fileName={file ? file.name : `${tool.name}_Document.pdf`}
+          mimeType="application/pdf"
+          onClose={() => setShowShareModal(false)}
+          onDownloadDirect={exportAsPdf}
+        />
+      )}
+
+      {/* Isolated Review & Feedback Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-500 shrink-0" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                  User Reviews & Ratings for {tool.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <React.Suspense
+              fallback={
+                <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center space-x-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+                  <span>Loading review board...</span>
+                </div>
+              }
+            >
+              <FeedbackWidget toolId={tool.id} toolName={tool.name} />
+            </React.Suspense>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

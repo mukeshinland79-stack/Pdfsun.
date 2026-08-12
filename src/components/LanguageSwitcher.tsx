@@ -10,8 +10,8 @@ export interface LanguageSwitcherProps {
 
 export const PRIMARY_LANGUAGES = [
   { code: "en", name: "English", nativeName: "English", flag: "🇺🇸", short: "EN" },
+  { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳", short: "HI" },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸", short: "ES" },
-  { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷", short: "FR" },
 ];
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({

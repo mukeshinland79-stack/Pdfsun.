@@ -42,8 +42,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   // Primary languages to toggle between
   const primaryLanguages = [
     { code: "en", name: "English", flag: "🇺🇸", short: "EN" },
+    { code: "hi", name: "हिन्दी", flag: "🇮🇳", short: "HI" },
     { code: "es", name: "Español", flag: "🇪🇸", short: "ES" },
-    { code: "fr", name: "Français", flag: "🇫🇷", short: "FR" },
   ];
 
   // Filter languages

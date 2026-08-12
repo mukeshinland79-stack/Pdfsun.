@@ -7,6 +7,7 @@ import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
 import { AIChatWorkspace } from "./components/AIChatWorkspace";
 import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
 import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
+import { ViewPdfMetadataTool } from "./components/ViewPdfMetadataTool";
 import { ProtectPdfTool } from "./components/ProtectPdfTool";
 import { SharePdfSunModal } from "./components/SharePdfSunModal";
 import { SupportedFormats } from "./components/SupportedFormats";
@@ -30,7 +31,6 @@ import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
-import { QuickActionsSidebar } from "./components/QuickActionsSidebar";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
@@ -350,17 +350,31 @@ export default function App() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
+  const paymentHandledRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isPaymentSuccess =
+    if (typeof window !== "undefined" && !paymentHandledRef.current) {
+      const params = new URLSearchParams(window.location.search);
+      const isPaymentPath =
         window.location.pathname === "/payment-success" ||
-        window.location.search.includes("razorpay_payment_id") ||
-        window.location.search.includes("payment_id") ||
-        window.location.search.includes("payment_status=success");
+        window.location.pathname.startsWith("/payment/");
+      const isPaymentQuery =
+        params.has("razorpay_payment_id") ||
+        params.has("payment_id") ||
+        params.get("payment_status") === "success" ||
+        window.location.search.includes("razorpay_payment_id");
 
-      if (isPaymentSuccess) {
+      if (isPaymentPath || isPaymentQuery) {
+        paymentHandledRef.current = true;
         setPaymentSuccessModalOpen(true);
+
+        // Clean query parameters & pathname from URL to prevent infinite refresh loops
+        try {
+          const cleanPath = isPaymentPath ? "/" : window.location.pathname;
+          window.history.replaceState({}, document.title, cleanPath);
+        } catch (e) {
+          console.warn("Could not clean payment URL params:", e);
+        }
       }
     }
   }, []);
@@ -590,12 +604,6 @@ export default function App() {
         }}
       />
 
-      {/* Quick Actions Sidebar for Fast Tool Access */}
-      <QuickActionsSidebar
-        onSelectTool={handleSelectTool}
-        activeTool={activeTool}
-      />
-
       {/* Main Hero Dropzone & Search Section */}
       <main className="flex-1">
         <HeroSection
@@ -677,7 +685,15 @@ export default function App() {
               onAddHistory={addHistory}
             />
           </div>
-        ) : ["edit-pdf-metadata", "pdf-metadata", "read-pdf-metadata"].includes(activeTool.id) ? (
+        ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+            <ViewPdfMetadataTool
+              initialFile={activeToolFiles[0] || null}
+              onClose={() => setActiveTool(null)}
+              onAddHistory={addHistory}
+            />
+          </div>
+        ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <EditPdfMetadataTool
               initialFile={activeToolFiles[0] || null}

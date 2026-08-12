@@ -202,10 +202,23 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, vite websockets, local static translation files)
-    const isTelemetryEndpoint = urlStr.includes("/api/telemetry");
+    // Ignore background noise endpoints (telemetry, vite websockets, local static translation files, third-party fonts/analytics/scripts)
+    const isTelemetryEndpoint = urlStr.includes("/api/telemetry") || urlStr.includes("/api/health") || urlStr.includes("/api/ping");
     const isViteHmrNoise = urlStr.includes("ws:") || urlStr.includes("wss:") || urlStr.includes("__vite");
     const isStaticTranslation = urlStr.includes("/locales/");
+    const isExternalFontOrAnalytics =
+      urlStr.includes("fonts.gstatic.com") ||
+      urlStr.includes("fonts.googleapis.com") ||
+      urlStr.includes("google-analytics.com") ||
+      urlStr.includes("googletagmanager.com") ||
+      urlStr.includes("pagead2.googlesyndication.com") ||
+      urlStr.includes("razorpay.com") ||
+      urlStr.includes("cdn.razorpay.com") ||
+      urlStr.includes("checkout.js") ||
+      urlStr.includes("bundle.js");
+
+    // Check if request is a background/read-only GET request (which shouldn't disrupt the user with scary popups)
+    const isBackgroundGet = method === "GET" && !urlStr.includes("/api/process");
 
     // Manage request timeout signal if caller did not provide their own AbortSignal
     let timeoutController: AbortController | null = null;
@@ -233,7 +246,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       const durationMs = Math.round(performance.now() - startTime);
 
       // Intercept 4xx and 5xx HTTP response statuses
-      if (!response.ok && !isTelemetryEndpoint && !isViteHmrNoise) {
+      if (!response.ok && !isTelemetryEndpoint && !isViteHmrNoise && !isExternalFontOrAnalytics) {
         parseResponseBodyForErrorMsg(response).then((customDetail) => {
           logError(`[Fetch HTTP ${response.status}] ${method} ${pathName}`, "warn", {
             status: response.status,
@@ -251,8 +264,8 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
             response.status
           );
 
-          // Do not trigger noisy toasts for locale loading fallback 404s
-          if (!isStaticTranslation || response.status !== 404) {
+          // Do not trigger noisy toasts for background GET pings or static translation fallbacks
+          if (!isBackgroundGet && (!isStaticTranslation || response.status !== 404)) {
             const toastMeta = getToastMetadataForHttpStatus(response.status, customDetail, pathName);
             triggerDebouncedToast(toastMeta.title, toastMeta.message, { type: toastMeta.type });
           }
@@ -270,7 +283,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
         (err?.message && err.message.toLowerCase().includes("timeout"));
       const isBrowserOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (!isTelemetryEndpoint && !isViteHmrNoise) {
+      if (!isTelemetryEndpoint && !isViteHmrNoise && !isExternalFontOrAnalytics) {
         if (isTimeoutError) {
           const timeoutMsg = `Request to ${pathName || urlStr} timed out after ${Math.round(
             DEFAULT_TIMEOUT_MS / 1000
@@ -301,11 +314,13 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
           });
           networkMonitor.reportError(urlStr, method, errorMessage, 0);
 
-          triggerDebouncedToast(
-            "Network Request Error",
-            `Unable to connect to server (${errorMessage}). Please verify your network connection.`,
-            { type: "upload" }
-          );
+          if (!isBackgroundGet) {
+            triggerDebouncedToast(
+              "Network Request Error",
+              `Unable to connect to server (${errorMessage}). Please verify your network connection.`,
+              { type: "upload" }
+            );
+          }
         }
       }
 

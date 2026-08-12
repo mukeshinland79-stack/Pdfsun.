@@ -33,6 +33,20 @@ export function triggerErrorToast(
     onRetry?: () => void;
   }
 ) {
+  // Suppress non-critical 405 / Server 0 / Method Not Allowed / Network connection background toasts
+  const combined = `${title} ${message}`.toLowerCase();
+  if (
+    combined.includes("405") ||
+    combined.includes("method not allowed") ||
+    combined.includes("server 0") ||
+    combined.includes("status 0") ||
+    combined.includes("net::err") ||
+    combined.includes("failed to fetch")
+  ) {
+    console.warn("[GlobalErrorToast] Suppressed non-critical background error toast:", title, message);
+    return;
+  }
+
   const event = new CustomEvent("pdfsun_error_toast", {
     detail: {
       id: Math.random().toString(36).substring(2, 9),

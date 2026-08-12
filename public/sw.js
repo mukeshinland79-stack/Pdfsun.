@@ -59,10 +59,23 @@ self.addEventListener('message', (event) => {
   }
 });
 self.addEventListener('fetch', (event) => {
-  // Ignore non-GET requests or external extensions
+  // Ignore non-GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Bypass cache for Vite dev server, node_modules, HMR, and versioned pre-bundled chunks
+  if (
+    url.pathname.includes('/node_modules/') ||
+    url.pathname.includes('/.vite/') ||
+    url.pathname.includes('/@vite/') ||
+    url.pathname.includes('/@fs/') ||
+    url.search.includes('v=') ||
+    url.pathname.endsWith('.tsx') ||
+    url.pathname.endsWith('.ts')
+  ) {
+    return;
+  }
 
   // Handle HTML navigation requests (Network-first with Offline Cache fallback)
   if (event.request.mode === 'navigate') {

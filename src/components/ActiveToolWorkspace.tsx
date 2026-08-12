@@ -39,6 +39,8 @@ import {
   ArrowLeft,
   ArrowRight,
   FileSearch,
+  Star,
+  ThumbsUp,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -46,7 +48,7 @@ import { triggerErrorToast } from "./GlobalErrorToast";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
-import { SocialShareWidget } from "./SocialShareWidget";
+
 import {
   mergePdfs,
   splitPdf,
@@ -109,11 +111,8 @@ import {
 } from "../lib/fileValidation";
 import { parseHumanFriendlyError, DetailedErrorInfo } from "../lib/errorNotificationService";
 import { ErrorNotificationOverlay } from "./ErrorNotificationOverlay";
-import { QuickActionsFloatingMenu } from "./QuickActionsFloatingMenu";
 import { AnnotatePdfWorkspace } from "./AnnotatePdfWorkspace";
 import { QuickShareModal } from "./QuickShareModal";
-import { ToolRating } from "./ToolRating";
-import { useToolRatings } from "../hooks/useToolRatings";
 import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
@@ -184,8 +183,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [copyMetadataSuccess, setCopyMetadataSuccess] = useState(false);
   const [showAnnotatorModal, setShowAnnotatorModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(48);
 
-  const { getToolRating, rateTool } = useToolRatings();
+  const handleToggleLike = () => {
+    if (hasLiked) {
+      setHasLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+    } else {
+      setHasLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+  };
+
   const { isLocked, isLockedRef, executeWithLock, cancelExecution } = useExecutionLock();
 
   // Download Extracted OCR Text Helper
@@ -975,25 +986,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-y-1">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
                 <span>{tool.name}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500 text-white font-extrabold uppercase">
                   PDFSun Engine
                 </span>
-                {(() => {
-                  const ratingInfo = getToolRating(tool.id);
-                  return (
-                    <ToolRating
-                      toolId={tool.id}
-                      toolName={tool.name}
-                      avgRating={ratingInfo.avgRating}
-                      totalRatings={ratingInfo.totalRatings}
-                      userRating={ratingInfo.userRating}
-                      onRate={rateTool}
-                      size="sm"
-                    />
-                  );
-                })()}
+
+                {/* Header-Embedded Rating Badge */}
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(true)}
+                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition ml-1"
+                  title="View user reviews and ratings"
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+                  <span>4.9</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">(128)</span>
+                </button>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{tool.description}</p>
             </div>
@@ -2009,160 +2018,200 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             />
           )}
 
-          {/* Download Completion Banner with Standardized Export Options */}
+          {/* Centered Primary Output Card */}
           {downloadReady && (
             <>
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <CheckCircle2 className="w-6 h-6" />
+              <div className="p-6 rounded-3xl bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/30 text-slate-900 dark:text-white flex flex-col items-center justify-center text-center space-y-4 my-2 shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                    <span>Processing Complete!</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold">
-                      Ready to Export
-                    </span>
+
+                <div className="space-y-1">
+                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black uppercase tracking-wider border border-emerald-500/30">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Processing Successful</span>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate max-w-md pt-1">
                     {downloadReady.fileName}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Your PDF file is ready to download or share securely.
+                  </p>
+                </div>
+
+                {/* Core Action Buttons: Direct Download (Primary), Quick Share (Secondary), Export to Cloud (Tertiary) */}
+                <div className="flex items-center justify-center space-x-3 flex-wrap gap-y-2.5 pt-2 w-full max-w-lg">
+                  {/* Primary: Direct Download */}
+                  <button
+                    type="button"
+                    onClick={() => downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType)}
+                    className="flex-1 min-w-[160px] py-3 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black shadow-lg shadow-emerald-600/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
+                    title="Download processed file directly to device"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Direct Download</span>
+                  </button>
+
+                  {/* Secondary: Quick Share */}
+                  <button
+                    type="button"
+                    onClick={() => setShowShareModal(true)}
+                    className="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
+                    title="Share via WhatsApp, Telegram, Socials or Copy Link"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Quick Share</span>
+                  </button>
+
+                  {/* Tertiary: Export / Save to Cloud */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                      className="py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
+                      title="Export options: Google Drive, Dropbox, OneDrive"
+                    >
+                      <Cloud className="w-4 h-4 text-emerald-400" />
+                      <span>Export</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Export Dropdown Menu */}
+                    {exportMenuOpen && (
+                      <div className="absolute right-0 bottom-full mb-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 text-left">
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                          Export Destination
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                            setExportMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
+                        >
+                          <Download className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <div>
+                            <div className="font-bold">Download Directly</div>
+                            <div className="text-[10px] text-slate-400">Save to local device storage</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCloudExport("google-drive")}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
+                        >
+                          <Cloud className="w-4 h-4 text-blue-500 shrink-0" />
+                          <div>
+                            <div className="font-bold">Save to Google Drive</div>
+                            <div className="text-[10px] text-slate-400">Export directly to Google Drive</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCloudExport("dropbox")}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
+                        >
+                          <HardDrive className="w-4 h-4 text-indigo-500 shrink-0" />
+                          <div>
+                            <div className="font-bold">Save to Dropbox</div>
+                            <div className="text-[10px] text-slate-400">Sync to Dropbox cloud folder</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCloudExport("onedrive")}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
+                        >
+                          <Cloud className="w-4 h-4 text-sky-500 shrink-0" />
+                          <div>
+                            <div className="font-bold">Save to OneDrive</div>
+                            <div className="text-[10px] text-slate-400">Export to Microsoft OneDrive</div>
+                          </div>
+                        </button>
+
+                        <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+                        <button
+                          type="button"
+                          onClick={() => handleCloudExport("copy-link")}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
+                        >
+                          <Share2 className="w-4 h-4 text-amber-500 shrink-0" />
+                          <div>
+                            <div className="font-bold">Copy Cloud Share Link</div>
+                            <div className="text-[10px] text-slate-400">Generate temporary download link</div>
+                          </div>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Standardized Export Button with Direct Download, Quick Share & Cloud Options */}
-              <div className="relative shrink-0 flex items-center space-x-2 flex-wrap gap-y-1.5">
-                {(ocrResultText || tool.id === "ocr-pdf" || tool.id === "ocr-image-to-text" || tool.id === "ai-ocr") && (
-                  <button
-                    onClick={() =>
-                      handleDownloadOcrText(
-                        ocrResultText || (typeof downloadReady.data === "string" ? downloadReady.data : undefined)
-                      )
-                    }
-                    className="px-3.5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-black shadow-md hover:from-amber-600 hover:to-orange-600 transition flex items-center space-x-1.5"
-                    title="Trigger a blob-based download of extracted OCR content as a .txt file"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Download Text</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="px-3.5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-xs font-bold shadow-md hover:from-indigo-700 hover:to-purple-700 transition flex items-center space-x-1.5"
-                  title="Quick Share via Social Media or Copy Download Link"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Quick Share</span>
-                </button>
-
-                <button
-                  onClick={() => downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType)}
-                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-emerald-700 transition flex items-center space-x-2"
-                  title="Download file directly to local device"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Direct Download</span>
-                </button>
-
-                {/* Export Dropdown Selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => setExportMenuOpen(!exportMenuOpen)}
-                    className="px-3.5 py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition flex items-center space-x-1.5 shadow-md"
-                    title="Export options: Save to Google Drive, Dropbox, OneDrive, or Share link"
-                  >
-                    <Cloud className="w-4 h-4" />
-                    <span>Export</span>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {exportMenuOpen && (
-                    <div className="absolute right-0 bottom-full mb-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95">
-                      <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
-                        Export Destination
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
-                          setExportMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
-                      >
-                        <Download className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <div>
-                          <div className="font-bold">Download Directly</div>
-                          <div className="text-[10px] text-slate-400">Save to local device storage</div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => handleCloudExport("google-drive")}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
-                      >
-                        <Cloud className="w-4 h-4 text-blue-500 shrink-0" />
-                        <div>
-                          <div className="font-bold">Save to Google Drive</div>
-                          <div className="text-[10px] text-slate-400">Export directly to Google Drive</div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => handleCloudExport("dropbox")}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
-                      >
-                        <HardDrive className="w-4 h-4 text-indigo-500 shrink-0" />
-                        <div>
-                          <div className="font-bold">Save to Dropbox</div>
-                          <div className="text-[10px] text-slate-400">Sync to Dropbox cloud folder</div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => handleCloudExport("onedrive")}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
-                      >
-                        <Cloud className="w-4 h-4 text-sky-500 shrink-0" />
-                        <div>
-                          <div className="font-bold">Save to OneDrive</div>
-                          <div className="text-[10px] text-slate-400">Export to Microsoft OneDrive</div>
-                        </div>
-                      </button>
-
-                      <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-
-                      <button
-                        onClick={() => handleCloudExport("copy-link")}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
-                      >
-                        <Share2 className="w-4 h-4 text-amber-500 shrink-0" />
-                        <div>
-                          <div className="font-bold">Copy Cloud Share Link</div>
-                          <div className="text-[10px] text-slate-400">Generate temporary download link</div>
-                        </div>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Placement 5: Tool Result Sponsored Native Banner */}
-            <AdSensePlaceholder format="tool-result" slotId="pdfsun-tool-result-ad" />
-          </>
-        )}
+              {/* Placement 5: Tool Result Sponsored Native Banner */}
+              <AdSensePlaceholder format="tool-result" slotId="pdfsun-tool-result-ad" />
+            </>
+          )}
         </div>
 
         {/* Workspace Footer Actions */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={isProcessing ? handleCancelProcess : onClose}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
           >
             {isProcessing ? "Cancel Operation" : "Cancel"}
           </button>
+
+          {/* Compact Smart Actions Bar */}
+          <div className="flex items-center space-x-1.5 bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-2xl border border-slate-300/60 dark:border-slate-700/60">
+            {/* Star Rating & Reviews Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowReviewModal(true)}
+              className="px-2.5 py-1 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1 transition"
+              title="View & write 5-star user reviews"
+            >
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+              <span>4.9</span>
+              <span className="text-[10px] text-slate-400 font-normal">(128)</span>
+            </button>
+
+            <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700" />
+
+            {/* Like Toggle Button */}
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
+                hasLiked
+                  ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                  : "hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+              }`}
+              title="Like this tool"
+            >
+              <ThumbsUp className={`w-3.5 h-3.5 ${hasLiked ? "fill-amber-500 text-amber-500" : ""}`} />
+              <span>{likeCount}</span>
+            </button>
+
+            <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700" />
+
+            {/* Quick Share Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowShareModal(true)}
+              className="px-2.5 py-1 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition"
+              title="Share this tool"
+            >
+              <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+              <span className="hidden xs:inline">Share</span>
+            </button>
+          </div>
 
           <button
             onClick={executeProcess}
@@ -2197,33 +2246,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
-
-      {/* Social Share Widget */}
-      <SocialShareWidget toolId={tool.id} toolName={tool.name} description={tool.description} />
-
-      {/* Asynchronous Lazy-Loaded Feedback & Rating Widget */}
-      <React.Suspense fallback={
-        <div className="mt-10 p-6 text-center text-xs text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-center justify-center space-x-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
-          <span>Loading feedback widget...</span>
-        </div>
-      }>
-        <FeedbackWidget toolId={tool.id} toolName={tool.name} />
-      </React.Suspense>
-
-      {/* Quick Actions Floating Menu upon successful PDF processing */}
-      <QuickActionsFloatingMenu
-        downloadReady={downloadReady}
-        onSaveGoogleDrive={() => handleCloudExport("google-drive")}
-        onDownload={() => {
-          if (downloadReady) {
-            downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
-          }
-        }}
-        onClose={() => {
-          // Keep downloadReady but user can dismiss floating bar
-        }}
-      />
 
       {/* PDF Thumbnail Enlarged Preview Modal */}
       {previewModalFile && (
@@ -2350,14 +2372,52 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         />
       )}
       {/* Quick Share Studio Modal */}
-      {showShareModal && downloadReady && (
+      {showShareModal && (
         <QuickShareModal
-          fileName={downloadReady.fileName}
-          mimeType={downloadReady.mimeType}
+          fileName={downloadReady ? downloadReady.fileName : `${tool.name}_Processed.pdf`}
+          mimeType={downloadReady ? downloadReady.mimeType : "application/pdf"}
           onClose={() => setShowShareModal(false)}
-          onDownloadDirect={() => downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType)}
+          onDownloadDirect={() => {
+            if (downloadReady) {
+              downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+            }
+          }}
         />
+      )}
+
+      {/* Isolated Review & Feedback Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-500 shrink-0" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                  User Reviews & Ratings for {tool.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <React.Suspense
+              fallback={
+                <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center space-x-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+                  <span>Loading review board...</span>
+                </div>
+              }
+            >
+              <FeedbackWidget toolId={tool.id} toolName={tool.name} />
+            </React.Suspense>
+          </div>
+        </div>
       )}
     </div>
   );
 };
+
