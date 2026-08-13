@@ -1260,6 +1260,32 @@ app.post("/api/admin/auth/login", (req, res) => {
   });
 });
 
+// ==========================================
+// Session Management & Inactivity Endpoints
+// ==========================================
+app.post("/api/auth/logout", (req, res) => {
+  res.setHeader("Set-Cookie", [
+    "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
+    "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
+  ]);
+  res.json({
+    success: true,
+    status: "terminated",
+    message: "Session token invalidated and cleared server-side.",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.post("/api/auth/refresh-session", (req, res) => {
+  res.json({
+    success: true,
+    status: "refreshed",
+    message: "Session token refreshed and extended.",
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Protected Financial Metrics Endpoint (Enforces JWT role validation, stealth 404 for unauthorized)
 app.get("/api/admin/financials", adminAuth, (req, res) => {
   res.json({

@@ -23,6 +23,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [ownerKeyInput, setOwnerKeyInput] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  const isTimeoutReason =
+    typeof window !== "undefined" &&
+    localStorage.getItem("pdfsun_logout_reason") === "inactivity_timeout";
+
+  const handlePostLoginRedirectAndCleanup = () => {
+    try {
+      localStorage.removeItem("pdfsun_logout_reason");
+      const redirectUrl = localStorage.getItem("pdfsun_redirect_url");
+      if (redirectUrl && redirectUrl !== window.location.href) {
+        localStorage.removeItem("pdfsun_redirect_url");
+        window.location.href = redirectUrl;
+      }
+    } catch (e) {
+      console.warn("Post-login cleanup error:", e);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Normal Customer Login / Sign up
@@ -46,6 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     };
 
     onSelectRole("user", profile);
+    handlePostLoginRedirectAndCleanup();
     onClose();
   };
 
@@ -62,6 +80,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       hasAdminAccess: false,
     };
     onSelectRole("user", profile);
+    handlePostLoginRedirectAndCleanup();
     onClose();
   };
 
@@ -93,6 +112,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       hasAdminAccess: true,
     };
     onSelectRole("owner", ownerProfile);
+    handlePostLoginRedirectAndCleanup();
     onClose();
   };
 
@@ -117,6 +137,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Inactivity Logout Alert Banner */}
+        {isTimeoutReason && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-start space-x-3 text-xs">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-extrabold block">Inactivity Auto-Logout Executed</span>
+              <span className="text-[11px] text-amber-600/90 dark:text-amber-300/80">
+                You were logged out after 10 minutes of idle time. Please log in to restore your saved draft.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Current Active Account Card */}
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between">

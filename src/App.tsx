@@ -33,6 +33,8 @@ import { SitemapModal } from "./components/SitemapModal";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
+import { InactivityWarningModal } from "./components/InactivityWarningModal";
+import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
@@ -511,6 +513,19 @@ export default function App() {
     }
   };
 
+  // Inactivity Auto-Logout & Session Preservation System
+  const {
+    showWarningModal,
+    remainingSeconds,
+    resetInactivityTimer,
+    executeSecureLogout,
+  } = useInactivityTimeout({
+    currentRole,
+    userProfile,
+    activeToolId: activeTool?.id,
+    onLogout: handleLogout,
+  });
+
   const handleOpenAdminPanel = (tab?: string) => {
     if (!canAccessAdmin) {
       console.warn("Access denied: Admin panel is totally hidden and restricted for customer users.");
@@ -867,6 +882,14 @@ export default function App() {
         onToggleEnabled={toggleShortcutsEnabled}
         onUpdateShortcut={updateShortcutKeyCombo}
         onResetToDefaults={resetToDefaults}
+      />
+
+      {/* Inactivity Security Warning Modal */}
+      <InactivityWarningModal
+        isOpen={showWarningModal}
+        remainingSeconds={remainingSeconds}
+        onStayLoggedIn={() => resetInactivityTimer(true)}
+        onLogoutNow={() => executeSecureLogout("manual_logout")}
       />
 
       {/* Global Toast Error Notifications */}
