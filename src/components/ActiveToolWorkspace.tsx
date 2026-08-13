@@ -41,6 +41,7 @@ import {
   FileSearch,
   Star,
   ThumbsUp,
+  QrCode,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -186,6 +187,61 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(48);
+
+  // Extended Tool Options States (Master Schema)
+  const [mergePagesToCopy, setMergePagesToCopy] = useState("all");
+  const [mergeAddNumbers, setMergeAddNumbers] = useState(false);
+  const [mergeAutoToc, setMergeAutoToc] = useState(false);
+  const [splitMode, setSplitMode] = useState<"range" | "pages" | "interval">("range");
+  const [splitInterval, setSplitInterval] = useState(2);
+  const [removePagesRange, setRemovePagesRange] = useState("2, 4, 7-9");
+  const [extractPagesRange, setExtractPagesRange] = useState("1-3");
+  const [extractPagesFormat, setExtractPagesFormat] = useState<"combined" | "zip">("combined");
+  const [rotateApplyTo, setRotateApplyTo] = useState<"all" | "portrait" | "landscape">("all");
+  const [cropMargins, setCropMargins] = useState({ top: 10, bottom: 10, left: 10, right: 10, applyTo: "all" });
+  const [blankSensitivity, setBlankSensitivity] = useState<"low" | "medium" | "high">("medium");
+  const [duplicateCopyCount, setDuplicateCopyCount] = useState(1);
+  const [convertOrientation, setConvertOrientation] = useState<"auto" | "portrait" | "landscape">("auto");
+  const [convertPageSize, setConvertPageSize] = useState<"A4" | "Letter" | "Auto">("A4");
+  const [convertMargin, setConvertMargin] = useState<"none" | "small" | "big">("small");
+  const [convertCombineImages, setConvertCombineImages] = useState(true);
+  const [convertFromDpi, setConvertFromDpi] = useState<72 | 150 | 300>(150);
+  const [convertFromPageRange, setConvertFromPageRange] = useState<"all" | "custom">("all");
+  const [extractRasterOnly, setExtractRasterOnly] = useState(false);
+  const [protectPermissions, setProtectPermissions] = useState({ print: true, copy: false, modify: false });
+  const [watermarkFont, setWatermarkFont] = useState("Helvetica");
+  const [watermarkFontSize, setWatermarkFontSize] = useState(36);
+  const [watermarkColor, setWatermarkColor] = useState("#f97316");
+  const [watermarkRangeTarget, setWatermarkRangeTarget] = useState("all");
+  const [compressPreset, setCompressPreset] = useState<"extreme" | "recommended" | "low">("recommended");
+  const [ocrLanguage, setOcrLanguage] = useState("eng");
+  const [ocrOutputFormat, setOcrOutputFormat] = useState<"txt" | "searchable-pdf">("txt");
+  const [grayscaleMode, setGrayscaleMode] = useState<"grayscale" | "bw">("grayscale");
+  const [resizePreset, setResizePreset] = useState<"A4" | "A3" | "Letter" | "Legal" | "custom">("A4");
+  const [resizeCustomWidth, setResizeCustomWidth] = useState(210);
+  const [resizeCustomHeight, setResizeCustomHeight] = useState(297);
+  const [resizeKeepAspect, setResizeKeepAspect] = useState(true);
+  const [pageNumFormat, setPageNumFormat] = useState<"Page {n}" | "Page {n} of {total}">("Page {n} of {total}");
+  const [pageNumStartOffset, setPageNumStartOffset] = useState(1);
+  const [pageNumColor, setPageNumColor] = useState("#000000");
+  const [headerFooterLeft, setHeaderFooterLeft] = useState("");
+  const [headerFooterCenter, setHeaderFooterCenter] = useState("{title}");
+  const [headerFooterRight, setHeaderFooterRight] = useState("{date}");
+  const [nUpLayout, setNUpLayout] = useState<"2-up" | "4-up" | "8-up">("2-up");
+  const [nUpOrdering, setNUpOrdering] = useState<"horizontal" | "vertical">("horizontal");
+  const [nUpBorders, setNUpBorders] = useState(true);
+  const [batesPrefix, setBatesPrefix] = useState("DOC-");
+  const [batesSuffix, setBatesSuffix] = useState("");
+  const [batesStartNumber, setBatesStartNumber] = useState(1);
+  const [batesDigitsPadding, setBatesDigitsPadding] = useState(6);
+  const [batesPosition, setBatesPosition] = useState("bottom-right");
+  const [metaSubject, setMetaSubject] = useState("");
+  const [metaKeywords, setMetaKeywords] = useState("");
+  const [invertContrast, setInvertContrast] = useState(100);
+  const [translateSourceLang, setTranslateSourceLang] = useState("auto");
+  const [translateTargetLang, setTranslateTargetLang] = useState("hi");
+  const [showQrCodeModal, setShowQrCodeModal] = useState(false);
+  const [purgedMessage, setPurgedMessage] = useState(false);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -1399,38 +1455,361 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <span>{tool.name} Parameters & Settings</span>
             </div>
 
+            {/* Category 1 & Tool Specific Option Schema */}
+            {tool.id === "merge-pdf" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Pages to Copy (e.g. "all", "1-3, 5", "even", "odd")</label>
+                    <input
+                      type="text"
+                      value={mergePagesToCopy}
+                      onChange={(e) => setMergePagesToCopy(e.target.value)}
+                      placeholder="all"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end space-y-2 pt-1">
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mergeAddNumbers}
+                        onChange={(e) => setMergeAddNumbers(e.target.checked)}
+                        className="rounded text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Add Page Numbers ("Page X of Y")</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mergeAutoToc}
+                        onChange={(e) => setMergeAutoToc(e.target.checked)}
+                        className="rounded text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Auto-Generate Table of Contents</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {tool.id === "split-pdf" && (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSplitMode("range")}
+                    className={`flex-1 py-1 px-2.5 rounded-lg text-xs font-bold transition ${splitMode === "range" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Range Split
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSplitMode("interval")}
+                    className={`flex-1 py-1 px-2.5 rounded-lg text-xs font-bold transition ${splitMode === "interval" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500"}`}
+                  >
+                    Fixed Interval
+                  </button>
+                </div>
+                {splitMode === "range" ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Ranges (e.g., "1-3, 5, 8" or "all")</label>
+                    <input
+                      type="text"
+                      value={splitRange}
+                      onChange={(e) => setSplitRange(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Split Every N Pages</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={splitInterval}
+                      onChange={(e) => setSplitInterval(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {["remove-pages", "delete-pdf-pages"].includes(tool.id) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Page Ranges (e.g., "1-3, 5, 8" or "all")
-                </label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Ranges to Remove (e.g. "2, 4, 7-9")</label>
                 <input
                   type="text"
-                  value={splitRange}
-                  onChange={(e) => setSplitRange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                  value={removePagesRange}
+                  onChange={(e) => setRemovePagesRange(e.target.value)}
+                  placeholder="2, 4, 7-9"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-500"
                 />
               </div>
             )}
 
+            {["extract-pages", "extract-pdf-pages"].includes(tool.id) && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Pages to Extract (e.g. "1-3, 5")</label>
+                  <input
+                    type="text"
+                    value={extractPagesRange}
+                    onChange={(e) => setExtractPagesRange(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <div className="flex items-center space-x-3">
+                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="extractFormat"
+                      checked={extractPagesFormat === "combined"}
+                      onChange={() => setExtractPagesFormat("combined")}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Extract as 1 Combined PDF</span>
+                  </label>
+                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="extractFormat"
+                      checked={extractPagesFormat === "zip"}
+                      onChange={() => setExtractPagesFormat("zip")}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Extract as Zip of Individual Pages</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {["organize-pdf", "reorder-pdf-pages"].includes(tool.id) && (
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">Quick Reorder Actions</div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => [...prev].reverse())}
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Reverse Page Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => [...prev].sort((a, b) => a.name.localeCompare(b.name)))}
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Sort Alphabetically
+                  </button>
+                </div>
+              </div>
+            )}
+
             {tool.id === "rotate-pdf" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rotation Angle</label>
+                  <select
+                    value={rotationAngle}
+                    onChange={(e) => setRotationAngle(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                  >
+                    <option value={90}>Rotate 90° Clockwise</option>
+                    <option value={180}>Rotate 180° Flip</option>
+                    <option value={270}>Rotate 270° Counter-Clockwise</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Target Orientation Filter</label>
+                  <select
+                    value={rotateApplyTo}
+                    onChange={(e) => setRotateApplyTo(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="all">Apply to All Pages</option>
+                    <option value="portrait">Portrait Pages Only</option>
+                    <option value="landscape">Landscape Pages Only</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "crop-pdf" && (
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Custom Crop Margins (mm)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-[10px] text-slate-500">Top</span>
+                    <input
+                      type="number"
+                      value={cropMargins.top}
+                      onChange={(e) => setCropMargins((p) => ({ ...p, top: Number(e.target.value) }))}
+                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500">Bottom</span>
+                    <input
+                      type="number"
+                      value={cropMargins.bottom}
+                      onChange={(e) => setCropMargins((p) => ({ ...p, bottom: Number(e.target.value) }))}
+                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500">Left</span>
+                    <input
+                      type="number"
+                      value={cropMargins.left}
+                      onChange={(e) => setCropMargins((p) => ({ ...p, left: Number(e.target.value) }))}
+                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500">Right</span>
+                    <input
+                      type="number"
+                      value={cropMargins.right}
+                      onChange={(e) => setCropMargins((p) => ({ ...p, right: Number(e.target.value) }))}
+                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "delete-blank-pages" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rotation Angle</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Blank Detection Sensitivity</label>
                 <select
-                  value={rotationAngle}
-                  onChange={(e) => setRotationAngle(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                  value={blankSensitivity}
+                  onChange={(e) => setBlankSensitivity(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
                 >
-                  <option value={90}>90° Clockwise</option>
-                  <option value={180}>180° Flip</option>
-                  <option value={270}>270° Counter-Clockwise</option>
+                  <option value="low">Low (Only completely empty white pages)</option>
+                  <option value="medium">Medium (Detect faint watermarks & borders)</option>
+                  <option value="high">High (Strict detection for minimal ink content)</option>
                 </select>
               </div>
             )}
 
+            {tool.id === "duplicate-pdf-pages" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Duplicate Copy Count Per Page</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={duplicateCopyCount}
+                  onChange={(e) => setDuplicateCopyCount(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                />
+              </div>
+            )}
+
+            {/* Category 2 Universal Convert to PDF Schema */}
+            {["jpg-to-pdf", "png-to-pdf", "word-to-pdf", "excel-to-pdf", "ppt-to-pdf", "powerpoint-to-pdf", "text-to-pdf", "html-to-pdf", "svg-to-pdf", "epub-to-pdf", "scanner-to-pdf"].includes(tool.id) && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Orientation</label>
+                    <select
+                      value={convertOrientation}
+                      onChange={(e) => setConvertOrientation(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="auto">Auto-Detect</option>
+                      <option value="portrait">Portrait</option>
+                      <option value="landscape">Landscape</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Size</label>
+                    <select
+                      value={convertPageSize}
+                      onChange={(e) => setConvertPageSize(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="A4">A4 (Standard)</option>
+                      <option value="Letter">US Letter</option>
+                      <option value="Auto">Fit Image Dimensions</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Margins</label>
+                    <select
+                      value={convertMargin}
+                      onChange={(e) => setConvertMargin(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="none">No Margin (Full Bleed)</option>
+                      <option value="small">Small Margin (10mm)</option>
+                      <option value="big">Big Margin (25mm)</option>
+                    </select>
+                  </div>
+                </div>
+                {["jpg-to-pdf", "png-to-pdf", "svg-to-pdf"].includes(tool.id) && (
+                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={convertCombineImages}
+                      onChange={(e) => setConvertCombineImages(e.target.checked)}
+                      className="rounded text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Merge all images into 1 single PDF file</span>
+                  </label>
+                )}
+              </div>
+            )}
+
+            {/* Category 3 Universal Convert from PDF Schema */}
+            {["pdf-to-jpg", "pdf-to-png", "pdf-to-word", "pdf-to-excel", "pdf-to-ppt", "pdf-to-powerpoint", "pdf-to-text", "pdf-to-html", "pdf-to-svg", "pdf-to-epub", "extract-images"].includes(tool.id) && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rendering Resolution Quality</label>
+                    <select
+                      value={convertFromDpi}
+                      onChange={(e) => setConvertFromDpi(Number(e.target.value) as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value={72}>Standard Quality (72 DPI - Fast)</option>
+                      <option value={150}>High Quality (150 DPI - Recommended)</option>
+                      <option value={300}>Ultra High Quality (300 DPI - Print)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Scope</label>
+                    <select
+                      value={convertFromPageRange}
+                      onChange={(e) => setConvertFromPageRange(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="all">Convert All Pages</option>
+                      <option value="custom">First Page Only</option>
+                    </select>
+                  </div>
+                </div>
+                {tool.id === "extract-images" && (
+                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={extractRasterOnly}
+                      onChange={(e) => setExtractRasterOnly(e.target.checked)}
+                      className="rounded text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Extract embedded raw photos/logos only (Skip rendering page canvas)</span>
+                  </label>
+                )}
+              </div>
+            )}
+
+            {/* Category 4 Security & Watermark Schema */}
             {tool.id === "watermark-pdf" && (
               <div className="space-y-4">
-                {/* Watermark Type Selector */}
                 <div className="flex items-center space-x-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                   <button
                     type="button"
@@ -1457,15 +1836,26 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
 
                 {watermarkType === "text" ? (
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Watermark Text</label>
-                    <input
-                      type="text"
-                      value={watermarkText}
-                      onChange={(e) => setWatermarkText(e.target.value)}
-                      placeholder="e.g. CONFIDENTIAL, DRAFT, DO NOT COPY"
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Watermark Text</label>
+                      <input
+                        type="text"
+                        value={watermarkText}
+                        onChange={(e) => setWatermarkText(e.target.value)}
+                        placeholder="CONFIDENTIAL, DRAFT, DO NOT COPY"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Watermark Color</label>
+                      <input
+                        type="color"
+                        value={watermarkColor}
+                        onChange={(e) => setWatermarkColor(e.target.value)}
+                        className="w-full h-9 p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -1480,11 +1870,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       }}
                       className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-600 dark:file:bg-blue-950/40 dark:file:text-blue-400 hover:file:bg-blue-100"
                     />
-                    {watermarkImageFile && (
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
-                        Selected: {watermarkImageFile.name} ({(watermarkImageFile.size / 1024).toFixed(1)} KB)
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -1534,18 +1919,154 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
+            {tool.id === "compress-pdf" && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Compression Preset Level</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCompressPreset("extreme")}
+                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "extreme" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                  >
+                    <div className="text-xs">Extreme</div>
+                    <div className="text-[10px] text-slate-400">~70% size reduction</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCompressPreset("recommended")}
+                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "recommended" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                  >
+                    <div className="text-xs">Recommended</div>
+                    <div className="text-[10px] text-slate-400">~50% optimal balance</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCompressPreset("low")}
+                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "low" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                  >
+                    <div className="text-xs font-bold">High Quality</div>
+                    <div className="text-[10px] text-slate-400">~20% light compression</div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {tool.id === "page-numbers" && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Number Location</label>
-                <select
-                  value={pageNumPos}
-                  onChange={(e) => setPageNumPos(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
-                >
-                  <option value="bottom-center">Bottom Center</option>
-                  <option value="bottom-right">Bottom Right</option>
-                  <option value="top-right">Top Right</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Position Matrix</label>
+                  <select
+                    value={pageNumPos}
+                    onChange={(e) => setPageNumPos(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="bottom-center">Bottom Center</option>
+                    <option value="bottom-right">Bottom Right</option>
+                    <option value="top-right">Top Right</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Format Template</label>
+                  <select
+                    value={pageNumFormat}
+                    onChange={(e) => setPageNumFormat(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="Page {n} of {total}">Page X of Y</option>
+                    <option value="Page {n}">Page X</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Start Page Offset</label>
+                  <input
+                    type="number"
+                    value={pageNumStartOffset}
+                    onChange={(e) => setPageNumStartOffset(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {tool.id === "header-footer" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Header Left</label>
+                    <input
+                      type="text"
+                      value={headerFooterLeft}
+                      onChange={(e) => setHeaderFooterLeft(e.target.value)}
+                      placeholder="{date}"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Header Center</label>
+                    <input
+                      type="text"
+                      value={headerFooterCenter}
+                      onChange={(e) => setHeaderFooterCenter(e.target.value)}
+                      placeholder="{title}"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Header Right</label>
+                    <input
+                      type="text"
+                      value={headerFooterRight}
+                      onChange={(e) => setHeaderFooterRight(e.target.value)}
+                      placeholder="Confidential"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-400">Available dynamic macros: <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">&#123;page&#125;</code>, <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">&#123;date&#125;</code>, <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">&#123;title&#125;</code></div>
+              </div>
+            )}
+
+            {["bates-numbering", "bates-numbers"].includes(tool.id) && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Prefix</label>
+                  <input
+                    type="text"
+                    value={batesPrefix}
+                    onChange={(e) => setBatesPrefix(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Start Sequence</label>
+                  <input
+                    type="number"
+                    value={batesStartNumber}
+                    onChange={(e) => setBatesStartNumber(Number(e.target.value))}
+                    className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Digit Padding</label>
+                  <input
+                    type="number"
+                    value={batesDigitsPadding}
+                    onChange={(e) => setBatesDigitsPadding(Number(e.target.value))}
+                    className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Position</label>
+                  <select
+                    value={batesPosition}
+                    onChange={(e) => setBatesPosition(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                  >
+                    <option value="bottom-right">Bottom Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="top-right">Top Right</option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -1605,62 +2126,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Passwords do not match</span>
                   </p>
                 )}
-
-                {/* Password Strength Indicator */}
-                {pdfPassword && (
-                  <div className="space-y-1 pt-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 dark:text-slate-400">Password Strength:</span>
-                      <span className={`font-bold ${
-                        pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
-                          ? "text-emerald-500"
-                          : pdfPassword.length >= 6
-                          ? "text-amber-500"
-                          : "text-rose-500"
-                      }`}>
-                        {pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
-                          ? "Strong"
-                          : pdfPassword.length >= 6
-                          ? "Medium"
-                          : "Weak"}
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 ${
-                          pdfPassword.length >= 8 && /[A-Z]/.test(pdfPassword) && /[0-9]/.test(pdfPassword)
-                            ? "w-full bg-emerald-500"
-                            : pdfPassword.length >= 6
-                            ? "w-2/3 bg-amber-500"
-                            : "w-1/3 bg-rose-500"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Protection Restrictions */}
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 space-y-2 text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Security & Restrictions Applied:</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
-                    <div className="flex items-center space-x-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>Require password to open</span>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>Prevent unauthorized editing</span>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>Restrict text copying</span>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>Standard PDF encryption spec</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -2052,6 +2517,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Direct Download</span>
                   </button>
 
+                  {/* Mobile Transfer QR Code Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowQrCodeModal(!showQrCodeModal)}
+                    className="py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
+                    title="Scan QR Code to download directly on mobile device"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>Mobile QR</span>
+                  </button>
+
                   {/* Secondary: Quick Share */}
                   <button
                     type="button"
@@ -2150,6 +2626,98 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Mobile QR Transfer Card Expansion */}
+                {showQrCodeModal && (
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-500/30 text-center space-y-2 shadow-md w-full max-w-sm animate-in fade-in zoom-in-95">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center space-x-1.5">
+                      <QrCode className="w-4 h-4 text-amber-500" />
+                      <span>Scan QR Code on Mobile Device</span>
+                    </div>
+                    <div className="flex justify-center p-2 bg-white rounded-xl shadow-inner border border-slate-100">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(window.location.origin + "/#download=" + downloadReady.fileName)}`}
+                        alt="Mobile Download QR Code"
+                        className="w-32 h-32"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">Scan with iPhone Camera or Android Lens for instant local download.</p>
+                  </div>
+                )}
+
+                {/* Cross-Tool Routing ("Next Step" Recommendations) */}
+                <div className="pt-2 border-t border-emerald-500/20 w-full max-w-lg space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Recommended Next Actions</span>
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    {tool.id !== "compress-pdf" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      >
+                        <span>Compress PDF</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    {tool.id !== "watermark-pdf" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      >
+                        <span>Add Watermark</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    {tool.id !== "protect-pdf" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-amber-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      >
+                        <span>Protect PDF</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    {tool.id !== "pdf-to-word" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      >
+                        <span>Convert to Word</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Instant Security Purge Button */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDownloadReady(null);
+                      setFiles([]);
+                      setFileStates([]);
+                      setPurgedMessage(true);
+                      setTimeout(() => setPurgedMessage(false), 4000);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1.5"
+                    title="Permanently purge processed files from browser memory for 100% privacy"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete File Now (Memory Cleanup)</span>
+                  </button>
                 </div>
               </div>
 
