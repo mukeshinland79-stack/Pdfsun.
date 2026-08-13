@@ -60,9 +60,7 @@ function calculateEcc(data: number[], numEcc: number): number[] {
   return msg.slice(data.length);
 }
 
-// QR Code Specifications for Version 2 (25x25) and Version 3 (29x29)
-// Version 2-M: Total 44 codewords (28 data + 16 ECC) -> 28 bytes capacity (fits https://pdfsun.in = 18 bytes!)
-// Version 3-M: Total 70 codewords (44 data + 26 ECC) -> 44 bytes capacity
+// QR Code Specifications for Version 3 (29x29), Version 4 (33x33), Version 5 (37x37) with High ECC (Level H ~30%)
 interface QRVersionSpec {
   version: number;
   size: number;
@@ -71,16 +69,17 @@ interface QRVersionSpec {
   alignPos: number[];
 }
 
+// Level H Specs (fits up to 43 bytes with 30% Reed-Solomon Error Correction capacity)
 const VERSIONS: QRVersionSpec[] = [
-  { version: 2, size: 25, totalDataBytes: 28, eccBytes: 16, alignPos: [6, 18] },
-  { version: 3, size: 29, totalDataBytes: 44, eccBytes: 26, alignPos: [6, 22] },
-  { version: 4, size: 33, totalDataBytes: 64, eccBytes: 36, alignPos: [6, 26] },
+  { version: 3, size: 29, totalDataBytes: 26, eccBytes: 44, alignPos: [6, 22] },
+  { version: 4, size: 33, totalDataBytes: 36, eccBytes: 64, alignPos: [6, 26] },
+  { version: 5, size: 37, totalDataBytes: 46, eccBytes: 88, alignPos: [6, 18, 30] },
 ];
 
-export function generateQrMatrix(text: string): boolean[][] {
+export function generateQrMatrix(text: string, clearCenterZone: boolean = true): boolean[][] {
   const textBytes = new TextEncoder().encode(text);
   
-  // Choose smallest version that fits
+  // Choose smallest version that fits data
   let spec = VERSIONS.find((v) => textBytes.length + 3 <= v.totalDataBytes);
   if (!spec) spec = VERSIONS[VERSIONS.length - 1]; // fallback
 
@@ -233,9 +232,9 @@ export function generateQrMatrix(text: string): boolean[][] {
     dir = -dir; // reverse direction
   }
 
-  // 7. Format Info (Mask 0: (r + c) % 2 === 0, ECC Level M = 00)
-  // Format info bit pattern for Level M, Mask 0 with BCH(15, 5): 101010000010010
-  const formatBits = [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0];
+  // 7. Format Info (Mask 0: (r + c) % 2 === 0, ECC Level H = 10)
+  // Format info bit pattern for Level H, Mask 0 with BCH(15, 5): 001011001111001
+  const formatBits = [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1];
 
   // Apply Mask 0 to data modules only & Set format bits
   const resultMatrix: boolean[][] = Array.from({ length: size }, () =>
@@ -280,6 +279,21 @@ export function generateQrMatrix(text: string): boolean[][] {
   formatCoordsOther.forEach(([r, c], i) => {
     resultMatrix[r][c] = formatBits[i] === 1;
   });
+
+  // Clear center quiet zone for clean branding badge placement if requested
+  if (clearCenterZone) {
+    const centerR = Math.floor(size / 2);
+    const centerC = Math.floor(size / 2);
+    const halfH = 2; // 5 rows
+    const halfW = 4; // 9 cols
+    for (let r = centerR - halfH; r <= centerR + halfH; r++) {
+      for (let c = centerC - halfW; c <= centerC + halfW; c++) {
+        if (r >= 0 && r < size && c >= 0 && c < size) {
+          resultMatrix[r][c] = false;
+        }
+      }
+    }
+  }
 
   return resultMatrix;
 }

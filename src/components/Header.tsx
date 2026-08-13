@@ -37,6 +37,7 @@ import {
   Palette,
   Laptop,
   Activity,
+  Share2,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
@@ -69,6 +70,7 @@ interface HeaderProps {
   onOpenUserDashboard: () => void;
   onLogout: () => void;
   onGoHome: () => void;
+  onOpenShareModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -91,6 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUserDashboard,
   onLogout,
   onGoHome,
+  onOpenShareModal,
 }) => {
   const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
   const { isOffline, isInstallable, installPWA } = usePWAStatus();
@@ -323,6 +326,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Clock className="w-4 h-4" />
           </button>
+
+          {/* Share PDFSun Modal Button */}
+          {onOpenShareModal && (
+            <button
+              onClick={onOpenShareModal}
+              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-extrabold text-xs transition shadow-xs"
+              title="Share PDFSun with friends or colleagues"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-500" />
+              <span>Share</span>
+            </button>
+          )}
 
           {/* Single Unified Theme Control Icon & Dropdown Selector */}
           <div className="relative" ref={themeDropdownRef}>

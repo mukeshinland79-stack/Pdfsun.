@@ -374,6 +374,7 @@ export default function App() {
   // Modals state
   const [activePolicy, setActivePolicy] = useState<PolicyType | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [sharePdfSunModalOpen, setSharePdfSunModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -649,6 +650,7 @@ export default function App() {
           setSearchQuery("");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+        onOpenShareModal={() => setSharePdfSunModalOpen(true)}
       />
 
       {/* Main Hero Dropzone & Search Section */}
@@ -890,6 +892,12 @@ export default function App() {
         remainingSeconds={remainingSeconds}
         onStayLoggedIn={() => resetInactivityTimer(true)}
         onLogoutNow={() => executeSecureLogout("manual_logout")}
+      />
+
+      {/* Share PDFSun Modal */}
+      <SharePdfSunModal
+        isOpen={sharePdfSunModalOpen}
+        onClose={() => setSharePdfSunModalOpen(false)}
       />
 
       {/* Global Toast Error Notifications */}
