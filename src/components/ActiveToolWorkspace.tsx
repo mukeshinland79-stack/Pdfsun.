@@ -504,13 +504,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       return;
     }
 
-    // Client-side Free Usage Limit & File Size Check
+    // Client-side Free Usage Limit, File Size & Batch Check
     if (usageTracker) {
-      const totalSize = files[0]?.size || 0;
-      const usageCheck = usageTracker.canProcessDownload(totalSize);
+      const maxFileSize = files.reduce((max, f) => Math.max(max, f.size), 0);
+
+      // Check batch size limit (> 2 files for free users)
+      if (files.length > 2 && !usageTracker.isPro) {
+        usageTracker.triggerPaywall("batch");
+        return;
+      }
+
+      const usageCheck = usageTracker.canProcessDownload(maxFileSize);
       if (!usageCheck.allowed) {
         if (usageCheck.reason === "FILE_SIZE_EXCEEDED") {
-          usageTracker.triggerPaywall("size", totalSize);
+          usageTracker.triggerPaywall("size", maxFileSize);
         } else {
           usageTracker.triggerPaywall("limit");
         }

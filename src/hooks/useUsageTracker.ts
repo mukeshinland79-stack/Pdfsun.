@@ -4,6 +4,8 @@ const USAGE_STORAGE_KEY = "pdfsun_usage_tracker_v1";
 const PRO_PLAN_KEY = "pdfsun_user_plan_v1";
 export const MAX_FREE_DAILY_DOWNLOADS = 3;
 export const MAX_FREE_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB in Bytes
+export const MAX_FREE_BATCH_FILES = 2; // Max 2 files for Free Users
+export const MAX_FREE_AI_QUERIES = 2; // Max 2 trial queries for AI/OCR per day
 
 export interface UsageData {
   count: number;
@@ -11,7 +13,7 @@ export interface UsageData {
   totalLifetimeDownloads: number;
 }
 
-export type PaywallReason = "limit" | "size" | null;
+export type PaywallReason = "limit" | "size" | "batch" | "ai_trial" | null;
 
 export function getTodayDateString(): string {
   const d = new Date();
@@ -141,6 +143,58 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
     }
   }, [isPro, usage]);
 
+  // Check if batch processing file count is allowed (Max 2 for free users)
+  const canProcessBatch = useCallback(
+    (fileCount: number): { allowed: boolean; reason?: "BATCH_LIMIT_EXCEEDED" } => {
+      if (isPro) return { allowed: true };
+      if (fileCount > MAX_FREE_BATCH_FILES) {
+        return { allowed: false, reason: "BATCH_LIMIT_EXCEEDED" };
+      }
+      return { allowed: true };
+    },
+    [isPro]
+  );
+
+  // Check if AI / OCR trial queries can proceed (Max 2 trial queries per day for free users)
+  const canProcessAiQuery = useCallback((): { allowed: boolean; reason?: "AI_TRIAL_EXCEEDED" } => {
+    if (isPro) return { allowed: true };
+    try {
+      const todayStr = getTodayDateString();
+      const savedAi = localStorage.getItem("pdfsun_ai_query_count_v1");
+      if (savedAi) {
+        const parsed = JSON.parse(savedAi);
+        if (parsed.resetDate === todayStr && parsed.count >= MAX_FREE_AI_QUERIES) {
+          return { allowed: false, reason: "AI_TRIAL_EXCEEDED" };
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return { allowed: true };
+  }, [isPro]);
+
+  // Record AI query usage
+  const recordAiQuery = useCallback(() => {
+    if (isPro) return;
+    try {
+      const todayStr = getTodayDateString();
+      let currentCount = 0;
+      const savedAi = localStorage.getItem("pdfsun_ai_query_count_v1");
+      if (savedAi) {
+        const parsed = JSON.parse(savedAi);
+        if (parsed.resetDate === todayStr) {
+          currentCount = parsed.count || 0;
+        }
+      }
+      localStorage.setItem(
+        "pdfsun_ai_query_count_v1",
+        JSON.stringify({ count: currentCount + 1, resetDate: todayStr })
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isPro]);
+
   const setProStatus = useCallback((active: boolean) => {
     setIsPro(active);
     try {
@@ -166,9 +220,14 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
     maxDailyFree: MAX_FREE_DAILY_DOWNLOADS,
     remaining,
     maxFreeFileSizeBytes: MAX_FREE_FILE_SIZE_BYTES,
+    maxBatchFiles: MAX_FREE_BATCH_FILES,
+    maxAiQueries: MAX_FREE_AI_QUERIES,
     isPro,
     canProcessDownload,
     recordDownload,
+    canProcessBatch,
+    canProcessAiQuery,
+    recordAiQuery,
     setProStatus,
     resetCounter,
     isPaywallOpen,

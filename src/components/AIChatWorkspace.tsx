@@ -26,6 +26,8 @@ import {
 import { ToolItem, ToolHistoryItem } from "../types";
 import { extractTextFromPdfFile, textToPdf, downloadFile } from "../lib/pdfEngine";
 import { QuickShareModal } from "./QuickShareModal";
+import { useUsageTracker } from "../hooks/useUsageTracker";
+import { FreeLimitPaywallModal } from "./FreeLimitPaywallModal";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -98,6 +100,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     return "chat";
   });
 
+  const {
+    isPro,
+    canProcessAiQuery,
+    recordAiQuery,
+    isPaywallOpen,
+    paywallReason,
+    blockedFileSize,
+    triggerPaywall,
+    closePaywall,
+  } = useUsageTracker();
+
   // Extract text when file is set
   const handleFileChange = async (f: File) => {
     setFile(f);
@@ -134,6 +147,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
 
+    if (file && file.size > 15 * 1024 * 1024 && !isPro) {
+      triggerPaywall("size", file.size);
+      return;
+    }
+
+    const check = canProcessAiQuery();
+    if (!check.allowed) {
+      triggerPaywall("ai_trial");
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -165,6 +189,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       };
 
       setChatMessages((prev) => [...prev, assistantMsg]);
+      recordAiQuery();
     } catch (err) {
       console.error("AI Chat API Error:", err);
       setChatMessages((prev) => [
@@ -183,6 +208,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
   // Run AI Feature (Summarize, Translate, Notes, Flashcards, Grammar, Explain)
   const runAiFeature = async (feature: string) => {
+    if (file && file.size > 15 * 1024 * 1024 && !isPro) {
+      triggerPaywall("size", file.size);
+      return;
+    }
+
+    const check = canProcessAiQuery();
+    if (!check.allowed) {
+      triggerPaywall("ai_trial");
+      return;
+    }
+
     setIsAiLoading(true);
     setAiOutputResult("");
 
@@ -224,6 +260,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       } else {
         setAiOutputResult(data.result || "AI execution completed.");
       }
+
+      recordAiQuery();
 
       onAddHistory({
         id: Date.now().toString(),
@@ -708,6 +746,15 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      {/* Paywall Modal */}
+      <FreeLimitPaywallModal
+        isOpen={isPaywallOpen}
+        onClose={closePaywall}
+        reason={paywallReason}
+        fileSize={blockedFileSize}
+        onOpenPricing={onClose}
+      />
     </div>
   );
 };

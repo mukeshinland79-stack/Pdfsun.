@@ -76,24 +76,58 @@ export const FreeLimitPaywallModal: React.FC<FreeLimitPaywallModalProps> = ({
         {/* Title & Reason Explanation */}
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center space-x-2">
-            <span>{reason === "size" ? "File Size Limit Exceeded" : "Daily Free Limit Reached"}</span>
+            <span>
+              {reason === "size"
+                ? "File Size Limit Exceeded"
+                : reason === "batch"
+                ? "Batch Limit Exceeded"
+                : reason === "ai_trial"
+                ? "AI Daily Trial Limit Reached"
+                : "Daily Free Limit Reached"}
+            </span>
           </h2>
 
-          {reason === "size" ? (
+          {reason === "size" && (
             <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-medium space-y-1">
               <div className="flex items-center space-x-2 font-bold text-amber-300">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                <span>Selected file: {formattedFileSize} MB (Free Tier limit is 15 MB)</span>
+                <span>Selected file: {formattedFileSize ? `${formattedFileSize} MB` : "File > 15 MB"} (Free Tier limit is 15 MB)</span>
               </div>
               <p className="text-[11px] text-amber-200/80">
-                Upgrade to PDFSun Pro to process documents up to 2 GB in single document size without restriction.
+                File size exceeds 15 MB limit. Upgrade to Pro Sun to process files up to 2 GB without restriction.
               </p>
             </div>
-          ) : (
+          )}
+
+          {reason === "batch" && (
+            <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-200 text-xs font-medium space-y-1">
+              <div className="flex items-center space-x-2 font-bold text-indigo-300">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-indigo-400" />
+                <span>Batch processing requires Pro Sun membership (Max 2 files for Free Users)</span>
+              </div>
+              <p className="text-[11px] text-indigo-200/80">
+                Batch processing requires Pro Sun membership. Upgrade to process unlimited files simultaneously.
+              </p>
+            </div>
+          )}
+
+          {reason === "ai_trial" && (
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-200 text-xs font-medium space-y-1">
+              <div className="flex items-center space-x-2 font-bold text-purple-300">
+                <Lock className="w-4 h-4 shrink-0 text-purple-400" />
+                <span>AI Chat with PDF &amp; Advanced Gemini OCR trial queries used (2/2)</span>
+              </div>
+              <p className="text-[11px] text-purple-200/80">
+                Top up with Flexi Pack (₹99) or subscribe to Pro Sun for unlimited AI document queries.
+              </p>
+            </div>
+          )}
+
+          {reason === "limit" && (
             <div className="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-200 text-xs font-medium space-y-1">
               <div className="flex items-center space-x-2 font-bold text-orange-300">
                 <Lock className="w-4 h-4 shrink-0 text-orange-400" />
-                <span>You have used 3 out of 3 daily free downloads for today</span>
+                <span>Daily free task limit reached (3/3 downloads used today)</span>
               </div>
               <div className="flex items-center space-x-2 text-[11px] text-orange-200/90 font-mono">
                 <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -101,6 +135,9 @@ export const FreeLimitPaywallModal: React.FC<FreeLimitPaywallModalProps> = ({
                   Free counter resets in: {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
                 </span>
               </div>
+              <p className="text-[11px] text-orange-200/80 pt-1">
+                Daily free task limit reached (3/3). Top up with Flexi Pack (₹99) or subscribe to Pro Sun.
+              </p>
             </div>
           )}
         </div>

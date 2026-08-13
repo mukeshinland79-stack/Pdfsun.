@@ -386,6 +386,22 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             console.log("[Razorpay Pop-up Modal] Payment completed successfully:", response);
             const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
 
+            // Fire GA4 Purchase Event according to requirement #5
+            if (typeof (window as any).gtag === "function") {
+              (window as any).gtag("event", "purchase", {
+                transaction_id: payId,
+                value: amount, // Dynamic: 99, 199, 1499, or 3999
+                currency: currency === "INR" ? "INR" : "USD",
+                items: [
+                  {
+                    item_name: plan.name, // Dynamic: 'Flexi Pack', 'Pro Sun Monthly', etc.
+                    price: amount,
+                    quantity: 1,
+                  },
+                ],
+              });
+            }
+
             // Synchronously verify payment on server & activate user subscription
             try {
               await fetch("/api/razorpay/verify-payment", {
@@ -475,6 +491,22 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     }
 
     const payId = `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
+
+    // Fire GA4 Purchase Event
+    if (typeof (window as any).gtag === "function") {
+      (window as any).gtag("event", "purchase", {
+        transaction_id: payId,
+        value: selectedPlanAmount, // Dynamic: 99, 199, 1499, or 3999
+        currency: currency === "INR" ? "INR" : "USD",
+        items: [
+          {
+            item_name: selectedPlanName || "Pro Sun Annual",
+            price: selectedPlanAmount,
+            quantity: 1,
+          },
+        ],
+      });
+    }
 
     try {
       await fetch("/api/user/activate-plan", {
