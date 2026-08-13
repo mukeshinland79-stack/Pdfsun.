@@ -137,7 +137,7 @@ interface ActiveToolWorkspaceProps {
     isPro: boolean;
     canProcessDownload: (size?: number) => { allowed: boolean; reason?: "DAILY_LIMIT_REACHED" | "FILE_SIZE_EXCEEDED" };
     recordDownload: () => void;
-    triggerPaywall: (reason: "limit" | "size", fileSize?: number) => void;
+    triggerPaywall: (reason: "limit" | "size" | "batch" | "ai_trial", fileSize?: number) => void;
   };
 }
 

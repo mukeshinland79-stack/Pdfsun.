@@ -841,7 +841,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                       </p>
 
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                        Expires: {expiresDateStr}
+                        Expires / Renews: {plan.id === "flexi" ? "Lifetime (No Expiry)" : expiresDateStr}
                       </p>
                     </div>
                   </div>
