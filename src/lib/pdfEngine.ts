@@ -490,23 +490,126 @@ export async function addPageNumbers(
   return resultBytes;
 }
 
+export interface FlattenPdfOptions {
+  mode?: "smart" | "rasterize";
+  dpi?: 150 | 300;
+  pageScope?: "all" | "range";
+  pageRangeStr?: string;
+}
+
 // 8. Flatten PDF
 export async function flattenPdf(
   file: File,
-  onProgress?: (percent: number) => void
+  options?: FlattenPdfOptions | ((percent: number) => void),
+  onProgressCallback?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(30);
-  const pdfDoc = await loadSafePdfDocument(file);
+  const onProgress = typeof options === "function" ? options : onProgressCallback;
+  const opts: FlattenPdfOptions = typeof options === "object" && options !== null ? options : {};
 
-  const form = pdfDoc.getForm();
-  try {
-    form.flatten();
-  } catch {
-    // Form might not exist or already flattened
+  const mode = opts.mode || "smart";
+  const dpi = opts.dpi || 150;
+  const pageScope = opts.pageScope || "all";
+  const pageRangeStr = opts.pageRangeStr || "";
+
+  if (onProgress) onProgress(10);
+
+  // MODE A: Smart Layer Flattening (Preserves vector text while merging interactive forms, signatures & annotations)
+  if (mode === "smart") {
+    const pdfDoc = await loadSafePdfDocument(file);
+    const totalPages = pdfDoc.getPageCount();
+
+    try {
+      const form = pdfDoc.getForm();
+      form.flatten();
+    } catch {
+      // Form might not exist or already flattened
+    }
+
+    let targetIndices: number[] = [];
+    if (pageScope === "range" && pageRangeStr.trim()) {
+      targetIndices = parseTargetPageIndices(pageRangeStr, totalPages);
+    } else {
+      targetIndices = Array.from({ length: totalPages }, (_, i) => i);
+    }
+
+    const pages = pdfDoc.getPages();
+    for (let i = 0; i < totalPages; i++) {
+      if (!targetIndices.includes(i)) continue;
+      const page = pages[i];
+      try {
+        page.node.delete(PDFName.of("Annots"));
+      } catch {
+        // ignore if no annots
+      }
+    }
+
+    if (onProgress) onProgress(85);
+    const resultBytes = await pdfDoc.save({ useObjectStreams: true });
+    if (onProgress) onProgress(100);
+    return resultBytes;
   }
 
-  if (onProgress) onProgress(80);
-  const resultBytes = await pdfDoc.save();
+  // MODE B: High-Security Rasterization (Converts pages to 150/300 DPI canvas images, locking editing completely)
+  const arrayBuffer = await fileToArrayBuffer(file);
+  const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdfJsDoc.numPages;
+
+  let targetIndices: number[] = [];
+  if (pageScope === "range" && pageRangeStr.trim()) {
+    targetIndices = parseTargetPageIndices(pageRangeStr, totalPages);
+  } else {
+    targetIndices = Array.from({ length: totalPages }, (_, i) => i);
+  }
+
+  const pdfDoc = await loadSafePdfDocument(file);
+  const flattenedDoc = await PDFDocument.create();
+
+  // 150 DPI = scale ~2.0833, 300 DPI = scale ~4.1666
+  const scale = dpi === 300 ? 4.1666 : 2.0833;
+
+  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    const origPage = pdfDoc.getPage(pageIdx);
+    const { width: origWidth, height: origHeight } = origPage.getSize();
+
+    if (targetIndices.includes(pageIdx)) {
+      const page = await pdfJsDoc.getPage(pageIdx + 1);
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+        const quality = dpi === 300 ? 0.92 : 0.88;
+        const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
+        const jpegImgBytes = await fetch(jpegDataUrl).then((r) => r.arrayBuffer());
+        const embeddedImg = await flattenedDoc.embedJpg(jpegImgBytes);
+
+        const newPage = flattenedDoc.addPage([origWidth, origHeight]);
+        newPage.drawImage(embeddedImg, {
+          x: 0,
+          y: 0,
+          width: origWidth,
+          height: origHeight,
+        });
+      } else {
+        const [copied] = await flattenedDoc.copyPages(pdfDoc, [pageIdx]);
+        flattenedDoc.addPage(copied);
+      }
+    } else {
+      const [copied] = await flattenedDoc.copyPages(pdfDoc, [pageIdx]);
+      flattenedDoc.addPage(copied);
+    }
+
+    if (onProgress) {
+      onProgress(10 + Math.round(((pageIdx + 1) / totalPages) * 80));
+    }
+  }
+
+  if (onProgress) onProgress(95);
+  const resultBytes = await flattenedDoc.save({ useObjectStreams: true });
   if (onProgress) onProgress(100);
   return resultBytes;
 }
@@ -990,20 +1093,47 @@ export async function powerPointToPdf(
 }
 
 // 19. Real PDF to PowerPoint (.pptx) Converter using pptxgenjs
+export interface PdfToPptxOptions {
+  orientation?: "landscape" | "portrait";
+  pageScope?: "all" | "range";
+  pageRangeStr?: string;
+}
+
 export async function pdfToPowerPointPptx(
   file: File,
-  onProgress?: (percent: number) => void
+  options?: PdfToPptxOptions | ((percent: number) => void),
+  onProgressCallback?: (percent: number) => void
 ): Promise<Uint8Array> {
+  const onProgress = typeof options === "function" ? options : onProgressCallback;
+  const opts: PdfToPptxOptions = typeof options === "object" && options !== null ? options : {};
+
+  const orientation = opts.orientation || "landscape";
+  const pageScope = opts.pageScope || "all";
+  const pageRangeStr = opts.pageRangeStr || "";
+
   if (onProgress) onProgress(10);
   const arrayBuffer = await fileToArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const pageCount = pdf.numPages;
+  const totalPages = pdf.numPages;
+
+  let targetIndices: number[] = [];
+  if (pageScope === "range" && pageRangeStr.trim()) {
+    targetIndices = parseTargetPageIndices(pageRangeStr, totalPages);
+  } else {
+    targetIndices = Array.from({ length: totalPages }, (_, i) => i);
+  }
 
   const pptx = new PptxGenJS();
-  pptx.layout = "LAYOUT_16x9";
+  if (orientation === "portrait") {
+    pptx.defineLayout({ name: "PORTRAIT_16x9", width: 7.5, height: 10.0 });
+    pptx.layout = "PORTRAIT_16x9";
+  } else {
+    pptx.layout = "LAYOUT_16x9";
+  }
 
-  for (let i = 1; i <= pageCount; i++) {
-    const page = await pdf.getPage(i);
+  for (let idx = 0; idx < targetIndices.length; idx++) {
+    const pageNum = targetIndices[idx] + 1;
+    const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale: 2.0 });
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
@@ -1023,7 +1153,7 @@ export async function pdfToPowerPointPptx(
       });
     }
 
-    if (onProgress) onProgress(10 + Math.round((i / pageCount) * 75));
+    if (onProgress) onProgress(10 + Math.round(((idx + 1) / targetIndices.length) * 75));
   }
 
   if (onProgress) onProgress(90);

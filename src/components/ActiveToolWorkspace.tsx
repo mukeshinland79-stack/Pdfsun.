@@ -42,6 +42,7 @@ import {
   Star,
   ThumbsUp,
   QrCode,
+  Presentation,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -240,6 +241,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [invertContrast, setInvertContrast] = useState(100);
   const [translateSourceLang, setTranslateSourceLang] = useState("auto");
   const [translateTargetLang, setTranslateTargetLang] = useState("hi");
+  const [pptOrientation, setPptOrientation] = useState<"landscape" | "portrait">("landscape");
+  const [pptPageScope, setPptPageScope] = useState<"all" | "range">("all");
+  const [pptPageRangeStr, setPptPageRangeStr] = useState("1-5, 8, 11-13");
+  const [flattenMode, setFlattenMode] = useState<"smart" | "rasterize">("smart");
+  const [flattenDpi, setFlattenDpi] = useState<150 | 300>(150);
+  const [flattenPageScope, setFlattenPageScope] = useState<"all" | "range">("all");
+  const [flattenPageRangeStr, setFlattenPageRangeStr] = useState("1-5, 8, 11-13");
   const [showQrCodeModal, setShowQrCodeModal] = useState(false);
   const [purgedMessage, setPurgedMessage] = useState(false);
 
@@ -646,8 +654,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "flatten-pdf":
-          setStatusMessage("Flattening form fields and annotations...");
-          outputBytes = await flattenPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          setStatusMessage(
+            flattenMode === "rasterize"
+              ? `Rasterizing PDF pages at ${flattenDpi} DPI into high-security un-editable images...`
+              : "Smart flattening form fields, annotations & layers..."
+          );
+          outputBytes = await flattenPdf(
+            files[0],
+            {
+              mode: flattenMode,
+              dpi: flattenDpi,
+              pageScope: flattenPageScope,
+              pageRangeStr: flattenPageRangeStr,
+            },
+            (p) => setProgress(45 + Math.round((p / 100) * 50))
+          );
           outputName = `PDFSun_Flattened_${files[0].name}`;
           break;
 
@@ -747,7 +768,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
         case "pdf-to-powerpoint":
           setStatusMessage("Converting PDF pages to Microsoft PowerPoint (.pptx)...");
-          outputBytes = await pdfToPowerPointPptx(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          outputBytes = await pdfToPowerPointPptx(
+            files[0],
+            {
+              orientation: pptOrientation,
+              pageScope: pptPageScope,
+              pageRangeStr: pptPageRangeStr,
+            },
+            (p) => setProgress(45 + Math.round((p / 100) * 50))
+          );
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Presentation.pptx`;
           mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
           break;
@@ -1557,38 +1586,210 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
-            {["extract-pages", "extract-pdf-pages"].includes(tool.id) && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Pages to Extract (e.g. "1-3, 5")</label>
-                  <input
-                    type="text"
-                    value={extractPagesRange}
-                    onChange={(e) => setExtractPagesRange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
-                  />
+            {tool.id === "pdf-to-powerpoint" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <Presentation className="w-4 h-4 text-orange-500" />
+                  <span>PDF to PowerPoint Slide Options</span>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="extractFormat"
-                      checked={extractPagesFormat === "combined"}
-                      onChange={() => setExtractPagesFormat("combined")}
-                      className="text-orange-500 focus:ring-orange-500"
-                    />
-                    <span>Extract as 1 Combined PDF</span>
+
+                {/* Orientation Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Slide Layout Orientation</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPptOrientation("landscape")}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-2 ${
+                        pptOrientation === "landscape"
+                          ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      <span>🖥️ Landscape (16:9)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPptOrientation("portrait")}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-2 ${
+                        pptOrientation === "portrait"
+                          ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      <span>📱 Portrait (9:16)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Page Scope Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Scope Selection</label>
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="pptPageScopeRadio"
+                        checked={pptPageScope === "all"}
+                        onChange={() => setPptPageScope("all")}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>All Pages</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="pptPageScopeRadio"
+                        checked={pptPageScope === "range"}
+                        onChange={() => setPptPageScope("range")}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Custom Page Range</span>
+                    </label>
+                  </div>
+
+                  {pptPageScope === "range" && (
+                    <div className="pt-1 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        Enter Page Numbers / Ranges (e.g., "1-5, 8, 11-13")
+                      </label>
+                      <input
+                        type="text"
+                        value={pptPageRangeStr}
+                        onChange={(e) => setPptPageRangeStr(e.target.value)}
+                        placeholder="1-5, 8, 11-13"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {tool.id === "flatten-pdf" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <ShieldCheck className="w-4 h-4 text-orange-500" />
+                  <span>Flatten PDF Security & Quality Options</span>
+                </div>
+
+                {/* Mode Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Flattening Security Mode
                   </label>
-                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="extractFormat"
-                      checked={extractPagesFormat === "zip"}
-                      onChange={() => setExtractPagesFormat("zip")}
-                      className="text-orange-500 focus:ring-orange-500"
-                    />
-                    <span>Extract as Zip of Individual Pages</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFlattenMode("smart")}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        flattenMode === "smart"
+                          ? "bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-900 dark:text-orange-200 shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="font-bold text-xs flex items-center space-x-1.5">
+                        <span>⚡ Mode A: Smart Layer Merge</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Flattens form fields, signatures & annotations into document layer while preserving vector text & crisp quality.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFlattenMode("rasterize")}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        flattenMode === "rasterize"
+                          ? "bg-orange-50 dark:bg-orange-950/30 border-orange-500 text-orange-900 dark:text-orange-200 shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="font-bold text-xs flex items-center space-x-1.5">
+                        <span>🔒 Mode B: Full High-Security Rasterize</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Converts pages into high-res images. Locks 100% of text selection, editing, and copying for legal & bank docs.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* DPI Quality Selector (If Rasterize Mode Selected) */}
+                {flattenMode === "rasterize" && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Rasterization Resolution (DPI Quality)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFlattenDpi(150)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-2 ${
+                          flattenDpi === 150
+                            ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <span>🌐 Standard (150 DPI Web)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFlattenDpi(300)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-2 ${
+                          flattenDpi === 300
+                            ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <span>🖨️ Ultra Print (300 DPI HD)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Page Scope Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Page Scope Selection
                   </label>
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="flattenPageScopeRadio"
+                        checked={flattenPageScope === "all"}
+                        onChange={() => setFlattenPageScope("all")}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Entire Document</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="flattenPageScopeRadio"
+                        checked={flattenPageScope === "range"}
+                        onChange={() => setFlattenPageScope("range")}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <span>Custom Pages</span>
+                    </label>
+                  </div>
+
+                  {flattenPageScope === "range" && (
+                    <div className="pt-1 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        Enter Page Numbers / Ranges (e.g., "1-5, 8, 11-13")
+                      </label>
+                      <input
+                        type="text"
+                        value={flattenPageRangeStr}
+                        onChange={(e) => setFlattenPageRangeStr(e.target.value)}
+                        placeholder="1-5, 8, 11-13"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
