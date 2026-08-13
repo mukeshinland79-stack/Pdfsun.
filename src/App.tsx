@@ -6,6 +6,7 @@ import { ToolGrid } from "./components/ToolGrid";
 import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
 import { AIChatWorkspace } from "./components/AIChatWorkspace";
 import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
+import { RemoveWatermarkTool } from "./components/RemoveWatermarkTool";
 import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
 import { ViewPdfMetadataTool } from "./components/ViewPdfMetadataTool";
 import { ProtectPdfTool } from "./components/ProtectPdfTool";
@@ -708,7 +709,15 @@ export default function App() {
 
       {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
-        activeTool.id === "watermark-pdf" ? (
+        activeTool.id === "remove-watermark" ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+            <RemoveWatermarkTool
+              initialFile={activeToolFiles[0] || null}
+              onClose={() => setActiveTool(null)}
+              onAddHistory={addHistory}
+            />
+          </div>
+        ) : activeTool.id === "watermark-pdf" ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <WatermarkPdfTool
               initialFile={activeToolFiles[0] || null}

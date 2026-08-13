@@ -224,12 +224,35 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     userProfile.plan?.toLowerCase().includes("pro") ||
     (activeSubscription && activeSubscription.status === "active");
 
-  const badgeStatus = hasActivePaidPlan ? "PRO CUSTOMER" : "FREE CUSTOMER";
+  const badgeStatus =
+    activeSubscription?.plan_id === "enterprise"
+      ? "ENTERPRISE USER"
+      : activeSubscription?.plan_id === "flexi"
+      ? "FLEXI PACK HOLDER"
+      : hasActivePaidPlan
+      ? "PRO SUN MEMBER"
+      : "FREE CUSTOMER";
+
   const activePlanName = activeSubscription?.plan_id === "pro-yearly"
-    ? "PRO SUN ANNUAL (₹1,499/yr)"
+    ? "PRO SUN ANNUAL"
     : activeSubscription?.plan_id === "enterprise"
-    ? "ENTERPRISE PLAN (₹3,999/yr)"
-    : "PRO SUN MONTHLY (₹199/mo)";
+    ? "ENTERPRISE PLAN"
+    : activeSubscription?.plan_id === "flexi"
+    ? "FLEXI PACK"
+    : activeSubscription?.plan_id === "pro-monthly"
+    ? "PRO SUN MONTHLY"
+    : (userProfile.plan || "FREE PLAN").toUpperCase();
+
+  const bookedPlanAmountINR =
+    activeSubscription?.plan_id === "pro-yearly"
+      ? 1499
+      : activeSubscription?.plan_id === "enterprise"
+      ? 3999
+      : activeSubscription?.plan_id === "flexi"
+      ? 99
+      : activeSubscription?.plan_id === "pro-monthly"
+      ? 199
+      : (totalSpentINR > 0 ? totalSpentINR : 199);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -246,53 +269,77 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         </div>
       )}
 
-      {/* Top Banner: User Profile Card & Billing Overview */}
-      <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-xl relative overflow-hidden">
+      {/* Top Banner: User Profile Header & Billing Overview Container */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-2xl relative overflow-hidden space-y-6">
         {/* Background Decorative Glow */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center space-x-1.5 border ${
-                hasActivePaidPlan
-                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                  : "bg-slate-700/50 border-slate-600 text-slate-300"
-              }`}>
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>STATUS: {badgeStatus}</span>
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
-                Webhook Verified (Secret: 905065)
-              </span>
-            </div>
-
+        {/* Profile Header Row */}
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div className="flex items-center space-x-4">
+            <img
+              src={userProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
+              alt={userProfile.name}
+              className="w-14 h-14 rounded-2xl object-cover ring-2 ring-amber-500/40 shadow-md shrink-0"
+            />
             <div>
-              <h2 className="text-xl font-black tracking-tight text-white flex items-center space-x-2">
-                <span>Account Billing &amp; Subscriptions</span>
-                <Crown className="w-5 h-5 text-amber-400 fill-amber-400/20" />
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Account: <span className="text-slate-200 font-semibold">{userProfile.email}</span> • Currency: <span className="text-amber-400 font-bold">₹ INR</span>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-xl font-black text-white">{userProfile.name}</h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500 text-slate-950 tracking-wider">
+                  {badgeStatus}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium pt-0.5">
+                Account: <span className="text-slate-200 font-bold">{userProfile.email}</span> • Currency: <span className="text-amber-400 font-bold">₹ INR</span>
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
-              <div className="bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Tier</span>
-                <span className="font-extrabold text-amber-300 text-sm">{activePlanName}</span>
+          <div className="flex items-center space-x-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-extrabold flex items-center space-x-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>VERIFIED RAZORPAY ACCOUNT • Webhook Verified</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Primary Billing Container */}
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-1">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-center space-x-2 text-xs text-amber-400 font-bold uppercase tracking-wider">
+              <Crown className="w-4 h-4 fill-amber-400" />
+              <span>Active Subscription &amp; Billing Overview</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* CURRENT PLAN NAME */}
+              <div className="bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80 space-y-1">
+                <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                  Booked Plan Name
+                </span>
+                <span className="text-base font-black text-amber-300 tracking-tight block">
+                  CURRENT PLAN: {activePlanName}
+                </span>
               </div>
 
-              <div className="bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Paid</span>
-                <span className="font-extrabold text-emerald-400 text-sm font-mono">₹{totalSpentINR.toLocaleString()} INR</span>
+              {/* TOTAL PAID AMOUNT */}
+              <div className="bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80 space-y-1">
+                <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                  Total Paid Amount
+                </span>
+                <span className="text-lg font-black text-emerald-400 font-mono block">
+                  ₹{bookedPlanAmountINR.toLocaleString()} INR
+                </span>
               </div>
 
-              <div className="bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Gateway Engine</span>
-                <span className="font-bold text-sky-300 flex items-center space-x-1">
-                  <Zap className="w-3.5 h-3.5 fill-sky-300" />
+              {/* PAYMENT ENGINE STATUS */}
+              <div className="bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80 space-y-1">
+                <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                  Payment Engine Status
+                </span>
+                <span className="text-xs font-bold text-sky-300 flex items-center space-x-1 pt-1">
+                  <Zap className="w-4 h-4 fill-sky-300 shrink-0" />
                   <span>Razorpay Live UPI &amp; Subscriptions</span>
                 </span>
               </div>
@@ -300,24 +347,25 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            {/* Fallback "Sync Payment Status" Button */}
+            {/* Sync Payment Status Button */}
             <button
               onClick={handleSyncPaymentStatus}
               disabled={syncing}
-              className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
+              className="px-4 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs uppercase tracking-wider border border-slate-700 shadow-md transition flex items-center justify-center space-x-2 cursor-pointer"
               title="Sync Payment Status with Razorpay Backend"
             >
-              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              <span>{syncing ? "Syncing..." : "Sync Payment Status"}</span>
+              <RefreshCw className={`w-4 h-4 text-emerald-400 ${syncing ? "animate-spin" : ""}`} />
+              <span>{syncing ? "Syncing..." : "Sync Status"}</span>
             </button>
 
+            {/* High-Contrast UPGRADE / CHANGE PLAN CTA */}
             {onOpenPricing && (
               <button
                 onClick={onOpenPricing}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
+                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 fill-slate-950" />
-                <span>Upgrade Plan →</span>
+                <span>UPGRADE / CHANGE PLAN →</span>
               </button>
             )}
           </div>
@@ -401,80 +449,79 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
               <p className="text-[11px] text-slate-400">Upgrade your account or buy Flexi Credits to populate your transaction log.</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {filteredTransactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 hover:border-amber-500/50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm group"
-                >
-                  <div className="flex items-start space-x-3.5">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 shadow-md">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700/80 text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    <th className="py-3.5 px-4">Date &amp; Time</th>
+                    <th className="py-3.5 px-4">Exact Purchased Plan</th>
+                    <th className="py-3.5 px-4">Paid Amount</th>
+                    <th className="py-3.5 px-4">Razorpay Payment Ref ID</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
+                    <th className="py-3.5 px-4 text-right">Invoice / Receipt</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {filteredTransactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-amber-500/5 transition">
+                      {/* Date & Time */}
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        <div className="flex items-center space-x-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{tx.date}</span>
+                        </div>
+                      </td>
 
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition">
-                          {tx.plan}
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center space-x-1">
-                          <CheckCircle className="w-3 h-3" />
-                          <span>{tx.status}</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                          {tx.gateway}
-                        </span>
-                      </div>
+                      {/* Exact Purchased Plan Name */}
+                      <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
+                        <span className="text-xs">{tx.plan}</span>
+                      </td>
 
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="flex items-center space-x-1 font-mono">
-                          <span>Payment ID:</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">{tx.id}</span>
+                      {/* Paid Amount */}
+                      <td className="py-3.5 px-4 font-mono font-extrabold text-slate-900 dark:text-emerald-400 whitespace-nowrap">
+                        ₹{tx.amountINR?.toLocaleString() || "199"}.00 INR
+                      </td>
+
+                      {/* Razorpay Payment Ref ID */}
+                      <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="font-semibold">{tx.id}</span>
                           <button
                             onClick={() => handleCopy(tx.id)}
-                            className="hover:text-amber-500 p-0.5"
+                            className="hover:text-amber-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
                             title="Copy Payment ID"
                           >
                             {copiedId === tx.id ? (
-                              <Check className="w-3 h-3 text-emerald-500" />
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
                             ) : (
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-3.5 h-3.5 text-slate-400" />
                             )}
                           </button>
+                        </div>
+                      </td>
+
+                      {/* Status (Success badge with green dot) */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                          <span>{tx.status}</span>
                         </span>
+                      </td>
 
-                        <span>•</span>
-
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          <span>{tx.date}</span>
-                        </span>
-
-                        <span>•</span>
-
-                        <span className="text-slate-400">{tx.paymentMethod || "UPI / Razorpay Gateway"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-700/50">
-                    <div className="text-right">
-                      <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
-                        ₹{tx.amountINR?.toLocaleString() || "199"}.00
-                      </div>
-                      <div className="text-[10px] text-slate-400">INR (Tax Included)</div>
-                    </div>
-
-                    <button
-                      onClick={() => setSelectedInvoice(tx)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shrink-0"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Receipt</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      {/* Invoice / Receipt Download Link */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setSelectedInvoice(tx)}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-700 dark:text-amber-300 text-xs font-bold transition inline-flex items-center space-x-1.5 cursor-pointer border border-amber-500/30"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Receipt .PDF</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

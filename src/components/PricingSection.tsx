@@ -667,11 +667,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             }
           }
 
+          const activePlanFromStorage = typeof window !== "undefined" ? localStorage.getItem("pdfsun_user_plan_v1") : null;
+          const activeUserPlanId = userSubscription?.plan_id || activePlanId || activePlanFromStorage || (isProUser ? "pro-yearly" : "free");
+
           const isPlanActiveForUser =
-            userSubscription &&
-            userSubscription.user_id.toLowerCase() === currentUserId.toLowerCase() &&
-            userSubscription.status === "active" &&
-            userSubscription.plan_id === plan.id;
+            (userSubscription &&
+              userSubscription.user_id.toLowerCase() === currentUserId.toLowerCase() &&
+              userSubscription.status === "active" &&
+              userSubscription.plan_id === plan.id) ||
+            (!userSubscription && activeUserPlanId === plan.id && plan.id !== "free");
+
+          const expiresDateStr = userSubscription?.expires_at
+            ? new Date(userSubscription.expires_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+            : new Date(Date.now() + 365 * 86400000).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
           return (
             <div
@@ -792,12 +800,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                         <span>PLAN ACTIVATED</span>
                       </div>
 
-                      <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 truncate">
+                      <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 leading-snug">
                         Bound to User ID: <span className="text-emerald-600 dark:text-emerald-400 font-black">{currentUserId}</span>
                       </p>
 
+                      <p className="text-[11px] text-slate-800 dark:text-slate-100 font-black">
+                        Plan: <span className="text-emerald-600 dark:text-emerald-400 uppercase">{plan.name}</span>
+                      </p>
+
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                        Expires: {new Date(userSubscription.expires_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        Expires: {expiresDateStr}
                       </p>
                     </div>
                   </div>
