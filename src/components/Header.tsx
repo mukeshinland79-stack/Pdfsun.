@@ -17,38 +17,21 @@ import {
   LogOut,
   BarChart3,
   Users,
-  FolderKanban,
-  DollarSign,
   Settings,
-  Terminal,
-  DatabaseBackup,
   Globe,
   Home,
   Check,
-  FileSpreadsheet,
-  HelpCircle,
-  BookOpen,
-  UserCheck,
-  Wallet,
-  Download,
-  WifiOff,
   Eye,
-  EyeOff,
-  Palette,
   Laptop,
-  Activity,
-  Share2,
   Edit3,
   Sliders,
+  Wallet,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
-import { useLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n";
-import { SearchOverlay } from "./SearchOverlay";
+import { useLanguage } from "../lib/i18n";
 import { SearchModal } from "./SearchModal";
-import { LanguageSelector } from "./LanguageSelector";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { usePWAStatus } from "../pwaRegister";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { checkAdminRole } from "../hooks/useAuth";
@@ -102,16 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUserDashboard,
   onLogout,
   onGoHome,
-  onOpenShareModal,
 }) => {
-  const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
-  const { isOffline, isInstallable, installPWA } = usePWAStatus();
+  const { t } = useLanguage();
 
   // Strict RBAC authorization: Server token verified & cryptographic role checked
   const isAuthenticated = userProfile !== null && currentRole !== "public";
   const hasAdminRights = isAuthenticated && (Boolean(canAccessAdmin) || checkAdminRole(userProfile, currentRole));
-  const userEmail = (userProfile?.email || "").toLowerCase().trim();
-  const isDualOwnerEmail = DUAL_OWNER_EMAILS.includes(userEmail);
   const isAdminOrOwner = hasAdminRights;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -119,27 +98,29 @@ export const Header: React.FC<HeaderProps> = ({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
+  const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const toolsDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close theme dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) {
         setThemeDropdownOpen(false);
       }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target as Node)) {
+        setToolsDropdownOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Instant Search & Overlay State
-  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Track window scroll for elevated header shadow
   useEffect(() => {
@@ -150,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Global Keyboard Shortcut listener (Ctrl+/ or Cmd+/ or Cmd+K / Ctrl+K)
+  // Global Keyboard Shortcut listener (Ctrl+K or Cmd+K or Ctrl+/)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -168,60 +149,54 @@ export const Header: React.FC<HeaderProps> = ({
   const popularTools = ALL_TOOLS.filter((t) => t.isPopular).slice(0, 8);
   const aiTools = ALL_TOOLS.filter((t) => t.isAi);
 
-  // Live filtered suggestions for instant header search
-  const filteredSearchTools = headerSearchQuery.trim()
-    ? ALL_TOOLS.filter(
-        (t) =>
-          (t.name || "").toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
-          (t.description || "").toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
-          (t.category || "").toLowerCase().includes(headerSearchQuery.toLowerCase())
-      )
-    : [];
-
   return (
     <header
-      className={`sticky top-0 z-40 w-full backdrop-blur-md bg-white/90 dark:bg-[#0f172a]/90 border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-300 ${
-        scrolled ? "shadow-md" : "shadow-xs"
+      id="main-header"
+      className={`sticky top-0 z-40 w-full backdrop-blur-md bg-white/95 dark:bg-[#0b1120]/95 border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 ${
+        scrolled ? "shadow-sm" : ""
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 lg:gap-6">
-        {/* Zone 1: Left Zone (Brand Logo & Navigation Dropdowns) */}
-        <div className="flex items-center space-x-3 lg:space-x-4 shrink-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4 overflow-hidden">
+        
+        {/* ========================================================= */}
+        {/* ZONE 1: LEFT ZONE (Brand Logo & Main Desktop Nav Links)   */}
+        {/* ========================================================= */}
+        <div className="flex items-center space-x-3 sm:space-x-5 shrink-0">
           <PDFSunLogo
             layout="horizontal"
             size="md"
             onClick={onGoHome}
           />
 
-          {/* Core Navigation Links & Dropdowns (Desktop lg+) */}
-          <div className="hidden lg:flex items-center space-x-2">
+          {/* Primary Navigation Links (Desktop lg+) */}
+          <nav className="hidden lg:flex items-center space-x-1" aria-label="Main Navigation">
             {/* Direct Home Link */}
             <button
               onClick={onGoHome}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
             >
               <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>{t("home", "Home")}</span>
             </button>
 
             {/* PDF Tools Mega Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={toolsDropdownRef}>
               <button
                 onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
                 onMouseEnter={() => setToolsDropdownOpen(true)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
               >
-                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>{t("allTools", "All PDF Tools")}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${toolsDropdownOpen ? "rotate-180" : ""}`} />
               </button>
 
               {toolsDropdownOpen && (
                 <div
                   onMouseLeave={() => setToolsDropdownOpen(false)}
-                  className="absolute top-full left-0 w-80 mt-1 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 grid grid-cols-1 gap-1 z-50 animate-in fade-in slide-in-from-top-2"
+                  className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2.5 grid grid-cols-1 gap-1 z-50 animate-in fade-in slide-in-from-top-2"
                 >
-                  <div className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
                     {t("popularTools", "Popular Tools")}
                   </div>
                   {popularTools.map((tool) => (
@@ -231,16 +206,16 @@ export const Header: React.FC<HeaderProps> = ({
                         onSelectTool(tool);
                         setToolsDropdownOpen(false);
                       }}
-                      className="flex items-center space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition text-slate-700 dark:text-slate-200 group"
+                      className="flex items-center space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition text-slate-700 dark:text-slate-200 group cursor-pointer"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition">
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition shrink-0">
                         {tool.name[0]}
                       </div>
-                      <div>
-                        <div className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
                           {tool.name}
                         </div>
-                        <div className="text-[10px] text-slate-400 line-clamp-1">{tool.description}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{tool.description}</div>
                       </div>
                     </button>
                   ))}
@@ -249,136 +224,88 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* AI Tools Suite Pill */}
-            <button
-              onClick={() => onSelectTool(aiTools[0])}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/20 transition shadow-xs whitespace-nowrap"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>{t("aiSuite", "AI Suite")}</span>
-              <span className="text-[9px] px-1.5 py-0.2 bg-blue-600 text-white rounded-full font-mono font-bold">
-                3.6
-              </span>
-            </button>
-          </div>
+            {aiTools.length > 0 && (
+              <button
+                onClick={() => onSelectTool(aiTools[0])}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition shadow-2xs whitespace-nowrap cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>{t("aiSuite", "AI Suite")}</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-blue-600 text-white rounded-full font-mono font-bold">
+                  PRO
+                </span>
+              </button>
+            )}
+          </nav>
         </div>
 
-        {/* Zone 2: Center Zone (Compact Search Bar Trigger) */}
-        <div className="flex-1 max-w-xs sm:max-w-sm lg:max-w-md mx-2 flex justify-center">
+        {/* ========================================================= */}
+        {/* ZONE 2: CENTER ZONE (Compact SaaS Search Bar)             */}
+        {/* ========================================================= */}
+        <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-2 justify-center">
           <button
             type="button"
             onClick={() => setSearchOverlayOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap cursor-pointer"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs whitespace-nowrap cursor-pointer group"
             title={`Search ${ALL_TOOLS.length} PDF Tools (Ctrl+K)`}
             aria-label="Open tool search modal"
           >
-            <div className="flex items-center space-x-2 min-w-0">
-              <Search className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
               <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                {t("searchTools", `Search ${ALL_TOOLS.length} PDF tools...`)}
+                {t("searchTools", `Search ${ALL_TOOLS.length} tools...`)}
               </span>
             </div>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-2">
-              Ctrl+K
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-400 shrink-0 ml-2">
+              ⌘K
             </kbd>
           </button>
         </div>
 
-        {/* Zone 3: Right Zone (Language, Theme, Auth & Mobile Menu) */}
-        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 ml-auto">
+        {/* ========================================================= */}
+        {/* ZONE 3: RIGHT ZONE (Actions, Theme, Language & Auth)      */}
+        {/* ========================================================= */}
+        <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0 ml-auto">
+          
+          {/* Mobile/Tablet Search Icon Trigger (< md) */}
+          <button
+            type="button"
+            onClick={() => setSearchOverlayOpen(true)}
+            className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            title="Search Tools"
+            aria-label="Search Tools"
+          >
+            <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </button>
+
           {/* Language Switcher */}
-          <LanguageSwitcher />
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
 
-          {/* PWA Offline / Install Badge */}
-          {isOffline ? (
-            <div
-              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold shrink-0 whitespace-nowrap"
-              title="You are currently offline. Client-side PDF tools remain fully functional."
-            >
-              <WifiOff className="w-3.5 h-3.5" />
-              <span>Offline Mode</span>
-            </div>
-          ) : isInstallable ? (
-            <button
-              type="button"
-              onClick={installPWA}
-              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition text-xs font-bold shadow-xs shrink-0 whitespace-nowrap"
-              title="Install PDFSun App for offline desktop & mobile access"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Install App</span>
-            </button>
-          ) : null}
-
-          {/* Favorites Counter */}
-          <button
-            onClick={onOpenFavorites}
-            className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition relative"
-            title={t("favorites.title", "Favorite Tools")}
-          >
-            <Star className={`w-4 h-4 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : ""}`} />
-            {favorites.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
-                {favorites.length}
-              </span>
-            )}
-          </button>
-
-          {/* History Button */}
-          <button
-            onClick={onOpenHistory}
-            className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            title={t("history", "Recent History")}
-          >
-            <Clock className="w-4 h-4" />
-          </button>
-
-          {/* Share PDFSun Modal Button */}
-          {onOpenShareModal && (
-            <button
-              onClick={onOpenShareModal}
-              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-extrabold text-xs transition shadow-xs"
-              title="Share PDFSun with friends or colleagues"
-            >
-              <Share2 className="w-3.5 h-3.5 text-amber-500" />
-              <span>Share</span>
-            </button>
-          )}
-
-          {/* Single Unified Theme Control Icon & Dropdown Selector */}
+          {/* Single Unified Theme Selector */}
           <div className="relative" ref={themeDropdownRef}>
             <button
               onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 border shadow-xs ${
-                themeMode === "eye-protection"
-                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 ring-2 ring-amber-500/20"
-                  : themeMode === "aurora"
-                  ? "bg-indigo-950/80 text-sky-300 border-indigo-500/40 ring-2 ring-indigo-500/20"
-                  : themeMode === "dark"
+              className={`p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center space-x-1.5 cursor-pointer ${
+                themeMode === "dark"
                   ? "bg-slate-800 text-blue-300 border-slate-700 hover:bg-slate-700"
-                  : themeMode === "system"
-                  ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80"
-              }`}
-              title={
-                themeMode === "eye-protection"
-                  ? "Current Theme: Eye Protection Mode (Warm sepia & reduced blue light)"
+                  : themeMode === "eye-protection"
+                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40"
                   : themeMode === "aurora"
-                  ? "Current Theme: Aurora Glass (Animated gradient & frosted glass UI)"
-                  : themeMode === "dark"
-                  ? "Current Theme: Standard Dark Mode (Low-light midnight theme)"
-                  : themeMode === "system"
-                  ? "Current Theme: System Auto Mode (Matches OS theme)"
-                  : "Current Theme: Standard Light Mode (Bright daylight interface)"
-              }
-              aria-label={`Current Theme: ${themeMode || "light"}. Click to change theme.`}
+                  ? "bg-indigo-950/80 text-sky-300 border-indigo-500/40"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200/80 dark:hover:bg-slate-700"
+              }`}
+              title={`Current Theme: ${themeMode}. Click to switch.`}
+              aria-label="Change Display Theme"
             >
               {themeMode === "system" && <Laptop className="w-4 h-4 text-indigo-500" />}
               {themeMode === "light" && <Sun className="w-4 h-4 text-amber-500 fill-amber-400/30" />}
               {themeMode === "dark" && <Moon className="w-4 h-4 text-blue-400 fill-blue-400/30" />}
               {themeMode === "eye-protection" && <Eye className="w-4 h-4 text-amber-600 fill-amber-500/30" />}
-              {themeMode === "aurora" && <Sparkles className="w-4 h-4 text-sky-300 animate-pulse" />}
+              {themeMode === "aurora" && <Sparkles className="w-4 h-4 text-sky-300" />}
 
-              <span className="hidden sm:inline font-bold">
+              <span className="hidden md:inline font-bold">
                 {themeMode === "system"
                   ? "Auto"
                   : themeMode === "light"
@@ -389,71 +316,34 @@ export const Header: React.FC<HeaderProps> = ({
                   ? "Eye Care"
                   : "Aurora"}
               </span>
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${themeDropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3 h-3 hidden md:inline transition-transform duration-200 ${themeDropdownOpen ? "rotate-180" : ""}`} />
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Theme Dropdown Menu */}
             <AnimatePresence>
               {themeDropdownOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  transition={{ duration: 0.18 }}
-                  className="absolute right-0 top-full mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800/90 p-2 z-50 space-y-1"
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 space-y-1"
                 >
                   <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Select Display Theme
+                    Display Theme
                   </div>
                   {[
-                    {
-                      id: "system",
-                      label: "System Auto",
-                      desc: "Matches OS dark/light setting",
-                      tooltip: "System Auto Mode: Automatically syncs with your operating system dark/light schedule",
-                      icon: Laptop,
-                      color: "text-indigo-500 dark:text-indigo-400",
-                    },
-                    {
-                      id: "light",
-                      label: "Light Mode",
-                      desc: "High contrast daylight UI",
-                      tooltip: "Light Mode: Bright & crisp daytime theme for high readability",
-                      icon: Sun,
-                      color: "text-amber-500 fill-amber-400/30",
-                    },
-                    {
-                      id: "dark",
-                      label: "Dark Mode",
-                      desc: "OLED midnight dark theme",
-                      tooltip: "Dark Mode: Low-light OLED midnight color scheme for reduced fatigue",
-                      icon: Moon,
-                      color: "text-blue-400 fill-blue-400/30",
-                    },
-                    {
-                      id: "eye-protection",
-                      label: "Eye Protection",
-                      desc: "Warm sepia & blue light filter",
-                      tooltip: "Eye Protection Mode: Warm sepia filter & blue light reduction for long document reading",
-                      icon: Eye,
-                      color: "text-amber-600 fill-amber-500/30",
-                    },
-                    {
-                      id: "aurora",
-                      label: "Aurora Glass",
-                      desc: "Animated gradient & frosted glass",
-                      tooltip: "Aurora Glass Theme: Vibrant animated gradient background with frosted glass UI",
-                      icon: Sparkles,
-                      color: "text-sky-400 animate-pulse",
-                    },
+                    { id: "system", label: "System Auto", desc: "Matches OS settings", icon: Laptop, color: "text-indigo-500" },
+                    { id: "light", label: "Light Mode", desc: "Crisp daylight UI", icon: Sun, color: "text-amber-500" },
+                    { id: "dark", label: "Dark Mode", desc: "OLED midnight theme", icon: Moon, color: "text-blue-400" },
+                    { id: "eye-protection", label: "Eye Care", desc: "Warm sepia filter", icon: Eye, color: "text-amber-600" },
+                    { id: "aurora", label: "Aurora Glass", desc: "Vibrant frosted glass", icon: Sparkles, color: "text-sky-400" },
                   ].map((opt) => {
                     const IconComp = opt.icon;
                     const isActive = themeMode === opt.id;
                     return (
                       <button
                         key={opt.id}
-                        title={opt.tooltip}
-                        aria-label={`Select ${opt.label}: ${opt.desc}`}
                         onClick={() => {
                           if (setThemeMode) {
                             setThemeMode(opt.id as any);
@@ -462,120 +352,82 @@ export const Header: React.FC<HeaderProps> = ({
                           }
                           setThemeDropdownOpen(false);
                         }}
-                        className={`w-full flex items-start space-x-2.5 p-2 rounded-xl text-left transition-all ${
+                        className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
                           isActive
-                            ? "bg-blue-50/90 dark:bg-blue-950/70 border border-blue-500/40 ring-2 ring-blue-500/20 shadow-xs"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent"
+                            ? "bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                         }`}
                       >
-                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 transition-colors ${isActive ? "bg-blue-100 dark:bg-blue-900/60 shadow-xs" : "bg-slate-100 dark:bg-slate-800"}`}>
+                        <div className="flex items-center space-x-2.5">
                           <IconComp className={`w-4 h-4 ${opt.color}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs font-bold ${isActive ? "text-blue-700 dark:text-blue-300" : "text-slate-800 dark:text-slate-200"}`}>
-                              {opt.label}
-                            </span>
-                            {isActive && (
-                              <span className="flex items-center space-x-1 text-[10px] font-black tracking-wide text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded-md">
-                                <span>Active</span>
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
+                          <div>
+                            <div className="text-xs font-bold">{opt.label}</div>
+                            <div className="text-[10px] text-slate-400">{opt.desc}</div>
                           </div>
-                          <p className={`text-[10px] line-clamp-1 mt-0.5 ${isActive ? "text-blue-600/80 dark:text-blue-300/80" : "text-slate-400"}`}>{opt.desc}</p>
                         </div>
+                        {isActive && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
                       </button>
                     );
                   })}
-
-                  {/* Sync with System OS Preference Checkbox */}
-                  <div className="pt-2.5 mt-1 border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1.5">
-                    <label
-                      className="flex items-center justify-between cursor-pointer group text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                      title="Sync with System: Automatically listen to OS light/dark schedule changes"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Laptop className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
-                          Sync with System
-                        </span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={syncWithSystem}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          if (setSyncWithSystem) {
-                            setSyncWithSystem(checked);
-                          }
-                          if (checked && setThemeMode) {
-                            setThemeMode("system");
-                          }
-                        }}
-                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 dark:border-slate-700 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                      />
-                    </label>
-                    <p className="text-[9.5px] text-slate-400 mt-1 leading-tight">
-                      Auto-reverts to Light/Dark whenever your OS theme preference changes
-                    </p>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* User & Admin Navigation Menu */}
-          <div className="relative">
+          {/* Primary CTA / User Profile / Admin Menu */}
+          <div className="relative" ref={profileDropdownRef}>
             {hasAdminRights ? (
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center space-x-2 p-1.5 pl-3 pr-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white shadow-md hover:opacity-95 transition"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition cursor-pointer text-xs font-bold"
+                aria-label="Open Admin Menu"
               >
-                <Crown className="w-4 h-4 text-amber-300" />
-                <span className="text-xs font-black uppercase tracking-wider hidden sm:inline">
-                  {t("adminPanel", "Admin")}
+                <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="hidden sm:inline uppercase tracking-wider text-[11px] font-black">
+                  {currentRole === "owner" ? "Owner" : "Admin"}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5" />
+                <ChevronDown className="w-3 h-3 opacity-80 shrink-0" />
               </button>
             ) : userProfile !== null ? (
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center space-x-2 p-1.5 pl-3 pr-2.5 rounded-xl bg-slate-800 dark:bg-slate-800 text-white shadow-md hover:bg-slate-700 transition border border-slate-700"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer text-xs font-bold"
+                aria-label="Open User Menu"
               >
-                <User className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-bold hidden sm:inline">{userProfile.name.split(" ")[0]}</span>
-                <ChevronDown className="w-3.5 h-3.5" />
+                <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  {(userProfile.name || "U")[0].toUpperCase()}
+                </div>
+                <span className="hidden sm:inline max-w-[80px] truncate">
+                  {userProfile.name.split(" ")[0]}
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
               </button>
             ) : (
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={onOpenAuthModal}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1 whitespace-nowrap"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>{t("loginRegister", "Login / Register")}</span>
-                </button>
-              </div>
+              <button
+                onClick={onOpenAuthModal}
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-2xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{t("login", "Login")}</span>
+              </button>
             )}
 
             {/* Profile / Admin Navigation Dropdown */}
             {profileDropdownOpen && (
               <div
-                onMouseLeave={() => setProfileDropdownOpen(false)}
-                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 space-y-1 z-50 animate-in fade-in"
+                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 space-y-1 z-50 animate-in fade-in"
               >
                 <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
                   <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center justify-between">
-                    <span>{userProfile?.name || "Customer User"}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                      {currentRole === "owner" ? "ADMIN OWNER" : userProfile?.hasAdminAccess ? "ADMIN (GRANTED)" : "CUSTOMER"}
+                    <span className="truncate pr-2">{userProfile?.name || "Customer Account"}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                      {currentRole === "owner" ? "OWNER" : userProfile?.hasAdminAccess ? "ADMIN" : "PRO"}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono line-clamp-1">{userProfile?.email || "customer@pdfsun.app"}</div>
+                  <div className="text-[10px] text-slate-400 font-mono truncate">{userProfile?.email || "customer@pdfsun.in"}</div>
                 </div>
 
-                {/* ADMIN ONLY MENU ITEMS - Securely shown ONLY to Owner or users granted Admin access */}
+                {/* ADMIN ONLY MENU ITEMS */}
                 {hasAdminRights && (
                   <div className="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
                     <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center justify-between">
@@ -587,39 +439,34 @@ export const Header: React.FC<HeaderProps> = ({
                       )}
                     </div>
 
-                    {/* Primary Admin Dashboard Access */}
                     <button
                       onClick={() => {
                         setProfileDropdownOpen(false);
                         onOpenAdminPanel();
                       }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-bold flex items-center space-x-2 text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 transition shadow-xs"
+                      className="w-full p-2 rounded-xl text-left text-xs font-bold flex items-center space-x-2 text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 transition shadow-2xs cursor-pointer"
                     >
                       <Crown className="w-3.5 h-3.5 text-amber-300" />
                       <span>{t("adminPanel", "Open Admin Dashboard")}</span>
                     </button>
 
-                    {/* Live Site CMS */}
                     {onOpenCms && (
                       <button
                         onClick={() => {
                           setProfileDropdownOpen(false);
                           onOpenCms();
                         }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition"
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-amber-500" />
                         <span>Live Site CMS Editor</span>
                       </button>
                     )}
 
-                    {/* Toggle Admin Control Bar (Edit Mode) */}
                     {onToggleAdminEditMode && (
                       <button
-                        onClick={() => {
-                          onToggleAdminEditMode();
-                        }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        onClick={() => onToggleAdminEditMode()}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                       >
                         <div className="flex items-center space-x-2">
                           <Sliders className="w-3.5 h-3.5 text-slate-500" />
@@ -643,7 +490,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setProfileDropdownOpen(false);
                           onOpenAdminPanel("analytics");
                         }}
-                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <BarChart3 className="w-3 h-3 text-blue-500" />
                         <span>Analytics</span>
@@ -654,7 +501,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setProfileDropdownOpen(false);
                           onOpenAdminPanel("finance");
                         }}
-                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Wallet className="w-3 h-3 text-emerald-500" />
                         <span>Finance</span>
@@ -665,7 +512,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setProfileDropdownOpen(false);
                           onOpenAdminPanel("users");
                         }}
-                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Users className="w-3 h-3 text-cyan-500" />
                         <span>Users & RBAC</span>
@@ -676,7 +523,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setProfileDropdownOpen(false);
                           onOpenAdminPanel("settings");
                         }}
-                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Settings className="w-3 h-3 text-slate-400" />
                         <span>Settings</span>
@@ -685,77 +532,64 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
-                {/* LOGGED IN USER MENU ITEMS */}
-                {(currentRole === "user" || userProfile !== null) && (
-                  <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
+                {/* USER SHORTCUTS: FAVORITES & RECENT FILES */}
+                <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenFavorites();
+                    }}
+                    className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Star className={`w-3.5 h-3.5 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : "text-amber-500"}`} />
+                      <span>{t("favorites.title", "Favorite Tools")}</span>
+                    </div>
+                    {favorites.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-bold">
+                        {favorites.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenHistory();
+                    }}
+                    className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{t("history", "Recent History")}</span>
+                  </button>
+
+                  {isAuthenticated && (
                     <button
                       onClick={() => {
                         setProfileDropdownOpen(false);
                         onOpenUserDashboard();
                       }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                     >
-                      <User className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("profile", "Profile")}</span>
+                      <User className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>{t("dashboard", "User Dashboard")}</span>
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenUserDashboard();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    >
-                      <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("dashboard", "Dashboard")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenHistory();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    >
-                      <Clock className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("recentFiles", "Recent Files")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenFavorites();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    >
-                      <Star className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{t("favorites.title", "Favorites")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenUserDashboard();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    >
-                      <Settings className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t("settings", "Settings")}</span>
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* LOGOUT BUTTON */}
-                <button
-                  onClick={() => {
-                    setProfileDropdownOpen(false);
-                    onLogout();
-                  }}
-                  className="w-full p-2 rounded-xl text-left text-xs font-bold flex items-center space-x-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>{t("logout", "Logout")}</span>
-                </button>
+                {isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onLogout();
+                    }}
+                    className="w-full p-2 rounded-xl text-left text-xs font-bold flex items-center space-x-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{t("logout", "Logout")}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -763,7 +597,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mobile Menu Toggle (< 1024px) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -771,9 +605,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Responsive Mobile & Tablet Slide-over Drawer Menu (< 1024px) */}
+      {/* ========================================================= */}
+      {/* RESPONSIVE MOBILE & TABLET SLIDE-OVER DRAWER (< 1024px)   */}
+      {/* ========================================================= */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2">
+        <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0b1120]/98 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2">
 
           {/* Mobile Quick Search Button */}
           <button
@@ -782,7 +618,7 @@ export const Header: React.FC<HeaderProps> = ({
               setMobileMenuOpen(false);
               setSearchOverlayOpen(true);
             }}
-            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
           >
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -791,13 +627,72 @@ export const Header: React.FC<HeaderProps> = ({
             <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400">Ctrl+K</kbd>
           </button>
 
+          {/* Mobile Navigation Links */}
+          <div className="space-y-1">
+            <button
+              onClick={() => {
+                onGoHome();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 transition cursor-pointer"
+            >
+              <Home className="w-4 h-4 text-blue-600" />
+              <span>{t("home", "Home")}</span>
+            </button>
+
+            {aiTools.length > 0 && (
+              <button
+                onClick={() => {
+                  onSelectTool(aiTools[0]);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold text-xs cursor-pointer"
+              >
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4" />
+                  <span>{t("aiSuite", "AI PDF Tools Suite")}</span>
+                </div>
+                <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">PRO</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                onOpenFavorites();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between transition cursor-pointer"
+            >
+              <div className="flex items-center space-x-2">
+                <Star className="w-4 h-4 text-amber-500" />
+                <span>{t("favorites.title", "Favorite Tools")}</span>
+              </div>
+              {favorites.length > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">
+                  {favorites.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                onOpenHistory();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 transition cursor-pointer"
+            >
+              <Clock className="w-4 h-4 text-blue-600" />
+              <span>{t("history", "Recent History")}</span>
+            </button>
+          </div>
+
           {/* Mobile Language Switcher Row */}
           <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
               <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>{t("language", "Language")}</span>
             </span>
-            <LanguageSwitcher variant="pills" />
+            <LanguageSwitcher variant="dropdown" />
           </div>
 
           {/* Mobile Theme Switcher Row */}
@@ -805,13 +700,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
               {t("themeMode", "Website Theme")}
             </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {[
-                { id: "system", label: "Auto", icon: Laptop },
                 { id: "light", label: "Light", icon: Sun },
                 { id: "dark", label: "Dark", icon: Moon },
-                { id: "eye-protection", label: "Eye Care", icon: Eye },
-                { id: "aurora", label: "Aurora", icon: Sparkles },
+                { id: "system", label: "Auto", icon: Laptop },
               ].map((m) => {
                 const IconComponent = m.icon;
                 const isActive = themeMode === m.id;
@@ -822,9 +715,9 @@ export const Header: React.FC<HeaderProps> = ({
                       if (setThemeMode) setThemeMode(m.id as any);
                       else setDarkMode(m.id === "dark" || m.id === "aurora");
                     }}
-                    className={`flex items-center justify-center space-x-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex items-center justify-center space-x-1 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                       isActive
-                        ? "bg-blue-600 text-white shadow-xs"
+                        ? "bg-blue-600 text-white shadow-2xs"
                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
                     }`}
                   >
@@ -836,41 +729,13 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Mobile Navigation Links */}
-          <div className="space-y-1">
-            <button
-              onClick={() => {
-                onGoHome();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 transition"
-            >
-              <Home className="w-4 h-4 text-blue-600" />
-              <span>{t("home", "Home")}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectTool(aiTools[0]);
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold text-xs"
-            >
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4" />
-                <span>{t("aiSuite", "AI PDF Tools")}</span>
-              </div>
-              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold">GEMINI 3.6</span>
-            </button>
-          </div>
-
-          {/* ADMIN MOBILE MENU OPTIONS - Strict RBAC: Shown ONLY if user is authenticated AND holds Admin/Owner role */}
+          {/* ADMIN MOBILE MENU OPTIONS */}
           {isAdminOrOwner && (
             <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-2">
               <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-1 flex items-center justify-between">
                 <span className="flex items-center space-x-1">
                   <Crown className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Admin Suite {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
+                  <span>Admin Suite {currentRole === "owner" ? "(Owner)" : "(Granted)"}</span>
                 </span>
                 {adminEditModeActive && (
                   <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
@@ -884,7 +749,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setMobileMenuOpen(false);
                   onOpenAdminPanel();
                 }}
-                className="w-full p-2 rounded-xl text-left text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
+                className="w-full p-2 rounded-xl text-left text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center space-x-2 cursor-pointer"
               >
                 <Crown className="w-3.5 h-3.5 text-amber-300" />
                 <span>Open Admin Dashboard</span>
@@ -896,7 +761,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setMobileMenuOpen(false);
                     onOpenCms();
                   }}
-                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500/30 flex items-center space-x-2"
+                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500/30 flex items-center space-x-2 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-amber-500" />
                   <span>Live Site CMS Editor</span>
@@ -905,10 +770,8 @@ export const Header: React.FC<HeaderProps> = ({
 
               {onToggleAdminEditMode && (
                 <button
-                  onClick={() => {
-                    onToggleAdminEditMode();
-                  }}
-                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                  onClick={() => onToggleAdminEditMode()}
+                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-1.5">
                     <Sliders className="w-3.5 h-3.5 text-slate-500" />
@@ -932,7 +795,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("analytics");
                   }}
-                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer"
                 >
                   Analytics
                 </button>
@@ -941,7 +804,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("finance");
                   }}
-                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer"
                 >
                   Finance
                 </button>
@@ -950,7 +813,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("users");
                   }}
-                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer"
                 >
                   Users & RBAC
                 </button>
@@ -959,37 +822,11 @@ export const Header: React.FC<HeaderProps> = ({
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("settings");
                   }}
-                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer"
                 >
                   Settings
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* LOGGED IN CUSTOMER DASHBOARD */}
-          {isAuthenticated && !isAdminOrOwner && (
-            <div className="space-y-1 pt-1">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenUserDashboard();
-                }}
-                className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
-              >
-                <User className="w-4 h-4 text-blue-600" />
-                <span>{t("dashboard", "User Dashboard")}</span>
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onLogout();
-                }}
-                className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{t("logout", "Logout")}</span>
-              </button>
             </div>
           )}
 
@@ -1000,10 +837,10 @@ export const Header: React.FC<HeaderProps> = ({
                 setMobileMenuOpen(false);
                 onOpenAuthModal();
               }}
-              className="w-full p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-xs"
+              className="w-full p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-2xs cursor-pointer"
             >
               <User className="w-4 h-4" />
-              <span>{t("loginRegister", "Login / Register")}</span>
+              <span>{t("login", "Login / Register")}</span>
             </button>
           )}
 
@@ -1032,3 +869,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

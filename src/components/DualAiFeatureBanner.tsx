@@ -5,13 +5,11 @@ import { ALL_TOOLS } from "../data/toolsData";
 
 interface DualAiFeatureBannerProps {
   onSelectTool: (tool: ToolItem) => void;
-  onOpenSitemapModal?: () => void;
   onOpenContactModal?: () => void;
 }
 
 export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
   onSelectTool,
-  onOpenSitemapModal,
   onOpenContactModal,
 }) => {
   const handleLaunchAi = () => {
@@ -24,9 +22,7 @@ export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
   };
 
   const handleGlobalReach = () => {
-    if (onOpenSitemapModal) {
-      onOpenSitemapModal();
-    } else if (onOpenContactModal) {
+    if (onOpenContactModal) {
       onOpenContactModal();
     } else {
       handleLaunchAi();

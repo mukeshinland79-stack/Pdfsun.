@@ -46,6 +46,9 @@ import {
   Wallet,
   MessageSquare,
   Edit3,
+  Code2,
+  Cpu,
+  Lock,
 } from "lucide-react";
 import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
 import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
@@ -707,6 +710,119 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono">
                     {adminSettings?.domainName?.replace(/^https?:\/\//, '') || "pdfsun.in"}
                   </div>
+                </div>
+              </div>
+
+              {/* Developer Pro Suite & Architecture Specifications (Shifted from public footer for maximum privacy & security) */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 border border-amber-500/30 text-white shadow-2xl space-y-5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center shadow-lg font-black shrink-0">
+                      <Code2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-base font-black text-white tracking-wide uppercase">
+                          Professional Developer Pro Suite
+                        </h4>
+                        <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          v3.8 Production Engine
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Architected & Engineered by <strong className="text-amber-400">Mukesh Kalonia</strong> • Lead Web Developer & Dual Owner
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-slate-950/90 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono font-bold text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>100% Operational • 0.02s Latency</span>
+                  </div>
+                </div>
+
+                {/* System Diagnostics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-amber-400 text-xs font-bold">
+                      <Sparkles className="w-4 h-4 shrink-0" />
+                      <span className="truncate">AI Core</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">Gemini 3.6 AI</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-blue-400 text-xs font-bold">
+                      <Zap className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Rendering</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">Turbo GPU Canvas</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-emerald-400 text-xs font-bold">
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Cipher</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">256-Bit SSL</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-indigo-400 text-xs font-bold">
+                      <Terminal className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Engine</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">WASM Multi-thread</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-purple-400 text-xs font-bold">
+                      <Cpu className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Privacy</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">Client Sandbox</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center space-x-1.5 text-orange-400 text-xs font-bold">
+                      <Globe className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Network</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-300">Global Edge CDN</div>
+                  </div>
+                </div>
+
+                {/* Quick Operations Direct Jump Bar */}
+                <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-slate-400 font-bold mr-1">Direct Operations:</span>
+                  <button
+                    onClick={() => setActiveTab("seo")}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Sitemap & SEO Hub</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("health")}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <HeartPulse className="w-3.5 h-3.5" />
+                    <span>System Health Diagnostics</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("activity_log")}
+                    className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>Live Activity Stream</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("backup")}
+                    className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <DatabaseBackup className="w-3.5 h-3.5" />
+                    <span>Offline Master Backup</span>
+                  </button>
                 </div>
               </div>
 

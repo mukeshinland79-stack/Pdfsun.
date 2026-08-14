@@ -755,7 +755,6 @@ export default function App() {
         {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
         <DualAiFeatureBanner
           onSelectTool={handleSelectTool}
-          onOpenSitemapModal={() => setSitemapModalOpen(true)}
           onOpenContactModal={() => setContactModalOpen(true)}
         />
 
@@ -780,7 +779,7 @@ export default function App() {
         <NewsletterSubscription variant="standalone" />
       </main>
 
-      {/* Enterprise Footer */}
+      {/* Enterprise Clean Footer */}
       <Footer
         onOpenPolicy={(p) => setActivePolicy(p)}
         onOpenAllTools={() => {
@@ -793,7 +792,6 @@ export default function App() {
         }}
         onOpenBlogModal={() => setBlogModalOpen(true)}
         onOpenContactModal={() => setContactModalOpen(true)}
-        onOpenSitemapModal={() => setSitemapModalOpen(true)}
       />
 
       {/* Interactive Active Tool Workspace Modals */}
