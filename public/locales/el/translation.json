@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "home": "Αρχική",
+    "allTools": "Όλα τα εργαλεία PDF",
+    "aiSuite": "Εργαλεία AI",
+    "pricing": "Προγράμματα τιμών",
+    "loginRegister": "Σύνδεση / Εγγραφή",
+    "brandKit": "Brand Kit",
+    "searchBtn": "Αναζήτηση 57+ εργαλείων"
+  },
+  "hero": {
+    "title": "Εταιρικά εργαλεία PDF & μηχανή εγγράφων",
+    "subtitle": "100% επεξεργασία WebAssembly στην πλευρά του πελάτη. Ιδιωτικό, γρήγορο και ασφαλές.",
+    "chooseFiles": "Επιλογή αρχείων από τη συσκευή"
+  },
+  "quick_actions": {
+    "merge": "Συγχώνευση PDF",
+    "split": "Διαχωρισμός PDF",
+    "compress": "Συμπίεση PDF",
+    "pdfToWord": "PDF σε Word",
+    "chatWithPdf": "AI Chat με PDF",
+    "aiSummary": "Περίληψη AI",
+    "title": "Δημοφιλείς γρήγορες ενέργειες"
+  },
+  "badges": {
+    "privacyTitle": "100% απόρρητο στο πρόγραμμα περιήγησης",
+    "privacySub": "Επεξεργασία WebAssembly τοπικά στη συσκευή σας",
+    "utilitiesTitle": "57+ Pro εργαλεία PDF",
+    "utilitiesSub": "Πλήρης σουίτα PDF",
+    "ultraFast": "Εξαιρετικά γρήγορη ταχύτητα",
+    "ultraFastDesc": "Μηχανή επιτάχυνσης τοπικού περιηγητή.",
+    "noStorage": "Μηδενική αποθήκευση αρχείων",
+    "noStorageDesc": "Εγγύηση άμεσης και μόνιμης διαγραφής.",
+    "geminiAi": "Gemini 3.6 AI",
+    "geminiAiDesc": "Έξυπνη συνομιλία, περίληψη & μετάφραση.",
+    "tools50": "57+ εργαλεία",
+    "tools50Desc": "Πλήρης σουίτα μετατροπής PDF.",
+    "mostPopular": "Πιο δημοφιλές εργαλείο",
+    "pro": "PRO",
+    "ai": "AI",
+    "student": "Απαραίτητο για φοιτητές",
+    "proTooltip": "Pro δυνατότητα - Εταιρική επεξεργασία PDF"
+  },
+  "pricing": {
+    "badge": "ΑΜΕΣΗ ΑΠΕΡΙΟΡΙΣΤΗ ΕΠΕΞΕΡΓΑΣΙΑ PDF",
+    "title": "Απλά, διαφανή",
+    "titleHighlight": "Προγράμματα τιμών",
+    "subtitle": "Επεξεργαστείτε απεριόριστα αρχεία PDF με 100% ιδιωτική ταχύτητα WebAssembly.",
+    "monthly": "Μηνιαία χρέωση",
+    "yearly": "Ετήσια χρέωση",
+    "savePercent": "Εξοικονομήστε 40%",
+    "guarantee": "Εγγύηση επιστροφής χρημάτων 100% για τις πρώτες 7 ημέρες"
+  },
+  "footer": {
+    "rights": "Όλα τα δικαιώματα διατηρούνται.",
+    "privacyPolicy": "Πολιτική Απορρήτου",
+    "termsOfService": "Όροι Χρήσης"
+  }
+}

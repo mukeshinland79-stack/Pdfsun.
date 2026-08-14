@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "home": "Hem",
+    "allTools": "Alla PDF-verktyg",
+    "aiSuite": "AI-verktyg",
+    "pricing": "Prisplaner",
+    "loginRegister": "Logga in / Registrera",
+    "brandKit": "Varumärkeskit",
+    "searchBtn": "Sök 57+ verktyg"
+  },
+  "hero": {
+    "title": "Enterprise PDF-verktyg & dokumentmotor",
+    "subtitle": "100% klientsidig WebAssembly-bearbetning. Privat, snabb och säker.",
+    "chooseFiles": "Välj filer från enheten"
+  },
+  "quick_actions": {
+    "merge": "Slå ihop PDF",
+    "split": "Dela PDF",
+    "compress": "Komprimera PDF",
+    "pdfToWord": "PDF till Word",
+    "chatWithPdf": "AI-chatt med PDF",
+    "aiSummary": "AI-sammanfattning",
+    "title": "Populära snabbåtgärder"
+  },
+  "badges": {
+    "privacyTitle": "100% sekretess i webbläsaren",
+    "privacySub": "Klientsidig WebAssembly-bearbetning",
+    "utilitiesTitle": "57+ Pro PDF-verktyg",
+    "utilitiesSub": "Komplett PDF-svit",
+    "ultraFast": "Ultrasnabb hastighet",
+    "ultraFastDesc": "Lokal webbläsaraccelerationsmotor.",
+    "noStorage": "Ingen datalagring",
+    "noStorageDesc": "Garanterad omedelbar och permanent radering.",
+    "geminiAi": "Gemini 3.6 AI",
+    "geminiAiDesc": "Smart chatt, sammanfattning och översättning.",
+    "tools50": "57+ verktyg",
+    "tools50Desc": "Komplett konverteringssvit.",
+    "mostPopular": "Mest populära verktyget",
+    "pro": "PRO",
+    "ai": "AI",
+    "student": "Studentfavorit",
+    "proTooltip": "Pro-funktion - Enterprise PDF-bearbetning"
+  },
+  "pricing": {
+    "badge": "OBEGRÄNSAD PDF-BEARBETNING DIREKT",
+    "title": "Enkla, transparenta",
+    "titleHighlight": "Prisplaner",
+    "subtitle": "Bearbeta obegränsat antal PDF-filer med 100% privat WebAssembly-hastighet.",
+    "monthly": "Månadsfakturering",
+    "yearly": "Årlig fakturering",
+    "savePercent": "Spara 40%",
+    "guarantee": "Första 7 dagarna 100% pengarna-tillbaka-garanti"
+  },
+  "footer": {
+    "rights": "Alla rättigheter förbehållna.",
+    "privacyPolicy": "Integritetspolicy",
+    "termsOfService": "Användarvillkor"
+  }
+}

@@ -45,6 +45,7 @@ import {
   Layers,
   Wallet,
   MessageSquare,
+  Edit3,
 } from "lucide-react";
 import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
 import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
@@ -58,6 +59,15 @@ import { ServerStatusWidget } from "./ServerStatusWidget";
 import { BusinessGrowthDashboard } from "./BusinessGrowthDashboard";
 import { RealTimeApiLatencyMonitor } from "./RealTimeApiLatencyMonitor";
 import { AdminActivityLog } from "./AdminActivityLog";
+import { AdminCmsTab } from "./AdminCmsTab";
+import {
+  useLanguage,
+  SUPPORTED_LANGUAGES,
+  IN_MEMORY_TRANSLATIONS,
+  getCmsOverrides,
+  saveBulkCmsOverrides,
+  resetAllCmsOverrides,
+} from "../lib/i18n";
 import { AdminAlertSystem } from "./AdminAlertSystem";
 import { UserEngagementOverview } from "./UserEngagementOverview";
 import { AdminAnomalyDetector } from "./AdminAnomalyDetector";
@@ -529,6 +539,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab("cms")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "cms" ? "bg-amber-500 text-slate-950 font-black shadow-xs" : "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Live CMS & Translations</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab("settings")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
                   effectiveActiveTab === "settings" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -621,6 +641,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Tab Content Body */}
         <div className="flex-1 p-6 overflow-y-auto">
+          {/* CMS & Live Translation Tab */}
+          {effectiveActiveTab === "cms" && <AdminCmsTab />}
+
           {/* Finance Hub Tab */}
           {(effectiveActiveTab === "finance" || effectiveActiveTab === "finance_hub") && <FinanceHub />}
 

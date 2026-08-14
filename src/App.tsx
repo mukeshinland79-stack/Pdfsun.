@@ -34,6 +34,8 @@ import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
+import { OwnerTopBar } from "./components/OwnerTopBar";
+import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
@@ -380,6 +382,8 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [adminPanelTab, setAdminPanelTab] = useState<string>("analytics");
+  const [cmsModalOpen, setCmsModalOpen] = useState(false);
+  const [isVisitorPreview, setIsVisitorPreview] = useState(false);
   const [userDashboardOpen, setUserDashboardOpen] = useState(false);
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -619,6 +623,16 @@ export default function App() {
         <meta name="twitter:description" content={twitterDescription} />
         <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
+
+      {/* Owner Top Control & Status Bar (Visible only to Platform Owner & Authorized Admins) */}
+      <OwnerTopBar
+        userProfile={userProfile}
+        canAccessAdmin={canAccessAdmin}
+        onOpenAdmin={handleOpenAdminPanel}
+        onOpenCms={() => setCmsModalOpen(true)}
+        onToggleVisitorPreview={setIsVisitorPreview}
+        isVisitorPreview={isVisitorPreview}
+      />
 
       {/* Sticky Top Header */}
       <Header
@@ -899,6 +913,14 @@ export default function App() {
         isOpen={sharePdfSunModalOpen}
         onClose={() => setSharePdfSunModalOpen(false)}
       />
+
+      {/* Owner Dynamic CMS & Translations Editor Modal */}
+      {canAccessAdmin && (
+        <OwnerCmsModal
+          isOpen={cmsModalOpen}
+          onClose={() => setCmsModalOpen(false)}
+        />
+      )}
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />

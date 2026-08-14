@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PaymentBlinkingRedirectModal } from "./PaymentBlinkingRedirectModal";
 import { UserProfile } from "../types";
+import { useLanguage } from "../lib/i18n";
 
 interface PricingSectionProps {
   onSuccessUpgrade?: () => void;
@@ -58,6 +59,7 @@ export interface PlanTier {
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false, onOpenPolicy, userProfile }) => {
+  const { t } = useLanguage();
   const currentUserId = (userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
 
   const [currency, setCurrency] = useState<"INR" | "USD">(() => {
@@ -583,15 +585,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
       <div className="text-center space-y-4">
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black uppercase tracking-wider shadow-xs">
           <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500" />
-          <span>INSTANT UNLIMITED PDF PROCESSING</span>
+          <span>{t("pricing.badge", "INSTANT UNLIMITED PDF PROCESSING")}</span>
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
-          Simple, Transparent <span className="text-amber-600 dark:text-amber-400">Pricing Plans</span>
+          {t("pricing.title", "Simple, Transparent")} <span className="text-amber-600 dark:text-amber-400">{t("pricing.titleHighlight", "Pricing Plans")}</span>
         </h2>
 
         <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Process unlimited PDF files with 100% private WebAssembly speed. No hidden fees. First 7 Days 100% Money-Back Guarantee on all subscription plans.
+          {t("pricing.subtitle", "Process unlimited PDF files with 100% private WebAssembly speed. No hidden fees. First 7 Days 100% Money-Back Guarantee on all subscription plans.")}
         </p>
 
         {/* Currency & Billing Controls Bar */}
@@ -608,7 +610,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              <span>🇮🇳 INR (₹) Razorpay</span>
+              <span>{t("pricing.currencyInr", "🇮🇳 INR (₹) Razorpay")}</span>
             </button>
             <button
               type="button"
@@ -621,7 +623,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>🌎 USD ($) Razorpay</span>
+              <span>{t("pricing.currencyUsd", "🌎 USD ($) Razorpay")}</span>
             </button>
           </div>
 
@@ -637,7 +639,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Monthly Billing
+              {t("pricing.monthly", "Monthly Billing")}
             </button>
             <button
               type="button"
@@ -649,9 +651,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              <span>Annual Billing</span>
+              <span>{t("pricing.yearly", "Annual Billing")}</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-950/20 dark:bg-slate-950/40 text-amber-950 dark:text-amber-300 uppercase font-black">
-                Save 40%
+                {t("pricing.savePercent", "Save 40%")}
               </span>
             </button>
           </div>
@@ -812,11 +814,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   {isPlanActiveForUser ? (
                     <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>🟢 CURRENTLY ACTIVE PLAN</span>
+                      <span>🟢 {t("pricing.activePlan", "CURRENTLY ACTIVE PLAN")}</span>
                     </span>
                   ) : (
                     <>
-                      <span>{plan.cta}</span>
+                      <span>{t(`pricing.cta_${plan.id}`, plan.cta)}</span>
                       {!plan.disabled && <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />}
                     </>
                   )}
@@ -829,7 +831,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                       <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[11px] uppercase tracking-wider border border-emerald-500/40">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
-                        <span>PLAN ACTIVATED</span>
+                        <span>{t("pricing.planActivated", "PLAN ACTIVATED")}</span>
                       </div>
 
                       <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 leading-snug">
@@ -882,26 +884,26 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
             <span>🛡</span>
-            <span>7-Day Guarantee</span>
+            <span>{t("pricing.guaranteeBadge", "7-Day Guarantee")}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
             <span>🔓</span>
-            <span>Cancel Anytime</span>
+            <span>{t("pricing.cancelAnytime", "Cancel Anytime")}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
             <span>⚡</span>
-            <span>Fast Refund Processing</span>
+            <span>{t("pricing.fastRefund", "Fast Refund Processing")}</span>
           </span>
         </div>
 
         {/* Heading */}
         <h3 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 text-center">
-          Disclaimer &amp; Refund Terms
+          {t("pricing.termsTitle", "Disclaimer & Refund Terms")}
         </h3>
 
         {/* Disclaimer Text */}
         <p className="max-w-3xl mx-auto text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal text-center">
-          7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends. Refunds are processed through available self-service or support options. All purchases are subject to our{" "}
+          {t("pricing.termsText", "7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends. Refunds are processed through available self-service or support options.")} All purchases are subject to our{" "}
           {onOpenPolicy ? (
             <button
               type="button"

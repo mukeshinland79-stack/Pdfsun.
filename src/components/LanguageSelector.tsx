@@ -132,7 +132,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             </span>
           </div>
 
-          {/* Featured Primary Languages: English, Spanish, French */}
+          {/* Featured Primary Languages: English, Hindi, Spanish, French */}
           <div className="p-2.5 mb-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl space-y-2">
             <div className="text-[11px] font-bold text-blue-950 dark:text-blue-200 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -144,11 +144,12 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {[
-                { code: "en", flag: "🇺🇸", label: "English", sub: "English" },
-                { code: "es", flag: "🇪🇸", label: "Español", sub: "Spanish" },
-                { code: "fr", flag: "🇫🇷", label: "Français", sub: "French" },
+                { code: "en", flag: "🇺🇸", label: "English", sub: "EN" },
+                { code: "hi", flag: "🇮🇳", label: "हिन्दी", sub: "HI" },
+                { code: "es", flag: "🇪🇸", label: "Español", sub: "ES" },
+                { code: "fr", flag: "🇫🇷", label: "Français", sub: "FR" },
               ].map((item) => {
                 const isSelected = currentLanguage === item.code;
                 return (
@@ -167,8 +168,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                       {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
                     </div>
                     <div className="mt-1">
-                      <div className="text-[11px] font-bold leading-tight">{item.label}</div>
-                      <div className={`text-[9px] ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                      <div className="text-[11px] font-bold leading-tight truncate">{item.label}</div>
+                      <div className={`text-[9px] font-mono ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
                         {item.sub}
                       </div>
                     </div>
