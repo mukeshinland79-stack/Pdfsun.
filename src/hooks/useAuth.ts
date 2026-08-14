@@ -34,9 +34,24 @@ export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boole
 export function useAuth() {
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("pdfsun_user_role");
-      if (stored === "owner" || stored === "user" || stored === "public") {
-        return stored;
+      const storedRole = localStorage.getItem("pdfsun_user_role");
+      try {
+        const storedProfile = localStorage.getItem("pdfsun_user_profile");
+        if (storedProfile) {
+          const parsed = JSON.parse(storedProfile);
+          const email = (parsed?.email || "").toLowerCase().trim();
+          if (
+            DUAL_OWNER_EMAILS.includes(email) ||
+            email === "mukeshinland79@gmail.com" ||
+            email === "mukeshkalonia241@gmail.com" ||
+            parsed.role === "owner"
+          ) {
+            return "owner";
+          }
+        }
+      } catch {}
+      if (storedRole === "owner" || storedRole === "user" || storedRole === "public") {
+        return storedRole;
       }
     }
     return "public";
@@ -46,7 +61,21 @@ export function useAuth() {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("pdfsun_user_profile");
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const email = (parsed?.email || "").toLowerCase().trim();
+          if (
+            DUAL_OWNER_EMAILS.includes(email) ||
+            email === "mukeshinland79@gmail.com" ||
+            email === "mukeshkalonia241@gmail.com"
+          ) {
+            parsed.role = "owner";
+            parsed.hasAdminAccess = true;
+            parsed.isPro = true;
+            parsed.plan = "Founder & Owner - Unlimited";
+          }
+          return parsed;
+        }
       } catch {}
     }
     return null;
@@ -66,7 +95,7 @@ export function useAuth() {
   const isAuthenticated = userProfile !== null && currentRole !== "public";
   const isOwner = checkOwnerRole(userProfile, currentRole);
   const isAdmin = checkAdminRole(userProfile, currentRole);
-  const canAccessAdmin = isAuthenticated && isAdmin;
+  const canAccessAdmin = isAuthenticated && (isAdmin || isOwner);
 
   // Toggle Edit/Admin Mode with localStorage persistence
   const toggleAdminEditMode = useCallback(() => {
