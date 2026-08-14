@@ -6,7 +6,8 @@ export type CategoryId =
   | "convert" 
   | "edit" 
   | "security" 
-  | "advanced";
+  | "advanced"
+  | "owner";
 
 export interface ToolItem {
   id: string;

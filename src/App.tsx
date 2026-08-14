@@ -34,6 +34,7 @@ import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
+import { OwnerTopBar } from "./components/OwnerTopBar";
 import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
@@ -45,9 +46,12 @@ import { calculateAdPlacements } from "./utils/adSenseHelper";
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
 export default function App() {
+  // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
+  // Ref to track theme initialization status
   const themeInitialized = useRef(false);
 
+  // Enhanced Multi-Theme State (System Auto, Light, Dark, Eye Protection, Aurora Glass)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const savedEye = localStorage.getItem("pdfsun_eye_protection");
     if (savedEye === "true") return "eye-protection";
@@ -59,6 +63,7 @@ export default function App() {
     return "light";
   });
 
+  // Sync with System preference setting state
   const [syncWithSystem, setSyncWithSystem] = useState<boolean>(() => {
     const savedSync = localStorage.getItem("pdfsun_sync_system");
     if (savedSync !== null) {
@@ -74,6 +79,7 @@ export default function App() {
     setThemeMode(val ? "dark" : "light");
   }, []);
 
+  // Theme DOM Application & Persistence Effect
   useEffect(() => {
     const root = document.documentElement;
 
@@ -97,6 +103,7 @@ export default function App() {
 
     let timer: NodeJS.Timeout | undefined;
 
+    // Ref-based check for theme initialization
     if (!themeInitialized.current) {
       themeInitialized.current = true;
       updateClasses(themeMode);
@@ -113,10 +120,14 @@ export default function App() {
           });
           if (vt) {
             if (vt.ready && typeof vt.ready.catch === "function") {
-              vt.ready.catch(() => {});
+              vt.ready.catch(() => {
+                // Ignore view transition abort/ready errors gracefully
+              });
             }
             if (vt.finished && typeof vt.finished.catch === "function") {
-              vt.finished.catch(() => {});
+              vt.finished.catch(() => {
+                // Ignore view transition abort/finished errors gracefully
+              });
             }
           }
         } catch (e) {
@@ -146,6 +157,7 @@ export default function App() {
     };
   }, [themeMode, syncWithSystem]);
 
+  // Dedicated system theme media query listener effect with strict dependency control & cleanup
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
 
@@ -156,6 +168,7 @@ export default function App() {
 
       const nextTheme: ThemeMode = e.matches ? "dark" : "light";
       setThemeMode((prevTheme) => {
+        // Prevent recursive state update if the theme is already updated
         if (prevTheme === nextTheme) return prevTheme;
         if (syncWithSystem || prevTheme === "system") {
           return nextTheme;
@@ -179,6 +192,8 @@ export default function App() {
     };
   }, [syncWithSystem, themeMode]);
 
+  // Role & Authentication state
+  // Public customers default to "public" mode with null userProfile unless authenticated
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     try {
       const savedRole = localStorage.getItem("pdfsun_user_role") as UserRole;
@@ -203,6 +218,7 @@ export default function App() {
     return null;
   });
 
+  // Admin / Edit Mode toggle state (defaults to false to keep UI clean even for admins)
   const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("pdfsun_admin_edit_mode") === "true";
@@ -220,6 +236,7 @@ export default function App() {
     });
   };
 
+  // Verify and Restore Session on Mount from Server JWT / Cookie
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -243,6 +260,7 @@ export default function App() {
     restoreSession();
   }, []);
 
+  // Automated Subscription Sync Effect for logged in or active users
   useEffect(() => {
     const syncUserSubscriptionState = async () => {
       const email = userProfile?.email || "mukeshinland79@gmail.com";
@@ -273,6 +291,7 @@ export default function App() {
     syncUserSubscriptionState();
   }, [userProfile?.email]);
 
+  // User Accounts State with persistent Admin Permission control
   const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
     try {
       const saved = localStorage.getItem("pdfsun_user_accounts");
@@ -335,6 +354,7 @@ export default function App() {
     saveUserAccounts([account, ...userAccounts]);
   };
 
+  // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
     siteName: "PDF Sun",
     domainName: "https://pdfsun.in",
@@ -347,9 +367,11 @@ export default function App() {
     aiModelVersion: "gemini-3.6-flash",
   });
 
+  // Category & Filter state
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Favorites state
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("pdfsun_favorites") || '["merge-pdf", "ai-chat-pdf", "compress-pdf"]');
@@ -367,6 +389,7 @@ export default function App() {
     });
   };
 
+  // Recent History Log State
   const [history, setHistory] = useState<ToolHistoryItem[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("pdfsun_history") || "[]");
@@ -388,9 +411,11 @@ export default function App() {
     localStorage.removeItem("pdfsun_history");
   };
 
+  // Active Tool Selection Workspace
   const [activeTool, setActiveTool] = useState<ToolItem | null>(null);
   const [activeToolFiles, setActiveToolFiles] = useState<File[]>([]);
 
+  // Modals state
   const [activePolicy, setActivePolicy] = useState<PolicyType | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [sharePdfSunModalOpen, setSharePdfSunModalOpen] = useState(false);
@@ -401,6 +426,7 @@ export default function App() {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [adminPanelTab, setAdminPanelTab] = useState<string>("analytics");
   const [cmsModalOpen, setCmsModalOpen] = useState(false);
+  const [isVisitorPreview, setIsVisitorPreview] = useState(false);
   const [userDashboardOpen, setUserDashboardOpen] = useState(false);
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -424,6 +450,7 @@ export default function App() {
         paymentHandledRef.current = true;
         setPaymentSuccessModalOpen(true);
 
+        // Clean query parameters & pathname from URL to prevent infinite refresh loops
         try {
           const cleanPath = isPaymentPath ? "/" : window.location.pathname;
           window.history.replaceState({}, document.title, cleanPath);
@@ -434,6 +461,7 @@ export default function App() {
     }
   }, []);
 
+  // Keyboard Shortcuts Manager Hook for custom power-user keybindings
   const {
     shortcuts,
     shortcutsEnabled,
@@ -479,6 +507,7 @@ export default function App() {
     },
   });
 
+  // Usage Analytics hook
   const { trackToolUsage } = useUsageAnalytics();
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[]) => {
@@ -549,6 +578,7 @@ export default function App() {
     }
   };
 
+  // Inactivity Auto-Logout & Session Preservation System
   const {
     showWarningModal,
     remainingSeconds,
@@ -572,6 +602,7 @@ export default function App() {
     setAdminPanelOpen(true);
   };
 
+  // Pagination state tracking for SEO rel=prev/next tags
   const [gridPagination, setGridPagination] = useState({ page: 1, totalPages: 1 });
 
   const handleGridPageChange = useCallback((page: number, totalPages: number) => {
@@ -581,6 +612,7 @@ export default function App() {
     });
   }, []);
 
+  // Dynamic SEO Helmet variables
   const pageTitle = activeTool
     ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
     : "PDF Sun - Free Online PDF Tools, Converter, Merge & Compress";
@@ -609,6 +641,7 @@ export default function App() {
     ? `${activeTool.description} Fast and secure online PDF tools at pdfsun.in`
     : "Fast and secure online PDF tools at pdfsun.in";
 
+  // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
   const adPlacements = calculateAdPlacements(
     ALL_TOOLS.length,
     activeTool !== null,
@@ -617,7 +650,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col relative">
+    <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
+      {/* Dynamic SEO JSON-LD Structured Data Management for Rich Search Snippets */}
       <SEOManager
         activeTool={activeTool}
         tools={ALL_TOOLS}
@@ -626,6 +660,7 @@ export default function App() {
         totalPages={gridPagination.totalPages}
       />
 
+      {/* Dynamic SEO Head Management */}
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -636,6 +671,7 @@ export default function App() {
         <link rel="canonical" href={canonicalUrl} />
         <link rel="icon" href="/favicon.ico" />
 
+        {/* Open Graph / Social Sharing */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:title" content={ogTitle} />
@@ -643,13 +679,31 @@ export default function App() {
         <meta property="og:image" content="https://pdfsun.in/og-image.png" />
         <meta property="og:site_name" content="PDF Sun" />
 
+        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={twitterTitle} />
         <meta name="twitter:description" content={twitterDescription} />
         <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
 
-      {/* SINGLE CLEAN HEADER (Owner Top Bar Removed to prevent double header overlaps) */}
+      {/* Owner Top Control & Status Bar (Strict RBAC: Rendered ONLY when Admin is authenticated AND Edit Mode is toggled on) */}
+      <OwnerTopBar
+        userProfile={userProfile}
+        canAccessAdmin={canAccessAdmin}
+        adminEditModeActive={adminEditModeActive}
+        onCloseEditMode={() => {
+          setAdminEditModeActive(false);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("pdfsun_admin_edit_mode", "false");
+          }
+        }}
+        onOpenAdmin={handleOpenAdminPanel}
+        onOpenCms={() => setCmsModalOpen(true)}
+        onToggleVisitorPreview={setIsVisitorPreview}
+        isVisitorPreview={isVisitorPreview}
+      />
+
+      {/* Sticky Top Header */}
       <Header
         darkMode={darkMode}
         setDarkMode={handleSetDarkMode}
@@ -692,10 +746,12 @@ export default function App() {
           onOpenSearch={() => setSearchModalOpen(true)}
         />
 
+        {/* Placement 1: Sub-Hero AdSense Banner (Below Hero Section) */}
         {adPlacements.some((p) => p.id === "hero-sub-ad") && (
           <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
         )}
 
+        {/* PDF Tools Filterable Grid */}
         <ToolGrid
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
@@ -707,28 +763,37 @@ export default function App() {
           onPageChange={handleGridPageChange}
         />
 
+        {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}
         <EducationalAds />
 
+        {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
         <DualAiFeatureBanner
           onSelectTool={handleSelectTool}
           onOpenContactModal={() => setContactModalOpen(true)}
         />
 
+        {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
         {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
           <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
         )}
 
+        {/* Supported File Formats */}
         <SupportedFormats />
 
+        {/* Pricing Comparison */}
         <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
 
+        {/* Testimonials */}
         <TestimonialsSection />
 
+        {/* FAQ Accordion */}
         <FAQSection activeTool={activeTool} />
 
+        {/* Newsletter Subscription Banner */}
         <NewsletterSubscription variant="standalone" />
       </main>
 
+      {/* Enterprise Clean Footer */}
       <Footer
         onOpenPolicy={(p) => setActivePolicy(p)}
         onOpenAllTools={() => {
@@ -743,10 +808,10 @@ export default function App() {
         onOpenContactModal={() => setContactModalOpen(true)}
       />
 
-      {/* Active Tool Workspaces */}
+      {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
         activeTool.id === "remove-watermark" ? (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <RemoveWatermarkTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
@@ -754,7 +819,7 @@ export default function App() {
             />
           </div>
         ) : activeTool.id === "watermark-pdf" ? (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <WatermarkPdfTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
@@ -762,7 +827,7 @@ export default function App() {
             />
           </div>
         ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <ViewPdfMetadataTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
@@ -770,7 +835,7 @@ export default function App() {
             />
           </div>
         ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <EditPdfMetadataTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
@@ -783,7 +848,7 @@ export default function App() {
             onClose={() => setActiveTool(null)}
           />
         ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
             <ProtectPdfTool
               initialFile={activeToolFiles[0] || null}
               onClose={() => setActiveTool(null)}
@@ -807,7 +872,7 @@ export default function App() {
         )
       )}
 
-      {/* Auth Modal */}
+      {/* Authentication & Role Selection Modal */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
@@ -820,24 +885,22 @@ export default function App() {
         }}
       />
 
-      {/* FULL SCREEN ADMIN PANEL (Z-Index Fix prevents Header Overlap) */}
+      {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}
       {canAccessAdmin && adminPanelOpen && (
-        <div className="fixed inset-0 z-[200] overflow-y-auto bg-slate-900/90 backdrop-blur-lg">
-          <AdminPanel
-            isOpen={adminPanelOpen}
-            onClose={() => setAdminPanelOpen(false)}
-            adminSettings={adminSettings}
-            onUpdateSettings={setAdminSettings}
-            userAccounts={userAccounts}
-            onToggleAdminPermission={handleToggleAdminPermission}
-            onToggleUserStatus={handleToggleUserStatus}
-            onAddUserAccount={handleAddUserAccount}
-            initialTab={adminPanelTab}
-            onLogout={handleLogout}
-            isOwner={currentRole === "owner" || isDualOwner}
-            currentUserProfile={userProfile}
-          />
-        </div>
+        <AdminPanel
+          isOpen={adminPanelOpen}
+          onClose={() => setAdminPanelOpen(false)}
+          adminSettings={adminSettings}
+          onUpdateSettings={setAdminSettings}
+          userAccounts={userAccounts}
+          onToggleAdminPermission={handleToggleAdminPermission}
+          onToggleUserStatus={handleToggleUserStatus}
+          onAddUserAccount={handleAddUserAccount}
+          initialTab={adminPanelTab}
+          onLogout={handleLogout}
+          isOwner={currentRole === "owner" || isDualOwner}
+          currentUserProfile={userProfile}
+        />
       )}
 
       {/* User Dashboard Modal */}
@@ -860,10 +923,16 @@ export default function App() {
         />
       )}
 
+      {/* Blog & Knowledge Base Modal */}
       <BlogModal isOpen={blogModalOpen} onClose={() => setBlogModalOpen(false)} />
+
+      {/* Contact & Support Modal */}
       <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
+
+      {/* Dynamic sitemap.xml SEO Generator Modal */}
       <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
 
+      {/* Payment Success Redirect Modal */}
       <PaymentSuccessModal
         isOpen={paymentSuccessModalOpen}
         onClose={() => setPaymentSuccessModalOpen(false)}
@@ -875,8 +944,10 @@ export default function App() {
         }}
       />
 
+      {/* Policies & Help Modals */}
       <PolicyModals policy={activePolicy} onClose={() => setActivePolicy(null)} />
 
+      {/* Recent History Modal */}
       <RecentHistoryModal
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
@@ -884,6 +955,7 @@ export default function App() {
         onClearHistory={clearHistory}
       />
 
+      {/* Global Tool Search Modal (Ctrl+K) */}
       <SearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
@@ -891,6 +963,7 @@ export default function App() {
         favorites={favorites}
       />
 
+      {/* Keyboard Shortcuts Dialog */}
       <KeyboardShortcutsModal
         isOpen={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
@@ -901,6 +974,7 @@ export default function App() {
         onResetToDefaults={resetToDefaults}
       />
 
+      {/* Inactivity Security Warning Modal */}
       <InactivityWarningModal
         isOpen={showWarningModal}
         remainingSeconds={remainingSeconds}
@@ -908,11 +982,13 @@ export default function App() {
         onLogoutNow={() => executeSecureLogout("manual_logout")}
       />
 
+      {/* Share PDFSun Modal */}
       <SharePdfSunModal
         isOpen={sharePdfSunModalOpen}
         onClose={() => setSharePdfSunModalOpen(false)}
       />
 
+      {/* Owner Dynamic CMS & Translations Editor Modal */}
       {canAccessAdmin && (
         <OwnerCmsModal
           isOpen={cmsModalOpen}
@@ -920,6 +996,7 @@ export default function App() {
         />
       )}
 
+      {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
     </div>
   );

@@ -8,6 +8,7 @@ import {
   Sliders,
   Shield,
   Wrench,
+  Crown,
   Search,
   Filter,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
   Sliders,
   Shield,
   Wrench,
+  Crown,
 };
 
 interface ToolGridProps {
