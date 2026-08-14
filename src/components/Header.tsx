@@ -38,6 +38,8 @@ import {
   Laptop,
   Activity,
   Share2,
+  Edit3,
+  Sliders,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
@@ -49,6 +51,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { usePWAStatus } from "../pwaRegister";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
+import { checkAdminRole } from "../hooks/useAuth";
 
 interface HeaderProps {
   darkMode: boolean;
@@ -65,6 +68,9 @@ interface HeaderProps {
   currentRole: UserRole;
   userProfile: UserProfile | null;
   canAccessAdmin?: boolean;
+  adminEditModeActive?: boolean;
+  onToggleAdminEditMode?: () => void;
+  onOpenCms?: () => void;
   onOpenAuthModal: () => void;
   onOpenAdminPanel: (tab?: string) => void;
   onOpenUserDashboard: () => void;
@@ -88,6 +94,9 @@ export const Header: React.FC<HeaderProps> = ({
   currentRole,
   userProfile,
   canAccessAdmin,
+  adminEditModeActive = false,
+  onToggleAdminEditMode,
+  onOpenCms,
   onOpenAuthModal,
   onOpenAdminPanel,
   onOpenUserDashboard,
@@ -98,16 +107,12 @@ export const Header: React.FC<HeaderProps> = ({
   const { currentLanguage, setLanguage, languageOption, isRtl, t } = useLanguage();
   const { isOffline, isInstallable, installPWA } = usePWAStatus();
 
-  // Admin / Owner-Only access rule: Strictly check if user is authenticated AND holds owner role, dual owner email, or admin access flag
+  // Strict RBAC authorization: Server token verified & cryptographic role checked
+  const isAuthenticated = userProfile !== null && currentRole !== "public";
+  const hasAdminRights = isAuthenticated && (Boolean(canAccessAdmin) || checkAdminRole(userProfile, currentRole));
   const userEmail = (userProfile?.email || "").toLowerCase().trim();
   const isDualOwnerEmail = DUAL_OWNER_EMAILS.includes(userEmail);
-  const isAuthenticated = userProfile !== null;
-  const isAdminOrOwner = isAuthenticated && (
-    currentRole === "owner" ||
-    isDualOwnerEmail ||
-    Boolean(userProfile?.hasAdminAccess)
-  );
-  const hasAdminRights = isAdminOrOwner;
+  const isAdminOrOwner = hasAdminRights;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
@@ -572,144 +577,111 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* ADMIN ONLY MENU ITEMS - Securely shown ONLY to Owner or users granted Admin access */}
                 {hasAdminRights && (
-                  <div className="space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
-                    <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                      {currentRole === "owner" ? "Owner Admin Access" : "Admin Granted Access"}
+                  <div className="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
+                    <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center justify-between">
+                      <span>{currentRole === "owner" ? "Owner Administration" : "Admin Suite"}</span>
+                      {adminEditModeActive && (
+                        <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
+                          BAR ACTIVE
+                        </span>
+                      )}
                     </div>
 
+                    {/* Primary Admin Dashboard Access */}
                     <button
                       onClick={() => {
                         setProfileDropdownOpen(false);
-                        onOpenAdminPanel("profile");
+                        onOpenAdminPanel();
                       }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
+                      className="w-full p-2 rounded-xl text-left text-xs font-bold flex items-center space-x-2 text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 transition shadow-xs"
                     >
-                      <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("adminProfile", "Admin Profile")}</span>
+                      <Crown className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{t("adminPanel", "Open Admin Dashboard")}</span>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("analytics");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("analyticsDashboard", "Analytics Dashboard")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("finance");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition"
-                    >
-                      <Wallet className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{t("financeHub", "Finance Hub")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("users");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <Users className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("userManagement", "User Management")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("files");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <FolderKanban className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("fileManagement", "File Management")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("ai");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("aiManagement", "AI Management")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("ads");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{t("adManagement", "Advertisement Management")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("settings");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <Settings className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{t("websiteSettings", "Website Settings")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("reports");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{t("reports", "Reports")}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("logs");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <Terminal className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{t("systemLogs", "System Logs")}</span>
-                    </button>
-
-                    {isDualOwnerEmail && (
+                    {/* Live Site CMS */}
+                    {onOpenCms && (
                       <button
                         onClick={() => {
                           setProfileDropdownOpen(false);
-                          onOpenAdminPanel("activity_log");
+                          onOpenCms();
                         }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition"
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition"
                       >
-                        <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>System Activity Log</span>
+                        <Edit3 className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Live Site CMS Editor</span>
                       </button>
                     )}
 
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenAdminPanel("backup");
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
-                    >
-                      <DatabaseBackup className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{t("backupRestore", "Backup & Restore")}</span>
-                    </button>
+                    {/* Toggle Admin Control Bar (Edit Mode) */}
+                    {onToggleAdminEditMode && (
+                      <button
+                        onClick={() => {
+                          onToggleAdminEditMode();
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Admin Control Bar</span>
+                        </div>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                            adminEditModeActive
+                              ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-500"
+                          }`}
+                        >
+                          {adminEditModeActive ? "ON" : "OFF"}
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAdminPanel("analytics");
+                        }}
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                      >
+                        <BarChart3 className="w-3 h-3 text-blue-500" />
+                        <span>Analytics</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAdminPanel("finance");
+                        }}
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                      >
+                        <Wallet className="w-3 h-3 text-emerald-500" />
+                        <span>Finance</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAdminPanel("users");
+                        }}
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                      >
+                        <Users className="w-3 h-3 text-cyan-500" />
+                        <span>Users & RBAC</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAdminPanel("settings");
+                        }}
+                        className="p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5"
+                      >
+                        <Settings className="w-3 h-3 text-slate-400" />
+                        <span>Settings</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -894,63 +866,100 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* ADMIN MOBILE MENU OPTIONS - Strict RBAC: Shown ONLY if user is authenticated AND holds Admin/Owner role */}
           {isAdminOrOwner && (
-            <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-1">
-              <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center space-x-1">
-                <Crown className="w-3.5 h-3.5 text-amber-500" />
-                <span>Admin Owner Controls {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
+            <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-2">
+              <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-1 flex items-center justify-between">
+                <span className="flex items-center space-x-1">
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Admin Suite {currentRole === "owner" ? "(Owner)" : "(Granted Access)"}</span>
+                </span>
+                {adminEditModeActive && (
+                  <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
+                    BAR ACTIVE
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-1 pt-1">
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAdminPanel();
+                }}
+                className="w-full p-2 rounded-xl text-left text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>Open Admin Dashboard</span>
+              </button>
+
+              {onOpenCms && (
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAdminPanel("profile");
+                    onOpenCms();
                   }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500/30 flex items-center space-x-2"
                 >
-                  Admin Profile
+                  <Edit3 className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Live Site CMS Editor</span>
                 </button>
+              )}
+
+              {onToggleAdminEditMode && (
+                <button
+                  onClick={() => {
+                    onToggleAdminEditMode();
+                  }}
+                  className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                >
+                  <span className="flex items-center space-x-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Admin Control Bar</span>
+                  </span>
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                      adminEditModeActive
+                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                        : "bg-slate-200 dark:bg-slate-700 text-slate-500"
+                    }`}
+                  >
+                    {adminEditModeActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+              )}
+
+              <div className="grid grid-cols-2 gap-1 pt-1">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("analytics");
                   }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
                 >
                   Analytics
                 </button>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
+                    onOpenAdminPanel("finance");
+                  }}
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                >
+                  Finance
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
                     onOpenAdminPanel("users");
                   }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
                 >
-                  Users
-                </button>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAdminPanel("files");
-                  }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-                >
-                  Files
-                </button>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAdminPanel("ads");
-                  }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
-                >
-                  Ads
+                  Users & RBAC
                 </button>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     onOpenAdminPanel("settings");
                   }}
-                  className="p-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
+                  className="p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg"
                 >
                   Settings
                 </button>

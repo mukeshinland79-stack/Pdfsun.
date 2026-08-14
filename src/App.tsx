@@ -218,6 +218,48 @@ export default function App() {
     return null;
   });
 
+  // Admin / Edit Mode toggle state (defaults to false to keep UI clean even for admins)
+  const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pdfsun_admin_edit_mode") === "true";
+    }
+    return false;
+  });
+
+  const toggleAdminEditMode = () => {
+    setAdminEditModeActive((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_admin_edit_mode", String(next));
+      }
+      return next;
+    });
+  };
+
+  // Verify and Restore Session on Mount from Server JWT / Cookie
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const token = localStorage.getItem("pdfsun_auth_token");
+        const res = await fetch("/api/auth/verify-session", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid && data.user) {
+            setCurrentRole(data.user.role || "user");
+            setUserProfile(data.user);
+            localStorage.setItem("pdfsun_user_role", data.user.role || "user");
+            localStorage.setItem("pdfsun_user_profile", JSON.stringify(data.user));
+          }
+        }
+      } catch (err) {
+        console.warn("[App Session Restore Error]:", err);
+      }
+    };
+    restoreSession();
+  }, []);
+
   // Automated Subscription Sync Effect for logged in or active users
   useEffect(() => {
     const syncUserSubscriptionState = async () => {
@@ -505,12 +547,18 @@ export default function App() {
     userProfile !== null &&
     (currentRole === "owner" || (Boolean(userProfile?.hasAdminAccess) && (isDualOwner || userProfile?.role === "owner")));
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.warn("Logout request error:", e);
+    }
     setCurrentRole("public");
     setUserProfile(null);
     setAdminPanelOpen(false);
     setUserDashboardOpen(false);
     try {
+      localStorage.removeItem("pdfsun_auth_token");
       localStorage.removeItem("pdfsun_user_role");
       localStorage.removeItem("pdfsun_user_profile");
     } catch (e) {
@@ -624,10 +672,17 @@ export default function App() {
         <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
 
-      {/* Owner Top Control & Status Bar (Visible only to Platform Owner & Authorized Admins) */}
+      {/* Owner Top Control & Status Bar (Strict RBAC: Rendered ONLY when Admin is authenticated AND Edit Mode is toggled on) */}
       <OwnerTopBar
         userProfile={userProfile}
         canAccessAdmin={canAccessAdmin}
+        adminEditModeActive={adminEditModeActive}
+        onCloseEditMode={() => {
+          setAdminEditModeActive(false);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("pdfsun_admin_edit_mode", "false");
+          }
+        }}
         onOpenAdmin={handleOpenAdminPanel}
         onOpenCms={() => setCmsModalOpen(true)}
         onToggleVisitorPreview={setIsVisitorPreview}
@@ -654,6 +709,9 @@ export default function App() {
         currentRole={currentRole}
         userProfile={userProfile}
         canAccessAdmin={canAccessAdmin}
+        adminEditModeActive={adminEditModeActive}
+        onToggleAdminEditMode={toggleAdminEditMode}
+        onOpenCms={() => setCmsModalOpen(true)}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onOpenAdminPanel={handleOpenAdminPanel}
         onOpenUserDashboard={() => setUserDashboardOpen(true)}
