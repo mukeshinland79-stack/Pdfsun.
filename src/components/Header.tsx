@@ -178,7 +178,8 @@ export const Header: React.FC<HeaderProps> = ({
         scrolled ? "shadow-sm" : ""
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4 overflow-hidden">
+      {/* FIXED: Removed 'overflow-hidden' from container so dropdowns don't get clipped */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4 relative">
         
         {/* ========================================================= */}
         {/* ZONE 1: LEFT ZONE (Brand Logo & Main Desktop Nav Links)   */}
@@ -202,10 +203,13 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* PDF Tools Mega Dropdown */}
-            <div className="relative" ref={toolsDropdownRef}>
+            <div className="relative z-50" ref={toolsDropdownRef}>
               <button
-                onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
-                onMouseEnter={() => setToolsDropdownOpen(true)}
+                onClick={() => {
+                  setToolsDropdownOpen(!toolsDropdownOpen);
+                  setThemeDropdownOpen(false);
+                  setProfileDropdownOpen(false);
+                }}
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
               >
                 <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -215,8 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {toolsDropdownOpen && (
                 <div
-                  onMouseLeave={() => setToolsDropdownOpen(false)}
-                  className="absolute top-full left-0 w-[420px] max-w-[90vw] mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-50 animate-in fade-in slide-in-from-top-2"
+                  className="absolute top-full left-0 w-[420px] max-w-[90vw] mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-[100] animate-in fade-in slide-in-from-top-2"
                 >
                   {/* Inline Tool Search & Category Filter */}
                   <div className="mb-2.5 space-y-2">
@@ -409,7 +412,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* ========================================================= */}
         {/* ZONE 3: RIGHT ZONE (Actions, Theme, Language & Auth)      */}
         {/* ========================================================= */}
-        <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0 ml-auto">
+        <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0 ml-auto z-50">
           
           {/* Mobile/Tablet Search Icon Trigger (< md) */}
           <button
@@ -428,9 +431,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Single Unified Theme Selector */}
-          <div className="relative" ref={themeDropdownRef}>
+          <div className="relative z-50" ref={themeDropdownRef}>
             <button
-              onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+              onClick={() => {
+                setThemeDropdownOpen(!themeDropdownOpen);
+                setProfileDropdownOpen(false);
+                setToolsDropdownOpen(false);
+              }}
               className={`p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center space-x-1.5 cursor-pointer ${
                 themeMode === "dark"
                   ? "bg-slate-800 text-blue-300 border-slate-700 hover:bg-slate-700"
@@ -471,7 +478,7 @@ export const Header: React.FC<HeaderProps> = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 space-y-1"
+                  className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-[100] space-y-1"
                 >
                   <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
                     Display Theme
@@ -519,10 +526,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Primary CTA / User Profile / Admin Menu */}
-          <div className="relative" ref={profileDropdownRef}>
+          <div className="relative z-50" ref={profileDropdownRef}>
             {hasAdminRights ? (
               <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                onClick={() => {
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                  setThemeDropdownOpen(false);
+                  setToolsDropdownOpen(false);
+                }}
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition cursor-pointer text-xs font-bold"
                 aria-label="Open Admin Menu"
               >
@@ -534,7 +545,11 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             ) : userProfile !== null ? (
               <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                onClick={() => {
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                  setThemeDropdownOpen(false);
+                  setToolsDropdownOpen(false);
+                }}
                 className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer text-xs font-bold"
                 aria-label="Open User Menu"
               >
@@ -576,7 +591,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Profile / Admin Navigation Dropdown */}
             {profileDropdownOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 space-y-1 z-50 animate-in fade-in"
+                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 space-y-1 z-[100] animate-in fade-in"
               >
                 <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
                   <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center justify-between">
@@ -1045,4 +1060,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
