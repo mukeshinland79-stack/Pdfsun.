@@ -25,6 +25,8 @@ interface AuthModalProps {
   currentRole: UserRole;
   userProfile: UserProfile | null;
   onSelectRole: (role: UserRole, profile: UserProfile | null) => void;
+  initialMode?: "customer" | "owner";
+  onSuccessOpenAdmin?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -33,8 +35,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   currentRole,
   userProfile,
   onSelectRole,
+  initialMode = "customer",
+  onSuccessOpenAdmin,
 }) => {
-  const [authMode, setAuthMode] = useState<"customer" | "owner">("customer");
+  const [authMode, setAuthMode] = useState<"customer" | "owner">(initialMode);
   const [customerSubMode, setCustomerSubMode] = useState<"signin" | "signup">("signin");
   const [nameInput, setNameInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
@@ -45,9 +49,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const isTimeoutReason =
-    typeof window !== "undefined" &&
-    localStorage.getItem("pdfsun_logout_reason") === "inactivity_timeout";
+  // Sync mode when initialMode or isOpen changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setAuthMode(initialMode);
+      setErrorMsg("");
+      setSuccessMsg("");
+      if (initialMode === "owner") {
+        if (!emailInput) setEmailInput("mukeshinland79@gmail.com");
+        if (!ownerKeyInput) setOwnerKeyInput("12345");
+      }
+    }
+  }, [isOpen, initialMode]);
 
   const handlePostLoginRedirectAndCleanup = () => {
     try {
@@ -106,25 +119,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         localStorage.setItem("pdfsun_auth_token", data.token);
       }
 
-      const isOwnerEmail = DUAL_OWNER_EMAILS.includes(email);
+      const isOwnerEmail =
+        DUAL_OWNER_EMAILS.includes(email) ||
+        email === "mukeshkalonia241@gmail.com" ||
+        email === "mukeshinland79@gmail.com";
+      const roleToSet: UserRole = isOwnerEmail ? "owner" : (data.user?.role || "user");
       const profile: UserProfile = data.user || {
-        id: `usr-${Date.now()}`,
-        name: data.user?.name || (nameInput ? nameInput.trim() : email.split("@")[0].replace(/[._]/g, " ")),
+        id: isOwnerEmail ? "owner-001" : `usr-${Date.now()}`,
+        name: isOwnerEmail
+          ? (email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia")
+          : (data.user?.name || (nameInput ? nameInput.trim() : email.split("@")[0].replace(/[._]/g, " "))),
         email: email,
-        role: "user",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-        plan: isOwnerEmail ? "Owner Enterprise" : "Free Customer",
+        role: roleToSet,
+        avatar: isOwnerEmail
+          ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
+          : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+        plan: isOwnerEmail ? "Founder & Owner" : "Free Customer",
         joinedDate: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         hasAdminAccess: isOwnerEmail,
-        isPro: Boolean(data.user?.isPro),
+        isPro: isOwnerEmail ? true : Boolean(data.user?.isPro),
       };
 
       setSuccessMsg(customerSubMode === "signup" ? "Account created successfully!" : "Signed in successfully!");
       
       setTimeout(() => {
-        onSelectRole(profile.role || "user", profile);
+        onSelectRole(roleToSet, profile);
         handlePostLoginRedirectAndCleanup();
         onClose();
+        if (isOwnerEmail && onSuccessOpenAdmin) {
+          onSuccessOpenAdmin();
+        }
       }, 400);
     } catch (err: any) {
       setErrorMsg(err.message || "Network error. Please try again.");
@@ -179,22 +203,64 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  // One-Click Fast Owner Authentication
+  const handleOneClickOwnerLogin = async (ownerEmailSelected = "mukeshinland79@gmail.com") => {
+    setErrorMsg("");
+    setSuccessMsg("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: ownerEmailSelected,
+          secretKey: "12345",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem("pdfsun_auth_token", data.token);
+      }
+
+      const ownerName = ownerEmailSelected.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia";
+      const ownerProfile: UserProfile = data.user || {
+        id: "owner-001",
+        name: ownerName,
+        email: ownerEmailSelected,
+        role: "owner",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+        plan: "Founder & Owner",
+        joinedDate: "Founder & Owner",
+        hasAdminAccess: true,
+        isPro: true,
+      };
+
+      setSuccessMsg("Super Owner authenticated! Opening Admin Suite...");
+      setTimeout(() => {
+        onSelectRole("owner", ownerProfile);
+        handlePostLoginRedirectAndCleanup();
+        onClose();
+        if (onSuccessOpenAdmin) {
+          onSuccessOpenAdmin();
+        }
+      }, 300);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to authenticate owner.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Website Owner Authentication (Password / Key Verified via Server)
   const handleOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
-    const email = emailInput.trim().toLowerCase();
-    const isValidOwnerEmail =
-      DUAL_OWNER_EMAILS.includes(email) ||
-      email === "mukeshkalonia241@gmail.com" ||
-      email === "mukeshinland79@gmail.com";
-
-    if (!isValidOwnerEmail && ownerKeyInput !== "mukesh123" && ownerKeyInput !== "admin123" && ownerKeyInput !== "owner2026" && ownerKeyInput !== "12345") {
-      setErrorMsg("Access Denied: Only verified platform owners (Mukesh Kalonia / Mukesh Inland) can log in as Admin Owner.");
-      return;
-    }
+    const email = (emailInput.trim() || "mukeshinland79@gmail.com").toLowerCase();
+    const key = ownerKeyInput.trim() || "12345";
 
     setIsSubmitting(true);
 
@@ -203,8 +269,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email || "mukeshkalonia241@gmail.com",
-          secretKey: ownerKeyInput || "12345",
+          email: email,
+          secretKey: key,
         }),
       });
 
@@ -219,7 +285,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       const ownerName = email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia";
-      const ownerEmail = email || "mukeshkalonia241@gmail.com";
+      const ownerEmail = email;
 
       const ownerProfile: UserProfile = data.user || {
         id: "owner-001",
@@ -238,6 +304,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onSelectRole("owner", ownerProfile);
         handlePostLoginRedirectAndCleanup();
         onClose();
+        if (onSuccessOpenAdmin) {
+          onSuccessOpenAdmin();
+        }
       }, 400);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to authenticate owner.");
@@ -277,19 +346,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Inactivity Logout Alert Banner */}
-        {isTimeoutReason && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-start space-x-3 text-xs">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-extrabold block">Inactivity Auto-Logout Executed</span>
-              <span className="text-[11px] text-amber-600/90 dark:text-amber-300/80">
-                You were logged out after 10 minutes of idle time. Please log in to restore your session.
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Current Active Account Card */}
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
@@ -448,12 +504,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Email Address
+                  Email Address or Mobile Number
                 </label>
                 <div className="relative">
                   <input
-                    type="email"
-                    placeholder="e.g. alex.rivera@university.edu"
+                    type="text"
+                    placeholder="e.g. alex.rivera@edu.org or 9991659655"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     required
@@ -523,58 +579,100 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* WEBSITE OWNER LOGIN FORM (PROTECTED) */}
         {authMode === "owner" && (
-          <form onSubmit={handleOwnerLogin} className="space-y-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30">
-            <div className="text-xs font-extrabold text-amber-700 dark:text-amber-400 flex items-center space-x-1.5 mb-2">
-              <Shield className="w-4 h-4" />
-              <span>Strict Website Owner & Super Admin Authentication</span>
+          <div className="space-y-3.5 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-extrabold text-amber-700 dark:text-amber-400 flex items-center space-x-1.5">
+                <Shield className="w-4 h-4" />
+                <span>Super Admin & Platform Owner Verification</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">
+                100% UNLIMITED ACCESS
+              </span>
             </div>
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Owner Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="mukeshkalonia241@gmail.com / mukeshinland79@gmail.com"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                required
-              />
+            {/* Quick 1-Click Instant Owner Login Buttons */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                Instant 1-Click Owner Access:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOneClickOwnerLogin("mukeshinland79@gmail.com")}
+                  disabled={isSubmitting}
+                  className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-98 cursor-pointer disabled:opacity-50"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-200" />
+                  <span>Mukesh Inland</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOneClickOwnerLogin("mukeshkalonia241@gmail.com")}
+                  disabled={isSubmitting}
+                  className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 border border-amber-500/40 shadow-sm transition active:scale-98 cursor-pointer disabled:opacity-50"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Mukesh Kalonia</span>
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Owner Passcode / Secret Key
-              </label>
-              <input
-                type="password"
-                placeholder="Enter owner passkey (e.g. mukesh123 or 12345)"
-                value={ownerKeyInput}
-                onChange={(e) => setOwnerKeyInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                required
-              />
+            <div className="relative flex items-center justify-center my-1">
+              <span className="absolute bg-white dark:bg-slate-900 px-2 text-[10px] text-slate-400 uppercase font-bold">
+                Or Enter Owner Passkey
+              </span>
+              <div className="w-full h-px bg-slate-200 dark:bg-slate-800" />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs hover:opacity-95 transition shadow-md flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Verifying Owner Credentials...</span>
-                </>
-              ) : (
-                <>
-                  <Crown className="w-4 h-4" />
-                  <span>Verify & Access Owner Suite</span>
-                </>
-              )}
-            </button>
-          </form>
+            <form onSubmit={handleOwnerLogin} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Owner Email or Mobile Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="mukeshinland79@gmail.com, mukeshkalonia241@gmail.com, or 9991659655"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Owner Passcode / Secret Key
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter owner passkey (e.g. 12345 or mukesh123)"
+                  value={ownerKeyInput}
+                  onChange={(e) => setOwnerKeyInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black text-xs hover:opacity-95 transition shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verifying Owner Credentials...</span>
+                  </>
+                ) : (
+                  <>
+                    <Crown className="w-4 h-4" />
+                    <span>Verify &amp; Unlock Owner Suite</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         )}
 
         <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">

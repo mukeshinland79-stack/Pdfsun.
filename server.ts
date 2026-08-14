@@ -31,9 +31,18 @@ import {
   verifySessionToken,
   getUserProfileByEmail,
   generateUserJwtToken,
+  repairAndRestoreDatabase,
 } from "./src/server/authService";
 
 dotenv.config();
+
+// Run immediate database audit and RBAC integrity restore on startup
+try {
+  const repairResult = repairAndRestoreDatabase();
+  console.log("[Auth Restoration Engine] Startup audit completed:", repairResult.message);
+} catch (e) {
+  console.error("[Auth Restoration Engine] Failed to run startup repair:", e);
+}
 
 const app = express();
 const PORT = 3000;
@@ -1437,6 +1446,20 @@ app.post("/api/auth/refresh-session", (req, res) => {
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     timestamp: new Date().toISOString(),
   });
+});
+
+// Database & RBAC Role Recovery & Audit Endpoint
+app.all("/api/admin/repair-auth", (req, res) => {
+  try {
+    const result = repairAndRestoreDatabase();
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Protected Financial Metrics Endpoint (Enforces JWT role validation, stealth 404 for unauthorized)

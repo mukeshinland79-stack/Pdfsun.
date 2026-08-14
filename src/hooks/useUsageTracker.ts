@@ -27,8 +27,24 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
   const [isPro, setIsPro] = useState<boolean>(() => {
     if (isUserProOverride) return true;
     try {
+      const savedProfile = localStorage.getItem("pdfsun_user_profile");
+      if (savedProfile) {
+        const p = JSON.parse(savedProfile);
+        if (
+          p.role === "owner" ||
+          p.hasAdminAccess ||
+          p.isPro ||
+          (p.plan && p.plan.toLowerCase().includes("pro")) ||
+          (p.plan && p.plan.toLowerCase().includes("unlimited")) ||
+          (p.plan && p.plan.toLowerCase().includes("owner")) ||
+          (p.plan && p.plan.toLowerCase().includes("enterprise"))
+        ) {
+          return true;
+        }
+      }
       const savedPlan = localStorage.getItem(PRO_PLAN_KEY);
-      return savedPlan === "pro" || savedPlan === "owner";
+      const savedRole = localStorage.getItem("pdfsun_user_role");
+      return savedPlan === "pro" || savedPlan === "owner" || savedRole === "owner";
     } catch {
       return false;
     }

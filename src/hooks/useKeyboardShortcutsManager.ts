@@ -182,9 +182,9 @@ export function useKeyboardShortcutsManager(options: UseKeyboardShortcutsOptions
     const isCtrl = parts.includes("ctrl") || parts.includes("cmd");
     const isShift = parts.includes("shift");
 
-    // Check modifiers
+    // Check modifiers: allow Cmd (metaKey) or Ctrl interchangeably for ctrl/cmd shortcuts
     const altMatch = isAlt ? e.altKey : !e.altKey;
-    const ctrlMatch = isCtrl ? e.ctrlKey || e.metaKey : true; // Allow cmd/ctrl interchangeability
+    const ctrlMatch = isCtrl ? (e.ctrlKey || e.metaKey) : (!e.ctrlKey && !e.metaKey);
     const shiftMatch = isShift ? e.shiftKey : !e.shiftKey;
 
     // Get primary key

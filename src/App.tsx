@@ -422,6 +422,7 @@ export default function App() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<"customer" | "owner">("customer");
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [adminPanelTab, setAdminPanelTab] = useState<string>("analytics");
   const [cmsModalOpen, setCmsModalOpen] = useState(false);
@@ -541,11 +542,22 @@ export default function App() {
   };
 
   const currentUserEmail = (userProfile?.email || "").toLowerCase().trim();
-  const isDualOwner = DUAL_OWNER_EMAILS.includes(currentUserEmail);
+  const isDualOwner =
+    DUAL_OWNER_EMAILS.includes(currentUserEmail) ||
+    currentUserEmail === "mukeshkalonia241@gmail.com" ||
+    currentUserEmail === "mukeshinland79@gmail.com";
   const canAccessAdmin =
     currentRole !== "public" &&
     userProfile !== null &&
-    (currentRole === "owner" || (Boolean(userProfile?.hasAdminAccess) && (isDualOwner || userProfile?.role === "owner")));
+    (currentRole === "owner" ||
+      isDualOwner ||
+      userProfile?.role === "owner" ||
+      Boolean(userProfile?.hasAdminAccess));
+
+  const handleOpenAuthModal = (mode: "customer" | "owner" = "customer") => {
+    setAuthModalInitialMode(mode);
+    setAuthModalOpen(true);
+  };
 
   const handleLogout = async () => {
     try {
@@ -581,7 +593,9 @@ export default function App() {
 
   const handleOpenAdminPanel = (tab?: string) => {
     if (!canAccessAdmin) {
-      console.warn("Access denied: Admin panel is totally hidden and restricted for customer users.");
+      if (tab) setAdminPanelTab(tab);
+      setAuthModalInitialMode("owner");
+      setAuthModalOpen(true);
       return;
     }
     if (tab) setAdminPanelTab(tab);
@@ -712,7 +726,7 @@ export default function App() {
         adminEditModeActive={adminEditModeActive}
         onToggleAdminEditMode={toggleAdminEditMode}
         onOpenCms={() => setCmsModalOpen(true)}
-        onOpenAuthModal={() => setAuthModalOpen(true)}
+        onOpenAuthModal={handleOpenAuthModal}
         onOpenAdminPanel={handleOpenAdminPanel}
         onOpenUserDashboard={() => setUserDashboardOpen(true)}
         onLogout={handleLogout}
@@ -865,6 +879,10 @@ export default function App() {
         currentRole={currentRole}
         userProfile={userProfile}
         onSelectRole={handleSelectRole}
+        initialMode={authModalInitialMode}
+        onSuccessOpenAdmin={() => {
+          setAdminPanelOpen(true);
+        }}
       />
 
       {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}

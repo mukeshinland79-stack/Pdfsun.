@@ -264,18 +264,20 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
-        {/* Bottom Clean Copyright Row */}
-        <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 space-y-3 sm:space-y-0">
-          <div className="flex items-center space-x-2">
+        {/* Bottom Clean Copyright & Compliance Row */}
+        <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
             <span>🇮🇳</span>
-            <strong className="text-white">{t("footer.madeInIndia", "Proudly Made in India")}</strong>
-            <span>•</span>
-            <span>© 2026 <strong className="text-white">PDFSun</strong>. {t("footer.allRightsReserved", "All rights reserved.")}</span>
+            <span className="font-semibold text-slate-300">Proudly Made in India</span>
+            <span className="text-slate-600">•</span>
+            <span>© 2026 <strong className="text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-slate-400">Designed &amp; Engineered by <span className="text-slate-300 font-medium">Mukesh Kalonia</span></span>
           </div>
 
-          <div className="flex items-center space-x-2 text-slate-400 text-xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>ISO 27001 & GDPR Privacy Compliant</span>
+          <div className="flex items-center space-x-2 text-slate-400 text-xs shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.5]" />
+            <span className="font-medium">ISO 27001 &amp; GDPR Privacy Compliant</span>
           </div>
         </div>
       </div>

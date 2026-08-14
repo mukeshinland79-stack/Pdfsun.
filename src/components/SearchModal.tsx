@@ -43,8 +43,28 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [showHistory, setShowHistory] = useState<boolean>(true);
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [isMac, setIsMac] = useState<boolean>(false);
 
   const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent));
+    }
+  }, []);
+
+  // Auto-focus input on open
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Stop listening when modal closes
   useEffect(() => {
@@ -584,18 +604,26 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0 cursor-pointer"
                 aria-label="Clear search input"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
 
-            <div className="hidden sm:flex items-center space-x-1 shrink-0">
-              <kbd className="px-2 py-1 text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-400">
-                Ctrl+K
-              </kbd>
-              <kbd className="px-2 py-1 text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-400">
+            {/* Visual Shortcut Badge for Command Palette */}
+            <div className="hidden sm:flex items-center space-x-1.5 shrink-0 pl-1">
+              <span
+                className="inline-flex items-center space-x-1 px-2.5 py-1 text-[11px] font-mono font-bold bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 rounded-lg text-blue-700 dark:text-blue-300 shadow-2xs select-none"
+                title="Command Palette Shortcut"
+              >
+                <Zap className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span>{isMac ? "⌘K" : "Ctrl+K"}</span>
+              </span>
+              <kbd
+                className="px-2 py-1 text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 select-none"
+                title="Press ESC to close"
+              >
                 ESC
               </kbd>
             </div>
@@ -603,7 +631,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition shrink-0"
+              className="p-1.5 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition shrink-0 cursor-pointer"
               aria-label="Close search modal"
             >
               <X className="w-4 h-4" />
