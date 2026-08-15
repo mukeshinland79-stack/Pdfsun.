@@ -31,6 +31,16 @@ export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boole
   return user?.role === "owner";
 }
 
+// Safe JSON parser to prevent "Unexpected end of JSON input" errors
+async function safeParseJson(res: Response): Promise<any> {
+  try {
+    const text = await res.text();
+    return text && text.trim() ? JSON.parse(text) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 export function useAuth() {
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     if (typeof window !== "undefined") {
@@ -123,7 +133,7 @@ export function useAuth() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeParseJson(res);
         if (data.valid && data.user) {
           setCurrentRole(data.user.role || "user");
           setUserProfile(data.user);
@@ -163,7 +173,7 @@ export function useAuth() {
           body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
+        const data = await safeParseJson(res);
         if (!res.ok || (!data.success && !data.token && data.status !== "ok")) {
           return { success: false, error: data.error || data.message || "Login failed" };
         }
@@ -206,7 +216,7 @@ export function useAuth() {
           body: JSON.stringify(params),
         });
 
-        const data = await res.json();
+        const data = await safeParseJson(res);
         if (!res.ok || !data.success) {
           return { success: false, error: data.error || "Registration failed" };
         }

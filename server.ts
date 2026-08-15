@@ -33,6 +33,11 @@ import {
   generateUserJwtToken,
   repairAndRestoreDatabase,
   normalizeLoginIdentifier,
+  getAllStoredUsers,
+  updateStoredUser,
+  deleteStoredUser,
+  generatePasswordResetOtp,
+  verifyOtpAndResetPassword,
 } from "./src/server/authService";
 
 dotenv.config();
@@ -1453,6 +1458,69 @@ app.post("/api/auth/logout", (req, res) => {
   });
 });
 
+// 6. Account Recovery: OTP Generation & Password Reset
+app.post("/api/auth/forgot-password", (req, res) => {
+  try {
+    const { identifier, email } = req.body || {};
+    const input = identifier || email;
+    if (!input) {
+      return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
+    }
+
+    const result = generatePasswordResetOtp(input);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    return res.json({
+      success: true,
+      message: result.message,
+      otp: result.otp,
+      expiresAt: result.expiresAt,
+      email: result.email,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to generate OTP" });
+  }
+});
+
+app.post("/api/auth/reset-password", (req, res) => {
+  try {
+    const { identifier, email, otp, newPassword } = req.body || {};
+    const input = identifier || email;
+    if (!input) {
+      return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
+    }
+    if (!otp) {
+      return res.status(400).json({ success: false, error: "Please enter the 6-digit OTP." });
+    }
+    if (!newPassword) {
+      return res.status(400).json({ success: false, error: "Please enter your new password." });
+    }
+
+    const result = verifyOtpAndResetPassword(input, otp, newPassword);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    if (result.token) {
+      res.setHeader("Set-Cookie", [
+        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      ]);
+    }
+
+    return res.json({
+      success: true,
+      message: result.message,
+      token: result.token,
+      user: result.user,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to reset password" });
+  }
+});
+
+
 app.post("/api/auth/refresh-session", (req, res) => {
   res.json({
     success: true,
@@ -1471,6 +1539,118 @@ app.all("/api/admin/repair-auth", (req, res) => {
       success: true,
       ...result,
       timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// User Management API Endpoints (Owner, Client, Customer, User)
+app.get("/api/admin/users", (req, res) => {
+  try {
+    const users = getAllStoredUsers();
+    res.json({
+      success: true,
+      users,
+      total: users.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/users", (req, res) => {
+  try {
+    const { name, email, role = "user", plan = "Free Customer", hasAdminAccess = false, password = "pdfsunPass2026" } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Email is required." });
+    }
+
+    const reg = registerUserAccount({ name, email, password });
+    if (!reg.success) {
+      return res.status(400).json({ success: false, error: reg.error });
+    }
+
+    // Apply custom role, plan, and admin permission
+    updateStoredUser(email, {
+      name,
+      role,
+      plan,
+      hasAdminAccess: Boolean(hasAdminAccess),
+      isPro: plan.toLowerCase().includes("pro") || plan.toLowerCase().includes("enterprise") || Boolean(hasAdminAccess),
+    });
+
+    const updatedUsers = getAllStoredUsers();
+    res.json({
+      success: true,
+      message: `Account for ${email} created successfully.`,
+      user: reg.user,
+      users: updatedUsers,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/users/update", (req, res) => {
+  try {
+    const { id, email, updates } = req.body || {};
+    const identifier = id || email;
+    if (!identifier) {
+      return res.status(400).json({ success: false, error: "User ID or email is required." });
+    }
+
+    const result = updateStoredUser(identifier, updates || {});
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    const updatedUsers = getAllStoredUsers();
+    res.json({
+      success: true,
+      message: "User updated successfully.",
+      user: result.user,
+      users: updatedUsers,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/users/delete", (req, res) => {
+  try {
+    const { id, email } = req.body || {};
+    const identifier = id || email;
+    if (!identifier) {
+      return res.status(400).json({ success: false, error: "User ID or email is required." });
+    }
+
+    const result = deleteStoredUser(identifier);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    const updatedUsers = getAllStoredUsers();
+    res.json({
+      success: true,
+      message: "User deleted successfully.",
+      users: updatedUsers,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/users/restore", (req, res) => {
+  try {
+    const result = repairAndRestoreDatabase();
+    const updatedUsers = getAllStoredUsers();
+    res.json({
+      success: true,
+      message: "Database users and roles restored successfully.",
+      ...result,
+      users: updatedUsers,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -1887,6 +2067,29 @@ app.use("/locales", express.static(path.join(process.cwd(), "public/locales")));
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", app: "PDFSun", domain: "pdfsun.in", timestamp: new Date().toISOString() });
+});
+
+// Explicit API 404 handler: guarantees /api/* routes always return JSON (never HTML or empty response)
+app.all("/api/*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `API route ${req.method} ${req.originalUrl} not found`,
+    status: 404,
+  });
+});
+
+// Global Express error handler guaranteeing valid JSON output
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("[Global Express Error]:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const statusCode = typeof err.status === "number" ? err.status : 500;
+  res.status(statusCode).json({
+    success: false,
+    error: err.message || "Internal server error occurred.",
+    status: statusCode,
+  });
 });
 
 async function startServer() {

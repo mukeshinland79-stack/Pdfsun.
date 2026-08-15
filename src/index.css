@@ -376,4 +376,25 @@ html.aurora-theme .aurora-glass {
   animation: floatUpAndDown 4.5s ease-in-out infinite;
 }
 
+/* Layering & Z-Index System to Prevent Overlap & Bleed */
+.z-header {
+  z-index: 40;
+}
+.z-dropdown {
+  z-index: 50;
+}
+.z-modal {
+  z-index: 100;
+}
+.z-toast {
+  z-index: 150;
+}
+
+/* Ensure smooth backdrop filters on all dropdown menus */
+.dropdown-surface {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+
 

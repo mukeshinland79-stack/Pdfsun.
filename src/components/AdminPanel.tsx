@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Crown,
   BarChart3,
@@ -209,15 +209,80 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // User Management State (fallback if not passed via props)
+  // User Management State (live backend sync + local fallback)
   const [localUserList, setLocalUserList] = useState<AdminUserAccount[]>([
-    { id: "usr-01", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
-    { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
-    { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
-    { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
+    { id: "usr-01", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Dual Owner Master", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
+    { id: "usr-02", name: "Mukesh Inland", email: "mukeshinland79@gmail.com", plan: "Dual Owner Master", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
+    { id: "usr-03", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
+    { id: "usr-04", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
+    { id: "usr-05", name: "David Kim", email: "dkim@tech.co", plan: "Free Customer", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
   ]);
 
-  const activeUserList = userAccounts.length > 0 ? userAccounts : localUserList;
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
+  const [userSearchQuery, setUserSearchQuery] = useState<string>("");
+  const [newUserRole, setNewUserRole] = useState<string>("user");
+  const [isRestoringDatabase, setIsRestoringDatabase] = useState(false);
+  const [dbRestoreFeedback, setDbRestoreFeedback] = useState<{ message: string; success: boolean } | null>(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  const safeParseAdminJson = async (res: Response): Promise<any> => {
+    try {
+      const text = await res.text();
+      return text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const fetchLiveUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await safeParseAdminJson(res);
+        if (data.success && Array.isArray(data.users)) {
+          setLocalUserList(data.users);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch live users:", e);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchLiveUsers();
+    }
+  }, [isOpen, activeTab]);
+
+  const handleRestoreDatabase = async () => {
+    setIsRestoringDatabase(true);
+    setDbRestoreFeedback(null);
+    try {
+      const res = await fetch("/api/admin/users/restore", { method: "POST" });
+      const data = await safeParseAdminJson(res);
+      if (data.success) {
+        setDbRestoreFeedback({
+          success: true,
+          message: `Restored! ${data.repairedCount || 0} accounts audited, ${data.totalUsers || 0} users now active.`,
+        });
+        if (Array.isArray(data.users)) {
+          setLocalUserList(data.users);
+        }
+      } else {
+        setDbRestoreFeedback({ success: false, message: data.error || "Restoration failed" });
+      }
+    } catch (err: any) {
+      setDbRestoreFeedback({ success: false, message: err.message || "Failed to restore database" });
+    } finally {
+      setIsRestoringDatabase(false);
+      setTimeout(() => setDbRestoreFeedback(null), 8000);
+    }
+  };
+
+  const activeUserList = userAccounts && userAccounts.length > 0 ? userAccounts : localUserList;
 
   // System Logs State
   const [logs, setLogs] = useState([
@@ -227,29 +292,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     { id: 4, time: "15:22:40", type: "ADS", msg: "Google AdSense Publisher Slot pub-4820193821039120 served 120 impressions." },
   ]);
 
-  const handleToggleUserStatusInternal = (userId: string) => {
+  const handleToggleUserStatusInternal = async (userId: string) => {
     if (onToggleUserStatus) {
       onToggleUserStatus(userId);
     } else {
+      const target = localUserList.find((u) => u.id === userId);
+      const newStatus = target?.status === "Active" ? "Suspended" : "Active";
       setLocalUserList((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, status: u.status === "Active" ? "Suspended" : "Active" } : u))
+        prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
       );
+      try {
+        await fetch("/api/admin/users/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: userId, updates: { status: newStatus } }),
+        });
+      } catch (err) {
+        console.error("Failed to update status:", err);
+      }
     }
   };
 
-  const handleToggleAdminPermissionInternal = (userId: string) => {
+  const handleToggleAdminPermissionInternal = async (userId: string) => {
     if (onToggleAdminPermission) {
       onToggleAdminPermission(userId);
     } else {
+      const target = localUserList.find((u) => u.id === userId);
+      const newAdminAccess = !target?.hasAdminAccess;
       setLocalUserList((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, hasAdminAccess: !u.hasAdminAccess } : u))
+        prev.map((u) => (u.id === userId ? { ...u, hasAdminAccess: newAdminAccess } : u))
       );
+      try {
+        await fetch("/api/admin/users/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: userId, updates: { hasAdminAccess: newAdminAccess } }),
+        });
+      } catch (err) {
+        console.error("Failed to toggle admin access:", err);
+      }
     }
   };
 
-  const handleAddNewUserInternal = (e: React.FormEvent) => {
+  const handleDeleteUserAccount = async (userId: string, email: string) => {
+    if (!confirm(`Are you sure you want to permanently delete account ${email}?`)) return;
+    try {
+      const res = await fetch("/api/admin/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, email }),
+      });
+      const data = await safeParseAdminJson(res);
+      if (data.success) {
+        setLocalUserList((prev) => prev.filter((u) => u.id !== userId && u.email !== email));
+      } else {
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (e: any) {
+      alert(e.message || "Failed to delete user");
+    }
+  };
+
+  const handleAddNewUserInternal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName.trim() || !newUserEmail.trim()) return;
+    
     if (onAddUserAccount) {
       onAddUserAccount({
         name: newUserName.trim(),
@@ -257,18 +364,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         plan: newUserPlan,
         hasAdminAccess: newUserGrantAdmin,
       });
-    } else {
-      const newUser: AdminUserAccount = {
-        id: `usr-${Date.now()}`,
-        name: newUserName.trim(),
-        email: newUserEmail.trim(),
-        plan: newUserPlan,
-        status: "Active",
-        joined: new Date().toISOString().split("T")[0],
-        hasAdminAccess: newUserGrantAdmin,
-      };
-      setLocalUserList((prev) => [newUser, ...prev]);
     }
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newUserName.trim(),
+          email: newUserEmail.trim(),
+          role: newUserRole,
+          plan: newUserPlan,
+          hasAdminAccess: newUserGrantAdmin,
+        }),
+      });
+      const data = await safeParseAdminJson(res);
+      if (data.success && Array.isArray(data.users)) {
+        setLocalUserList(data.users);
+      } else if (!onAddUserAccount) {
+        const newUser: AdminUserAccount = {
+          id: `usr-${Date.now()}`,
+          name: newUserName.trim(),
+          email: newUserEmail.trim(),
+          plan: newUserPlan,
+          status: "Active",
+          joined: new Date().toISOString().split("T")[0],
+          hasAdminAccess: newUserGrantAdmin,
+        };
+        setLocalUserList((prev) => [newUser, ...prev]);
+      }
+    } catch (err) {
+      console.error("Failed to create user on backend:", err);
+    }
+
     setNewUserName("");
     setNewUserEmail("");
     setNewUserGrantAdmin(false);
@@ -1331,41 +1459,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* 2. User Management Tab */}
           {effectiveActiveTab === "users" && (
             <div className="space-y-4">
-              {/* Sticky Owner Access Banner */}
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3">
-                <Crown className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="text-xs text-amber-900 dark:text-amber-200">
-                  <strong className="font-extrabold block text-amber-600 dark:text-amber-400">
-                    👑 Owner Access Control & Admin Permission Manager (Sticky Policy)
-                  </strong>
-                  The Admin option is strictly visible ONLY to the Website Owner (Mukesh Kalonia). Customers & regular users cannot see or access the Admin Panel unless the Owner explicitly grants them Admin Access below.
+              {/* Sticky Owner Access Banner & Database Restore Bar */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div className="flex items-start space-x-3">
+                  <Crown className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-900 dark:text-amber-200">
+                    <strong className="font-extrabold block text-amber-600 dark:text-amber-400">
+                      👑 Owner RBAC Manager & Database Role Recovery Engine
+                    </strong>
+                    All roles (Owner, Client, Customer, Regular User) are synchronized across memory and JSON database storage.
+                  </div>
                 </div>
+                <button
+                  onClick={handleRestoreDatabase}
+                  disabled={isRestoringDatabase}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-black text-xs transition shadow-md flex items-center space-x-1.5 shrink-0 disabled:opacity-50"
+                  title="Audit and restore any missing user accounts or corrupted roles"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRestoringDatabase ? "animate-spin" : ""}`} />
+                  <span>{isRestoringDatabase ? "Auditing DB..." : "Restore & Audit DB"}</span>
+                </button>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Registered Accounts & RBAC Permissions</h3>
-                  <p className="text-[11px] text-slate-400">Grant or revoke Admin access rights for any customer user account.</p>
+              {dbRestoreFeedback && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-bold border flex items-center space-x-2 animate-in fade-in ${
+                    dbRestoreFeedback.success
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-600"
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{dbRestoreFeedback.message}</span>
                 </div>
-                <div className="flex items-center space-x-2">
+              )}
+
+              {/* Filters and Controls */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 mr-1">Filter:</span>
+                  {[
+                    { key: "all", label: "All Roles" },
+                    { key: "owner", label: "👑 Owners" },
+                    { key: "client", label: "💼 Clients" },
+                    { key: "customer", label: "⭐ Customers" },
+                    { key: "user", label: "👤 Users" },
+                  ].map((filter) => (
+                    <button
+                      key={filter.key}
+                      onClick={() => setUserRoleFilter(filter.key)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                        userRoleFilter === filter.key
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    placeholder="Search name/email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white w-full sm:w-48"
+                  />
                   <button
                     onClick={() => setShowAddUserForm(!showAddUserForm)}
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1"
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center space-x-1 shrink-0"
                   >
                     <Users className="w-3.5 h-3.5" />
-                    <span>{showAddUserForm ? "Cancel" : "+ Add New User"}</span>
+                    <span>{showAddUserForm ? "Cancel" : "+ Add User"}</span>
                   </button>
-                  <div className="text-xs text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl">
-                    Total: {activeUserList.length} Accounts
-                  </div>
                 </div>
               </div>
 
               {/* Add User Inline Form */}
               {showAddUserForm && (
                 <form onSubmit={handleAddNewUserInternal} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3 animate-in fade-in">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Register New Account & Assign Permissions</div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Register New Account & Assign Role / Permissions</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     <input
                       type="text"
                       placeholder="Full Name"
@@ -1383,13 +1559,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
                     <select
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                      className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="user">Role: Regular User</option>
+                      <option value="customer">Role: Customer (Pro/Paid)</option>
+                      <option value="client">Role: Client (Business/Org)</option>
+                      <option value="owner">Role: Co-Owner / Admin</option>
+                    </select>
+                    <select
                       value={newUserPlan}
                       onChange={(e) => setNewUserPlan(e.target.value)}
                       className="px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     >
-                      <option value="Free Sun">Free Sun</option>
-                      <option value="Student Pro">Student Pro</option>
-                      <option value="Team Enterprise">Team Enterprise</option>
+                      <option value="Free Sun">Plan: Free Sun</option>
+                      <option value="Student Pro">Plan: Student Pro</option>
+                      <option value="Pro Sun Monthly">Plan: Pro Sun Monthly</option>
+                      <option value="Team Enterprise">Plan: Team Enterprise</option>
                     </select>
                   </div>
                   <div className="flex items-center justify-between pt-1">
@@ -1416,9 +1603,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold border-b border-slate-200 dark:border-slate-700">
                     <tr>
-                      <th className="p-3">User Name</th>
+                      <th className="p-3 w-12 text-center">S.No</th>
+                      <th className="p-3">User & Identity</th>
                       <th className="p-3">Email Address</th>
-                      <th className="p-3">Plan Tier</th>
+                      <th className="p-3">Role & Plan</th>
+                      <th className="p-3">Booking Plan Details</th>
                       <th className="p-3">Status</th>
                       <th className="p-3">Admin Permission</th>
                       <th className="p-3">Joined</th>
@@ -1426,72 +1615,135 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                    {activeUserList.map((usr) => {
-                      const isOwner = usr.email === "mukeshkalonia241@gmail.com" || usr.plan === "Admin Owner";
-                      return (
-                        <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <td className="p-3 font-bold flex items-center space-x-1.5">
-                            {isOwner && <Crown className="w-3.5 h-3.5 text-amber-500" />}
-                            <span>{usr.name}</span>
-                          </td>
-                          <td className="p-3 font-mono text-slate-500 dark:text-slate-400">{usr.email}</td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                              {usr.plan}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                usr.status === "Active"
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-rose-500/10 text-rose-600"
-                              }`}
-                            >
-                              {usr.status}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            {isOwner ? (
-                              <span className="px-2 py-1 rounded bg-amber-500 text-white font-black text-[10px] uppercase shadow-xs">
-                                👑 OWNER (FULL ADMIN)
-                              </span>
-                            ) : usr.hasAdminAccess ? (
-                              <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/30">
-                                ✅ ADMIN ACCESS GRANTED
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase">
-                                🔒 CUSTOMER ONLY
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-3 text-slate-400">{usr.joined}</td>
-                          <td className="p-3 text-right">
-                            {!isOwner && (
-                              <div className="flex items-center justify-end space-x-1.5">
-                                <button
-                                  onClick={() => handleToggleAdminPermissionInternal(usr.id)}
-                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
-                                    usr.hasAdminAccess
-                                      ? "bg-rose-500/10 text-rose-600 border border-rose-500/30 hover:bg-rose-600 hover:text-white"
-                                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-xs"
-                                  }`}
-                                >
-                                  {usr.hasAdminAccess ? "Revoke Admin" : "Grant Admin"}
-                                </button>
-                                <button
-                                  onClick={() => handleToggleUserStatusInternal(usr.id)}
-                                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
-                                >
-                                  {usr.status === "Active" ? "Suspend" : "Activate"}
-                                </button>
+                    {activeUserList
+                      .filter((usr) => {
+                        const emailLower = (usr.email || "").toLowerCase();
+                        const isOwner = emailLower.includes("mukesh") || usr.plan?.toLowerCase().includes("owner") || (usr as any).role === "owner";
+                        const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
+                        const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
+
+                        if (userRoleFilter === "owner" && !isOwner) return false;
+                        if (userRoleFilter === "client" && !isClient && !isOwner) return false;
+                        if (userRoleFilter === "customer" && !isCustomer && !isOwner) return false;
+                        if (userRoleFilter === "user" && (isOwner || isClient || isCustomer)) return false;
+
+                        if (userSearchQuery.trim()) {
+                          const q = userSearchQuery.toLowerCase().trim();
+                          return usr.name.toLowerCase().includes(q) || usr.email.toLowerCase().includes(q);
+                        }
+                        return true;
+                      })
+                      .map((usr, index) => {
+                        const emailLower = (usr.email || "").toLowerCase();
+                        const isOwner = emailLower.includes("mukeshkalonia") || emailLower.includes("mukeshinland") || usr.plan?.toLowerCase().includes("owner") || (usr as any).role === "owner";
+                        const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
+                        const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
+
+                        const bookingPlanId = isOwner
+                          ? "OWNER-LIFETIME-001"
+                          : isClient
+                          ? `ENT-BKG-${usr.id.slice(-4).toUpperCase() || "9901"}`
+                          : isCustomer
+                          ? `PRO-BKG-${usr.id.slice(-4).toUpperCase() || "7701"}`
+                          : `FREE-BKG-${usr.id.slice(-4).toUpperCase() || "1101"}`;
+
+                        return (
+                          <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="p-3 font-mono font-bold text-center text-slate-400">
+                              {String(index + 1).padStart(2, "0")}
+                            </td>
+                            <td className="p-3 font-bold flex items-center space-x-1.5">
+                              {isOwner && <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                              {isClient && !isOwner && <span className="text-xs">💼</span>}
+                              {isCustomer && !isOwner && !isClient && <span className="text-xs">⭐</span>}
+                              <span>{usr.name}</span>
+                            </td>
+                            <td className="p-3 font-mono text-slate-500 dark:text-slate-400">{usr.email}</td>
+                            <td className="p-3">
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black w-fit ${
+                                  isOwner
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                    : isClient
+                                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                    : isCustomer
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                }`}>
+                                  {isOwner ? "OWNER" : isClient ? "CLIENT" : isCustomer ? "CUSTOMER" : "USER"}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">{usr.plan}</span>
                               </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                                  {bookingPlanId}
+                                </span>
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                  {isOwner ? "Founder Lifetime" : "Instant Active"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                  usr.status === "Active"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-rose-500/10 text-rose-600"
+                                }`}
+                              >
+                                {usr.status}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {isOwner ? (
+                                <span className="px-2 py-1 rounded bg-amber-500 text-white font-black text-[10px] uppercase shadow-xs">
+                                  👑 OWNER (FULL ADMIN)
+                                </span>
+                              ) : usr.hasAdminAccess ? (
+                                <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/30">
+                                  ✅ ADMIN ACCESS GRANTED
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase">
+                                  🔒 CUSTOMER ONLY
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-slate-400">{usr.joined}</td>
+                            <td className="p-3 text-right">
+                              {!isOwner && (
+                                <div className="flex items-center justify-end space-x-1.5">
+                                  <button
+                                    onClick={() => handleToggleAdminPermissionInternal(usr.id)}
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                                      usr.hasAdminAccess
+                                        ? "bg-rose-500/10 text-rose-600 border border-rose-500/30 hover:bg-rose-600 hover:text-white"
+                                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-xs"
+                                    }`}
+                                  >
+                                    {usr.hasAdminAccess ? "Revoke Admin" : "Grant Admin"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleToggleUserStatusInternal(usr.id)}
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                                  >
+                                    {usr.status === "Active" ? "Suspend" : "Activate"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUserAccount(usr.id, usr.email)}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition"
+                                    title="Delete user"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

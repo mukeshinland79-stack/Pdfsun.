@@ -62,12 +62,17 @@ async function parseResponseBodyForErrorMsg(response: Response): Promise<string 
     const contentType = clone.headers.get("content-type") || "";
 
     if (contentType.includes("application/json")) {
-      const data = await clone.json();
-      if (data) {
-        if (typeof data.error === "string") return data.error;
-        if (typeof data.message === "string") return data.message;
-        if (typeof data.detail === "string") return data.detail;
-        if (data.error && typeof data.error.message === "string") return data.error.message;
+      const rawText = await clone.text();
+      if (rawText && rawText.trim()) {
+        try {
+          const data = JSON.parse(rawText);
+          if (data) {
+            if (typeof data.error === "string") return data.error;
+            if (typeof data.message === "string") return data.message;
+            if (typeof data.detail === "string") return data.detail;
+            if (data.error && typeof data.error.message === "string") return data.error.message;
+          }
+        } catch {}
       }
     } else if (contentType.includes("text/")) {
       const text = await clone.text();

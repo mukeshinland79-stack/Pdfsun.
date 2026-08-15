@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import * as d3 from "d3";
 import { UserProfile } from "../types";
+import { safeFetchJson } from "../utils/apiHelper";
 import {
   CreditCard,
   Receipt,
@@ -21,6 +22,7 @@ import {
   X,
   Printer,
   ChevronRight,
+  Calendar,
 } from "lucide-react";
 
 export interface PaymentTransaction {
@@ -74,11 +76,11 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     try {
       setRefreshing(true);
       const email = userProfile.email || "mukeshinland79@gmail.com";
-      const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+      const result = await safeFetchJson<any>(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
 
       let apiTransactions: PaymentTransaction[] = [];
-      if (res.ok) {
-        const data = await res.json();
+      if (result.ok && result.data) {
+        const data = result.data;
         if (data.subscription) {
           setActiveSubscription(data.subscription);
         }
@@ -161,20 +163,20 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       setSyncing(true);
       setSyncMessage(null);
       const email = userProfile.email || "mukeshinland79@gmail.com";
-      const res = await fetch("/api/user/sync-payment-status", {
+      const result = await safeFetchJson<any>("/api/user/sync-payment-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
-      if (data.success) {
+      if (result.ok && result.data && result.data.success) {
+        const data = result.data;
         setSyncMessage(`✅ Sync Complete: Account set to ${data.badgeStatus}! Total Paid: ₹${data.totalPaidINR} INR.`);
         if (data.subscription) {
           setActiveSubscription(data.subscription);
         }
         await fetchPaymentHistory();
       } else {
-        setSyncMessage(`⚠️ Sync Notice: ${data.error || "Unable to sync payment status."}`);
+        setSyncMessage(`⚠️ Sync Notice: ${result.data?.error || "Unable to sync payment status."}`);
       }
     } catch (err) {
       setSyncMessage("❌ Error triggering payment status sync.");
