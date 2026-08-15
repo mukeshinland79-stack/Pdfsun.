@@ -1538,6 +1538,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       localStorage.setItem("pdfsun_lang", validLang);
       document.documentElement.lang = validLang;
       document.documentElement.dir = isRtlLanguage(validLang) ? "rtl" : "ltr";
+      window.dispatchEvent(new CustomEvent("pdfsun_language_changed", { detail: { lang: validLang } }));
     } catch {
       // Ignore storage access error
     }

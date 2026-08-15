@@ -737,6 +737,12 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
+        selectedCategory={selectedCategory}
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          if (activeTool) setActiveTool(null);
+          document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+        }}
       />
 
       {/* Main Hero Dropzone & Search Section */}
