@@ -26,6 +26,39 @@ import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson } from "../utils/apiHelper";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
+/**
+ * PII Data Protection: Client-side masking helpers
+ */
+export function maskClientEmail(email: string): string {
+  if (!email || !email.includes("@")) return "••••••••";
+  const [user, domain] = email.trim().toLowerCase().split("@");
+  if (user.length <= 2) {
+    return `${user.charAt(0)}***@${domain}`;
+  }
+  const first = user.charAt(0);
+  const last = user.charAt(user.length - 1);
+  return `${first}***${last}@${domain}`;
+}
+
+export function maskClientPhone(phone: string = "9991659655"): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length >= 10) {
+    const start = digits.slice(-10, -6);
+    const end = digits.slice(-2);
+    return `${start}****${end}`;
+  }
+  return "9050****55";
+}
+
+export function maskClientIdentifier(identifier: string): string {
+  if (!identifier) return "••••••••";
+  const trimmed = identifier.trim();
+  if (trimmed.includes("@")) {
+    return maskClientEmail(trimmed);
+  }
+  return maskClientPhone(trimmed);
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -154,15 +187,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const endpoint = customerSubMode === "signup" ? "/api/auth/register" : "/api/auth/login";
+      const endpoint = customerSubMode === "signup" ? "/api/v1/auth/register" : "/api/v1/auth/login";
       const payload =
         customerSubMode === "signup"
-          ? { name: nameInput.trim(), email, password: passwordInput }
-          : { email, password: passwordInput };
+          ? { name: nameInput.trim(), email, identifier: email, password: passwordInput }
+          : { email, identifier: email, password: passwordInput };
 
       const { ok, data, error } = await safeFetchJson(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
@@ -227,9 +263,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { ok, data, error } = await safeFetchJson("/api/auth/forgot-password", {
+      const { ok, data, error } = await safeFetchJson("/api/v1/auth/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ identifier }),
       });
 
@@ -243,7 +279,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setOtpHint(data.otp);
         setOtpInput(data.otp);
       }
-      setSuccessMsg(data.message || `Verification OTP generated for ${identifier}. Valid for 10 minutes.`);
+      const maskedTarget = data.maskedTarget || maskClientIdentifier(identifier);
+      setSuccessMsg(data.message || `OTP sent to ${maskedTarget}`);
     } catch (err: any) {
       setErrorMsg(err.message || "Could not send OTP. Please check your contact info.");
     } finally {
@@ -274,9 +311,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { ok, data, error } = await safeFetchJson("/api/auth/reset-password", {
+      const { ok, data, error } = await safeFetchJson("/api/v1/auth/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({
           identifier,
           otp: otpInput.trim(),
@@ -350,11 +387,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { ok, data, error } = await safeFetchJson("/api/admin/auth/initiate-login", {
+      const { ok, data, error } = await safeFetchJson("/api/v1/auth/send-mfa", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({
           email,
+          identifier: email,
           password: key,
           secretKey: key,
         }),
@@ -364,22 +402,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         throw new Error(error || data?.error || "Access Denied: Invalid credentials or unauthorized account.");
       }
 
-      const maskEmail = (str: string) => {
-        if (!str || !str.includes("@")) return "••••••••";
-        const [u, d] = str.split("@");
-        if (u.length <= 4) return `${u.substring(0, 1)}•••••@${d}`;
-        return `${u.substring(0, 4)}*********${u.substring(u.length - 1)}@${d}`;
-      };
-      const maskPhone = (str: string) => {
-        const digits = (str || "9991659655").replace(/\D/g, "");
-        if (digits.length >= 10) {
-          return `${digits.slice(-10, -6)}****${digits.slice(-2)}`;
-        }
-        return "9991****55";
-      };
-
-      setOwnerMaskedEmail(data.maskedEmail || maskEmail(email));
-      setOwnerMaskedPhone(data.maskedPhone || maskPhone("+91 9991659655"));
+      setOwnerMaskedEmail(data.maskedEmail || maskClientEmail(email));
+      setOwnerMaskedPhone(data.maskedPhone || maskClientPhone("+91 9991659655"));
       setOwnerMfaStep(2);
       setOwnerMfaCountdown(60);
       if (data.otp) {
@@ -411,11 +435,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { ok, data, error } = await safeFetchJson("/api/admin/auth/verify-mfa", {
+      const { ok, data, error } = await safeFetchJson("/api/v1/auth/verify-mfa", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({
           email,
+          identifier: email,
           otp,
         }),
       });
@@ -459,7 +484,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLogout = async () => {
     try {
-      await safeFetchJson("/api/auth/logout", { method: "POST" });
+      await safeFetchJson("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      });
     } catch {}
     localStorage.removeItem("pdfsun_auth_token");
     onSelectRole("public", null);
@@ -931,53 +959,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    Owner Password / Passkey
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showOwnerPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={ownerKeyInput}
-                      onChange={(e) => setOwnerKeyInput(e.target.value)}
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium pr-10"
-                    />
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Owner Password / Passkey
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode("forgot-password");
+                          if (ownerEmailInput) setEmailInput(ownerEmailInput);
+                          setErrorMsg("");
+                          setSuccessMsg("");
+                          setOtpSent(false);
+                        }}
+                        className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-bold cursor-pointer"
+                      >
+                        [Forgot?]
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showOwnerPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={ownerKeyInput}
+                        onChange={(e) => setOwnerKeyInput(e.target.value)}
+                        required
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOwnerPassword(!showOwnerPassword)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                        aria-label="Toggle owner password visibility"
+                      >
+                        {showOwnerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {ownerKeyInput && (
+                      <PasswordStrengthIndicator
+                        password={ownerKeyInput}
+                        showCriteria={false}
+                      />
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-white font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer active:scale-98"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Verifying Credentials &amp; Generating OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Smartphone className="w-4 h-4 shrink-0" />
+                        <span>Verify &amp; Send 6-Digit MFA Security Code</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-1">
                     <button
                       type="button"
-                      onClick={() => setShowOwnerPassword(!showOwnerPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-                      aria-label="Toggle owner password visibility"
+                      onClick={() => {
+                        setAuthMode("forgot-password");
+                        if (ownerEmailInput) setEmailInput(ownerEmailInput);
+                        setErrorMsg("");
+                        setSuccessMsg("");
+                        setOtpSent(false);
+                      }}
+                      className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-semibold cursor-pointer"
                     >
-                      {showOwnerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      Need to reset your Owner Passkey or Password?
                     </button>
                   </div>
-                  {ownerKeyInput && (
-                    <PasswordStrengthIndicator
-                      password={ownerKeyInput}
-                      showCriteria={false}
-                    />
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-white font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer active:scale-98"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verifying Credentials &amp; Generating OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Smartphone className="w-4 h-4 shrink-0" />
-                      <span>Verify &amp; Send 6-Digit MFA Security Code</span>
-                    </>
-                  )}
-                </button>
               </form>
             )}
 

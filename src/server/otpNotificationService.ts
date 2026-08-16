@@ -10,21 +10,21 @@ export interface OtpDispatchResult {
 }
 
 /**
- * Mask sensitive email addresses (e.g., mukeshinland79@gmail.com -> muke*********9@gmail.com)
+ * Mask sensitive email addresses (e.g., mukeshinland79@gmail.com -> m***9@gmail.com)
  */
 export function maskEmailAddress(email: string): string {
   if (!email || !email.includes("@")) return "••••••••";
-  const [user, domain] = email.split("@");
-  if (user.length <= 4) {
-    return `${user.substring(0, 1)}•••••@${domain}`;
+  const [user, domain] = email.trim().toLowerCase().split("@");
+  if (user.length <= 2) {
+    return `${user.charAt(0)}***@${domain}`;
   }
-  const first = user.substring(0, 4);
-  const last = user.substring(user.length - 1);
-  return `${first}*********${last}@${domain}`;
+  const first = user.charAt(0);
+  const last = user.charAt(user.length - 1);
+  return `${first}***${last}@${domain}`;
 }
 
 /**
- * Mask sensitive phone numbers (e.g., 9991659655 -> 9991****55)
+ * Mask sensitive phone numbers (e.g., 9050659655 -> 9050****55, 9991659655 -> 9991****55)
  */
 export function maskPhoneNumber(phone: string = "9991659655"): string {
   const digits = phone.replace(/\D/g, "");
@@ -33,7 +33,19 @@ export function maskPhoneNumber(phone: string = "9991659655"): string {
     const end = digits.slice(-2);
     return `${start}****${end}`;
   }
-  return "9991****55";
+  return "9050****55";
+}
+
+/**
+ * Mask any user identifier (Email or Mobile Number)
+ */
+export function maskUserIdentifier(identifier: string): string {
+  if (!identifier) return "••••••••";
+  const trimmed = identifier.trim();
+  if (trimmed.includes("@")) {
+    return maskEmailAddress(trimmed);
+  }
+  return maskPhoneNumber(trimmed);
 }
 
 /**
@@ -176,7 +188,7 @@ export async function dispatchMultiChannelOtp(params: {
     channelLog.push(`[Fallback] SMS OTP '${otp}' processed for mobile ${maskedPhone}`);
   }
 
-  console.log(`[Banking MFA Engine] OTP '${otp}' dispatched to ${maskedEmail} and ${maskedPhone}. Status: Email=${emailDispatched}, SMS=${smsDispatched}`);
+  console.log(`[Banking MFA Engine] Multi-Channel OTP dispatched to ${maskedEmail} and ${maskedPhone}. Status: Email=${emailDispatched}, SMS=${smsDispatched}`);
 
   return {
     emailDispatched,

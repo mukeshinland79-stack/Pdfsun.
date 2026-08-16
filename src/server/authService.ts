@@ -8,9 +8,10 @@ import {
   generateSecureOtp,
   maskEmailAddress,
   maskPhoneNumber,
+  maskUserIdentifier,
 } from "./otpNotificationService";
 
-export { maskEmailAddress, maskPhoneNumber };
+export { maskEmailAddress, maskPhoneNumber, maskUserIdentifier };
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Secure_JWT_Secret_Token_2026_Enterprise";
 const USERS_FILE_PATH = path.join(process.cwd(), "users_store.json");
@@ -265,6 +266,33 @@ export function normalizeLoginIdentifier(input: string): string {
   }
 
   return cleaned;
+}
+
+/**
+ * Find user across in-memory store by email, phone, or identifier alias
+ */
+export function findUserByIdentifier(identifier: string): StoredUser | null {
+  if (!identifier) return null;
+  const normalized = normalizeLoginIdentifier(identifier);
+  if (usersStore[normalized]) return usersStore[normalized];
+
+  const cleaned = identifier.trim().toLowerCase();
+  if (usersStore[cleaned]) return usersStore[cleaned];
+
+  const digits = cleaned.replace(/\D/g, "");
+  for (const key in usersStore) {
+    const u = usersStore[key];
+    if (u.email.toLowerCase() === cleaned || u.email.toLowerCase() === normalized) {
+      return u;
+    }
+    if (u.phone) {
+      const uDigits = u.phone.replace(/\D/g, "");
+      if (digits.length >= 10 && (uDigits === digits || uDigits.endsWith(digits))) {
+        return u;
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -678,7 +706,7 @@ export async function resendBankingOtp(params: {
 }
 
 /**
- * Password Recovery Step 1: Request Password Reset OTP
+ * Password Recovery Step 1: Request Password Reset OTP (10-minute expiry, rate-limited)
  */
 export async function requestPasswordResetOtp(params: {
   identifier: string;
@@ -686,19 +714,24 @@ export async function requestPasswordResetOtp(params: {
 }): Promise<{
   success: boolean;
   identifier?: string;
+  maskedTarget?: string;
   maskedEmail?: string;
   maskedPhone?: string;
   cooldownSeconds?: number;
   message?: string;
   error?: string;
 }> {
-  const clean = normalizeLoginIdentifier(params.identifier || "");
-  const email = (clean || params.identifier || "").toLowerCase().trim();
-  const ip = params.ip || "127.0.0.1";
-
-  if (!email) {
-    return { success: false, error: "Please enter your registered Email or Mobile Number." };
+  const rawInput = (params.identifier || "").trim();
+  if (!rawInput) {
+    return { success: false, error: "Please enter your registered Email Address or Mobile Number." };
   }
+
+  const isPhone = !rawInput.includes("@");
+  let user = findUserByIdentifier(rawInput);
+  const clean = normalizeLoginIdentifier(rawInput);
+  const email = user?.email || (clean || rawInput).toLowerCase().trim();
+  const phone = user?.phone || (isPhone ? rawInput : "+91 9991659655");
+  const ip = params.ip || "127.0.0.1";
 
   const rateLimit = checkOtpRateLimit(email, ip);
   if (!rateLimit.allowed) {
@@ -709,10 +742,8 @@ export async function requestPasswordResetOtp(params: {
     };
   }
 
-  let user = usersStore[email];
-  const phone = user?.phone || "+91 9991659655";
   const otp = generateSecureOtp();
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes for password reset
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry window for password recovery
 
   bankingOtpStore[email] = {
     otp,
@@ -724,23 +755,31 @@ export async function requestPasswordResetOtp(params: {
     lastSentAt: Date.now(),
   };
 
+  // Also bind by phone if given
+  if (phone) {
+    bankingOtpStore[phone] = bankingOtpStore[email];
+  }
+
   recordOtpSent(email, ip);
 
   const dispatchResult = await dispatchMultiChannelOtp({
     otp,
-    recipientEmail: email,
+    recipientEmail: email.includes("@") ? email : "mukeshinland79@gmail.com",
     recipientPhone: phone,
     userName: user?.name || "Valued User",
     purpose: "PASSWORD_RESET",
   });
 
+  const maskedTarget = isPhone ? dispatchResult.maskedPhone : dispatchResult.maskedEmail;
+
   return {
     success: true,
     identifier: email,
+    maskedTarget,
     maskedEmail: dispatchResult.maskedEmail,
     maskedPhone: dispatchResult.maskedPhone,
     cooldownSeconds: 60,
-    message: `Password reset verification OTP dispatched to ${dispatchResult.maskedEmail} and ${dispatchResult.maskedPhone}.`,
+    message: `OTP sent to ${maskedTarget}`,
   };
 }
 
@@ -864,21 +903,37 @@ export const verifyOtpAndResetPassword = (identifier: string, otp: string, newPa
   verifyAndResetPassword({ identifier, otp, newPassword: newPass });
 
 /**
- * Register a new customer user account
+ * Register a new customer user account with multi-identifier (email or mobile number) support
  */
 export function registerUserAccount(params: {
   name?: string;
-  email: string;
+  email?: string;
+  identifier?: string;
   password?: string;
   phone?: string;
 }): { success: boolean; token?: string; user?: UserProfile; error?: string } {
-  const email = (params.email || "").toLowerCase().trim();
-  if (!email || !email.includes("@")) {
-    return { success: false, error: "Please enter a valid email address." };
+  const rawInput = (params.identifier || params.email || "").trim();
+  if (!rawInput) {
+    return { success: false, error: "Please enter your Email Address or Mobile Number." };
   }
 
-  if (usersStore[email]) {
-    return { success: false, error: "An account with this email already exists. Please sign in instead." };
+  const isEmail = rawInput.includes("@");
+  let email = isEmail ? rawInput.toLowerCase() : "";
+  let phone = params.phone || (!isEmail ? rawInput : "+91 9991659655");
+
+  if (!isEmail) {
+    const digits = rawInput.replace(/\D/g, "");
+    if (digits.length < 10) {
+      return { success: false, error: "Please enter a valid 10-digit mobile number or email address." };
+    }
+    email = `${digits}@user.pdfsun.in`;
+    phone = rawInput.startsWith("+") ? rawInput : `+91 ${digits}`;
+  }
+
+  // Duplicate Check across both email and phone
+  const existingUser = findUserByIdentifier(rawInput) || (email ? usersStore[email] : null);
+  if (existingUser) {
+    return { success: false, error: "An account with this Email or Mobile Number already exists. Please sign in instead." };
   }
 
   const salt = crypto.randomBytes(16).toString("hex");
@@ -888,13 +943,14 @@ export function registerUserAccount(params: {
   const isOwnerEmail =
     DUAL_OWNER_EMAILS.includes(email) ||
     email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com";
+    email === "mukeshinland79@gmail.com" ||
+    rawInput.includes("9991659655");
 
   const newUser: StoredUser = {
     id: "usr-" + Math.random().toString(36).substring(2, 9),
-    name: params.name?.trim() || (isOwnerEmail ? "Mukesh Owner" : email.split("@")[0].replace(/[._]/g, " ")),
+    name: params.name?.trim() || (isOwnerEmail ? "Mukesh Owner" : isEmail ? email.split("@")[0].replace(/[._]/g, " ") : "PDFSun User"),
     email,
-    phone: params.phone || "+91 9991659655",
+    phone,
     passwordHash,
     salt,
     role: isOwnerEmail ? "owner" : "user",
@@ -943,23 +999,27 @@ export function authenticateUser(params: {
   ownerSecretKey?: string;
   isOwnerLogin?: boolean;
 }): { success: boolean; token?: string; user?: UserProfile; error?: string } {
-  const normalizedInput = normalizeLoginIdentifier(params.email || "");
-  const email = (normalizedInput || params.email || "").toLowerCase().trim();
-  if (!email) {
-    return { success: false, error: "Please enter your email or registered phone number." };
+  const rawInput = (params.email || "").trim();
+  if (!rawInput) {
+    return { success: false, error: "Please enter your email or registered mobile number." };
   }
+
+  let user = findUserByIdentifier(rawInput);
+  const normalizedInput = normalizeLoginIdentifier(rawInput);
+  const email = user ? user.email : (normalizedInput || rawInput).toLowerCase().trim();
 
   const isOwnerEmail =
     DUAL_OWNER_EMAILS.includes(email) ||
     email === "mukeshkalonia241@gmail.com" ||
     email === "mukeshinland79@gmail.com" ||
+    rawInput.includes("9991659655") ||
     email.includes("mukeshinland") ||
     email.includes("mukeshkalonia");
 
-  let user = usersStore[email];
   if (!user) {
     const registerResult = registerUserAccount({
       email,
+      identifier: rawInput,
       name: email.split("@")[0].replace(/[._]/g, " "),
       password: params.password || "pdfsunPass2026",
     });

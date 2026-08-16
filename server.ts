@@ -61,6 +61,22 @@ try {
 const app = express();
 const PORT = 3000;
 
+// Global CORS & Method Mapping Middleware to completely eradicate HTTP 405 (Method Not Allowed)
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
+});
+
 // Metric Counters & Active System Config
 let lastCpuUsage = process.cpuUsage();
 let lastCpuTime = Date.now();
@@ -1266,11 +1282,16 @@ app.post("/api/process-refund", (req, res) => {
 // UNIFIED AUTHENTICATION & JWT SESSION API ROUTES
 // ==========================================
 
-// 1. User Registration (Customer Accounts)
-app.post("/api/auth/register", (req, res) => {
+// ==========================================
+// UNIFIED AUTHENTICATION & JWT SESSION API ROUTES (v1 & legacy)
+// ==========================================
+
+// 1. User Registration (Customer & Admin Accounts)
+const handleUnifiedRegister = (req: express.Request, res: express.Response) => {
   try {
-    const { name, email, password } = req.body || {};
-    const result = registerUserAccount({ name, email, password });
+    const { name, email, identifier, phone, password } = req.body || {};
+    const inputIdentifier = (identifier || email || phone || "").trim();
+    const result = registerUserAccount({ name, identifier: inputIdentifier, email: inputIdentifier, phone, password });
 
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error || "Registration failed" });
@@ -1293,18 +1314,89 @@ app.post("/api/auth/register", (req, res) => {
     console.error("[Auth Register Error]:", err);
     return res.status(500).json({ success: false, error: err.message || "Internal server error" });
   }
-});
+};
 
-// 2. User & Owner Login
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/v1/auth/register", handleUnifiedRegister);
+app.post("/api/auth/register", handleUnifiedRegister);
+
+// 2. Unified User & Owner Login
+const handleUnifiedLogin = async (req: express.Request, res: express.Response) => {
   try {
-    const { email, password, ownerSecretKey, isOwnerLogin, secretKey } = req.body || {};
-    const key = ownerSecretKey || secretKey;
+    const { identifier, email, phone, password, ownerSecretKey, secretKey, isOwnerLogin, otp } = req.body || {};
+    const inputIdentifier = (identifier || email || phone || "").trim();
+    const key = password || ownerSecretKey || secretKey || "";
+
+    if (!inputIdentifier) {
+      return res.status(400).json({ success: false, error: "Please enter your Email Address or Mobile Number." });
+    }
+
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    // If OTP is provided, verify OTP directly (MFA completion)
+    if (otp) {
+      const mfaRes = await verifyBankingStep2Otp({
+        identifier: inputIdentifier,
+        otp: String(otp),
+        ip,
+        userAgent,
+      });
+
+      if (!mfaRes.success) {
+        const statusCode = mfaRes.isLocked ? 423 : 401;
+        return res.status(statusCode).json(mfaRes);
+      }
+
+      const isOwner = mfaRes.role === "owner" || mfaRes.hasAdminAccess;
+      const cookies = [
+        `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+        `pdfsun_user_email=${encodeURIComponent(mfaRes.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      ];
+      if (isOwner) {
+        cookies.push(`pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+      }
+      res.setHeader("Set-Cookie", cookies);
+
+      return res.json({
+        success: true,
+        token: mfaRes.token,
+        role: mfaRes.role || "user",
+        user: mfaRes.user,
+        hasAdminAccess: mfaRes.hasAdminAccess || false,
+        message: mfaRes.message || "Logged in successfully!",
+      });
+    }
+
+    // Determine if Admin MFA flow is explicitly requested
+    if (isOwnerLogin) {
+      const step1Result = await initiateBankingStep1Login({
+        identifier: inputIdentifier,
+        password: key,
+        secretKey: key,
+        ip,
+        userAgent,
+        isOwnerLogin: true,
+      });
+
+      if (!step1Result.success) {
+        const statusCode = step1Result.isLocked ? 423 : step1Result.cooldownSeconds ? 429 : 401;
+        return res.status(statusCode).json(step1Result);
+      }
+
+      return res.json({
+        ...step1Result,
+        requiresMfa: true,
+        mfaRequired: true,
+        role: "admin",
+      });
+    }
+
+    // Standard fast direct login (1-second response)
     const result = authenticateUser({
-      email,
-      password,
+      email: inputIdentifier,
+      password: key,
       ownerSecretKey: key,
-      isOwnerLogin: Boolean(isOwnerLogin || key),
+      isOwnerLogin: false,
     });
 
     if (!result.success) {
@@ -1316,15 +1408,14 @@ app.post("/api/auth/login", (req, res) => {
       `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
       `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
     ];
-
     if (isOwner) {
       cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
     }
-
     res.setHeader("Set-Cookie", cookies);
 
     return res.json({
       success: true,
+      requiresMfa: false,
       token: result.token,
       user: result.user,
       role: result.user?.role || "user",
@@ -1335,10 +1426,13 @@ app.post("/api/auth/login", (req, res) => {
     console.error("[Auth Login Error]:", err);
     return res.status(500).json({ success: false, error: err.message || "Authentication error." });
   }
-});
+};
+
+app.post("/api/v1/auth/login", handleUnifiedLogin);
+app.post("/api/auth/login", handleUnifiedLogin);
 
 // 3. Verify Session Token (Restores active session on page reload)
-app.all("/api/auth/verify-session", (req, res) => {
+const handleVerifySession = (req: express.Request, res: express.Response) => {
   try {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     let token = "";
@@ -1404,10 +1498,12 @@ app.all("/api/auth/verify-session", (req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, valid: false, error: err.message });
   }
-});
+};
+
+app.all("/api/v1/auth/verify-session", handleVerifySession);
+app.all("/api/auth/verify-session", handleVerifySession);
 
 // 4. Banking-Grade Multi-Factor Authentication (MFA) & Step-by-Step API Routes
-// Step 1: POST /api/auth/login-step1 - Validate Credentials & Dispatch 6-Digit OTP
 const handleStep1Login = async (req: express.Request, res: express.Response) => {
   try {
     const { identifier, email, phone, password, secretKey, ownerSecretKey, isOwnerLogin } = req.body || {};
@@ -1423,7 +1519,7 @@ const handleStep1Login = async (req: express.Request, res: express.Response) => 
       secretKey: key,
       ip,
       userAgent,
-      isOwnerLogin: Boolean(isOwnerLogin),
+      isOwnerLogin: Boolean(isOwnerLogin !== false),
     });
 
     if (!result.success) {
@@ -1438,11 +1534,12 @@ const handleStep1Login = async (req: express.Request, res: express.Response) => 
   }
 };
 
+app.post("/api/v1/auth/send-mfa", handleStep1Login);
 app.post("/api/auth/login-step1", handleStep1Login);
 app.post("/api/admin/auth/initiate-login", handleStep1Login);
 app.post("/api/admin/auth/send-mfa", handleStep1Login);
 
-// Step 2: POST /api/auth/verify-otp - Validate 6-Digit OTP & Issue JWT / HTTP-Only Cookies
+// Step 2: Validate 6-Digit OTP / MFA Verification
 const handleVerifyOtp = async (req: express.Request, res: express.Response) => {
   try {
     const { identifier, email, phone, otp } = req.body || {};
@@ -1490,11 +1587,14 @@ const handleVerifyOtp = async (req: express.Request, res: express.Response) => {
   }
 };
 
+app.post("/api/v1/auth/verify-mfa", handleVerifyOtp);
+app.post("/api/v1/auth/verify-otp", handleVerifyOtp);
+app.post("/api/auth/verify-mfa", handleVerifyOtp);
 app.post("/api/auth/verify-otp", handleVerifyOtp);
 app.post("/api/admin/auth/verify-mfa", handleVerifyOtp);
 
 // Resend OTP Endpoint with 60s cooldown
-app.post("/api/auth/resend-otp", async (req, res) => {
+const handleResendOtp = async (req: express.Request, res: express.Response) => {
   try {
     const { identifier, email, phone } = req.body || {};
     const inputIdentifier = identifier || email || phone || "";
@@ -1514,7 +1614,10 @@ app.post("/api/auth/resend-otp", async (req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message || "Failed to resend OTP." });
   }
-});
+};
+
+app.post("/api/v1/auth/resend-otp", handleResendOtp);
+app.post("/api/auth/resend-otp", handleResendOtp);
 
 // Legacy / Direct Admin Login endpoint
 app.post("/api/admin/auth/login", async (req, res) => {
@@ -1572,7 +1675,7 @@ app.post("/api/admin/auth/login", async (req, res) => {
 });
 
 // 5. Session Management & Inactivity Endpoints
-app.post("/api/auth/logout", (req, res) => {
+const handleLogout = (req: express.Request, res: express.Response) => {
   res.setHeader("Set-Cookie", [
     "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
     "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
@@ -1584,7 +1687,10 @@ app.post("/api/auth/logout", (req, res) => {
     message: "Session token invalidated and cleared server-side.",
     timestamp: new Date().toISOString(),
   });
-});
+};
+
+app.post("/api/v1/auth/logout", handleLogout);
+app.post("/api/auth/logout", handleLogout);
 
 // 6. Account Recovery: OTP Generation & Password Reset (Banking Grade)
 const handleForgotPasswordRequest = async (req: express.Request, res: express.Response) => {
@@ -1609,10 +1715,11 @@ const handleForgotPasswordRequest = async (req: express.Request, res: express.Re
   }
 };
 
+app.post("/api/v1/auth/forgot-password", handleForgotPasswordRequest);
 app.post("/api/auth/forgot-password-request", handleForgotPasswordRequest);
 app.post("/api/auth/forgot-password", handleForgotPasswordRequest);
 
-app.post("/api/auth/reset-password", async (req, res) => {
+const handleResetPassword = async (req: express.Request, res: express.Response) => {
   try {
     const { identifier, email, phone, otp, newPassword } = req.body || {};
     const input = identifier || email || phone;
@@ -1651,8 +1758,35 @@ app.post("/api/auth/reset-password", async (req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message || "Failed to reset password." });
   }
-});
+};
 
+app.post("/api/v1/auth/reset-password", handleResetPassword);
+app.post("/api/auth/reset-password", handleResetPassword);
+
+// HTTP 405 Method Not Allowed safety handlers for auth endpoints
+app.get(
+  [
+    "/api/v1/auth/login",
+    "/api/auth/login",
+    "/api/v1/auth/register",
+    "/api/auth/register",
+    "/api/v1/auth/verify-mfa",
+    "/api/auth/verify-mfa",
+    "/api/v1/auth/verify-otp",
+    "/api/auth/verify-otp",
+    "/api/v1/auth/forgot-password",
+    "/api/auth/forgot-password",
+    "/api/v1/auth/reset-password",
+    "/api/auth/reset-password",
+  ],
+  (req, res) => {
+    res.setHeader("Allow", "POST, OPTIONS");
+    return res.status(405).json({
+      success: false,
+      error: "HTTP 405 Method Not Allowed. Please send a POST request with JSON body.",
+    });
+  }
+);
 
 app.post("/api/auth/refresh-session", (req, res) => {
   res.json({
