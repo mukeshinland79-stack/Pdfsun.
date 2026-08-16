@@ -18,6 +18,9 @@ import {
   EyeOff,
   RefreshCw,
   ArrowLeft,
+  Smartphone,
+  ShieldAlert,
+  Check,
 } from "lucide-react";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson } from "../utils/apiHelper";
@@ -46,19 +49,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [nameInput, setNameInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
-  const [ownerKeyInput, setOwnerKeyInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // OTP Password Recovery States
+  // OTP Password Recovery States (Customer)
   const [otpInput, setOtpInput] = useState("");
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpHint, setOtpHint] = useState<string | null>(null);
+
+  // Mandatory Owner MFA States
+  const [ownerMfaStep, setOwnerMfaStep] = useState<1 | 2>(1);
+  const [ownerEmailInput, setOwnerEmailInput] = useState("");
+  const [ownerKeyInput, setOwnerKeyInput] = useState("");
+  const [showOwnerPassword, setShowOwnerPassword] = useState(false);
+  const [ownerMfaOtp, setOwnerMfaOtp] = useState("");
+  const [ownerMaskedEmail, setOwnerMaskedEmail] = useState("");
+  const [ownerMaskedPhone, setOwnerMaskedPhone] = useState("");
+  const [ownerMfaCountdown, setOwnerMfaCountdown] = useState(0);
+  const [ownerMfaOtpHint, setOwnerMfaOtpHint] = useState<string | null>(null);
 
   // Sync mode when initialMode or isOpen changes
   useEffect(() => {
@@ -70,20 +83,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setOtpInput("");
       setNewPasswordInput("");
       setOtpHint(null);
-      if (initialMode === "owner") {
-        if (!emailInput) setEmailInput("mukeshinland79@gmail.com");
-        if (!ownerKeyInput) setOwnerKeyInput("12345");
-      }
+      setOwnerMfaStep(1);
+      setOwnerMfaOtp("");
+      setOwnerMfaOtpHint(null);
+      setOwnerEmailInput("");
+      setOwnerKeyInput("");
     }
   }, [isOpen, initialMode]);
 
-  // Handle OTP Resend Countdown
+  // Handle Customer OTP Resend Countdown
   useEffect(() => {
     if (otpCountdown > 0) {
       const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [otpCountdown]);
+
+  // Handle Owner MFA Resend Countdown
+  useEffect(() => {
+    if (ownerMfaCountdown > 0) {
+      const timer = setTimeout(() => setOwnerMfaCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [ownerMfaCountdown]);
 
   // Close on Escape key press
   useEffect(() => {
@@ -189,7 +211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Send OTP for Forgot Password
+  // Send OTP for Customer Forgot Password
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -218,7 +240,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setOtpCountdown(60);
       if (data.otp) {
         setOtpHint(data.otp);
-        setOtpInput(data.otp); // Pre-fill for instant seamless verification
+        setOtpInput(data.otp);
       }
       setSuccessMsg(data.message || `Verification OTP generated for ${identifier}. Valid for 10 minutes.`);
     } catch (err: any) {
@@ -228,7 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Verify OTP and Reset Password
+  // Verify OTP and Reset Customer Password
   const handleResetPasswordWithOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -302,123 +324,103 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Quick Customer Demo Login button
-  const handleSimulateLoginUser = async () => {
-    setErrorMsg("");
-    setSuccessMsg("");
-    setIsSubmitting(true);
+  // ----------------------------------------------------
+  // MANDATORY MULTI-FACTOR AUTHENTICATION FOR OWNER/ADMIN
+  // ----------------------------------------------------
 
-    try {
-      const { ok, data, error } = await safeFetchJson("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "alex.rivera@university.edu",
-          password: "demo123",
-        }),
-      });
-
-      if (data && data.token) {
-        localStorage.setItem("pdfsun_auth_token", data.token);
-      }
-
-      const profile: UserProfile = data?.user || {
-        id: "usr-88210",
-        name: "Alex Rivera",
-        email: "alex.rivera@university.edu",
-        role: "user",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-        plan: "Student Pro",
-        joinedDate: "Jan 2026",
-        hasAdminAccess: false,
-        isPro: true,
-      };
-
-      setSuccessMsg("Logged in as Demo Customer (Alex Rivera)!");
-      setTimeout(() => {
-        onSelectRole("user", profile);
-        handlePostLoginRedirectAndCleanup();
-        onClose();
-      }, 300);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Demo login failed");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // One-Click Fast Owner Authentication
-  const handleOneClickOwnerLogin = async (ownerEmailSelected = "mukeshinland79@gmail.com") => {
-    setErrorMsg("");
-    setSuccessMsg("");
-    setIsSubmitting(true);
-
-    try {
-      const { ok, data, error } = await safeFetchJson("/api/admin/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: ownerEmailSelected,
-          secretKey: "12345",
-        }),
-      });
-
-      if (data && data.token) {
-        localStorage.setItem("pdfsun_auth_token", data.token);
-      }
-
-      const ownerName = ownerEmailSelected.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia";
-      const ownerProfile: UserProfile = data?.user || {
-        id: "owner-001",
-        name: ownerName,
-        email: ownerEmailSelected,
-        role: "owner",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        plan: "Founder & Owner",
-        joinedDate: "Founder & Owner",
-        hasAdminAccess: true,
-        isPro: true,
-      };
-
-      setSuccessMsg("Super Owner authenticated! Opening Admin Suite...");
-      setTimeout(() => {
-        onSelectRole("owner", ownerProfile);
-        handlePostLoginRedirectAndCleanup();
-        onClose();
-        if (onSuccessOpenAdmin) {
-          onSuccessOpenAdmin();
-        }
-      }, 300);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to authenticate owner.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Website Owner Authentication (Password / Key Verified via Server)
-  const handleOwnerLogin = async (e: React.FormEvent) => {
+  // Step 1: Owner Credential Verification & Dispatch 6-digit MFA Code
+  const handleOwnerInitiateMfa = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
-    const email = (emailInput.trim() || "mukeshinland79@gmail.com").toLowerCase();
-    const key = ownerKeyInput.trim() || "12345";
+    const email = ownerEmailInput.trim().toLowerCase();
+    const key = ownerKeyInput.trim();
+
+    if (!email) {
+      setErrorMsg("Please enter your registered Owner Email Address or Mobile Number.");
+      return;
+    }
+    if (!key) {
+      setErrorMsg("Please enter your Owner Password or Security Passkey.");
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const { ok, data, error } = await safeFetchJson("/api/admin/auth/login", {
+      const { ok, data, error } = await safeFetchJson("/api/admin/auth/initiate-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email,
+          email,
+          password: key,
           secretKey: key,
         }),
       });
 
-      if (!ok || !data || (!data.token && !data.success && data.status !== "ok")) {
-        throw new Error(error || data?.error || data?.message || "Owner access denied. Invalid key or credentials.");
+      if (!ok || !data || data.success === false) {
+        throw new Error(error || data?.error || "Access Denied: Invalid credentials or unauthorized account.");
+      }
+
+      const maskEmail = (str: string) => {
+        if (!str || !str.includes("@")) return "••••••••";
+        const [u, d] = str.split("@");
+        if (u.length <= 4) return `${u.substring(0, 1)}•••••@${d}`;
+        return `${u.substring(0, 4)}*********${u.substring(u.length - 1)}@${d}`;
+      };
+      const maskPhone = (str: string) => {
+        const digits = (str || "9991659655").replace(/\D/g, "");
+        if (digits.length >= 10) {
+          return `${digits.slice(-10, -6)}****${digits.slice(-2)}`;
+        }
+        return "9991****55";
+      };
+
+      setOwnerMaskedEmail(data.maskedEmail || maskEmail(email));
+      setOwnerMaskedPhone(data.maskedPhone || maskPhone("+91 9991659655"));
+      setOwnerMfaStep(2);
+      setOwnerMfaCountdown(60);
+      if (data.otp) {
+        setOwnerMfaOtpHint(data.otp);
+      }
+
+      setSuccessMsg(`Multi-Factor Authentication initiated. 6-digit OTP code sent to registered Email and Phone.`);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Owner credential check failed. Access denied.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 2: Verify 6-digit MFA Security Code and Grant Session Access
+  const handleOwnerVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    const email = ownerEmailInput.trim().toLowerCase();
+    const otp = ownerMfaOtp.trim();
+
+    if (!otp || otp.length < 6) {
+      setErrorMsg("Please enter the complete 6-digit MFA Security Code.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { ok, data, error } = await safeFetchJson("/api/admin/auth/verify-mfa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          otp,
+        }),
+      });
+
+      if (!ok || !data || (!data.token && !data.success)) {
+        throw new Error(error || data?.error || "Invalid or expired MFA Security Code. Please try again.");
       }
 
       if (data.token) {
@@ -426,12 +428,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       const ownerName = email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia";
-      const ownerEmail = email;
-
       const ownerProfile: UserProfile = data.user || {
         id: "owner-001",
         name: ownerName,
-        email: ownerEmail,
+        email,
         role: "owner",
         avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
         plan: "Founder & Owner",
@@ -440,7 +440,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         isPro: true,
       };
 
-      setSuccessMsg("Owner authentication verified! Accessing Admin Suite...");
+      setSuccessMsg("Multi-Factor Authentication verified! Access granted to Owner & Administrator Suite.");
       setTimeout(() => {
         onSelectRole("owner", ownerProfile);
         handlePostLoginRedirectAndCleanup();
@@ -450,7 +450,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }, 400);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to authenticate owner.");
+      setErrorMsg(err.message || "Failed to verify MFA Security Code.");
     } finally {
       setIsSubmitting(false);
     }
@@ -481,7 +481,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">PDFSun Account Portal</h3>
-              <p className="text-[10px] text-slate-400 font-medium truncate">Free Plan &amp; Role-Based Authentication</p>
+              <p className="text-[10px] text-slate-400 font-medium truncate">Strict Role-Based Multi-Factor Authentication</p>
             </div>
           </div>
           <button
@@ -558,8 +558,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* OTP Code Hint Callout (Dev / Instant Access Banner) */}
-        {otpHint && (
+        {/* OTP Code Hint Callout (Customer Recovery / Dev Mode) */}
+        {otpHint && authMode === "forgot-password" && (
           <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between">
             <span className="font-semibold">Verification Code (OTP):</span>
             <span className="font-mono font-black text-sm bg-amber-500 text-slate-950 px-2 py-0.5 rounded tracking-widest">{otpHint}</span>
@@ -611,7 +611,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Mukesh Kumar"
+                    placeholder="e.g. Rahul Sharma"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition"
@@ -626,7 +626,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="e.g. alex.rivera@edu.org or 9991659655"
+                    placeholder="e.g. user@example.com or 9991659655"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     required
@@ -695,32 +695,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </form>
 
-            <div className="relative flex items-center justify-center my-2">
-              <span className="absolute bg-white dark:bg-slate-900 px-2 text-[10px] text-slate-400 uppercase font-bold">Or</span>
-              <div className="w-full h-px bg-slate-200 dark:bg-slate-800" />
-            </div>
-
-            <button
-              onClick={handleSimulateLoginUser}
-              disabled={isSubmitting}
-              className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition flex items-center justify-center space-x-2 border border-slate-200 dark:border-slate-700 disabled:opacity-50 active:scale-98 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
-              <span>One-Click Fast Demo Login (Alex Rivera)</span>
-            </button>
-
-            <div className="pt-2 text-center">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
               <button
                 type="button"
                 onClick={() => {
                   setAuthMode("owner");
                   setErrorMsg("");
                   setSuccessMsg("");
+                  setOwnerMfaStep(1);
                 }}
-                className="text-[11px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center space-x-1 mx-auto transition cursor-pointer font-semibold"
+                className="text-[11px] text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center space-x-1.5 mx-auto transition cursor-pointer font-semibold py-1"
               >
                 <Shield className="w-3.5 h-3.5 text-amber-500" />
-                <span>Owner &amp; Administrator Portal</span>
+                <span>Owner &amp; Administrator Portal (2FA / MFA Protected)</span>
               </button>
             </div>
           </div>
@@ -757,7 +744,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="e.g. mukeshinland79@gmail.com or 9991659655"
+                      placeholder="e.g. user@example.com or 9991659655"
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       required
@@ -872,13 +859,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* 3. WEBSITE OWNER LOGIN FORM (PROTECTED) */}
+        {/* 3. MANDATORY MULTI-FACTOR AUTHENTICATION FOR OWNER & ADMINISTRATOR PORTAL */}
         {authMode === "owner" && (
-          <div className="space-y-3.5 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/5 border border-amber-500/30">
-            <div className="flex items-center justify-between gap-1 flex-wrap">
-              <div className="text-xs font-extrabold text-amber-700 dark:text-amber-400 flex items-center space-x-1.5">
-                <Shield className="w-4 h-4 shrink-0" />
-                <span>Super Admin &amp; Owner Portal</span>
+          <div className="space-y-4 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30">
+            {/* Header / Security Badge */}
+            <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                    Owner &amp; Admin Portal
+                  </h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {ownerMfaStep === 1 ? "Step 1: Identity & Password Verification" : "Step 2: 6-Digit MFA Security Code"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -886,95 +883,175 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   setAuthMode("customer");
                   setErrorMsg("");
                   setSuccessMsg("");
+                  setOwnerMfaStep(1);
                 }}
-                className="text-[10px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer"
+                className="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer font-medium"
               >
-                Switch to User Login
+                User Login
               </button>
             </div>
 
-            {/* Quick 1-Click Instant Owner Login Buttons */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                Instant 1-Click Owner Access:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOneClickOwnerLogin("mukeshinland79@gmail.com")}
-                  disabled={isSubmitting}
-                  className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-xs transition active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  <Crown className="w-3.5 h-3.5 text-amber-200 shrink-0" />
-                  <span>Mukesh Inland</span>
-                </button>
+            {/* MFA Step 1: Owner Credentials Form */}
+            {ownerMfaStep === 1 && (
+              <form onSubmit={handleOwnerInitiateMfa} className="space-y-3.5">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-start space-x-2">
+                  <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>
+                    Mandatory Multi-Factor Authentication (MFA) is active. Entering your credentials will dispatch a verification OTP to your registered devices.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Owner Registered Email or Phone
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="e.g. muke*********9@gmail.com or 9991****55"
+                      value={ownerEmailInput}
+                      onChange={(e) => setOwnerEmailInput(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium pr-9"
+                    />
+                    <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Owner Password / Passkey
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showOwnerPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={ownerKeyInput}
+                      onChange={(e) => setOwnerKeyInput(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOwnerPassword(!showOwnerPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      aria-label="Toggle owner password visibility"
+                    >
+                      {showOwnerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
 
                 <button
-                  type="button"
-                  onClick={() => handleOneClickOwnerLogin("mukeshkalonia241@gmail.com")}
+                  type="submit"
                   disabled={isSubmitting}
-                  className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 border border-amber-500/40 shadow-xs transition active:scale-98 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-white font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer active:scale-98"
                 >
-                  <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Mukesh Kalonia</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verifying Credentials &amp; Generating OTP...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="w-4 h-4 shrink-0" />
+                      <span>Verify &amp; Send 6-Digit MFA Security Code</span>
+                    </>
+                  )}
                 </button>
-              </div>
-            </div>
+              </form>
+            )}
 
-            <div className="relative flex items-center justify-center my-1">
-              <span className="absolute bg-white dark:bg-slate-900 px-2 text-[10px] text-slate-400 uppercase font-bold">
-                Or Enter Owner Passkey
-              </span>
-              <div className="w-full h-px bg-slate-200 dark:bg-slate-800" />
-            </div>
+            {/* MFA Step 2: 6-Digit OTP Verification Screen */}
+            {ownerMfaStep === 2 && (
+              <form onSubmit={handleOwnerVerifyMfa} className="space-y-3.5 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5">
+                  <div className="flex items-center space-x-2 text-amber-700 dark:text-amber-400 font-bold">
+                    <ShieldAlert className="w-4 h-4 shrink-0" />
+                    <span>MFA Verification Code Sent</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    A 6-digit security code has been sent simultaneously to:
+                  </p>
+                  <div className="flex flex-col space-y-1 pt-1 font-mono text-[11px] text-slate-800 dark:text-slate-200">
+                    <span className="flex items-center space-x-1.5">
+                      <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span className="font-bold">{ownerMaskedEmail}</span>
+                    </span>
+                    <span className="flex items-center space-x-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="font-bold">{ownerMaskedPhone}</span>
+                    </span>
+                  </div>
+                </div>
 
-            <form onSubmit={handleOwnerLogin} className="space-y-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Owner Email or Mobile Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="mukeshinland79@gmail.com or 9991659655"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Owner Passcode / Secret Key
-                </label>
-                <input
-                  type="password"
-                  placeholder="Enter owner passkey (e.g. 12345 or mukesh123)"
-                  value={ownerKeyInput}
-                  onChange={(e) => setOwnerKeyInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none font-medium"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black text-xs hover:opacity-95 transition shadow-xs flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer active:scale-98"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying Owner Credentials...</span>
-                  </>
-                ) : (
-                  <>
-                    <Crown className="w-4 h-4 shrink-0" />
-                    <span>Verify &amp; Unlock Owner Suite</span>
-                  </>
+                {ownerMfaOtpHint && (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-between">
+                    <span className="font-semibold">Active MFA Security Code:</span>
+                    <span className="font-mono font-black text-sm bg-emerald-500 text-slate-950 px-2 py-0.5 rounded tracking-widest">
+                      {ownerMfaOtpHint}
+                    </span>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Enter 6-Digit MFA Code
+                    </label>
+                    <button
+                      type="button"
+                      disabled={ownerMfaCountdown > 0 || isSubmitting}
+                      onClick={handleOwnerInitiateMfa}
+                      className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-bold disabled:text-slate-400 cursor-pointer"
+                    >
+                      {ownerMfaCountdown > 0 ? `Resend Code (${ownerMfaCountdown}s)` : "Resend Code"}
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="• • • • • •"
+                    value={ownerMfaOtp}
+                    onChange={(e) => setOwnerMfaOtp(e.target.value.replace(/\D/g, ""))}
+                    required
+                    autoFocus
+                    className="w-full px-3.5 py-3 rounded-xl border border-amber-500/40 bg-white dark:bg-slate-800 text-base font-mono tracking-[0.35em] text-center font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none transition"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || ownerMfaOtp.length < 6}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-black text-xs transition shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer active:scale-98"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Validating MFA Security Token...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-4 h-4 shrink-0" />
+                      <span>Authenticate &amp; Unlock Owner Suite</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOwnerMfaStep(1);
+                      setErrorMsg("");
+                    }}
+                    className="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition underline cursor-pointer"
+                  >
+                    ← Change Email or Password
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 

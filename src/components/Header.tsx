@@ -32,9 +32,11 @@ import {
   RefreshCw,
   Shield,
   Wrench,
+  QrCode,
+  Share2,
 } from "lucide-react";
 import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
-import { ToolItem, UserRole, UserProfile, CategoryId } from "../types";
+import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { SearchModal } from "./SearchModal";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -105,6 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUserDashboard,
   onLogout,
   onGoHome,
+  onOpenShareModal,
   selectedCategory = "all",
   onSelectCategory,
 }) => {
@@ -556,6 +559,20 @@ export const Header: React.FC<HeaderProps> = ({
               </AnimatePresence>
             </div>
 
+            {/* Share & QR Code Modal Trigger */}
+            {onOpenShareModal && (
+              <button
+                type="button"
+                onClick={onOpenShareModal}
+                className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                title="Share & Scan QR Code"
+                aria-label="Share and Scan QR Code"
+              >
+                <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="hidden lg:inline">Share</span>
+              </button>
+            )}
+
             {/* Primary CTA / User Profile / Admin Menu */}
             <div className="relative" ref={profileDropdownRef}>
               {hasAdminRights ? (
@@ -612,7 +629,13 @@ export const Header: React.FC<HeaderProps> = ({
                         {currentRole === "owner" ? "OWNER" : userProfile?.hasAdminAccess ? "ADMIN" : "PRO"}
                       </span>
                     </div>
-                    <div className="w-full text-[10px] text-slate-400 font-mono truncate">{userProfile?.email || "customer@pdfsun.in"}</div>
+                    <div className="w-full text-[10px] text-slate-400 font-mono truncate">
+                      {userProfile?.email
+                        ? currentRole === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim())
+                          ? userProfile.email.replace(/^(.{4})(.*)(.@.*)$/, "$1*********$3")
+                          : userProfile.email
+                        : "customer@pdfsun.in"}
+                    </div>
                   </div>
 
                   {/* ADMIN ONLY MENU ITEMS */}
@@ -771,6 +794,20 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <User className="w-3.5 h-3.5 text-indigo-500" />
                         <span>{t("dashboard", "User Dashboard")}</span>
+                      </button>
+                    )}
+
+                    {onOpenShareModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenShareModal();
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>Share &amp; Scan QR Code</span>
                       </button>
                     )}
                   </div>
@@ -1130,6 +1167,23 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <User className="w-4 h-4" />
                 <span>{t("login", "Login / Sign In")}</span>
+              </button>
+            </div>
+          )}
+
+          {/* SHARE & QR CODE BUTTON (MOBILE) */}
+          {onOpenShareModal && (
+            <div className="w-full pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenShareModal();
+                }}
+                className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center space-x-2 transition border border-slate-200 dark:border-slate-700 cursor-pointer"
+              >
+                <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Share PDFSun &amp; Scan QR Code</span>
               </button>
             </div>
           )}

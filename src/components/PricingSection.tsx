@@ -803,7 +803,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   disabled={plan.disabled || (isPlanActiveForUser) || isProcessing}
                   className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 ${
                     isPlanActiveForUser
-                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/50 shadow-emerald-500/10 cursor-default"
+                      ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-500 shadow-emerald-500/20 cursor-default"
                       : isCardHighlighted
                       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20"
                       : plan.disabled
@@ -812,10 +812,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   }`}
                 >
                   {isPlanActiveForUser ? (
-                    <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>🟢 {t("pricing.activePlan", "CURRENTLY ACTIVE PLAN")}</span>
-                    </span>
+                    <div className="flex flex-col items-center justify-center space-y-0.5 py-0.5">
+                      <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black text-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                        <span>{t("pricing.planActivated", "PLAN ACTIVATED")}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 tracking-normal normal-case">
+                        {plan.id === "flexi" ? "Lifetime Credits Active" : `Expires: ${expiresDateStr}`}
+                      </span>
+                    </div>
                   ) : (
                     <>
                       <span>{t(`pricing.cta_${plan.id}`, plan.cta)}</span>
@@ -835,15 +841,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                       </div>
 
                       <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 leading-snug">
-                        Bound to User ID: <span className="text-emerald-600 dark:text-emerald-400 font-black">{currentUserId}</span>
+                        Bound to User: <span className="text-emerald-600 dark:text-emerald-400 font-black">{currentUserId}</span>
                       </p>
 
                       <p className="text-[11px] text-slate-800 dark:text-slate-100 font-black">
                         Plan: <span className="text-emerald-600 dark:text-emerald-400 uppercase">{plan.name}</span>
                       </p>
 
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                        Expires / Renews: {plan.id === "flexi" ? "Lifetime (No Expiry)" : expiresDateStr}
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
+                        {plan.id === "flexi" ? "Status: Active Lifetime Top-Up" : `Expires / Renews: ${expiresDateStr}`}
                       </p>
                     </div>
                   </div>

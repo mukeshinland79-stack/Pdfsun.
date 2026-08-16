@@ -38,6 +38,8 @@ import {
   deleteStoredUser,
   generatePasswordResetOtp,
   verifyOtpAndResetPassword,
+  initiateOwnerMfaLogin,
+  verifyOwnerMfa,
 } from "./src/server/authService";
 
 dotenv.config();
@@ -1398,35 +1400,102 @@ app.all("/api/auth/verify-session", (req, res) => {
   }
 });
 
-// 4. Issue JWT Token for verified Admin / Owner login
+// 4. Multi-Factor Authentication (MFA) & Verified Admin / Owner Login
+app.post("/api/admin/auth/initiate-login", (req, res) => {
+  const { email, password, secretKey } = req.body || {};
+  const result = initiateOwnerMfaLogin({
+    email: String(email || ""),
+    password: password ? String(password) : undefined,
+    secretKey: secretKey ? String(secretKey) : undefined,
+  });
+
+  if (!result.success) {
+    return res.status(401).json(result);
+  }
+
+  return res.json(result);
+});
+
+// Alias for flexibility
+app.post("/api/admin/auth/send-mfa", (req, res) => {
+  const { email, password, secretKey } = req.body || {};
+  const result = initiateOwnerMfaLogin({
+    email: String(email || ""),
+    password: password ? String(password) : undefined,
+    secretKey: secretKey ? String(secretKey) : undefined,
+  });
+
+  if (!result.success) {
+    return res.status(401).json(result);
+  }
+
+  return res.json(result);
+});
+
+// Step 2: Verify MFA OTP and complete login
+app.post("/api/admin/auth/verify-mfa", (req, res) => {
+  const { email, otp } = req.body || {};
+  const result = verifyOwnerMfa({
+    email: String(email || ""),
+    otp: String(otp || ""),
+  });
+
+  if (!result.success) {
+    return res.status(401).json(result);
+  }
+
+  res.setHeader("Set-Cookie", [
+    `pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+    `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+  ]);
+
+  return res.json({
+    status: "ok",
+    success: true,
+    token: result.token,
+    role: "owner",
+    email: result.user?.email || email,
+    user: result.user,
+    message: result.message,
+  });
+});
+
+// Legacy / Direct login endpoint (fallback with credentials validation)
 app.post("/api/admin/auth/login", (req, res) => {
-  const { email, secretKey } = req.body || {};
+  const { email, secretKey, password, otp } = req.body || {};
   const normalizedEmail = normalizeLoginIdentifier(String(email || ""));
   const targetEmail = normalizedEmail || String(email || "").toLowerCase().trim();
-  const isOwner = targetEmail && (
-    DUAL_OWNER_EMAILS.includes(targetEmail) ||
-    targetEmail === "mukeshinland79@gmail.com" ||
-    targetEmail === "mukeshkalonia241@gmail.com" ||
-    targetEmail.includes("mukeshinland") ||
-    targetEmail.includes("mukeshkalonia")
-  );
-  const isValidSecret = secretKey && (
-    secretKey === currentSystemConfig.ADMIN_SECRET_KEY ||
-    secretKey === "12345" ||
-    secretKey === "mukesh123" ||
-    secretKey === "admin123" ||
-    secretKey === "owner2026"
-  );
 
-  if (!isOwner && !isValidSecret) {
-    return res.status(404).json({ error: "Cannot POST /api/admin/auth/login", status: 404, message: "Resource not found" });
+  // If OTP provided, verify via MFA
+  if (otp) {
+    const mfaRes = verifyOwnerMfa({ email: targetEmail, otp: String(otp) });
+    if (!mfaRes.success) {
+      return res.status(401).json(mfaRes);
+    }
+    res.setHeader("Set-Cookie", [
+      `pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+    ]);
+    return res.json({
+      status: "ok",
+      success: true,
+      token: mfaRes.token,
+      role: "owner",
+      email: mfaRes.user?.email || targetEmail,
+      user: mfaRes.user,
+    });
   }
 
   const result = authenticateUser({
-    email: targetEmail || "mukeshinland79@gmail.com",
-    ownerSecretKey: secretKey || currentSystemConfig.ADMIN_SECRET_KEY || "12345",
+    email: targetEmail,
+    ownerSecretKey: secretKey || password,
+    password: password || secretKey,
     isOwnerLogin: true,
   });
+
+  if (!result.success) {
+    return res.status(401).json(result);
+  }
 
   res.setHeader("Set-Cookie", [
     `pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
@@ -1438,7 +1507,7 @@ app.post("/api/admin/auth/login", (req, res) => {
     success: true,
     token: result.token,
     role: "owner",
-    email: result.user?.email || targetEmail || "mukeshinland79@gmail.com",
+    email: result.user?.email || targetEmail,
     user: result.user,
   });
 });

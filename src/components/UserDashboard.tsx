@@ -289,7 +289,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       <Mail className="w-3 h-3 text-slate-400" />
                       <span>Registered Email</span>
                     </div>
-                    <div className="font-mono text-slate-900 dark:text-white text-xs truncate">{userProfile.email}</div>
+                    <div className="font-mono text-slate-900 dark:text-white text-xs truncate">
+                      {isOwner && userProfile.email
+                        ? userProfile.email.replace(/^(.{4})(.*)(.@.*)$/, "$1*********$3")
+                        : userProfile.email}
+                    </div>
                   </div>
 
                   {/* Account Role */}
