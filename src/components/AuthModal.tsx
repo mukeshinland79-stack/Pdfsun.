@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson } from "../utils/apiHelper";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -626,11 +627,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="e.g. user@example.com or 9991659655"
+                    placeholder="9991****55 / muke*********9@gmail.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition pr-9"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition pr-9 font-medium"
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 </div>
@@ -650,16 +651,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         setSuccessMsg("");
                         setOtpSent(false);
                       }}
-                      className="text-[11px] text-orange-600 dark:text-orange-400 hover:underline font-semibold cursor-pointer"
+                      className="text-[11px] text-orange-600 dark:text-orange-400 hover:underline font-bold cursor-pointer"
                     >
-                      Forgot Password?
+                      [Forgot?]
                     </button>
                   )}
                 </div>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="••••••••••••"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     required
@@ -674,21 +675,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {passwordInput && (
+                  <PasswordStrengthIndicator
+                    password={passwordInput}
+                    showCriteria={customerSubMode === "signup"}
+                  />
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs transition shadow-md shadow-orange-600/20 flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs tracking-wide transition shadow-md shadow-orange-600/20 flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98 cursor-pointer uppercase"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processing...</span>
+                    <span>Signing in...</span>
                   </>
                 ) : (
                   <>
-                    <span>{customerSubMode === "signup" ? "Activate Free Account" : "Sign In to Account"}</span>
+                    <span>{customerSubMode === "signup" ? "Activate Free Account" : "Sign In to Account ⚡"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -821,6 +828,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {newPasswordInput && (
+                    <PasswordStrengthIndicator
+                      password={newPasswordInput}
+                      showCriteria={true}
+                    />
+                  )}
                 </div>
 
                 <button
@@ -940,6 +953,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       {showOwnerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {ownerKeyInput && (
+                    <PasswordStrengthIndicator
+                      password={ownerKeyInput}
+                      showCriteria={false}
+                    />
+                  )}
                 </div>
 
                 <button

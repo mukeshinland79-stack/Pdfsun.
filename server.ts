@@ -40,6 +40,12 @@ import {
   verifyOtpAndResetPassword,
   initiateOwnerMfaLogin,
   verifyOwnerMfa,
+  initiateBankingStep1Login,
+  verifyBankingStep2Otp,
+  resendBankingOtp,
+  requestPasswordResetOtp,
+  verifyAndResetPassword,
+  getAccountLockoutStatus,
 } from "./src/server/authService";
 
 dotenv.config();
@@ -1400,75 +1406,128 @@ app.all("/api/auth/verify-session", (req, res) => {
   }
 });
 
-// 4. Multi-Factor Authentication (MFA) & Verified Admin / Owner Login
-app.post("/api/admin/auth/initiate-login", (req, res) => {
-  const { email, password, secretKey } = req.body || {};
-  const result = initiateOwnerMfaLogin({
-    email: String(email || ""),
-    password: password ? String(password) : undefined,
-    secretKey: secretKey ? String(secretKey) : undefined,
-  });
+// 4. Banking-Grade Multi-Factor Authentication (MFA) & Step-by-Step API Routes
+// Step 1: POST /api/auth/login-step1 - Validate Credentials & Dispatch 6-Digit OTP
+const handleStep1Login = async (req: express.Request, res: express.Response) => {
+  try {
+    const { identifier, email, phone, password, secretKey, ownerSecretKey, isOwnerLogin } = req.body || {};
+    const inputIdentifier = identifier || email || phone || "";
+    const key = password || secretKey || ownerSecretKey || "";
 
-  if (!result.success) {
-    return res.status(401).json(result);
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    const result = await initiateBankingStep1Login({
+      identifier: String(inputIdentifier),
+      password: key,
+      secretKey: key,
+      ip,
+      userAgent,
+      isOwnerLogin: Boolean(isOwnerLogin),
+    });
+
+    if (!result.success) {
+      const statusCode = result.isLocked ? 423 : result.cooldownSeconds ? 429 : 401;
+      return res.status(statusCode).json(result);
+    }
+
+    return res.json(result);
+  } catch (err: any) {
+    console.error("[Banking Step 1 Error]:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to process authentication." });
   }
+};
 
-  return res.json(result);
+app.post("/api/auth/login-step1", handleStep1Login);
+app.post("/api/admin/auth/initiate-login", handleStep1Login);
+app.post("/api/admin/auth/send-mfa", handleStep1Login);
+
+// Step 2: POST /api/auth/verify-otp - Validate 6-Digit OTP & Issue JWT / HTTP-Only Cookies
+const handleVerifyOtp = async (req: express.Request, res: express.Response) => {
+  try {
+    const { identifier, email, phone, otp } = req.body || {};
+    const inputIdentifier = identifier || email || phone || "";
+
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    const result = await verifyBankingStep2Otp({
+      identifier: String(inputIdentifier),
+      otp: String(otp || ""),
+      ip,
+      userAgent,
+    });
+
+    if (!result.success) {
+      const statusCode = result.isLocked ? 423 : 401;
+      return res.status(statusCode).json(result);
+    }
+
+    const isOwner = result.role === "owner" || result.hasAdminAccess;
+    const cookies = [
+      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+    ];
+
+    if (isOwner) {
+      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+    }
+
+    res.setHeader("Set-Cookie", cookies);
+
+    return res.json({
+      status: "ok",
+      success: true,
+      token: result.token,
+      role: result.role,
+      user: result.user,
+      hasAdminAccess: result.hasAdminAccess,
+      message: result.message,
+    });
+  } catch (err: any) {
+    console.error("[Banking OTP Verification Error]:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to verify OTP." });
+  }
+};
+
+app.post("/api/auth/verify-otp", handleVerifyOtp);
+app.post("/api/admin/auth/verify-mfa", handleVerifyOtp);
+
+// Resend OTP Endpoint with 60s cooldown
+app.post("/api/auth/resend-otp", async (req, res) => {
+  try {
+    const { identifier, email, phone } = req.body || {};
+    const inputIdentifier = identifier || email || phone || "";
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+
+    const result = await resendBankingOtp({
+      identifier: String(inputIdentifier),
+      ip,
+    });
+
+    if (!result.success) {
+      const statusCode = result.cooldownSeconds ? 429 : 400;
+      return res.status(statusCode).json(result);
+    }
+
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to resend OTP." });
+  }
 });
 
-// Alias for flexibility
-app.post("/api/admin/auth/send-mfa", (req, res) => {
-  const { email, password, secretKey } = req.body || {};
-  const result = initiateOwnerMfaLogin({
-    email: String(email || ""),
-    password: password ? String(password) : undefined,
-    secretKey: secretKey ? String(secretKey) : undefined,
-  });
-
-  if (!result.success) {
-    return res.status(401).json(result);
-  }
-
-  return res.json(result);
-});
-
-// Step 2: Verify MFA OTP and complete login
-app.post("/api/admin/auth/verify-mfa", (req, res) => {
-  const { email, otp } = req.body || {};
-  const result = verifyOwnerMfa({
-    email: String(email || ""),
-    otp: String(otp || ""),
-  });
-
-  if (!result.success) {
-    return res.status(401).json(result);
-  }
-
-  res.setHeader("Set-Cookie", [
-    `pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-  ]);
-
-  return res.json({
-    status: "ok",
-    success: true,
-    token: result.token,
-    role: "owner",
-    email: result.user?.email || email,
-    user: result.user,
-    message: result.message,
-  });
-});
-
-// Legacy / Direct login endpoint (fallback with credentials validation)
-app.post("/api/admin/auth/login", (req, res) => {
+// Legacy / Direct Admin Login endpoint
+app.post("/api/admin/auth/login", async (req, res) => {
   const { email, secretKey, password, otp } = req.body || {};
   const normalizedEmail = normalizeLoginIdentifier(String(email || ""));
   const targetEmail = normalizedEmail || String(email || "").toLowerCase().trim();
 
-  // If OTP provided, verify via MFA
+  // If OTP provided, verify via Banking MFA
   if (otp) {
-    const mfaRes = verifyOwnerMfa({ email: targetEmail, otp: String(otp) });
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    const mfaRes = await verifyBankingStep2Otp({ identifier: targetEmail, otp: String(otp), ip, userAgent });
     if (!mfaRes.success) {
       return res.status(401).json(mfaRes);
     }
@@ -1527,49 +1586,59 @@ app.post("/api/auth/logout", (req, res) => {
   });
 });
 
-// 6. Account Recovery: OTP Generation & Password Reset
-app.post("/api/auth/forgot-password", (req, res) => {
+// 6. Account Recovery: OTP Generation & Password Reset (Banking Grade)
+const handleForgotPasswordRequest = async (req: express.Request, res: express.Response) => {
   try {
-    const { identifier, email } = req.body || {};
-    const input = identifier || email;
+    const { identifier, email, phone } = req.body || {};
+    const input = identifier || email || phone;
     if (!input) {
       return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
     }
 
-    const result = generatePasswordResetOtp(input);
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const result = await requestPasswordResetOtp({ identifier: input, ip });
+
     if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
+      const statusCode = result.cooldownSeconds ? 429 : 400;
+      return res.status(statusCode).json(result);
     }
 
-    return res.json({
-      success: true,
-      message: result.message,
-      otp: result.otp,
-      expiresAt: result.expiresAt,
-      email: result.email,
-    });
+    return res.json(result);
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || "Failed to generate OTP" });
+    return res.status(500).json({ success: false, error: err.message || "Failed to generate recovery OTP" });
   }
-});
+};
 
-app.post("/api/auth/reset-password", (req, res) => {
+app.post("/api/auth/forgot-password-request", handleForgotPasswordRequest);
+app.post("/api/auth/forgot-password", handleForgotPasswordRequest);
+
+app.post("/api/auth/reset-password", async (req, res) => {
   try {
-    const { identifier, email, otp, newPassword } = req.body || {};
-    const input = identifier || email;
+    const { identifier, email, phone, otp, newPassword } = req.body || {};
+    const input = identifier || email || phone;
     if (!input) {
       return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
     }
     if (!otp) {
-      return res.status(400).json({ success: false, error: "Please enter the 6-digit OTP." });
+      return res.status(400).json({ success: false, error: "Please enter the 6-digit verification code." });
     }
     if (!newPassword) {
       return res.status(400).json({ success: false, error: "Please enter your new password." });
     }
 
-    const result = verifyOtpAndResetPassword(input, otp, newPassword);
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    const result = await verifyAndResetPassword({
+      identifier: input,
+      otp: String(otp),
+      newPassword: String(newPassword),
+      ip,
+      userAgent,
+    });
+
     if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
+      return res.status(400).json(result);
     }
 
     if (result.token) {
@@ -1578,14 +1647,9 @@ app.post("/api/auth/reset-password", (req, res) => {
       ]);
     }
 
-    return res.json({
-      success: true,
-      message: result.message,
-      token: result.token,
-      user: result.user,
-    });
+    return res.json(result);
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || "Failed to reset password" });
+    return res.status(500).json({ success: false, error: err.message || "Failed to reset password." });
   }
 });
 
