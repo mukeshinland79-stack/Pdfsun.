@@ -1294,7 +1294,11 @@ const handleUnifiedRegister = (req: express.Request, res: express.Response) => {
     const result = registerUserAccount({ name, identifier: inputIdentifier, email: inputIdentifier, phone, password });
 
     if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error || "Registration failed" });
+      return res.status(400).json({
+        success: false,
+        message: result.error || "Registration failed",
+        error: result.error || "Registration failed",
+      });
     }
 
     // Set secure session cookies
@@ -1303,16 +1307,25 @@ const handleUnifiedRegister = (req: express.Request, res: express.Response) => {
       `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
     ]);
 
-    return res.json({
+    return res.status(200).json({
       success: true,
+      message: "Account registered successfully!",
+      data: {
+        token: result.token,
+        user: result.user,
+        role: result.user?.role || "user",
+      },
       token: result.token,
       user: result.user,
       role: result.user?.role || "user",
-      message: "Account registered successfully!",
     });
   } catch (err: any) {
     console.error("[Auth Register Error]:", err);
-    return res.status(500).json({ success: false, error: err.message || "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
+      error: err.message || "Internal server error",
+    });
   }
 };
 
@@ -1327,7 +1340,11 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
     const key = password || ownerSecretKey || secretKey || "";
 
     if (!inputIdentifier) {
-      return res.status(400).json({ success: false, error: "Please enter your Email Address or Mobile Number." });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter your Email Address or Mobile Number.",
+        error: "Please enter your Email Address or Mobile Number.",
+      });
     }
 
     const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
@@ -1344,7 +1361,11 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
 
       if (!mfaRes.success) {
         const statusCode = mfaRes.isLocked ? 423 : 401;
-        return res.status(statusCode).json(mfaRes);
+        return res.status(statusCode).json({
+          ...mfaRes,
+          success: false,
+          message: mfaRes.error || "Invalid OTP code",
+        });
       }
 
       const isOwner = mfaRes.role === "owner" || mfaRes.hasAdminAccess;
@@ -1357,13 +1378,19 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
       }
       res.setHeader("Set-Cookie", cookies);
 
-      return res.json({
+      return res.status(200).json({
         success: true,
+        message: mfaRes.message || "Logged in successfully!",
+        data: {
+          token: mfaRes.token,
+          role: mfaRes.role || "user",
+          user: mfaRes.user,
+          hasAdminAccess: mfaRes.hasAdminAccess || false,
+        },
         token: mfaRes.token,
         role: mfaRes.role || "user",
         user: mfaRes.user,
         hasAdminAccess: mfaRes.hasAdminAccess || false,
-        message: mfaRes.message || "Logged in successfully!",
       });
     }
 
@@ -1380,11 +1407,18 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
 
       if (!step1Result.success) {
         const statusCode = step1Result.isLocked ? 423 : step1Result.cooldownSeconds ? 429 : 401;
-        return res.status(statusCode).json(step1Result);
+        return res.status(statusCode).json({
+          ...step1Result,
+          success: false,
+          message: step1Result.error || "Authentication failed",
+        });
       }
 
-      return res.json({
+      return res.status(200).json({
         ...step1Result,
+        success: true,
+        message: step1Result.message || "MFA code dispatched",
+        data: step1Result,
         requiresMfa: true,
         mfaRequired: true,
         role: "admin",
@@ -1400,7 +1434,11 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
     });
 
     if (!result.success) {
-      return res.status(401).json({ success: false, error: result.error || "Invalid login credentials." });
+      return res.status(401).json({
+        success: false,
+        message: result.error || "Invalid login credentials.",
+        error: result.error || "Invalid login credentials.",
+      });
     }
 
     const isOwner = result.user?.role === "owner" || result.user?.hasAdminAccess;
@@ -1413,18 +1451,28 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
     }
     res.setHeader("Set-Cookie", cookies);
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       requiresMfa: false,
+      message: isOwner ? "Welcome Owner! Admin access verified." : "Logged in successfully!",
+      data: {
+        token: result.token,
+        user: result.user,
+        role: result.user?.role || "user",
+        hasAdminAccess: result.user?.hasAdminAccess || false,
+      },
       token: result.token,
       user: result.user,
       role: result.user?.role || "user",
       hasAdminAccess: result.user?.hasAdminAccess || false,
-      message: isOwner ? "Welcome Owner! Admin access verified." : "Logged in successfully!",
     });
   } catch (err: any) {
     console.error("[Auth Login Error]:", err);
-    return res.status(500).json({ success: false, error: err.message || "Authentication error." });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Authentication error.",
+      error: err.message || "Authentication error.",
+    });
   }
 };
 
@@ -1698,7 +1746,11 @@ const handleForgotPasswordRequest = async (req: express.Request, res: express.Re
     const { identifier, email, phone } = req.body || {};
     const input = identifier || email || phone;
     if (!input) {
-      return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter your registered Email Address or Mobile Number.",
+        error: "Please enter your registered Email Address or Mobile Number.",
+      });
     }
 
     const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
@@ -1706,12 +1758,33 @@ const handleForgotPasswordRequest = async (req: express.Request, res: express.Re
 
     if (!result.success) {
       const statusCode = result.cooldownSeconds ? 429 : 400;
-      return res.status(statusCode).json(result);
+      return res.status(statusCode).json({
+        ...result,
+        success: false,
+        message: result.error || "Failed to generate recovery OTP",
+      });
     }
 
-    return res.json(result);
+    const successMessage = result.message || `OTP successfully sent to ${result.maskedTarget || result.maskedEmail || result.maskedPhone}`;
+
+    return res.status(200).json({
+      ...result,
+      success: true,
+      message: successMessage,
+      data: {
+        identifier: result.identifier,
+        maskedTarget: result.maskedTarget,
+        maskedEmail: result.maskedEmail,
+        maskedPhone: result.maskedPhone,
+        cooldownSeconds: result.cooldownSeconds,
+      },
+    });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || "Failed to generate recovery OTP" });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to generate recovery OTP",
+      error: err.message || "Failed to generate recovery OTP",
+    });
   }
 };
 
@@ -1724,13 +1797,25 @@ const handleResetPassword = async (req: express.Request, res: express.Response) 
     const { identifier, email, phone, otp, newPassword } = req.body || {};
     const input = identifier || email || phone;
     if (!input) {
-      return res.status(400).json({ success: false, error: "Please enter registered Email or Mobile Number." });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter registered Email Address or Mobile Number.",
+        error: "Please enter registered Email Address or Mobile Number.",
+      });
     }
     if (!otp) {
-      return res.status(400).json({ success: false, error: "Please enter the 6-digit verification code." });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter the 6-digit verification code.",
+        error: "Please enter the 6-digit verification code.",
+      });
     }
     if (!newPassword) {
-      return res.status(400).json({ success: false, error: "Please enter your new password." });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter your new password.",
+        error: "Please enter your new password.",
+      });
     }
 
     const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
@@ -1745,7 +1830,11 @@ const handleResetPassword = async (req: express.Request, res: express.Response) 
     });
 
     if (!result.success) {
-      return res.status(400).json(result);
+      return res.status(400).json({
+        ...result,
+        success: false,
+        message: result.error || "Failed to reset password.",
+      });
     }
 
     if (result.token) {
@@ -1754,9 +1843,22 @@ const handleResetPassword = async (req: express.Request, res: express.Response) 
       ]);
     }
 
-    return res.json(result);
+    return res.status(200).json({
+      ...result,
+      success: true,
+      message: result.message || "Password reset successfully! You are now logged in.",
+      data: {
+        token: result.token,
+        user: result.user,
+        role: result.role,
+      },
+    });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || "Failed to reset password." });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to reset password.",
+      error: err.message || "Failed to reset password.",
+    });
   }
 };
 

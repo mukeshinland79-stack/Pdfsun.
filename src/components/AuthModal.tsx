@@ -655,7 +655,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="9991****55 / muke*********9@gmail.com"
+                    placeholder="9050****55 / r***4@gmail.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     required
@@ -779,7 +779,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="e.g. user@example.com or 9991659655"
+                      placeholder="9050****55 or r***4@gmail.com"
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       required
