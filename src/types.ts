@@ -166,3 +166,27 @@ export interface AdminSettings {
   defaultTheme: "light" | "dark" | "system";
   aiModelVersion: string;
 }
+
+export type AuditLogCategory = 
+  | "user_status" 
+  | "sponsorship" 
+  | "settings_update" 
+  | "security" 
+  | "system";
+
+export type AuditLogStatus = "SUCCESS" | "WARNING" | "FAILED" | "CRITICAL";
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  isoTimestamp?: string;
+  category: AuditLogCategory;
+  eventType: string;
+  action: string;
+  target: string;
+  adminOperator: string;
+  status: AuditLogStatus;
+  ipAddress?: string;
+  details: string;
+  metadata?: Record<string, any>;
+}

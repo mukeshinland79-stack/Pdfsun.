@@ -1914,6 +1914,117 @@ app.all("/api/admin/repair-auth", (req, res) => {
   }
 });
 
+// ==========================================
+// SYSTEM AUDIT LOG MANAGEMENT & REPOSITORY
+// ==========================================
+interface ServerAuditLog {
+  id: string;
+  timestamp: string;
+  isoTimestamp: string;
+  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system";
+  eventType: string;
+  action: string;
+  target: string;
+  adminOperator: string;
+  status: "SUCCESS" | "WARNING" | "FAILED" | "CRITICAL";
+  ipAddress?: string;
+  details: string;
+  metadata?: Record<string, any>;
+}
+
+let serverAuditLogs: ServerAuditLog[] = [
+  {
+    id: "aud-001",
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    isoTimestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    category: "sponsorship",
+    eventType: "SPONSORSHIP_ACTIVATION",
+    action: "Verified Sponsorship Campaign Activated",
+    target: "Sponsor: National EdTech Initiative 2026",
+    adminOperator: "mukeshinland79@gmail.com",
+    status: "SUCCESS",
+    ipAddress: "152.58.16.42",
+    details: "Enabled verified educational campaign with explicit sponsorship disclosure and strict ad isolation.",
+    metadata: {
+      campaignId: "camp-edu-2026",
+      sponsorName: "National EdTech Initiative",
+      disclosureEnabled: true,
+      validUntil: "2026-12-31",
+    },
+  },
+  {
+    id: "aud-002",
+    timestamp: new Date(Date.now() - 1000 * 60 * 12).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    isoTimestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+    category: "user_status",
+    eventType: "USER_STATUS_CHANGE",
+    action: "User Status Updated to Active",
+    target: "User: Sarah Jenkins (sarah.j@lawfirm.com)",
+    adminOperator: "mukeshkalonia241@gmail.com",
+    status: "SUCCESS",
+    ipAddress: "103.21.124.9",
+    details: "Admin permission verified and role set to Team Enterprise.",
+    metadata: {
+      userId: "usr-03",
+      email: "sarah.j@lawfirm.com",
+      status: "Active",
+      hasAdminAccess: true,
+    },
+  },
+  {
+    id: "aud-003",
+    timestamp: new Date(Date.now() - 1000 * 60 * 25).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    isoTimestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    category: "settings_update",
+    eventType: "SETTINGS_UPDATE",
+    action: "Runtime Config & Rate Limit Modified",
+    target: "SystemConfig: GLOBAL_RATE_LIMIT",
+    adminOperator: "mukeshinland79@gmail.com",
+    status: "SUCCESS",
+    ipAddress: "152.58.16.42",
+    details: "Updated GLOBAL_RATE_LIMIT to 10,000 req/hr with Zero Downtime.",
+    metadata: {
+      GLOBAL_RATE_LIMIT: 10000,
+      TEMP_STORAGE_RETENTION_MINUTES: 60,
+    },
+  },
+];
+
+function recordServerAuditLog(entry: {
+  id?: string;
+  timestamp?: string;
+  isoTimestamp?: string;
+  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system";
+  eventType: string;
+  action: string;
+  target: string;
+  adminOperator?: string;
+  status: "SUCCESS" | "WARNING" | "FAILED" | "CRITICAL";
+  ipAddress?: string;
+  details: string;
+  metadata?: Record<string, any>;
+}) {
+  const log: ServerAuditLog = {
+    id: entry.id || `aud-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    timestamp: entry.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    isoTimestamp: entry.isoTimestamp || new Date().toISOString(),
+    category: entry.category,
+    eventType: entry.eventType,
+    action: entry.action,
+    target: entry.target,
+    adminOperator: entry.adminOperator || "SYSTEM",
+    status: entry.status,
+    ipAddress: entry.ipAddress || "127.0.0.1",
+    details: entry.details,
+    metadata: entry.metadata,
+  };
+  serverAuditLogs.unshift(log);
+  if (serverAuditLogs.length > 500) {
+    serverAuditLogs = serverAuditLogs.slice(0, 500);
+  }
+  return log;
+}
+
 // User Management API Endpoints (Owner, Client, Customer, User)
 app.get("/api/admin/users", (req, res) => {
   try {
@@ -1950,6 +2061,18 @@ app.post("/api/admin/users", (req, res) => {
       isPro: plan.toLowerCase().includes("pro") || plan.toLowerCase().includes("enterprise") || Boolean(hasAdminAccess),
     });
 
+    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    recordServerAuditLog({
+      category: "user_status",
+      eventType: "USER_ACCOUNT_CREATED",
+      action: `Created user account for ${email}`,
+      target: `User: ${name || email} (${email})`,
+      adminOperator,
+      status: "SUCCESS",
+      details: `Account registered with role: ${role}, plan: ${plan}, adminAccess: ${hasAdminAccess}`,
+      metadata: { email, role, plan, hasAdminAccess },
+    });
+
     const updatedUsers = getAllStoredUsers();
     res.json({
       success: true,
@@ -1974,6 +2097,18 @@ app.post("/api/admin/users/update", (req, res) => {
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
     }
+
+    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    recordServerAuditLog({
+      category: "user_status",
+      eventType: "USER_STATUS_CHANGE",
+      action: `Updated user account parameters for ${identifier}`,
+      target: `User: ${result.user?.name || identifier} (${identifier})`,
+      adminOperator,
+      status: "SUCCESS",
+      details: `User status/role modified: ${JSON.stringify(updates)}`,
+      metadata: { identifier, updates, user: result.user },
+    });
 
     const updatedUsers = getAllStoredUsers();
     res.json({
@@ -2000,6 +2135,18 @@ app.post("/api/admin/users/delete", (req, res) => {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    recordServerAuditLog({
+      category: "user_status",
+      eventType: "USER_ACCOUNT_DELETED",
+      action: `Deleted user account ${identifier}`,
+      target: `User: ${identifier}`,
+      adminOperator,
+      status: "WARNING",
+      details: `User ${identifier} was removed from the database by administrator.`,
+      metadata: { identifier },
+    });
+
     const updatedUsers = getAllStoredUsers();
     res.json({
       success: true,
@@ -2015,11 +2162,124 @@ app.post("/api/admin/users/restore", (req, res) => {
   try {
     const result = repairAndRestoreDatabase();
     const updatedUsers = getAllStoredUsers();
+    recordServerAuditLog({
+      category: "system",
+      eventType: "DATABASE_USERS_RESTORE",
+      action: "Database Users and RBAC Restored",
+      target: "System Database",
+      adminOperator: String(req.headers["x-user-email"] || "mukeshinland79@gmail.com"),
+      status: "SUCCESS",
+      details: "Repaired database user accounts and baseline owner profiles.",
+    });
     res.json({
       success: true,
       message: "Database users and roles restored successfully.",
       ...result,
       users: updatedUsers,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/audit-logs
+app.get("/api/admin/audit-logs", (req, res) => {
+  try {
+    const { category, status, search, limit = 100 } = req.query || {};
+    let filtered = [...serverAuditLogs];
+
+    if (category && category !== "all") {
+      filtered = filtered.filter((l) => l.category === category);
+    }
+    if (status && status !== "all") {
+      filtered = filtered.filter((l) => l.status === status);
+    }
+    if (search && typeof search === "string" && search.trim()) {
+      const q = search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (l) =>
+          l.action.toLowerCase().includes(q) ||
+          l.target.toLowerCase().includes(q) ||
+          l.adminOperator.toLowerCase().includes(q) ||
+          l.details.toLowerCase().includes(q) ||
+          l.eventType.toLowerCase().includes(q)
+      );
+    }
+
+    const maxItems = Math.min(Number(limit) || 100, 500);
+    res.json({
+      success: true,
+      total: filtered.length,
+      logs: filtered.slice(0, maxItems),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/audit-logs (Record custom action)
+app.post("/api/admin/audit-logs", (req, res) => {
+  try {
+    const { category = "system", eventType = "MANUAL_ACTION", action, target, status = "SUCCESS", details, metadata } = req.body || {};
+    if (!action || !target) {
+      return res.status(400).json({ success: false, error: "Action and target are required." });
+    }
+
+    const adminOperator = String(req.headers["x-user-email"] || req.body.adminOperator || "mukeshinland79@gmail.com");
+    const ipAddress = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+
+    const newLog = recordServerAuditLog({
+      category,
+      eventType,
+      action,
+      target,
+      adminOperator,
+      status,
+      ipAddress,
+      details: details || "Administrative action recorded for security oversight.",
+      metadata,
+    });
+
+    res.json({
+      success: true,
+      message: "Audit record logged successfully.",
+      log: newLog,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/audit-logs/clear
+app.post("/api/admin/audit-logs/clear", (req, res) => {
+  try {
+    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    const ipAddress = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const { mode = "all" } = req.body || {};
+
+    const purgeLog = recordServerAuditLog({
+      category: "security",
+      eventType: "AUDIT_LOGS_PURGED",
+      action: "System Audit Logs Cleared by Administrator",
+      target: "System: Audit Log Storage",
+      adminOperator,
+      status: "WARNING",
+      ipAddress,
+      details: `Administrator ${adminOperator} initiated an audit log purge. Prior log events cleared, security oversight record initialized.`,
+      metadata: {
+        clearedBy: adminOperator,
+        clearedAt: new Date().toISOString(),
+        mode,
+      },
+    });
+
+    serverAuditLogs = [purgeLog];
+
+    res.json({
+      success: true,
+      message: "Audit logs cleared successfully.",
+      logs: serverAuditLogs,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

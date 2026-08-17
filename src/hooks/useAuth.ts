@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
+
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 /**
  * Pure helper function to verify if a user holds Admin / Owner privileges
- * Does not rely on UI DOM presence; validates cryptographic email identity & server-signed claims.
+ * Validates cryptographic email identity & server-signed claims.
  */
 export function checkAdminRole(user: UserProfile | null, role?: UserRole): boolean {
   if (!user && (!role || role === "public")) return false;
@@ -31,7 +33,7 @@ export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boole
   return user?.role === "owner";
 }
 
-// Safe JSON parser to prevent "Unexpected end of JSON input" errors
+// Safe JSON parser to prevent unexpected parsing exceptions
 async function safeParseJson(res: Response): Promise<any> {
   try {
     const text = await res.text();
@@ -41,10 +43,13 @@ async function safeParseJson(res: Response): Promise<any> {
   }
 }
 
+/**
+ * Single Unified Auth Hook for PDFSun
+ * Provides multi-tab synchronization, session verification, and persistent auth state
+ */
 export function useAuth() {
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     if (typeof window !== "undefined") {
-      const storedRole = localStorage.getItem("pdfsun_user_role");
       try {
         const storedProfile = localStorage.getItem("pdfsun_user_profile");
         if (storedProfile) {
@@ -59,9 +64,12 @@ export function useAuth() {
             return "owner";
           }
         }
-      } catch {}
-      if (storedRole === "owner" || storedRole === "user" || storedRole === "public") {
-        return storedRole;
+        const storedRole = localStorage.getItem("pdfsun_user_role");
+        if (storedRole === "owner" || storedRole === "user" || storedRole === "public") {
+          return storedRole;
+        }
+      } catch (e) {
+        console.warn("[useAuth] Initial role parse error:", e);
       }
     }
     return "public";
@@ -86,15 +94,18 @@ export function useAuth() {
           }
           return parsed;
         }
-      } catch {}
+      } catch (e) {
+        console.warn("[useAuth] Initial profile parse error:", e);
+      }
     }
     return null;
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
+  const isMountedRef = useRef<boolean>(true);
 
-  // Admin / Edit Mode toggle: even for Admins, keep the public UI completely clean by default!
-  // Only displays admin controls when explicit Admin View / Edit Mode is active.
+  // Admin / Edit Mode toggle state
   const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("pdfsun_admin_edit_mode") === "true";
@@ -128,31 +139,140 @@ export function useAuth() {
   // Verify and Restore Session on Mount from Server JWT / Cookie
   const verifySession = useCallback(async (): Promise<boolean> => {
     try {
-      const token = localStorage.getItem("pdfsun_auth_token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
       const res = await fetch("/api/auth/verify-session", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
       if (res.ok) {
         const data = await safeParseJson(res);
         if (data.valid && data.user) {
-          setCurrentRole(data.user.role || "user");
-          setUserProfile(data.user);
-          localStorage.setItem("pdfsun_user_role", data.user.role || "user");
-          localStorage.setItem("pdfsun_user_profile", JSON.stringify(data.user));
+          const email = (data.user.email || "").toLowerCase().trim();
+          const isOwnerUser =
+            DUAL_OWNER_EMAILS.includes(email) ||
+            email === "mukeshinland79@gmail.com" ||
+            email === "mukeshkalonia241@gmail.com";
+          const role: UserRole = isOwnerUser ? "owner" : (data.user.role || "user");
+          const enrichedUser: UserProfile = {
+            ...data.user,
+            role,
+            hasAdminAccess: isOwnerUser || Boolean(data.user.hasAdminAccess),
+            isPro: isOwnerUser ? true : Boolean(data.user.isPro),
+          };
+
+          if (isMountedRef.current) {
+            setCurrentRole(role);
+            setUserProfile(enrichedUser);
+            setAuthStatus("authenticated");
+          }
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem("pdfsun_user_role", role);
+            localStorage.setItem("pdfsun_user_profile", JSON.stringify(enrichedUser));
+          }
           return true;
+        } else if (data.valid === false && res.status === 401) {
+          // Token is definitively invalid/expired on server
+          if (isMountedRef.current) {
+            setCurrentRole("public");
+            setUserProfile(null);
+            setAuthStatus("unauthenticated");
+          }
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("pdfsun_auth_token");
+            localStorage.removeItem("pdfsun_user_role");
+            localStorage.removeItem("pdfsun_user_profile");
+          }
+          return false;
         }
       }
     } catch (err) {
-      console.warn("[useAuth] Session verification error:", err);
+      console.warn("[useAuth] Session verification network notice:", err);
+      // On network failure, retain local credentials to avoid logging user out on transient glitch
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setAuthStatus((prev) => (prev === "loading" ? (userProfile ? "authenticated" : "unauthenticated") : prev));
+      }
     }
     return false;
-  }, []);
+  }, [userProfile]);
 
+  // Sync Subscription State with Payment Ledger
+  const syncSubscription = useCallback(async (emailToSync?: string) => {
+    const email = emailToSync || userProfile?.email;
+    if (!email) return;
+
+    try {
+      const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await safeParseJson(res);
+        if (data.success && userProfile) {
+          const isPro = Boolean(data.isPro || data.totalPaidINR > 0);
+          const badge = data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
+
+          if (userProfile.plan !== badge || userProfile.isPro !== isPro) {
+            const updatedProfile: UserProfile = {
+              ...userProfile,
+              plan: badge,
+              isPro: isPro,
+            };
+            if (isMountedRef.current) {
+              setUserProfile(updatedProfile);
+            }
+            if (typeof window !== "undefined") {
+              localStorage.setItem("pdfsun_user_profile", JSON.stringify(updatedProfile));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[useAuth] Subscription sync notice:", err);
+    }
+  }, [userProfile]);
+
+  // Initialize and verify on mount
   useEffect(() => {
+    isMountedRef.current = true;
     verifySession();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [verifySession]);
+
+  // Sync subscription when userProfile email changes
+  useEffect(() => {
+    if (userProfile?.email) {
+      syncSubscription(userProfile.email);
+    }
+  }, [userProfile?.email, syncSubscription]);
+
+  // Multi-Tab & Multi-Window Synchronization Listener
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "pdfsun_user_profile" || e.key === "pdfsun_user_role" || e.key === "pdfsun_auth_token") {
+        try {
+          const storedProfile = localStorage.getItem("pdfsun_user_profile");
+          const storedRole = localStorage.getItem("pdfsun_user_role") as UserRole;
+          if (storedProfile) {
+            const parsed = JSON.parse(storedProfile);
+            setUserProfile(parsed);
+            setCurrentRole(storedRole || parsed.role || "user");
+            setAuthStatus("authenticated");
+          } else {
+            setUserProfile(null);
+            setCurrentRole("public");
+            setAuthStatus("unauthenticated");
+          }
+        } catch (err) {
+          console.warn("[useAuth] Cross-tab storage sync error:", err);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const login = useCallback(
     async (params: {
@@ -175,33 +295,43 @@ export function useAuth() {
 
         const data = await safeParseJson(res);
         if (!res.ok || (!data.success && !data.token && data.status !== "ok")) {
-          return { success: false, error: data.error || data.message || "Login failed" };
+          return { success: false, error: data.error || data.message || "Invalid login credentials." };
         }
 
         if (data.token) {
           localStorage.setItem("pdfsun_auth_token", data.token);
         }
 
-        const role: UserRole = data.role || (params.isOwnerLogin ? "owner" : "user");
+        const normalizedEmail = (data.user?.email || params.email).toLowerCase().trim();
+        const isOwnerEmail =
+          DUAL_OWNER_EMAILS.includes(normalizedEmail) ||
+          normalizedEmail === "mukeshkalonia241@gmail.com" ||
+          normalizedEmail === "mukeshinland79@gmail.com";
+
+        const role: UserRole = isOwnerEmail ? "owner" : (data.role || (params.isOwnerLogin ? "owner" : "user"));
         const profile: UserProfile = data.user || {
-          id: `usr-${Date.now()}`,
-          name: data.email?.split("@")[0] || params.email.split("@")[0],
-          email: data.email || params.email,
+          id: isOwnerEmail ? "owner-001" : `usr-${Date.now()}`,
+          name: data.name || data.email?.split("@")[0] || params.email.split("@")[0],
+          email: normalizedEmail,
           role,
-          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+          avatar: isOwnerEmail
+            ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
+            : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
           plan: role === "owner" ? "Founder & Owner" : "Free Customer",
           joinedDate: "Jan 2026",
           hasAdminAccess: role === "owner",
+          isPro: role === "owner",
         };
 
         setCurrentRole(role);
         setUserProfile(profile);
+        setAuthStatus("authenticated");
         localStorage.setItem("pdfsun_user_role", role);
         localStorage.setItem("pdfsun_user_profile", JSON.stringify(profile));
 
-        return { success: true };
+        return { success: true, user: profile, role };
       } catch (err: any) {
-        return { success: false, error: err.message || "Network error during login" };
+        return { success: false, error: err.message || "Network error during login. Please try again." };
       }
     },
     []
@@ -218,7 +348,7 @@ export function useAuth() {
 
         const data = await safeParseJson(res);
         if (!res.ok || !data.success) {
-          return { success: false, error: data.error || "Registration failed" };
+          return { success: false, error: data.error || data.message || "Registration failed. Please try again." };
         }
 
         if (data.token) {
@@ -226,16 +356,27 @@ export function useAuth() {
         }
 
         const role: UserRole = data.role || "user";
-        const profile: UserProfile = data.user;
+        const profile: UserProfile = data.user || {
+          id: `usr-${Date.now()}`,
+          name: params.name || params.email.split("@")[0],
+          email: params.email.toLowerCase().trim(),
+          role,
+          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+          plan: "Free Plan (Active)",
+          joinedDate: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          hasAdminAccess: false,
+          isPro: false,
+        };
 
         setCurrentRole(role);
         setUserProfile(profile);
+        setAuthStatus("authenticated");
         localStorage.setItem("pdfsun_user_role", role);
         localStorage.setItem("pdfsun_user_profile", JSON.stringify(profile));
 
-        return { success: true };
+        return { success: true, user: profile, role };
       } catch (err: any) {
-        return { success: false, error: err.message || "Network error during registration" };
+        return { success: false, error: err.message || "Network error during registration. Please try again." };
       }
     },
     []
@@ -243,26 +384,39 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.warn("[useAuth] Logout server notification notice:", e);
+    }
+    
+    // Clear only PDFSun authentication data (never use localStorage.clear()!)
     setCurrentRole("public");
     setUserProfile(null);
+    setAuthStatus("unauthenticated");
     setAdminEditModeActive(false);
+
     try {
       localStorage.removeItem("pdfsun_auth_token");
       localStorage.removeItem("pdfsun_user_role");
       localStorage.removeItem("pdfsun_user_profile");
       localStorage.removeItem("pdfsun_admin_edit_mode");
-    } catch {}
+    } catch (e) {
+      console.warn("[useAuth] Storage cleanup notice:", e);
+    }
   }, []);
 
   const updateRole = useCallback((role: UserRole, profile: UserProfile | null) => {
     setCurrentRole(role);
     setUserProfile(profile);
     if (profile) {
+      setAuthStatus("authenticated");
       localStorage.setItem("pdfsun_user_role", role);
       localStorage.setItem("pdfsun_user_profile", JSON.stringify(profile));
     } else {
+      setAuthStatus("unauthenticated");
       localStorage.removeItem("pdfsun_user_role");
       localStorage.removeItem("pdfsun_user_profile");
       setAdminEditModeActive(false);
@@ -273,6 +427,7 @@ export function useAuth() {
   return {
     currentRole,
     userProfile,
+    authStatus,
     isAuthenticated,
     isOwner,
     isAdmin,
@@ -286,5 +441,7 @@ export function useAuth() {
     logout,
     updateRole,
     verifySession,
+    syncSubscription,
   };
 }
+

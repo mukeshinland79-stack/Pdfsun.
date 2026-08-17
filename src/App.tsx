@@ -39,6 +39,7 @@ import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
+import { useAuth } from "./hooks/useAuth";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
@@ -192,104 +193,22 @@ export default function App() {
     };
   }, [syncWithSystem, themeMode]);
 
-  // Role & Authentication state
-  // Public customers default to "public" mode with null userProfile unless authenticated
-  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
-    try {
-      const savedRole = localStorage.getItem("pdfsun_user_role") as UserRole;
-      if (savedRole && ["owner", "user", "public"].includes(savedRole)) {
-        return savedRole;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return "public";
-  });
-
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    try {
-      const savedProfile = localStorage.getItem("pdfsun_user_profile");
-      if (savedProfile) {
-        return JSON.parse(savedProfile);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return null;
-  });
-
-  // Admin / Edit Mode toggle state (defaults to false to keep UI clean even for admins)
-  const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("pdfsun_admin_edit_mode") === "true";
-    }
-    return false;
-  });
-
-  const toggleAdminEditMode = () => {
-    setAdminEditModeActive((prev) => {
-      const next = !prev;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("pdfsun_admin_edit_mode", String(next));
-      }
-      return next;
-    });
-  };
-
-  // Verify and Restore Session on Mount from Server JWT / Cookie
-  useEffect(() => {
-    const restoreSession = async () => {
-      try {
-        const token = localStorage.getItem("pdfsun_auth_token");
-        const res = await fetch("/api/auth/verify-session", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.valid && data.user) {
-            setCurrentRole(data.user.role || "user");
-            setUserProfile(data.user);
-            localStorage.setItem("pdfsun_user_role", data.user.role || "user");
-            localStorage.setItem("pdfsun_user_profile", JSON.stringify(data.user));
-          }
-        }
-      } catch (err) {
-        console.warn("[App Session Restore Error]:", err);
-      }
-    };
-    restoreSession();
-  }, []);
-
-  // Automated Subscription Sync Effect for logged in or active users
-  useEffect(() => {
-    const syncUserSubscriptionState = async () => {
-      const email = userProfile?.email || "mukeshinland79@gmail.com";
-      try {
-        const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            const isPro = Boolean(data.isPro || data.totalPaidINR > 0);
-            const badge = data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
-
-            if (userProfile && (userProfile.plan !== badge || userProfile.isPro !== isPro)) {
-              const updatedProfile: UserProfile = {
-                ...userProfile,
-                plan: badge,
-                isPro: isPro,
-              };
-              setUserProfile(updatedProfile);
-              localStorage.setItem("pdfsun_user_profile", JSON.stringify(updatedProfile));
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("[App Subscription Sync] Error checking subscription status:", err);
-      }
-    };
-
-    syncUserSubscriptionState();
-  }, [userProfile?.email]);
+  // Unified Auth & Session Engine (Single Source of Truth with Multi-Tab Sync)
+  const {
+    currentRole,
+    userProfile,
+    authStatus,
+    isAuthenticated,
+    isOwner,
+    isAdmin,
+    canAccessAdmin,
+    adminEditModeActive,
+    setAdminEditModeActive,
+    toggleAdminEditMode,
+    isLoading: authLoading,
+    logout: rawLogout,
+    updateRole: handleSelectRole,
+  } = useAuth();
 
   // User Accounts State with persistent Admin Permission control
   const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
@@ -322,7 +241,7 @@ export default function App() {
       if (acc.id === userId) {
         const nextState = !acc.hasAdminAccess;
         if (userProfile && userProfile.email === acc.email) {
-          setUserProfile({ ...userProfile, hasAdminAccess: nextState });
+          handleSelectRole(currentRole, { ...userProfile, hasAdminAccess: nextState });
         }
         return { ...acc, hasAdminAccess: nextState };
       }
@@ -517,66 +436,16 @@ export default function App() {
     else setActiveToolFiles([]);
   };
 
-  const handleSelectRole = (role: UserRole, profile: UserProfile | null) => {
-    setCurrentRole(role);
-    if (profile) {
-      const match = userAccounts.find((a) => a.email === profile.email);
-      const hasAdmin = role === "owner" || (match ? match.hasAdminAccess : Boolean(profile.hasAdminAccess));
-      const updatedProfile = { ...profile, hasAdminAccess: hasAdmin };
-      setUserProfile(updatedProfile);
-      try {
-        localStorage.setItem("pdfsun_user_role", role);
-        localStorage.setItem("pdfsun_user_profile", JSON.stringify(updatedProfile));
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      setUserProfile(null);
-      try {
-        localStorage.removeItem("pdfsun_user_role");
-        localStorage.removeItem("pdfsun_user_profile");
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
-  const currentUserEmail = (userProfile?.email || "").toLowerCase().trim();
-  const isDualOwner =
-    DUAL_OWNER_EMAILS.includes(currentUserEmail) ||
-    currentUserEmail === "mukeshkalonia241@gmail.com" ||
-    currentUserEmail === "mukeshinland79@gmail.com";
-  const canAccessAdmin =
-    currentRole !== "public" &&
-    userProfile !== null &&
-    (currentRole === "owner" ||
-      isDualOwner ||
-      userProfile?.role === "owner" ||
-      Boolean(userProfile?.hasAdminAccess));
-
   const handleOpenAuthModal = (mode: "customer" | "owner" = "customer") => {
     setAuthModalInitialMode(mode);
     setAuthModalOpen(true);
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch (e) {
-      console.warn("Logout request error:", e);
-    }
-    setCurrentRole("public");
-    setUserProfile(null);
+  const handleLogout = useCallback(async () => {
     setAdminPanelOpen(false);
     setUserDashboardOpen(false);
-    try {
-      localStorage.removeItem("pdfsun_auth_token");
-      localStorage.removeItem("pdfsun_user_role");
-      localStorage.removeItem("pdfsun_user_profile");
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    await rawLogout();
+  }, [rawLogout]);
 
   // Inactivity Auto-Logout & Session Preservation System
   const {
@@ -904,7 +773,7 @@ export default function App() {
           onAddUserAccount={handleAddUserAccount}
           initialTab={adminPanelTab}
           onLogout={handleLogout}
-          isOwner={currentRole === "owner" || isDualOwner}
+          isOwner={isOwner}
           currentUserProfile={userProfile}
         />
       )}

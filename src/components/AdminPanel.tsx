@@ -83,6 +83,8 @@ import { AITokenMonitor } from "./AITokenMonitor";
 import { AdminSystemHealth } from "./AdminSystemHealth";
 import { ApiThrottlingManager } from "./ApiThrottlingManager";
 import { LiveAnalyticsDashboard } from "./LiveAnalyticsDashboard";
+import { AuditLogManager } from "./AuditLogManager";
+export { AuditLogManager };
 import { ALL_TOOLS } from "../data/toolsData";
 import {
   generateSitemapXml,
@@ -737,6 +739,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               >
                 <Sliders className="w-4 h-4 text-indigo-400" />
                 <span>API Performance & Throttling</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("audit_logs")}
+                className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
+                  effectiveActiveTab === "audit_logs" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs font-black" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Audit Log Manager</span>
               </button>
 
               <button
@@ -2079,6 +2091,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* API Performance & Throttling Tab (Dual-Owner Exclusive Control) */}
           {effectiveActiveTab === "throttling" && (
             <ApiThrottlingManager currentUserProfile={currentUserProfile} />
+          )}
+
+          {/* System Audit Log Manager Tab */}
+          {effectiveActiveTab === "audit_logs" && (
+            <AuditLogManager currentUserProfile={currentUserProfile} />
           )}
 
           {/* System Activity Log Tab (Dual-Owner Exclusive) */}
