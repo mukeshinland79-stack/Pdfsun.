@@ -1850,7 +1850,7 @@ const handleResetPassword = async (req: express.Request, res: express.Response) 
       data: {
         token: result.token,
         user: result.user,
-        role: result.role,
+        role: result.user?.role || "user",
       },
     });
   } catch (err: any) {
