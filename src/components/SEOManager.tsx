@@ -123,6 +123,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   baseUrl = "https://pdfsun.in",
   currentPage,
   totalPages,
+  isTodayInHistoryActive = false,
 }) => {
   // 1. Base WebSite & SearchAction Schema
   const websiteSchema = {
