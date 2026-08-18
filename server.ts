@@ -9,6 +9,7 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
 import { ALL_TOOLS } from "./src/data/toolsData";
+import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
 import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
@@ -545,8 +546,8 @@ app.post("/api/admin/system-config/reset", verifyDualOwnerAccess, (req, res) => 
   });
 });
 
-// System Stats Endpoint
-app.get("/api/admin/system-stats", (req, res) => {
+// System Stats Endpoint (Protected with Dual-Owner Access)
+app.get("/api/admin/system-stats", verifyDualOwnerAccess, (req, res) => {
   const mem = process.memoryUsage();
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
@@ -2031,8 +2032,8 @@ function recordServerAuditLog(entry: {
   return log;
 }
 
-// User Management API Endpoints (Owner, Client, Customer, User)
-app.get("/api/admin/users", (req, res) => {
+// User Management API Endpoints (Owner, Client, Customer, User) - Protected with Dual-Owner Access
+app.get("/api/admin/users", verifyDualOwnerAccess, (req, res) => {
   try {
     const users = getAllStoredUsers();
     res.json({
@@ -2046,7 +2047,7 @@ app.get("/api/admin/users", (req, res) => {
   }
 });
 
-app.post("/api/admin/users", (req, res) => {
+app.post("/api/admin/users", verifyDualOwnerAccess, (req, res) => {
   try {
     const { name, email, role = "user", plan = "Free Customer", hasAdminAccess = false, password = "pdfsunPass2026" } = req.body || {};
     if (!email) {
@@ -2091,7 +2092,7 @@ app.post("/api/admin/users", (req, res) => {
   }
 });
 
-app.post("/api/admin/users/update", (req, res) => {
+app.post("/api/admin/users/update", verifyDualOwnerAccess, (req, res) => {
   try {
     const { id, email, updates } = req.body || {};
     const identifier = id || email;
@@ -2128,7 +2129,7 @@ app.post("/api/admin/users/update", (req, res) => {
   }
 });
 
-app.post("/api/admin/users/delete", (req, res) => {
+app.post("/api/admin/users/delete", verifyDualOwnerAccess, (req, res) => {
   try {
     const { id, email } = req.body || {};
     const identifier = id || email;
@@ -2164,7 +2165,7 @@ app.post("/api/admin/users/delete", (req, res) => {
   }
 });
 
-app.post("/api/admin/users/restore", (req, res) => {
+app.post("/api/admin/users/restore", verifyDualOwnerAccess, (req, res) => {
   try {
     const result = repairAndRestoreDatabase();
     const updatedUsers = getAllStoredUsers();
@@ -2188,8 +2189,8 @@ app.post("/api/admin/users/restore", (req, res) => {
   }
 });
 
-// GET /api/admin/audit-logs
-app.get("/api/admin/audit-logs", (req, res) => {
+// GET /api/admin/audit-logs (Protected)
+app.get("/api/admin/audit-logs", verifyDualOwnerAccess, (req, res) => {
   try {
     const { category, status, search, limit = 100 } = req.query || {};
     let filtered = [...serverAuditLogs];
@@ -2224,8 +2225,8 @@ app.get("/api/admin/audit-logs", (req, res) => {
   }
 });
 
-// POST /api/admin/audit-logs (Record custom action)
-app.post("/api/admin/audit-logs", (req, res) => {
+// POST /api/admin/audit-logs (Record custom action - Protected)
+app.post("/api/admin/audit-logs", verifyDualOwnerAccess, (req, res) => {
   try {
     const { category = "system", eventType = "MANUAL_ACTION", action, target, status = "SUCCESS", details, metadata } = req.body || {};
     if (!action || !target) {
@@ -2257,8 +2258,8 @@ app.post("/api/admin/audit-logs", (req, res) => {
   }
 });
 
-// POST /api/admin/audit-logs/clear
-app.post("/api/admin/audit-logs/clear", (req, res) => {
+// POST /api/admin/audit-logs/clear (Protected)
+app.post("/api/admin/audit-logs/clear", verifyDualOwnerAccess, (req, res) => {
   try {
     const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
     const ipAddress = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
@@ -2363,7 +2364,7 @@ let financeHubData = {
   ],
 };
 
-app.get("/api/admin/finance-hub", (req, res) => {
+app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (req, res) => {
   const { accountNumberFull, ...safeBankDetails } = financeHubData.bankDetails;
   res.json({
     ...financeHubData,
@@ -2371,7 +2372,7 @@ app.get("/api/admin/finance-hub", (req, res) => {
   });
 });
 
-app.post("/api/admin/reveal-account", (req, res) => {
+app.post("/api/admin/reveal-account", verifyDualOwnerAccess, (req, res) => {
   const { password } = req.body || {};
   if (password === "12345" || password === currentSystemConfig.ADMIN_SECRET_KEY || req.headers["x-admin-token"] === "12345") {
     return res.json({
@@ -2382,7 +2383,7 @@ app.post("/api/admin/reveal-account", (req, res) => {
   res.status(401).json({ error: "Unauthorized: Invalid secret key" });
 });
 
-app.post("/api/admin/withdraw", (req, res) => {
+app.post("/api/admin/withdraw", verifyDualOwnerAccess, (req, res) => {
   const { amount = financeHubData.withdrawableBalance } = req.body || {};
   if (amount <= 0 || amount > financeHubData.withdrawableBalance) {
     return res.status(400).json({ error: "Invalid withdrawal amount" });
@@ -2412,7 +2413,7 @@ app.post("/api/admin/withdraw", (req, res) => {
   });
 });
 
-app.post("/api/admin/toggle-gateway", (req, res) => {
+app.post("/api/admin/toggle-gateway", verifyDualOwnerAccess, (req, res) => {
   const { gateway } = req.body || {};
   if (gateway === "RAZORPAY" || gateway === "STRIPE") {
     financeHubData.activeGateway = gateway;
@@ -2421,7 +2422,7 @@ app.post("/api/admin/toggle-gateway", (req, res) => {
   res.status(400).json({ error: "Invalid gateway specified" });
 });
 
-app.post("/api/admin/refund", async (req, res) => {
+app.post("/api/admin/refund", verifyDualOwnerAccess, async (req, res) => {
   const { transactionId, paymentId, amount, reason } = req.body || {};
   const targetId = transactionId || paymentId;
 
@@ -2505,7 +2506,7 @@ app.post("/api/admin/refund", async (req, res) => {
   });
 });
 
-app.get("/api/admin/export-statement", (req, res) => {
+app.get("/api/admin/export-statement", verifyDualOwnerAccess, (req, res) => {
   const format = req.query.format || "csv";
   if (format === "csv") {
     res.setHeader("Content-Type", "text/csv");
@@ -2658,17 +2659,61 @@ Allow: /
 Disallow: /api/admin/
 
 Sitemap: https://pdfsun.in/sitemap.xml
+Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://pdfsun.in/sitemap-pseo.xml
 `);
+});
+
+// Dedicated Programmatic Target Sizes Sitemap (for Google Search Console monitoring)
+app.get("/sitemap-compress-sizes.xml", (req, res) => {
+  res.type("application/xml");
+  const today = new Date().toISOString().split("T")[0];
+
+  const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
+    return `  <url>
+    <loc>https://pdfsun.in/compress-pdf-to-${size}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+  }).join("\n");
+
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${compressUrls}
+</urlset>`);
+});
+
+// Dedicated pSEO Landing Pages Sitemap
+app.get("/sitemap-pseo.xml", (req, res) => {
+  res.type("application/xml");
+  const today = new Date().toISOString().split("T")[0];
+
+  const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
+    return `  <url>
+    <loc>https://pdfsun.in/${page.slug}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>`;
+  }).join("\n");
+
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${pseoUrls}
+</urlset>`);
 });
 
 // Dynamic Sitemap.xml
 app.get("/sitemap.xml", (req, res) => {
   res.type("application/xml");
   
-  // Collect unique slugs from all tools plus root and static pages
-  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us"];
+  // Collect unique slugs from all tools, pSEO landing pages, popular compress sizes, plus root and static pages
+  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history"];
   const toolSlugs = ALL_TOOLS.map((t) => t.slug).filter(Boolean);
-  const allSlugs = Array.from(new Set([...staticSlugs, ...toolSlugs]));
+  const pseoSlugs = PSEO_LANDING_PAGES.map((p) => p.slug);
+  const compressSlugs = POPULAR_COMPRESS_SIZES.map((s) => `compress-pdf-to-${s}`);
+  const allSlugs = Array.from(new Set([...staticSlugs, ...toolSlugs, ...pseoSlugs, ...compressSlugs]));
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -2676,7 +2721,8 @@ app.get("/sitemap.xml", (req, res) => {
     .map((slug) => {
       const isHome = slug === "";
       const isTool = toolSlugs.includes(slug);
-      const priority = isHome ? "1.0" : isTool ? "0.8" : "0.5";
+      const isCompressSize = slug.startsWith("compress-pdf-to-");
+      const priority = isHome ? "1.0" : isCompressSize ? "0.9" : isTool ? "0.8" : "0.7";
       const changefreq = isHome ? "daily" : "weekly";
       const urlPath = slug ? `/${slug}` : "";
 

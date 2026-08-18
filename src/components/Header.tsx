@@ -210,9 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
   const aiTools = ALL_TOOLS.filter((t) => t.isAi);
 
   // Available categories list for the sticky category navigation
-  const visibleCategories = CATEGORIES.filter(
-    (cat) => cat.id !== "owner" || isAdminOrOwner
-  );
+  const visibleCategories = CATEGORIES;
 
   return (
     <header

@@ -34,6 +34,7 @@ import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
+import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -41,6 +42,7 @@ import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
+import { matchPSEORoute, PSEOLandingPage, generateCompressSizePseoPage } from "./data/pSEOData";
 import { useAuth } from "./hooks/useAuth";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
@@ -335,6 +337,7 @@ export default function App() {
   // Active Tool Selection Workspace
   const [activeTool, setActiveTool] = useState<ToolItem | null>(null);
   const [activeToolFiles, setActiveToolFiles] = useState<File[]>([]);
+  const [activePseoPage, setActivePseoPage] = useState<PSEOLandingPage | null>(null);
 
   // Modals state
   const [activePolicy, setActivePolicy] = useState<PolicyType | null>(null);
@@ -357,20 +360,74 @@ export default function App() {
   const paymentHandledRef = useRef(false);
 
   useEffect(() => {
-    // Geo & Language Auto-detection & URL Routing for Today in History
+    // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      const currentPath = window.location.pathname;
+
       const isHistoryUrl =
-        window.location.pathname === "/today-in-history" ||
+        currentPath === "/today-in-history" ||
         window.location.hash === "#today-in-history" ||
         params.get("view") === "history" ||
         params.has("today-in-history");
 
       if (isHistoryUrl) {
         setTodayInHistoryOpen(true);
+        return;
+      }
+
+      // Check for Programmatic SEO (pSEO) targeted landing pages
+      const matchedPseo = matchPSEORoute(currentPath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
+      if (matchedPseo) {
+        setActivePseoPage(matchedPseo);
+        const targetTool = ALL_TOOLS.find(
+          (t) => t.id === matchedPseo.targetToolId || t.slug === matchedPseo.targetToolId
+        );
+        if (targetTool) {
+          setActiveTool(targetTool);
+        }
+        return;
+      }
+
+      // Check for standard direct tool route (e.g. /merge-pdf or /tool/merge-pdf or ?tool=merge-pdf)
+      const toolParam = params.get("tool") || params.get("toolId");
+      let matchedSlug = toolParam;
+      if (!matchedSlug && currentPath && currentPath !== "/") {
+        const cleanSlug = currentPath.replace(/^\/(tool\/)?/, "").replace(/\/$/, "");
+        matchedSlug = cleanSlug;
+      }
+
+      if (matchedSlug) {
+        const targetTool = ALL_TOOLS.find(
+          (t) => t.slug === matchedSlug || t.id === matchedSlug
+        );
+        if (targetTool) {
+          setActiveTool(targetTool);
+        }
       }
     }
   }, []);
+
+  useEffect(() => {
+    // Restricted Admin Routing with Strict RBAC Authentication Wall
+    if (typeof window !== "undefined" && !authLoading) {
+      const params = new URLSearchParams(window.location.search);
+      const isAdminRoute =
+        window.location.pathname === "/admin" ||
+        window.location.pathname.startsWith("/admin/") ||
+        window.location.hash === "#admin" ||
+        params.get("view") === "admin";
+
+      if (isAdminRoute) {
+        if (canAccessAdmin) {
+          setAdminPanelOpen(true);
+        } else {
+          setAuthModalInitialMode("owner");
+          setAuthModalOpen(true);
+        }
+      }
+    }
+  }, [authLoading, canAccessAdmin]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !paymentHandledRef.current) {
@@ -448,11 +505,29 @@ export default function App() {
   // Usage Analytics hook
   const { trackToolUsage } = useUsageAnalytics();
 
-  const handleSelectTool = (tool: ToolItem, initialFiles?: File[]) => {
+  const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
     trackToolUsage(tool.id);
     setActiveTool(tool);
+    if (customPseoPage !== undefined) {
+      setActivePseoPage(customPseoPage);
+      if (customPseoPage) {
+        window.history.pushState({}, "", `/${customPseoPage.slug}`);
+      }
+    } else if (activePseoPage && (activePseoPage.targetToolId !== tool.id && activePseoPage.targetToolId !== tool.slug)) {
+      setActivePseoPage(null);
+    }
     if (initialFiles) setActiveToolFiles(initialFiles);
     else setActiveToolFiles([]);
+  };
+
+  const handleSelectPseoSize = (sizeStr: string) => {
+    const generated = generateCompressSizePseoPage(sizeStr, activePseoPage?.region || "USA");
+    setActivePseoPage(generated);
+    const compressTool = ALL_TOOLS.find((t) => t.id === "compress-pdf" || t.slug === "compress-pdf");
+    if (compressTool) {
+      setActiveTool(compressTool);
+    }
+    window.history.pushState({}, "", `/${generated.slug}`);
   };
 
   const handleOpenAuthModal = (mode: "customer" | "owner" = "customer") => {
@@ -547,6 +622,7 @@ export default function App() {
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
+        pseoPage={activePseoPage}
       />
 
       {/* Dynamic SEO Head Management */}
@@ -692,66 +768,94 @@ export default function App() {
 
       {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
-        activeTool.id === "remove-watermark" ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
-            <RemoveWatermarkTool
-              initialFile={activeToolFiles[0] || null}
-              onClose={() => setActiveTool(null)}
-              onAddHistory={addHistory}
-            />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 md:p-6 flex flex-col items-center justify-start min-h-screen">
+          {activePseoPage && (
+            <div className="w-full max-w-5xl mb-3 mt-2">
+              <PSEOLandingBanner
+                pseoPage={activePseoPage}
+                onSelectTool={handleSelectTool}
+                onSelectPseoSize={handleSelectPseoSize}
+              />
+            </div>
+          )}
+
+          <div className="w-full flex items-center justify-center">
+            {activeTool.id === "remove-watermark" ? (
+              <RemoveWatermarkTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : activeTool.id === "watermark-pdf" ? (
+              <WatermarkPdfTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
+              <ViewPdfMetadataTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
+              <EditPdfMetadataTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : activeTool.id === "share-pdfsun" ? (
+              <SharePdfSunModal
+                isOpen={true}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+              />
+            ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
+              <ProtectPdfTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : activeTool.isAi ? (
+              <AIChatWorkspace
+                tool={activeTool}
+                initialFiles={activeToolFiles}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            ) : (
+              <ActiveToolWorkspace
+                tool={activeTool}
+                initialFiles={activeToolFiles}
+                onClose={() => {
+                  setActiveTool(null);
+                  setActivePseoPage(null);
+                }}
+                onAddHistory={addHistory}
+              />
+            )}
           </div>
-        ) : activeTool.id === "watermark-pdf" ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
-            <WatermarkPdfTool
-              initialFile={activeToolFiles[0] || null}
-              onClose={() => setActiveTool(null)}
-              onAddHistory={addHistory}
-            />
-          </div>
-        ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
-            <ViewPdfMetadataTool
-              initialFile={activeToolFiles[0] || null}
-              onClose={() => setActiveTool(null)}
-              onAddHistory={addHistory}
-            />
-          </div>
-        ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
-            <EditPdfMetadataTool
-              initialFile={activeToolFiles[0] || null}
-              onClose={() => setActiveTool(null)}
-              onAddHistory={addHistory}
-            />
-          </div>
-        ) : activeTool.id === "share-pdfsun" ? (
-          <SharePdfSunModal
-            isOpen={true}
-            onClose={() => setActiveTool(null)}
-          />
-        ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center">
-            <ProtectPdfTool
-              initialFile={activeToolFiles[0] || null}
-              onClose={() => setActiveTool(null)}
-              onAddHistory={addHistory}
-            />
-          </div>
-        ) : activeTool.isAi ? (
-          <AIChatWorkspace
-            tool={activeTool}
-            initialFiles={activeToolFiles}
-            onClose={() => setActiveTool(null)}
-            onAddHistory={addHistory}
-          />
-        ) : (
-          <ActiveToolWorkspace
-            tool={activeTool}
-            initialFiles={activeToolFiles}
-            onClose={() => setActiveTool(null)}
-            onAddHistory={addHistory}
-          />
-        )
+        </div>
       )}
 
       {/* Authentication & Role Selection Modal */}

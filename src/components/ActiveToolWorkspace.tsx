@@ -214,6 +214,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [watermarkColor, setWatermarkColor] = useState("#f97316");
   const [watermarkRangeTarget, setWatermarkRangeTarget] = useState("all");
   const [compressPreset, setCompressPreset] = useState<"extreme" | "recommended" | "low">("recommended");
+  const [targetMaxKB, setTargetMaxKB] = useState<number | null>(200);
   const [ocrLanguage, setOcrLanguage] = useState("eng");
   const [ocrOutputFormat, setOcrOutputFormat] = useState<"txt" | "searchable-pdf">("txt");
   const [grayscaleMode, setGrayscaleMode] = useState<"grayscale" | "bw">("grayscale");
@@ -2127,33 +2128,74 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             )}
 
             {tool.id === "compress-pdf" && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Compression Preset Level</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCompressPreset("extreme")}
-                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "extreme" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
-                  >
-                    <div className="text-xs">Extreme</div>
-                    <div className="text-[10px] text-slate-400">~70% size reduction</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCompressPreset("recommended")}
-                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "recommended" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
-                  >
-                    <div className="text-xs">Recommended</div>
-                    <div className="text-[10px] text-slate-400">~50% optimal balance</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCompressPreset("low")}
-                    className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "low" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
-                  >
-                    <div className="text-xs font-bold">High Quality</div>
-                    <div className="text-[10px] text-slate-400">~20% light compression</div>
-                  </button>
+              <div className="space-y-3">
+                {/* Target File Size Optimizer (pSEO Preset Support) */}
+                <div className="space-y-1.5 p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                      <span>🎯 Target Max File Size Limit</span>
+                    </label>
+                    {targetMaxKB && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-2xs">
+                        Auto-set: ≤{targetMaxKB >= 1024 ? `${(targetMaxKB / 1024).toFixed(0)}MB` : `${targetMaxKB}KB`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[50, 100, 200, 300, 500, 1024, 2048, 5120].map((kb) => {
+                      const label = kb >= 1024 ? `${kb / 1024}MB` : `${kb}KB`;
+                      const isSelected = targetMaxKB === kb;
+                      return (
+                        <button
+                          key={kb}
+                          type="button"
+                          onClick={() => {
+                            setTargetMaxKB(kb);
+                            if (kb <= 100) setCompressPreset("extreme");
+                            else if (kb <= 500) setCompressPreset("recommended");
+                            else setCompressPreset("low");
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                            isSelected
+                              ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Compression Preset Level</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCompressPreset("extreme")}
+                      className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "extreme" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                    >
+                      <div className="text-xs">Extreme</div>
+                      <div className="text-[10px] text-slate-400">~70% size reduction</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCompressPreset("recommended")}
+                      className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "recommended" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                    >
+                      <div className="text-xs">Recommended</div>
+                      <div className="text-[10px] text-slate-400">~50% optimal balance</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCompressPreset("low")}
+                      className={`p-2.5 rounded-xl border text-left transition ${compressPreset === "low" ? "bg-orange-500/10 border-orange-500 text-orange-600 font-bold" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                    >
+                      <div className="text-xs font-bold">High Quality</div>
+                      <div className="text-[10px] text-slate-400">~20% light compression</div>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

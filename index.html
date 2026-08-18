@@ -123,26 +123,80 @@
     }
     </script>
 
-    <!-- 3. WebApplication / SoftwareApplication Schema -->
+    <!-- 3. WebApplication & HowTo Rich Snippets Schema (@graph Schema for PDF Merger & Tools) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "PDF Sun",
-      "url": "https://pdfsun.in",
-      "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.",
-      "applicationCategory": "UtilityApplication",
-      "operatingSystem": "All",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "12850"
-      }
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://pdfsun.in/merge-pdf#webapp",
+          "url": "https://pdfsun.in/merge-pdf",
+          "name": "Free Online PDF Merger & Combiner",
+          "alternateName": ["PDF Joiner", "Combine PDF Online", "Merge PDF Files"],
+          "description": "Merge multiple PDF files into a single document instantly in your browser. Fast, 100% free, secure, and requires no registration.",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "All (Web-based)",
+          "browserRequirements": "Requires HTML5, WebAssembly, and JavaScript enabled.",
+          "softwareVersion": "2.1.0",
+          "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
+          "featureList": [
+            "Combine unlimited PDF files into one",
+            "Drag-and-drop page reordering",
+            "Client-side processing for 100% privacy",
+            "No email or registration required",
+            "Works on Mobile, Windows, Mac, and Linux"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "18420",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "author": {
+            "@type": "Organization",
+            "@id": "https://pdfsun.in/#organization",
+            "name": "PDF Sun",
+            "url": "https://pdfsun.in",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://pdfsun.in/og-image.png"
+            }
+          }
+        },
+        {
+          "@type": "HowTo",
+          "name": "How to Merge PDF Files Online",
+          "description": "Simple 3-step guide to merging multiple PDF documents into one single file.",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "name": "Upload PDF Files",
+              "text": "Drag and drop your PDF documents into the file selection box, or click 'Choose Files'.",
+              "position": 1
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Reorder Pages",
+              "text": "Rearrange individual pages or whole documents by dragging them into your preferred sequence.",
+              "position": 2
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Merge & Save",
+              "text": "Click 'Merge PDF' and instantly download your merged PDF document to your device.",
+              "position": 3
+            }
+          ]
+        }
+      ]
     }
     </script>
     <script type="application/ld+json">

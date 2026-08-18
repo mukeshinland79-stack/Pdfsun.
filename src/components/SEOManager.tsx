@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { ToolItem } from "../types";
 import { FAQS } from "../data/toolsData";
 import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
+import { PSEOLandingPage } from "../data/pSEOData";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
@@ -11,6 +12,7 @@ export interface SEOManagerProps {
   currentPage?: number;
   totalPages?: number;
   isTodayInHistoryActive?: boolean;
+  pseoPage?: PSEOLandingPage | null;
 }
 
 export interface ToolFAQ {
@@ -124,6 +126,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   currentPage,
   totalPages,
   isTodayInHistoryActive = false,
+  pseoPage = null,
 }) => {
   // 1. Base WebSite & SearchAction Schema
   const websiteSchema = {
@@ -162,12 +165,28 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   let faqSchema: Record<string, any>;
 
   if (activeTool) {
-    const toolFaqs = getToolFAQs(activeTool);
+    const baseFaqs = getToolFAQs(activeTool);
+    const customPseoFaqs = pseoPage?.customFaqs || [];
+    const combinedFaqs = [
+      ...customPseoFaqs.map((f) => ({ question: f.question, answer: f.answer })),
+      ...baseFaqs,
+    ];
+
+    // Deduplicate
+    const seen = new Set<string>();
+    const uniqueFaqs: { question: string; answer: string }[] = [];
+    for (const f of combinedFaqs) {
+      const k = f.question.toLowerCase().trim();
+      if (!seen.has(k)) {
+        seen.add(k);
+        uniqueFaqs.push(f);
+      }
+    }
 
     faqSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "mainEntity": toolFaqs.map((faq) => ({
+      "mainEntity": uniqueFaqs.map((faq) => ({
         "@type": "Question",
         "name": faq.question,
         "acceptedAnswer": {
@@ -208,102 +227,103 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   };
 
   // Build active tool specific schemas or multi-tool catalog schema
-  let activeToolSchema: Record<string, any> | null = null;
-  let softwareApplicationSchema: Record<string, any> | null = null;
-  let activeToolHowToSchema: Record<string, any> | null = null;
+  let activeToolGraphSchema: Record<string, any> | null = null;
   let breadcrumbsSchema: Record<string, any> | null = null;
   let catalogItemListSchema: Record<string, any> | null = null;
 
   if (activeTool) {
-    // Single Active Tool WebApplication Schema for Rich Snippets
-    activeToolSchema = {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": `${activeTool.name} - Free Online Tool`,
-      "url": `${baseUrl}/tool/${activeTool.slug}`,
-      "description": activeTool.description,
-      "applicationCategory": getApplicationCategory(activeTool.category),
-      "operatingSystem": "All (Web Browser)",
-      "browserRequirements": "Requires HTML5 & JavaScript enabled",
-      "softwareVersion": "3.8.0",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "1280",
-        "bestRating": "5",
-        "worstRating": "1",
-      },
-      "featureList": [
-        "100% Private Client-Side Processing",
-        "Zero File Server Uploads",
-        `Supports input: ${activeTool.supportedInput.join(", ")}`,
-        `Generates output: ${activeTool.outputFormat}`,
-      ],
-    };
+    const isMergePdf = activeTool.slug === "merge-pdf" || activeTool.id === "merge-pdf";
+    const toolUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : `${baseUrl}/${activeTool.slug}`;
+    const toolName = pseoPage?.headline || (isMergePdf ? "Free Online PDF Merger & Combiner" : `${activeTool.name} - Free Online PDF Tool`);
+    const toolDesc = pseoPage?.seoDescription || activeTool.description;
+    const alternateNames = isMergePdf
+      ? ["PDF Joiner", "Combine PDF Online", "PDF Merger", "Merge PDF Files Online"]
+      : [`Online ${activeTool.name}`, `${activeTool.name} Free`, `Web ${activeTool.name}`];
 
-    // Dedicated SoftwareApplication JSON-LD Schema for Rich Search Snippets
-    softwareApplicationSchema = {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": `${activeTool.name} - Free Online Software`,
-      "url": `${baseUrl}/tool/${activeTool.slug}`,
-      "description": activeTool.description,
-      "applicationCategory": getApplicationCategory(activeTool.category),
-      "operatingSystem": "All (Web Browser, Windows, macOS, Linux, iOS, Android)",
-      "softwareVersion": "3.8.0",
-      "fileFormat": activeTool.outputFormat,
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "1280",
-        "reviewCount": "1280",
-        "bestRating": "5",
-        "worstRating": "1",
-      },
-      "featureList": [
-        "100% Private In-Browser Processing",
-        "Zero File Server Storage",
-        `Input formats: ${activeTool.supportedInput.join(", ")}`,
-        `Output format: ${activeTool.outputFormat}`,
-      ],
-    };
-
-    // Step-by-step HowTo Schema for Google Rich HowTo Snippets
-    activeToolHowToSchema = {
-      "@context": "https://schema.org",
-      "@type": "HowTo",
-      "name": `How to use ${activeTool.name} online for free`,
-      "description": `Quick 3-step guide to process files with ${activeTool.name} on PDFSun without uploading data to external servers.`,
-      "step": [
-        {
+    const howToSteps = pseoPage?.howToSteps && pseoPage.howToSteps.length > 0
+      ? pseoPage.howToSteps.map((s) => ({
           "@type": "HowToStep",
-          "name": "Upload Files",
-          "text": `Select or drag and drop your ${activeTool.supportedInput.join(" or ")} files into the ${activeTool.name} workspace area.`,
-          "url": `${baseUrl}/tool/${activeTool.slug}#step-1`,
+          "name": s.name,
+          "text": s.text,
+          "position": s.position,
+        }))
+      : [
+          {
+            "@type": "HowToStep",
+            "name": "Upload PDF Files",
+            "text": `Drag and drop your ${activeTool.supportedInput.join(" or ")} documents into the file selection box, or click 'Choose Files'.`,
+            "position": 1,
+          },
+          {
+            "@type": "HowToStep",
+            "name": isMergePdf ? "Reorder Pages" : "Configure Settings",
+            "text": isMergePdf
+              ? "Rearrange individual pages or whole documents by dragging them into your preferred sequence."
+              : "Adjust tool preferences, formatting options, or page parameters.",
+            "position": 2,
+          },
+          {
+            "@type": "HowToStep",
+            "name": isMergePdf ? "Merge & Save" : "Process & Download",
+            "text": `Click '${activeTool.name}' and instantly download your ${activeTool.outputFormat} document to your device.`,
+            "position": 3,
+          },
+        ];
+
+    // Unified @graph JSON-LD schema combining WebApplication and HowTo for Google Rich Snippets
+    activeToolGraphSchema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": `${toolUrl}#webapp`,
+          "url": toolUrl,
+          "name": toolName,
+          "alternateName": alternateNames,
+          "description": toolDesc,
+          "applicationCategory": getApplicationCategory(activeTool.category),
+          "operatingSystem": "All (Web-based, Windows, Mac, Linux, iOS, Android)",
+          "browserRequirements": "Requires HTML5, WebAssembly, and JavaScript enabled.",
+          "softwareVersion": "2.1.0",
+          "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
+          "featureList": pseoPage?.featureHighlights || [
+            `Process ${activeTool.name} directly in browser`,
+            "Drag-and-drop page and file management",
+            "100% Client-side processing for complete privacy",
+            "Zero email or account registration required",
+            "Works seamlessly on Mobile, Windows, Mac, and Linux",
+            `Supports input formats: ${activeTool.supportedInput.join(", ")}`,
+            `Generates output format: ${activeTool.outputFormat}`,
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "18420",
+            "bestRating": "5",
+            "worstRating": "1",
+          },
+          "author": {
+            "@type": "Organization",
+            "@id": `${baseUrl}/#organization`,
+            "name": "PDF Sun",
+            "url": baseUrl,
+            "logo": {
+              "@type": "ImageObject",
+              "url": `${baseUrl}/og-image.png`,
+            },
+          },
         },
         {
-          "@type": "HowToStep",
-          "name": "Configure Options",
-          "text": "Adjust processing settings, page ranges, or compression levels as desired.",
-          "url": `${baseUrl}/tool/${activeTool.slug}#step-2`,
-        },
-        {
-          "@type": "HowToStep",
-          "name": "Process & Download",
-          "text": `Click Process to instantly generate and download your high quality ${activeTool.outputFormat} file directly in your browser.`,
-          "url": `${baseUrl}/tool/${activeTool.slug}#step-3`,
+          "@type": "HowTo",
+          "name": pseoPage ? `How to ${pseoPage.headline}` : (isMergePdf ? "How to Merge PDF Files Online" : `How to use ${activeTool.name} Online`),
+          "description": `Simple 3-step guide to process files with ${activeTool.name} on PDF Sun.`,
+          "step": howToSteps,
         },
       ],
     };
@@ -328,8 +348,8 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         {
           "@type": "ListItem",
           "position": 3,
-          "name": activeTool.name,
-          "item": `${baseUrl}/tool/${activeTool.slug}`,
+          "name": pseoPage ? pseoPage.headline : activeTool.name,
+          "item": toolUrl,
         },
       ],
     };
@@ -366,8 +386,26 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     };
   }
 
+  const helmetTitle = pseoPage?.seoTitle || (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDF Sun` : "PDF Sun - 100% Free & Private Online PDF Tools");
+  const helmetDesc = pseoPage?.seoDescription || (activeTool ? `${activeTool.description} Free, fast, and secure client-side PDF tool.` : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. 100% private in-browser WebAssembly processing.");
+  const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl);
+
   return (
     <Helmet>
+      <title>{helmetTitle}</title>
+      <meta name="description" content={helmetDesc} />
+      <link rel="canonical" href={canonicalUrl} />
+
+      {/* OpenGraph */}
+      <meta property="og:title" content={helmetTitle} />
+      <meta property="og:description" content={helmetDesc} />
+      <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:type" content="website" />
+
+      {/* Twitter Card */}
+      <meta name="twitter:title" content={helmetTitle} />
+      <meta name="twitter:description" content={helmetDesc} />
+
       {/* Rel prev and next tags for paginated pages */}
       {currentPage && currentPage > 1 && (
         <link rel="prev" href={currentPage === 2 ? `${baseUrl}/` : `${baseUrl}/?page=${currentPage - 1}`} />
@@ -382,13 +420,19 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
           key={lang.code}
           rel="alternate"
           hrefLang={lang.hreflang}
-          href={isTodayInHistoryActive ? `${baseUrl}/today-in-history?lang=${lang.code}` : `${baseUrl}/?lang=${lang.code}`}
+          href={
+            pseoPage
+              ? `${baseUrl}/${pseoPage.slug}?lang=${lang.code}`
+              : isTodayInHistoryActive
+              ? `${baseUrl}/today-in-history?lang=${lang.code}`
+              : `${baseUrl}/?lang=${lang.code}`
+          }
         />
       ))}
       <link
         rel="alternate"
         hrefLang="x-default"
-        href={isTodayInHistoryActive ? `${baseUrl}/today-in-history` : `${baseUrl}/`}
+        href={pseoPage ? `${baseUrl}/${pseoPage.slug}` : isTodayInHistoryActive ? `${baseUrl}/today-in-history` : `${baseUrl}/`}
       />
 
       {/* Global WebSite JSON-LD */}
@@ -406,24 +450,10 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         {JSON.stringify(faqSchema)}
       </script>
 
-      {/* Active Tool Specific WebApplication JSON-LD */}
-      {activeToolSchema && (
+      {/* Active Tool Combined WebApplication + HowTo @graph JSON-LD */}
+      {activeToolGraphSchema && (
         <script type="application/ld+json">
-          {JSON.stringify(activeToolSchema)}
-        </script>
-      )}
-
-      {/* Active Tool SoftwareApplication JSON-LD */}
-      {softwareApplicationSchema && (
-        <script type="application/ld+json">
-          {JSON.stringify(softwareApplicationSchema)}
-        </script>
-      )}
-
-      {/* Active Tool HowTo JSON-LD */}
-      {activeToolHowToSchema && (
-        <script type="application/ld+json">
-          {JSON.stringify(activeToolHowToSchema)}
+          {JSON.stringify(activeToolGraphSchema)}
         </script>
       )}
 
