@@ -21,6 +21,7 @@ interface FooterProps {
   onOpenPolicy: (policy: PolicyType) => void;
   onOpenAllTools: () => void;
   onOpenAiTools: () => void;
+  onOpenTodayInHistory?: () => void;
   onOpenBlogModal: () => void;
   onOpenContactModal: () => void;
 }
@@ -29,6 +30,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenPolicy,
   onOpenAllTools,
   onOpenAiTools,
+  onOpenTodayInHistory,
   onOpenBlogModal,
   onOpenContactModal,
 }) => {
@@ -123,6 +125,19 @@ export const Footer: React.FC<FooterProps> = ({
                   <span>{t("footer.aiToolsSuite", "AI Tools Suite")}</span>
                 </button>
               </li>
+              {onOpenTodayInHistory && (
+                <li>
+                  <button
+                    onClick={onOpenTodayInHistory}
+                    className="hover:text-amber-400 transition flex items-center space-x-1.5 text-amber-400/90 font-medium cursor-pointer"
+                  >
+                    <span>Today in History (30 Lang)</span>
+                    <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-mono font-bold">
+                      NEW
+                    </span>
+                  </button>
+                </li>
+              )}
               <li>
                 <a href="#pricing" className="hover:text-amber-400 transition">
                   {t("footer.pricingPlans", "Pricing Plans")}

@@ -2,6 +2,7 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 import { ToolItem } from "../types";
 import { FAQS } from "../data/toolsData";
+import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
@@ -9,6 +10,7 @@ export interface SEOManagerProps {
   baseUrl?: string;
   currentPage?: number;
   totalPages?: number;
+  isTodayInHistoryActive?: boolean;
 }
 
 export interface ToolFAQ {
@@ -372,6 +374,21 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       {currentPage && totalPages && currentPage < totalPages && (
         <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
       )}
+
+      {/* Global 30-Language Hreflang Tags for International Organic Search Indexing */}
+      {TOP_30_LANGUAGES.map((lang) => (
+        <link
+          key={lang.code}
+          rel="alternate"
+          hrefLang={lang.hreflang}
+          href={isTodayInHistoryActive ? `${baseUrl}/today-in-history?lang=${lang.code}` : `${baseUrl}/?lang=${lang.code}`}
+        />
+      ))}
+      <link
+        rel="alternate"
+        hrefLang="x-default"
+        href={isTodayInHistoryActive ? `${baseUrl}/today-in-history` : `${baseUrl}/`}
+      />
 
       {/* Global WebSite JSON-LD */}
       <script type="application/ld+json">

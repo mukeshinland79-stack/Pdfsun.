@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
 import { ALL_TOOLS } from "./src/data/toolsData";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
+import { historyRouter } from "./src/server/historyService";
 import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
 import {
   getCommentsHandler,
@@ -596,6 +597,11 @@ app.get("/api/admin/system-stats", (req, res) => {
 // REAL-TIME LIVE ANALYTICS SYSTEM ENGINE
 // ==========================================
 app.use("/api/analytics", analyticsRouter);
+
+// ==========================================
+// TODAY IN HISTORY MULTILINGUAL API ENGINE
+// ==========================================
+app.use("/api/history", historyRouter);
 
 // ==========================================
 // DUAL PAYMENT GATEWAY & REFUND API ROUTES

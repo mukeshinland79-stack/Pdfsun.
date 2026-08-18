@@ -6,31 +6,34 @@ export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 /**
  * Pure helper function to verify if a user holds Admin / Owner privileges
  * Validates cryptographic email identity & server-signed claims.
+ * STRICT: Returns false if user is unauthenticated, guest, or missing valid email.
  */
 export function checkAdminRole(user: UserProfile | null, role?: UserRole): boolean {
-  if (!user && (!role || role === "public")) return false;
+  if (!user || !user.email) return false;
+  if (role === "public") return false;
   if (role === "owner") return true;
 
-  const email = (user?.email || "").toLowerCase().trim();
+  const email = (user.email || "").toLowerCase().trim();
   if (DUAL_OWNER_EMAILS.includes(email)) return true;
   if (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") return true;
 
-  if (user?.role === "owner" || user?.hasAdminAccess === true) return true;
+  if (user.role === "owner" || user.hasAdminAccess === true) return true;
   return false;
 }
 
 /**
  * Pure helper function to verify if a user is a confirmed Platform Owner
+ * STRICT: Returns false if user is unauthenticated, guest, or missing valid email.
  */
 export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boolean {
-  if (!user && (!role || role === "public")) return false;
-  if (role === "owner") return true;
+  if (!user || !user.email) return false;
+  if (role === "public") return false;
 
-  const email = (user?.email || "").toLowerCase().trim();
+  const email = (user.email || "").toLowerCase().trim();
   if (DUAL_OWNER_EMAILS.includes(email)) return true;
   if (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") return true;
 
-  return user?.role === "owner";
+  return user.role === "owner" || role === "owner";
 }
 
 // Safe JSON parser to prevent unexpected parsing exceptions
@@ -138,6 +141,15 @@ export function useAuth() {
 
   // Verify and Restore Session on Mount from Server JWT / Cookie
   const verifySession = useCallback(async (): Promise<boolean> => {
+    // If client is currently offline, skip network roundtrip and use local profile
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setAuthStatus(userProfile ? "authenticated" : "unauthenticated");
+      }
+      return Boolean(userProfile);
+    }
+
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
       const res = await fetch("/api/auth/verify-session", {
@@ -187,8 +199,7 @@ export function useAuth() {
         }
       }
     } catch (err) {
-      console.warn("[useAuth] Session verification network notice:", err);
-      // On network failure, retain local credentials to avoid logging user out on transient glitch
+      // On network or offline failure, retain local credentials to avoid logging user out on transient glitch
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -202,6 +213,10 @@ export function useAuth() {
   const syncSubscription = useCallback(async (emailToSync?: string) => {
     const email = emailToSync || userProfile?.email;
     if (!email) return;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
 
     try {
       const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
@@ -227,18 +242,33 @@ export function useAuth() {
         }
       }
     } catch (err) {
-      console.warn("[useAuth] Subscription sync notice:", err);
+      // Silently catch background subscription sync failure when network fluctuates
     }
   }, [userProfile]);
 
-  // Initialize and verify on mount
+  // Initialize and verify on mount + Auto-reconnect on network restoration
   useEffect(() => {
     isMountedRef.current = true;
     verifySession();
+
+    const handleOnline = () => {
+      verifySession();
+      if (userProfile?.email) {
+        syncSubscription(userProfile.email);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", handleOnline);
+    }
+
     return () => {
       isMountedRef.current = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("online", handleOnline);
+      }
     };
-  }, [verifySession]);
+  }, [verifySession, syncSubscription, userProfile?.email]);
 
   // Sync subscription when userProfile email changes
   useEffect(() => {
@@ -432,7 +462,7 @@ export function useAuth() {
     isOwner,
     isAdmin,
     canAccessAdmin,
-    adminEditModeActive,
+    adminEditModeActive: canAccessAdmin && adminEditModeActive,
     setAdminEditModeActive: setAdminEditMode,
     toggleAdminEditMode,
     isLoading,

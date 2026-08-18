@@ -79,6 +79,7 @@ interface HeaderProps {
   onOpenUserDashboard: () => void;
   onLogout: () => void;
   onGoHome: () => void;
+  onOpenTodayInHistory?: () => void;
   onOpenShareModal?: () => void;
   selectedCategory?: CategoryId;
   onSelectCategory?: (cat: CategoryId) => void;
@@ -107,6 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUserDashboard,
   onLogout,
   onGoHome,
+  onOpenTodayInHistory,
   onOpenShareModal,
   selectedCategory = "all",
   onSelectCategory,
@@ -114,8 +116,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { t } = useLanguage();
 
   // Strict RBAC authorization: Server token verified & cryptographic role checked
-  const isAuthenticated = userProfile !== null && currentRole !== "public";
-  const hasAdminRights = isAuthenticated && (Boolean(canAccessAdmin) || checkAdminRole(userProfile, currentRole));
+  const isAuthenticated = Boolean(userProfile && userProfile.email && currentRole !== "public");
+  const hasAdminRights = isAuthenticated && Boolean(canAccessAdmin) && checkAdminRole(userProfile, currentRole);
   const isAdminOrOwner = hasAdminRights;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -409,6 +411,22 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Today in History Daily Knowledge Pill */}
+              {onOpenTodayInHistory && (
+                <button
+                  type="button"
+                  onClick={onOpenTodayInHistory}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition shadow-2xs whitespace-nowrap cursor-pointer"
+                  title="Explore Today in History in 30 Languages"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Today in History</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold">
+                    30 Lang
+                  </span>
+                </button>
+              )}
 
               {/* AI Tools Suite Pill */}
               {aiTools.length > 0 && (
@@ -948,6 +966,23 @@ export const Header: React.FC<HeaderProps> = ({
               <Home className="w-4 h-4 text-blue-600 shrink-0" />
               <span>{t("home", "Home")}</span>
             </button>
+
+            {onOpenTodayInHistory && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenTodayInHistory();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex flex-wrap sm:flex-nowrap items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs cursor-pointer gap-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Today in History</span>
+                </div>
+                <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded font-bold shrink-0 ml-auto">30 Lang</span>
+              </button>
+            )}
 
             {aiTools.length > 0 && (
               <button

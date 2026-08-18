@@ -207,8 +207,13 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, vite websockets, local static translation files, third-party fonts/analytics/scripts)
-    const isTelemetryEndpoint = urlStr.includes("/api/telemetry") || urlStr.includes("/api/health") || urlStr.includes("/api/ping");
+    // Ignore background noise endpoints (telemetry, auth verify checks, payment-history sync, vite websockets, local static translation files, third-party fonts/analytics/scripts)
+    const isTelemetryEndpoint =
+      urlStr.includes("/api/telemetry") ||
+      urlStr.includes("/api/health") ||
+      urlStr.includes("/api/ping") ||
+      urlStr.includes("/api/auth/verify-session") ||
+      urlStr.includes("/api/user/payment-history");
     const isViteHmrNoise =
       urlStr.includes("ws:") ||
       urlStr.includes("wss:") ||
@@ -230,7 +235,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       urlStr.includes("bundle.js");
 
     // Check if request is a background/read-only GET request (which shouldn't disrupt the user with scary popups)
-    const isBackgroundGet = method === "GET" && !urlStr.includes("/api/process");
+    const isBackgroundGet = (method === "GET" && !urlStr.includes("/api/process")) || isTelemetryEndpoint;
 
     // Manage request timeout signal if caller did not provide their own AbortSignal
     let timeoutController: AbortController | null = null;
@@ -309,14 +314,16 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
             { type: "upload" }
           );
         } else if (isBrowserOffline) {
-          logError(`[Fetch Offline] ${method} ${pathName}`, "warn", { url: urlStr, method });
-          networkMonitor.reportError(urlStr, method, "Client is offline", 0);
+          if (!isBackgroundGet) {
+            logError(`[Fetch Offline] ${method} ${pathName}`, "warn", { url: urlStr, method });
+            networkMonitor.reportError(urlStr, method, "Client is offline", 0);
 
-          triggerDebouncedToast(
-            "Network Connection Lost",
-            "You appear to be offline. Please check your internet connection.",
-            { type: "generic" }
-          );
+            triggerDebouncedToast(
+              "Network Connection Lost",
+              "You appear to be offline. Please check your internet connection.",
+              { type: "generic" }
+            );
+          }
         } else {
           const errorMessage = err?.message || "Failed to fetch";
           logError(`[Network Connection Error] ${method} ${pathName}: ${errorMessage}`, "error", {

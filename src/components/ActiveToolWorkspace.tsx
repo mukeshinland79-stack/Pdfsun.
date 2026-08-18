@@ -47,7 +47,6 @@ import {
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
-import { AdSensePlaceholder } from "./AdSensePlaceholder";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -2928,9 +2927,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   </button>
                 </div>
               </div>
-
-              {/* Placement 5: Tool Result Sponsored Native Banner */}
-              <AdSensePlaceholder format="tool-result" slotId="pdfsun-tool-result-ad" />
             </>
           )}
         </div>

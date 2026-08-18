@@ -17,7 +17,6 @@ import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
 import { NewsletterSubscription } from "./components/NewsletterSubscription";
-import { EducationalAds } from "./components/EducationalAds";
 import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
 import { PolicyModals } from "./components/PolicyModals";
@@ -33,8 +32,11 @@ import { SitemapModal } from "./components/SitemapModal";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
+import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
+import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
+import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
+import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
-import { OwnerTopBar } from "./components/OwnerTopBar";
 import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
@@ -281,7 +283,7 @@ export default function App() {
     ownerName: "Mukesh Kalonia",
     maintenanceMode: false,
     adsenseEnabled: true,
-    adsensePubId: "pub-4820193821039120",
+    adsensePubId: "ca-pub-4189458265489554",
     defaultTheme: "dark",
     aiModelVersion: "gemini-3.6-flash",
   });
@@ -345,13 +347,30 @@ export default function App() {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [adminPanelTab, setAdminPanelTab] = useState<string>("analytics");
   const [cmsModalOpen, setCmsModalOpen] = useState(false);
-  const [isVisitorPreview, setIsVisitorPreview] = useState(false);
   const [userDashboardOpen, setUserDashboardOpen] = useState(false);
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
+  const [todayInHistoryOpen, setTodayInHistoryOpen] = useState(false);
+  const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
   const paymentHandledRef = useRef(false);
+
+  useEffect(() => {
+    // Geo & Language Auto-detection & URL Routing for Today in History
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const isHistoryUrl =
+        window.location.pathname === "/today-in-history" ||
+        window.location.hash === "#today-in-history" ||
+        params.get("view") === "history" ||
+        params.has("today-in-history");
+
+      if (isHistoryUrl) {
+        setTodayInHistoryOpen(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !paymentHandledRef.current) {
@@ -527,6 +546,7 @@ export default function App() {
         baseUrl="https://pdfsun.in"
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
+        isTodayInHistoryActive={todayInHistoryOpen}
       />
 
       {/* Dynamic SEO Head Management */}
@@ -554,23 +574,6 @@ export default function App() {
         <meta name="twitter:description" content={twitterDescription} />
         <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
-
-      {/* Owner Top Control & Status Bar (Strict RBAC: Rendered ONLY when Admin is authenticated AND Edit Mode is toggled on) */}
-      <OwnerTopBar
-        userProfile={userProfile}
-        canAccessAdmin={canAccessAdmin}
-        adminEditModeActive={adminEditModeActive}
-        onCloseEditMode={() => {
-          setAdminEditModeActive(false);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("pdfsun_admin_edit_mode", "false");
-          }
-        }}
-        onOpenAdmin={handleOpenAdminPanel}
-        onOpenCms={() => setCmsModalOpen(true)}
-        onToggleVisitorPreview={setIsVisitorPreview}
-        isVisitorPreview={isVisitorPreview}
-      />
 
       {/* Sticky Top Header */}
       <Header
@@ -605,6 +608,7 @@ export default function App() {
           setSearchQuery("");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+        onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
@@ -619,6 +623,12 @@ export default function App() {
         <HeroSection
           onSelectTool={handleSelectTool}
           onOpenSearch={() => setSearchModalOpen(true)}
+        />
+
+        {/* Geo-Adaptive Multilingual Today in History Hub & Dwell Time Booster */}
+        <TodayInHistoryBanner
+          geoResult={geoResult}
+          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
         />
 
         {/* Placement 1: Sub-Hero AdSense Banner (Below Hero Section) */}
@@ -637,9 +647,6 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           onPageChange={handleGridPageChange}
         />
-
-        {/* Educational Partnerships & Academic Excellence Ads (IIT & IIM) */}
-        <EducationalAds />
 
         {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
         <DualAiFeatureBanner
@@ -870,6 +877,15 @@ export default function App() {
           onClose={() => setCmsModalOpen(false)}
         />
       )}
+
+      {/* Geo-Adaptive Multilingual Today in History Interactive Hub */}
+      <TodayInHistoryModal
+        isOpen={todayInHistoryOpen}
+        onClose={() => setTodayInHistoryOpen(false)}
+        initialLanguage={geoResult.detectedLanguage}
+        initialCountryCode={geoResult.detectedCountryCode}
+        onSelectTool={handleSelectTool}
+      />
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />

@@ -84,21 +84,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
         {/* Trust Badge Pills Container */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
           {/* Badge 1: 100% In-Browser Privacy */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
-            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-            <span className="font-bold">{t("badges.privacyTitle", "100% In-Browser Privacy")}</span>
-            <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
-            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.privacySub", "Client-side WebAssembly processing")}</span>
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-bold">100% In-Browser WebAssembly</span>
+            <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Zero Server Uploads</span>
           </div>
 
-          {/* Badge 2: Pro PDF Utilities */}
+          {/* Badge 2: Offline Ready */}
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
-            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="font-bold">{t("badges.utilitiesTitle", `${ALL_TOOLS.length} Pro PDF Utilities`)}</span>
+            <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="font-bold">Lightning Fast</span>
             <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
-            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.utilitiesSub", "Complete PDF suite")}</span>
+            <span className="text-slate-600 dark:text-slate-400 font-normal">Works 100% Offline</span>
+          </div>
+
+          {/* Badge 3: Pro PDF Utilities */}
+          <div className="hidden sm:inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-50/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium shadow-xs backdrop-blur-sm">
+            <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+            <span className="font-bold">{ALL_TOOLS.length} Pro PDF Tools</span>
+            <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
+            <span className="text-slate-500 dark:text-slate-400 font-normal">Client Sandboxed</span>
           </div>
         </div>
 
