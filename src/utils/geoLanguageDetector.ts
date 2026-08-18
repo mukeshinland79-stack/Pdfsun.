@@ -4,7 +4,7 @@ import { SupportedLanguage, GeoDetectionResult } from "../types/history";
  * 30 Supported Languages for Global History Engine with Native Names, Flags, and Hreflang
  */
 export const TOP_30_LANGUAGES: SupportedLanguage[] = [
-  { code: "en", name: "English", nativeName: "English", flag: "🌐", hreflang: "en", popularCountries: ["US", "GB", "CA", "AU", "IN", "NZ", "SG", "ZA"] },
+  { code: "en", name: "English (US)", nativeName: "English (US)", flag: "🇺🇸", hreflang: "en", popularCountries: ["US", "GB", "CA", "AU", "IN", "NZ", "SG", "ZA"] },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳", hreflang: "hi", popularCountries: ["IN", "NP", "MU", "FJ"] },
   { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳", hreflang: "bn", popularCountries: ["BD", "IN"] },
   { code: "mr", name: "Marathi", nativeName: "मराठी", flag: "🇮🇳", hreflang: "mr", popularCountries: ["IN"] },
@@ -157,7 +157,7 @@ export function detectUserGeoAndLanguage(): GeoDetectionResult {
     inferredCountry = "IN";
   }
 
-  // 2. Detect Browser Preferred Languages
+  // 2. Detect Browser Preferred Languages (defaults to English "en")
   let detectedLangCode = "en";
   if (typeof navigator !== "undefined") {
     const rawLanguages = navigator.languages && navigator.languages.length > 0 ? navigator.languages : [navigator.language || "en"];
@@ -171,12 +171,6 @@ export function detectUserGeoAndLanguage(): GeoDetectionResult {
         break;
       }
     }
-  }
-
-  // If user language is English but country is India/Spain/France, we check if regional language is preferred or keep English
-  if (detectedLangCode === "en" && inferredCountry === "IN") {
-    // In India, keep English or Hindi based on preference
-    detectedLangCode = "hi";
   }
 
   const selectedLanguage = TOP_30_LANGUAGES.find((l) => l.code === detectedLangCode) || TOP_30_LANGUAGES[0];

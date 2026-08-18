@@ -44,14 +44,32 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   isOpen,
   onClose,
   initialLanguage,
-  initialCountryCode = "IN",
+  initialCountryCode = "US",
   onSelectTool,
 }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(
-    initialLanguage || TOP_30_LANGUAGES[0]
-  );
-  const [selectedCountry, setSelectedCountry] = useState<string>(initialCountryCode);
+  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(() => {
+    if (initialLanguage) return initialLanguage;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("pdfsun_history_lang");
+        if (saved) {
+          const match = TOP_30_LANGUAGES.find((l) => l.code === saved);
+          if (match) return match;
+        }
+      } catch {}
+    }
+    return TOP_30_LANGUAGES.find((l) => l.code === "en") || TOP_30_LANGUAGES[0];
+  });
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedCountry = localStorage.getItem("pdfsun_history_country");
+        if (savedCountry) return savedCountry;
+      } catch {}
+    }
+    return initialCountryCode;
+  });
   const [historyData, setHistoryData] = useState<DayInHistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<"all" | "milestone" | "birth" | "invention">("all");

@@ -413,22 +413,6 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
 
-              {/* Today in History Daily Knowledge Pill */}
-              {onOpenTodayInHistory && (
-                <button
-                  type="button"
-                  onClick={onOpenTodayInHistory}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition shadow-2xs whitespace-nowrap cursor-pointer"
-                  title="Explore Today in History in 30 Languages"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Today in History</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold">
-                    30 Lang
-                  </span>
-                </button>
-              )}
-
               {/* AI Tools Suite Pill */}
               {aiTools.length > 0 && (
                 <button
@@ -577,20 +561,6 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Share & QR Code Modal Trigger */}
-            {onOpenShareModal && (
-              <button
-                type="button"
-                onClick={onOpenShareModal}
-                className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95"
-                title="Share & Scan QR Code"
-                aria-label="Share and Scan QR Code"
-              >
-                <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="hidden lg:inline">Share</span>
-              </button>
-            )}
 
             {/* Primary CTA / User Profile / Admin Menu */}
             <div className="relative" ref={profileDropdownRef}>
@@ -863,13 +833,15 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* SECONDARY BAR: Tool Categories Strip in Sticky Container  */}
+      {/* SECONDARY BAR: Sub-Header Navigation & Action Tools       */}
       {/* ========================================================= */}
-      <div className="flex flex-wrap w-full border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-xs">
-        <div className="flex flex-wrap w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div className="w-full border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/75 dark:bg-slate-900/75 backdrop-blur-xs">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between gap-2 sm:gap-3">
+          
+          {/* Scrollable Categories List */}
           <div
             ref={categoriesContainerRef}
-            className="flex flex-wrap w-full items-center gap-1.5 sm:gap-2 py-1.5 overflow-x-auto no-scrollbar scroll-smooth"
+            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth min-w-0 flex-1 py-0.5"
             role="tablist"
             aria-label="PDF Tool Categories"
           >
@@ -896,6 +868,42 @@ export const Header: React.FC<HeaderProps> = ({
               );
             })}
           </div>
+
+          {/* Sub-Header Actions: Today in History & Share / QR Code */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 pl-1.5 sm:pl-2 border-l border-slate-200/80 dark:border-slate-800">
+            {/* Today in History Action Badge/Button */}
+            {onOpenTodayInHistory && (
+              <button
+                type="button"
+                onClick={onOpenTodayInHistory}
+                className="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/70 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition shadow-2xs whitespace-nowrap cursor-pointer shrink-0 active:scale-95"
+                title="Explore Today in History in 30 Languages"
+              >
+                <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="hidden md:inline">Today in History</span>
+                <span className="md:hidden">History</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold shrink-0">
+                  30 Lang
+                </span>
+              </button>
+            )}
+
+            {/* Share & QR Code Button */}
+            {onOpenShareModal && (
+              <button
+                type="button"
+                onClick={onOpenShareModal}
+                className="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition shadow-2xs whitespace-nowrap cursor-pointer shrink-0 active:scale-95"
+                title="Share & Scan QR Code"
+                aria-label="Share and Scan QR Code"
+              >
+                <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="hidden sm:inline">Share</span>
+                <QrCode className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400 shrink-0" />
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
 
@@ -1032,6 +1040,23 @@ export const Header: React.FC<HeaderProps> = ({
               <Clock className="w-4 h-4 text-blue-600 shrink-0" />
               <span>{t("history", "Recent History")}</span>
             </button>
+
+            {onOpenShareModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenShareModal();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between transition cursor-pointer"
+              >
+                <div className="flex items-center space-x-2">
+                  <Share2 className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>Share PDFSun &amp; QR Code</span>
+                </div>
+                <QrCode className="w-4 h-4 text-slate-400 shrink-0" />
+              </button>
+            )}
           </div>
 
           {/* Mobile Language Switcher Row */}
