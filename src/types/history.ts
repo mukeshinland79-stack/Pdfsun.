@@ -33,6 +33,8 @@ export interface DayInHistoryData {
   languageCode: string;
   languageName: string;
   isAiEnhanced?: boolean;
+  isCountrySpecific?: boolean;
+  isGlobalFallback?: boolean;
   events: HistoryEventItem[];
   births: HistoryEventItem[];
   discoveries: HistoryEventItem[];

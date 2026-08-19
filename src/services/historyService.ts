@@ -1,6 +1,6 @@
 import { DayInHistoryData } from "../types/history";
-import { DAILY_HISTORY_DATABASE } from "../data/historyData";
-import { formatLocalizedHistoryDate } from "../utils/geoLanguageDetector";
+import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data/historyData";
+import { formatLocalizedHistoryDate, COUNTRY_META_MAP, TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 /**
  * Service to fetch and provide rich Day in History data
@@ -14,7 +14,7 @@ export async function fetchDayInHistory(
   const day = date.getDate();
   const dateKey = `${month}-${day}`;
 
-  // Try fetching from server API first (which has Gemini translation and dynamic daily historical events)
+  // 1. Try fetching from server API (which supports dynamic Gemini AI generation, country filtering, & translation)
   try {
     const res = await fetch(`/api/history/today?month=${month}&day=${day}&lang=${langCode}&country=${countryCode}`);
     if (res.ok) {
@@ -24,42 +24,54 @@ export async function fetchDayInHistory(
       }
     }
   } catch (e) {
-    // Graceful fallback to client built-in database
+    // Gracefully handle network disconnects or API errors
   }
 
-  // Fallback to client-side database
-  const fallbackEntry = DAILY_HISTORY_DATABASE[dateKey] || DAILY_HISTORY_DATABASE["8-17"] || {};
+  // 2. Client-side database fallback
+  const fallbackEntry = DAILY_HISTORY_DATABASE[dateKey];
   const formattedDateStr = formatLocalizedHistoryDate(date, langCode);
+  const countryMeta = COUNTRY_META_MAP[countryCode] || { name: "Global", defaultLang: "en", flag: "🌐" };
+  const langMeta = TOP_30_LANGUAGES.find((l) => l.code === langCode) || TOP_30_LANGUAGES[0];
 
-  const finalData: DayInHistoryData = {
-    dateString: formattedDateStr,
-    month,
-    day,
-    formattedDate: formattedDateStr,
-    dayOfYear: Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)),
-    featuredHeadline: fallbackEntry.featuredHeadline || "Historic Global Milestones & Scientific Breakthroughs",
-    countryCode,
-    countryName: countryCode === "IN" ? "India" : "Global",
-    languageCode: langCode,
-    languageName: langCode,
-    events: fallbackEntry.events || [],
-    births: fallbackEntry.births || [],
-    discoveries: fallbackEntry.discoveries || [],
-    dailyTrivia: fallbackEntry.dailyTrivia || {
-      id: `trv-${month}${day}`,
-      question: "Which major milestone took place on this day in global history?",
-      options: ["The Radcliffe Line demarcation in 1947", "The first commercial audio CD in 1982", "Venera 7 launch in 1970", "All of the above"],
-      correctIndex: 3,
-      explanation: "August 17 is notable for multiple historic breakthroughs across national independence, music technology, and space exploration.",
-      historicalContext: "History is full of interconnected technological and human milestones.",
-      relatedYear: "Multiple"
-    },
-    quoteOfTheDay: fallbackEntry.quoteOfTheDay || {
-      quote: "History is a gallery of pictures in which there are few originals and many copies.",
-      author: "Alexis de Tocqueville",
-      context: "Historian & Political Philosopher"
-    }
-  };
+  if (fallbackEntry && fallbackEntry.events && fallbackEntry.events.length > 0) {
+    const countryMatches = fallbackEntry.events.some((e) => e.countryCode === countryCode);
+    return {
+      dateString: formattedDateStr,
+      month,
+      day,
+      formattedDate: formattedDateStr,
+      dayOfYear: Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)),
+      featuredHeadline: fallbackEntry.featuredHeadline || `Historic Milestones on ${formattedDateStr}`,
+      countryCode,
+      countryName: countryMeta.name,
+      languageCode: langCode,
+      languageName: langMeta.name,
+      isCountrySpecific: countryMatches,
+      isGlobalFallback: !countryMatches,
+      events: fallbackEntry.events || [],
+      births: fallbackEntry.births || [],
+      discoveries: fallbackEntry.discoveries || [],
+      dailyTrivia: fallbackEntry.dailyTrivia || {
+        id: `trv-${month}-${day}`,
+        question: `Which significant historical event took place on this day?`,
+        options: ["Major Historic Treaty", "Scientific Invention", "Exploration Milestone", "All of the above"],
+        correctIndex: 3,
+        explanation: `${formattedDateStr} marks multiple interconnected historic breakthroughs.`,
+        historicalContext: "History is defined by key human achievements.",
+        relatedYear: "Multiple"
+      },
+      quoteOfTheDay: fallbackEntry.quoteOfTheDay || {
+        quote: "History is a gallery of pictures in which there are few originals and many copies.",
+        author: "Alexis de Tocqueville",
+        context: "Historian & Political Philosopher"
+      }
+    };
+  }
 
-  return finalData;
+  // 3. Dynamic algorithmic fallback for all 365 days
+  const algorithmic = generateAlgorithmicDayInHistory(month, day, countryCode, langCode);
+  algorithmic.formattedDate = formattedDateStr;
+  algorithmic.dateString = formattedDateStr;
+  algorithmic.isGlobalFallback = true;
+  return algorithmic;
 }
