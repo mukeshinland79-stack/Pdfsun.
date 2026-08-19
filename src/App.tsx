@@ -702,18 +702,7 @@ export default function App() {
           onOpenSearch={() => setSearchModalOpen(true)}
         />
 
-        {/* Geo-Adaptive Multilingual Today in History Hub & Dwell Time Booster */}
-        <TodayInHistoryBanner
-          geoResult={geoResult}
-          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-        />
-
-        {/* Placement 1: Sub-Hero AdSense Banner (Below Hero Section) */}
-        {adPlacements.some((p) => p.id === "hero-sub-ad") && (
-          <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
-        )}
-
-        {/* PDF Tools Filterable Grid */}
+        {/* PDF Tools Filterable Grid (Front-and-Center, iLovePDF Style) */}
         <ToolGrid
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
@@ -723,6 +712,17 @@ export default function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onPageChange={handleGridPageChange}
+        />
+
+        {/* Placement 1: Sub-Tools AdSense Banner */}
+        {adPlacements.some((p) => p.id === "hero-sub-ad") && (
+          <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
+        )}
+
+        {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
+        <TodayInHistoryBanner
+          geoResult={geoResult}
+          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
         />
 
         {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}

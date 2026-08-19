@@ -78,32 +78,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   ];
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-blue-500/5 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 py-12 sm:py-20 border-b border-slate-200 dark:border-slate-800">
+    <div className="relative overflow-hidden bg-gradient-to-b from-blue-500/5 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 py-6 sm:py-8 border-b border-slate-200 dark:border-slate-800">
       {/* Background Decorative Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-blue-500/15 via-indigo-500/15 to-sky-500/10 blur-3xl pointer-events-none rounded-full" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-gradient-to-tr from-blue-500/10 via-indigo-500/10 to-sky-500/5 blur-3xl pointer-events-none rounded-full" />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-4 sm:space-y-5">
         {/* Trust Badge Pills Container */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {/* Badge 1: 100% In-Browser Privacy */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="font-bold">100% In-Browser WebAssembly</span>
             <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
             <span className="text-emerald-700 dark:text-emerald-400 font-normal">Zero Server Uploads</span>
           </div>
 
           {/* Badge 2: Offline Ready */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-medium shadow-xs backdrop-blur-sm">
-            <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
+            <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
             <span className="font-bold">Lightning Fast</span>
             <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
             <span className="text-slate-600 dark:text-slate-400 font-normal">Works 100% Offline</span>
           </div>
 
           {/* Badge 3: Pro PDF Utilities */}
-          <div className="hidden sm:inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-50/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium shadow-xs backdrop-blur-sm">
-            <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+          <div className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-50/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
+            <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <span className="font-bold">{ALL_TOOLS.length} Pro PDF Tools</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
             <span className="text-slate-500 dark:text-slate-400 font-normal">Client Sandboxed</span>
@@ -111,61 +111,61 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
 
         {/* Headline */}
-        <div className="space-y-4">
-          <h1 className="text-4xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
             {t("heroTitle", "Enterprise PDF Tools & AI Document Engine")}
           </h1>
-          <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-normal">
             {t("heroSub", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}
           </p>
         </div>
 
         {/* Quick Search & Launch */}
-        <div className="max-w-xl mx-auto flex items-center bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-700">
-          <Search className="w-5 h-5 text-blue-600 ml-3" />
+        <div className="max-w-lg mx-auto flex items-center bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-md shadow-slate-200/40 dark:shadow-none border border-slate-200 dark:border-slate-700">
+          <Search className="w-4 h-4 text-blue-600 ml-2.5 shrink-0" />
           <input
             type="text"
             placeholder={t("searchPlaceholder", `Search ${ALL_TOOLS.length} tools (Cmd+K)...`)}
             onClick={onOpenSearch}
             readOnly
-            className="w-full bg-transparent px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
+            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
           />
           <button
             onClick={onOpenSearch}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:opacity-90 transition flex items-center space-x-1.5"
+            className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-[11px] font-bold shadow-xs hover:opacity-90 transition flex items-center space-x-1 shrink-0"
           >
             <span>{t("nav.searchBtn", "Search")}</span>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-white/20 rounded text-[10px]">⌘K</kbd>
+            <kbd className="hidden sm:inline-block px-1 py-0.5 bg-white/20 rounded text-[9px]">⌘K</kbd>
           </button>
         </div>
 
-        {/* Drag & Drop Main Dropzone with react-dropzone integration */}
+        {/* Drag & Drop Main Dropzone - Compact & Tight */}
         <div
           {...getRootProps()}
-          className={`max-w-2xl mx-auto rounded-3xl p-8 sm:p-10 border-2 border-dashed transition-all duration-300 shadow-2xl relative group cursor-pointer aurora-glass ${
+          className={`max-w-xl mx-auto rounded-2xl p-4 sm:p-5 border-2 border-dashed transition-all duration-300 shadow-md relative group cursor-pointer aurora-glass ${
             isDragAccept || isDragActive
-              ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] ring-4 ring-emerald-500/20"
-              : "border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:border-blue-500 dark:hover:border-blue-400 animate-float"
+              ? "border-emerald-500 bg-emerald-500/10 scale-[1.01] ring-2 ring-emerald-500/20"
+              : "border-slate-300 dark:border-slate-700 bg-white/85 dark:bg-slate-800/85 hover:border-blue-500 dark:hover:border-blue-400"
           }`}
         >
           <input {...getInputProps()} />
 
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr p-0.5 shadow-lg group-hover:scale-110 transition duration-200 ${
-              isDragActive ? "from-emerald-500 to-teal-500 shadow-emerald-500/30 animate-bounce" : "from-blue-600 to-indigo-600 shadow-blue-500/30"
+          <div className="flex flex-col items-center justify-center space-y-2.5">
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr p-0.5 shadow-sm group-hover:scale-105 transition duration-200 ${
+              isDragActive ? "from-emerald-500 to-teal-500 shadow-emerald-500/30 animate-bounce" : "from-blue-600 to-indigo-600 shadow-blue-500/20"
             }`}>
-              <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[14px] flex items-center justify-center">
-                <UploadCloud className={`w-8 h-8 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} />
+              <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
+                <UploadCloud className={`w-5 h-5 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            <div className="space-y-0.5">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 {isDragActive
                   ? t("dropzoneActiveTitle", "Release files to launch tool workspace")
                   : t("dropzoneTitle", "Drop PDF files here or click to browse")}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {isDragActive ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                     {t("dropzoneActiveSub", "Drop now to start processing instantly")}
@@ -178,21 +178,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 pt-2 text-[11px] text-slate-400 font-medium">
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">PDF</span>
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">Word</span>
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">Excel</span>
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">PPTX</span>
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">Images</span>
-              <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50">HTML/TXT</span>
+            <div className="flex flex-wrap justify-center gap-1.5 pt-0.5 text-[10px] text-slate-400 font-medium">
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PDF</span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Word</span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Excel</span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PPTX</span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Images</span>
             </div>
           </div>
         </div>
 
         {/* Popular Quick Tools Pills */}
-        <div className="pt-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{t("quick_actions.title", "Popular Quick Actions")}</p>
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+        <div className="pt-0.5">
+          <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">{t("quick_actions.title", "Popular:")}</span>
             {quickTags.map((tag) => {
               const tool = ALL_TOOLS.find((t) => t.id === tag.toolId);
               if (!tool) return null;
@@ -201,49 +200,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <button
                   key={tag.toolId}
                   onClick={() => onSelectTool(tool)}
-                  className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-xs hover:shadow-md transition"
+                  className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition"
                 >
-                  <Icon className="w-3.5 h-3.5 text-blue-600" />
+                  <Icon className="w-3 h-3 text-blue-600" />
                   <span>{tag.name}</span>
-                  <ArrowRight className="w-3 h-3 opacity-40 group-hover:opacity-100" />
+                  <ArrowRight className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100" />
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Feature Security Bullet Highlights */}
-        <div className="pt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-left border-t border-slate-200/60 dark:border-slate-800 max-w-4xl mx-auto">
-          <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
-            <Zap className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.ultraFast", "Ultra Fast Speed")}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.ultraFastDesc", "Local browser acceleration engine.")}</div>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
-            <Lock className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.noStorage", "No Storage Purge")}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.noStorageDesc", "Zero permanent file retention guarantee.")}</div>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
-            <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.geminiAi", "Gemini 3.6 AI")}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.geminiAiDesc", "Smart chat, summary & translation.")}</div>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3 p-3 rounded-2xl bg-white/50 dark:bg-slate-800/40">
-            <FileCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{t("badges.tools50", `${ALL_TOOLS.length} Working Tools`)}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">{t("badges.tools50Desc", "Complete PDF conversion suite.")}</div>
-            </div>
           </div>
         </div>
       </div>
