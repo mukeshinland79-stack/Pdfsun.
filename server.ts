@@ -2775,22 +2775,42 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 async function startServer() {
   const httpServer = http.createServer(app);
-  setupAnalyticsWebSocket(httpServer);
+  try {
+    setupAnalyticsWebSocket(httpServer);
+  } catch (err) {
+    console.warn("[WebSocket] Analytics WS initialization warning:", err);
+  }
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
+    app.use("*", async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        const indexPath = path.resolve(process.cwd(), "index.html");
+        if (fs.existsSync(indexPath)) {
+          let template = fs.readFileSync(indexPath, "utf-8");
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        } else {
+          next();
+        }
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(
       express.static(distPath, {
         maxAge: "1y",
         immutable: true,
-        setHeaders: (res, path) => {
-          if (path.endsWith(".html")) {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html")) {
             res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
           } else {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
