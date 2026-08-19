@@ -70,9 +70,26 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     setVisibleCount(16);
   }, [selectedCategory, searchQuery]);
 
+  // Ensure only public categories are available in the public category filter bar
+  const publicCategories = useMemo(() => {
+    return CATEGORIES.filter(
+      (cat) =>
+        (cat.id as string).toLowerCase() !== "owner" &&
+        (cat.id as string).toLowerCase() !== "admin"
+    );
+  }, []);
+
   // Filter tools based on category and search query
   const filteredTools = useMemo(() => {
     return ALL_TOOLS.filter((tool) => {
+      // Exclude internal admin tools from the public toolkit grid
+      if (
+        (tool.category as string).toLowerCase() === "owner" ||
+        (tool.category as string).toLowerCase() === "admin"
+      ) {
+        return false;
+      }
+
       // Category match
       let matchesCategory = true;
       if (selectedCategory === "student") matchesCategory = !!tool.isStudentFavorite;
@@ -214,7 +231,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
       {/* Filter Tabs Bar */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
-        {CATEGORIES.map((cat) => {
+        {publicCategories.map((cat) => {
           const IconComp = CATEGORY_ICONS[cat.icon] || Grid;
           const isActive = selectedCategory === cat.id;
 

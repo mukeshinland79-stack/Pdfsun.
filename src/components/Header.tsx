@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sun,
@@ -117,8 +117,9 @@ export const Header: React.FC<HeaderProps> = ({
   const { t } = useLanguage();
 
   // Strict RBAC authorization: Server token verified & cryptographic role checked
+  // Hidden by default: All admin features are completely hidden unless canAccessAdmin is strictly true
   const isAuthenticated = Boolean(userProfile && userProfile.email && currentRole !== "public");
-  const hasAdminRights = isAuthenticated && Boolean(canAccessAdmin) && checkAdminRole(userProfile, currentRole);
+  const hasAdminRights = Boolean(canAccessAdmin) && isAuthenticated && checkAdminRole(userProfile, currentRole);
   const isAdminOrOwner = hasAdminRights;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -209,8 +210,14 @@ export const Header: React.FC<HeaderProps> = ({
 
   const aiTools = ALL_TOOLS.filter((t) => t.isAi);
 
-  // Available categories list for the sticky category navigation
-  const visibleCategories = CATEGORIES;
+  // Available categories list for the public sticky category navigation (Strict RBAC isolation)
+  const visibleCategories = useMemo(() => {
+    return CATEGORIES.filter(
+      (cat) =>
+        (cat.id as string).toLowerCase() !== "owner" &&
+        (cat.id as string).toLowerCase() !== "admin"
+    );
+  }, []);
 
   return (
     <header

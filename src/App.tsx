@@ -24,6 +24,7 @@ import { RecentHistoryModal } from "./components/RecentHistoryModal";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
+import { ProtectedAdminWrapper } from "./components/ProtectedAdminRoute";
 import { UserDashboard } from "./components/UserDashboard";
 import { BlogModal } from "./components/BlogModal";
 import { ContactSupportModal } from "./components/ContactSupportModal";
@@ -671,11 +672,11 @@ export default function App() {
         currentRole={currentRole}
         userProfile={userProfile}
         canAccessAdmin={canAccessAdmin}
-        adminEditModeActive={adminEditModeActive}
-        onToggleAdminEditMode={toggleAdminEditMode}
-        onOpenCms={() => setCmsModalOpen(true)}
+        adminEditModeActive={canAccessAdmin ? adminEditModeActive : false}
+        onToggleAdminEditMode={canAccessAdmin ? toggleAdminEditMode : undefined}
+        onOpenCms={canAccessAdmin ? () => setCmsModalOpen(true) : undefined}
         onOpenAuthModal={handleOpenAuthModal}
-        onOpenAdminPanel={handleOpenAdminPanel}
+        onOpenAdminPanel={canAccessAdmin ? handleOpenAdminPanel : () => handleOpenAuthModal("owner")}
         onOpenUserDashboard={() => setUserDashboardOpen(true)}
         onLogout={handleLogout}
         onGoHome={() => {
@@ -872,21 +873,46 @@ export default function App() {
       />
 
       {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}
-      {canAccessAdmin && adminPanelOpen && (
-        <AdminPanel
-          isOpen={adminPanelOpen}
-          onClose={() => setAdminPanelOpen(false)}
-          adminSettings={adminSettings}
-          onUpdateSettings={setAdminSettings}
-          userAccounts={userAccounts}
-          onToggleAdminPermission={handleToggleAdminPermission}
-          onToggleUserStatus={handleToggleUserStatus}
-          onAddUserAccount={handleAddUserAccount}
-          initialTab={adminPanelTab}
-          onLogout={handleLogout}
-          isOwner={isOwner}
-          currentUserProfile={userProfile}
-        />
+      {adminPanelOpen && (
+        <ProtectedAdminWrapper
+          canAccessAdmin={canAccessAdmin}
+          userProfile={userProfile}
+          isLoading={authLoading}
+          onUnauthorized={() => {
+            setAdminPanelOpen(false);
+            setAuthModalInitialMode("owner");
+            setAuthModalOpen(true);
+            if (
+              window.location.pathname === "/admin" ||
+              window.location.pathname.startsWith("/admin/")
+            ) {
+              window.history.replaceState({}, document.title, "/");
+            }
+          }}
+        >
+          <AdminPanel
+            isOpen={adminPanelOpen}
+            onClose={() => {
+              setAdminPanelOpen(false);
+              if (
+                window.location.pathname === "/admin" ||
+                window.location.pathname.startsWith("/admin/")
+              ) {
+                window.history.replaceState({}, document.title, "/");
+              }
+            }}
+            adminSettings={adminSettings}
+            onUpdateSettings={setAdminSettings}
+            userAccounts={userAccounts}
+            onToggleAdminPermission={handleToggleAdminPermission}
+            onToggleUserStatus={handleToggleUserStatus}
+            onAddUserAccount={handleAddUserAccount}
+            initialTab={adminPanelTab}
+            onLogout={handleLogout}
+            isOwner={isOwner}
+            currentUserProfile={userProfile}
+          />
+        </ProtectedAdminWrapper>
       )}
 
       {/* User Dashboard Modal */}
@@ -975,11 +1001,22 @@ export default function App() {
       />
 
       {/* Owner Dynamic CMS & Translations Editor Modal */}
-      {canAccessAdmin && (
-        <OwnerCmsModal
-          isOpen={cmsModalOpen}
-          onClose={() => setCmsModalOpen(false)}
-        />
+      {cmsModalOpen && (
+        <ProtectedAdminWrapper
+          canAccessAdmin={canAccessAdmin}
+          userProfile={userProfile}
+          isLoading={authLoading}
+          onUnauthorized={() => {
+            setCmsModalOpen(false);
+            setAuthModalInitialMode("owner");
+            setAuthModalOpen(true);
+          }}
+        >
+          <OwnerCmsModal
+            isOpen={cmsModalOpen}
+            onClose={() => setCmsModalOpen(false)}
+          />
+        </ProtectedAdminWrapper>
       )}
 
       {/* Geo-Adaptive Multilingual Today in History Interactive Hub */}
