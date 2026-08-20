@@ -30,7 +30,7 @@ interface SitemapModalProps {
 }
 
 export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) => {
-  const [baseUrlInput, setBaseUrlInput] = useState<string>("https://pdfsun.in");
+  const [baseUrlInput, setBaseUrlInput] = useState<string>("https://www.pdfsun.in");
 
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"urls" | "raw" | "stats">("urls");
@@ -107,7 +107,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                 type="text"
                 value={baseUrlInput}
                 onChange={(e) => setBaseUrlInput(e.target.value)}
-                placeholder="https://pdfsun.in"
+                placeholder="https://www.pdfsun.in"
                 className="w-full text-xs font-mono font-bold bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none"
               />
             </div>

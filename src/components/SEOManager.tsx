@@ -122,7 +122,7 @@ export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
 export const SEOManager: React.FC<SEOManagerProps> = ({
   activeTool,
   tools,
-  baseUrl = "https://pdfsun.in",
+  baseUrl = "https://www.pdfsun.in",
   currentPage,
   totalPages,
   isTodayInHistoryActive = false,
@@ -134,7 +134,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "@type": "WebSite",
     "name": "PDF Sun",
     "url": baseUrl,
-    "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.",
+    "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at www.pdfsun.in.",
     "publisher": {
       "@type": "Organization",
       "name": "PDF Sun",

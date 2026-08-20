@@ -367,7 +367,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           currency: currency === "INR" ? "INR" : "USD",
           name: "PDFSun.in",
           description: `${plan.name} — Instant Premium Access`,
-          image: "https://pdfsun.in/icon-192.png",
+          image: "https://www.pdfsun.in/icon-192.png",
           order_id: data.orderId,
           subscription_id: data.subscriptionId,
           prefill: {

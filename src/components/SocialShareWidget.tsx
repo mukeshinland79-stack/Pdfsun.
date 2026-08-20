@@ -31,7 +31,7 @@ export const SocialShareWidget: React.FC<SocialShareWidgetProps> = ({
   const [showToast, setShowToast] = useState(false);
 
   // Compute Current Shareable URL
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "https://pdfsun.in";
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "https://www.pdfsun.in";
   
   // Custom share message text
   const shareTitle = `Try ${toolName} on PDFSun.in – Free Online PDF Tools!`;

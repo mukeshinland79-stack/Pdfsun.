@@ -70,12 +70,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>
                   {t("footer.website", "Website")}:{" "}
                   <a
-                    href="https://pdfsun.in"
+                    href="https://www.pdfsun.in"
                     target="_blank"
                     rel="noreferrer"
                     className="text-white font-mono hover:text-amber-400 hover:underline"
                   >
-                    https://pdfsun.in
+                    https://www.pdfsun.in
                   </a>
                 </span>
               </div>

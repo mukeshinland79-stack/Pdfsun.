@@ -29,11 +29,11 @@ interface SharePdfSunModalProps {
   onClose: () => void;
 }
 
-const WEBSITE_URL = "https://pdfsun.in";
-const WEBSITE_REFERRAL_URL = "https://pdfsun.in?ref=share_friend";
+const WEBSITE_URL = "https://www.pdfsun.in";
+const WEBSITE_REFERRAL_URL = "https://www.pdfsun.in?ref=share_friend";
 const WEBSITE_TITLE = "PDFSun – Fast, Free & Secure Online PDF Tools";
 const HIGH_CONVERTING_COPY =
-  "I use PDFSun for fast, free, and secure PDF tools (Compress, Convert, Edit). Check it out: https://pdfsun.in";
+  "I use PDFSun for fast, free, and secure PDF tools (Compress, Convert, Edit). Check it out: https://www.pdfsun.in";
 
 export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
   isOpen,
@@ -346,7 +346,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
 
         ctx.fillStyle = "#38BDF8";
         ctx.font = "bold 28px sans-serif";
-        ctx.fillText("https://pdfsun.in", width / 2, 1100);
+        ctx.fillText("https://www.pdfsun.in", width / 2, 1100);
 
         return canvas;
       }
@@ -799,7 +799,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
             <span>100% Free & Encrypted • Zero Tracking</span>
           </div>
-          <span>https://pdfsun.in</span>
+          <span>https://www.pdfsun.in</span>
         </div>
       </div>
     </div>

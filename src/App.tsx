@@ -281,7 +281,7 @@ export default function App() {
   // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
     siteName: "PDF Sun",
-    domainName: "https://pdfsun.in",
+    domainName: "https://www.pdfsun.in",
     supportEmail: "mukeshkalonia241@gmail.com",
     ownerName: "Mukesh Kalonia",
     maintenanceMode: false,
@@ -583,11 +583,11 @@ export default function App() {
 
   const pageDescription = activeTool
     ? `${activeTool.description} Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.`
-    : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.";
+    : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at www.pdfsun.in.";
 
   const canonicalUrl = activeTool
-    ? `https://pdfsun.in/?tool=${activeTool.slug}`
-    : "https://pdfsun.in/";
+    ? `https://www.pdfsun.in/?tool=${activeTool.slug}`
+    : "https://www.pdfsun.in/";
 
   const ogTitle = activeTool
     ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
@@ -602,8 +602,8 @@ export default function App() {
     : "PDF Sun - Free Online PDF Tools";
 
   const twitterDescription = activeTool
-    ? `${activeTool.description} Fast and secure online PDF tools at pdfsun.in`
-    : "Fast and secure online PDF tools at pdfsun.in";
+    ? `${activeTool.description} Fast and secure online PDF tools at www.pdfsun.in`
+    : "Fast and secure online PDF tools at www.pdfsun.in";
 
   // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
   const adPlacements = calculateAdPlacements(
@@ -619,7 +619,7 @@ export default function App() {
       <SEOManager
         activeTool={activeTool}
         tools={ALL_TOOLS}
-        baseUrl="https://pdfsun.in"
+        baseUrl="https://www.pdfsun.in"
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
@@ -630,7 +630,7 @@ export default function App() {
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
-        <meta name="keywords" content="PDF Sun, pdf tools, online pdf converter, merge pdf, compress pdf, edit pdf online, pdfsun.in" />
+        <meta name="keywords" content="PDF Sun, pdf tools, online pdf converter, merge pdf, compress pdf, edit pdf online, pdfsun.in, www.pdfsun.in" />
         <meta name="author" content="PDF Sun" />
         <meta name="robots" content="index, follow, max-image-preview:large" />
 
@@ -642,14 +642,14 @@ export default function App() {
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:title" content={ogTitle} />
         <meta property="og:description" content={ogDescription} />
-        <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+        <meta property="og:image" content="https://www.pdfsun.in/og-image.png" />
         <meta property="og:site_name" content="PDF Sun" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={twitterTitle} />
         <meta name="twitter:description" content={twitterDescription} />
-        <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
+        <meta name="twitter:image" content="https://www.pdfsun.in/og-image.png" />
       </Helmet>
 
       {/* Sticky Top Header */}

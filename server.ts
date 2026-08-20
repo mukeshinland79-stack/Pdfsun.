@@ -1255,7 +1255,7 @@ app.post("/api/create-stripe-checkout", (req, res) => {
     res.json({
       success: true,
       sessionId,
-      checkoutUrl: `https://pdfsun.in/checkout?session_id=${sessionId}&plan=${planId}`,
+      checkoutUrl: `https://www.pdfsun.in/checkout?session_id=${sessionId}&plan=${planId}`,
       amount,
       currency,
     });
@@ -2634,7 +2634,7 @@ app.all("/api/admin/feedback/action", async (req, res) => {
   }
 });
 
-// Security Headers & Canonical Domain Middleware
+// Security Headers & Canonical Domain Middleware (Enforces https://www.pdfsun.in)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -2645,14 +2645,17 @@ app.use((req, res, next) => {
   const host = req.headers.host || "";
   const proto = req.headers["x-forwarded-proto"] || req.protocol;
 
+  // 301 Redirect any non-www or HTTP traffic (pdfsun.in, pdfsun.com, www.pdfsun.com) to https://www.pdfsun.in
   if (
     process.env.NODE_ENV === "production" &&
     !host.includes("localhost") &&
     !host.includes("127.0.0.1") &&
     !host.includes("run.app") &&
-    (host === "pdfsun.com" || host === "www.pdfsun.com" || host === "www.pdfsun.in" || proto === "http")
+    (host === "pdfsun.com" || host === "www.pdfsun.com" || host === "pdfsun.in" || proto === "http" || host !== "www.pdfsun.in")
   ) {
-    return res.redirect(301, `https://pdfsun.in${req.originalUrl}`);
+    if (host !== "www.pdfsun.in" || proto !== "https") {
+      return res.redirect(301, `https://www.pdfsun.in${req.originalUrl}`);
+    }
   }
 
   next();
@@ -2660,25 +2663,28 @@ app.use((req, res, next) => {
 
 // Dynamic Robots.txt
 app.get("/robots.txt", (req, res) => {
-  res.type("text/plain");
+  res.set("Content-Type", "text/plain; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
   res.send(`User-agent: *
 Allow: /
 Disallow: /api/admin/
 
-Sitemap: https://pdfsun.in/sitemap.xml
-Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
-Sitemap: https://pdfsun.in/sitemap-pseo.xml
+Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
 `);
 });
 
 // Dedicated Programmatic Target Sizes Sitemap (for Google Search Console monitoring)
 app.get("/sitemap-compress-sizes.xml", (req, res) => {
-  res.type("application/xml");
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.set("X-Content-Type-Options", "nosniff");
   const today = new Date().toISOString().split("T")[0];
 
   const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
     return `  <url>
-    <loc>https://pdfsun.in/compress-pdf-to-${size}</loc>
+    <loc>https://www.pdfsun.in/compress-pdf-to-${size}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -2693,12 +2699,14 @@ ${compressUrls}
 
 // Dedicated pSEO Landing Pages Sitemap
 app.get("/sitemap-pseo.xml", (req, res) => {
-  res.type("application/xml");
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.set("X-Content-Type-Options", "nosniff");
   const today = new Date().toISOString().split("T")[0];
 
   const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
     return `  <url>
-    <loc>https://pdfsun.in/${page.slug}</loc>
+    <loc>https://www.pdfsun.in/${page.slug}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
@@ -2713,7 +2721,9 @@ ${pseoUrls}
 
 // Dynamic Sitemap.xml
 app.get("/sitemap.xml", (req, res) => {
-  res.type("application/xml");
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.set("X-Content-Type-Options", "nosniff");
   
   // Collect unique slugs from all tools, pSEO landing pages, popular compress sizes, plus root and static pages
   const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history"];
@@ -2734,7 +2744,7 @@ app.get("/sitemap.xml", (req, res) => {
       const urlPath = slug ? `/${slug}` : "";
 
       return `  <url>
-    <loc>https://pdfsun.in${urlPath}</loc>
+    <loc>https://www.pdfsun.in${urlPath}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>

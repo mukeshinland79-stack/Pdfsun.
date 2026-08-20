@@ -1,23 +1,23 @@
 /**
  * Official PDFSun Production Domain Configuration
  * 
- * Official customer-facing domain: https://pdfsun.in
+ * Official customer-facing domain: https://www.pdfsun.in
  * All public share links, QR codes, metadata, Open Graph, and social shares
- * MUST use this canonical origin.
+ * MUST use this canonical origin with the 'www' subdomain.
  */
 
-export const OFFICIAL_PRODUCTION_ORIGIN = "https://pdfsun.in";
+export const OFFICIAL_PRODUCTION_ORIGIN = "https://www.pdfsun.in";
 
 /**
- * Returns the customer-facing public base URL (https://pdfsun.in).
+ * Returns the customer-facing public base URL (https://www.pdfsun.in).
  */
 export function getPublicSiteUrl(): string {
   return OFFICIAL_PRODUCTION_ORIGIN;
 }
 
 /**
- * Generates a public share URL using the official production domain (https://pdfsun.in).
- * Example: https://pdfsun.in/d/share_abc123
+ * Generates a public share URL using the official production domain (https://www.pdfsun.in).
+ * Example: https://www.pdfsun.in/d/share_abc123
  */
 export function getPublicShareUrl(shareSlug: string): string {
   const cleanSlug = shareSlug.startsWith("/") ? shareSlug.slice(1) : shareSlug;

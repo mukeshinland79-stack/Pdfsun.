@@ -241,7 +241,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   };
 
   const handleShare = async () => {
-    const shareUrl = `https://pdfsun.in/today-in-history?lang=${selectedLang.code}&date=${selectedMonth}-${selectedDay}&country=${selectedCountry}`;
+    const shareUrl = `https://www.pdfsun.in/today-in-history?lang=${selectedLang.code}&date=${selectedMonth}-${selectedDay}&country=${selectedCountry}`;
     const shareTitle = `Today in History • ${historyData?.formattedDate || "PDFSun"}`;
     const shareText = `Explore historical events on ${historyData?.formattedDate} in world history & download the free study sheet!`;
 

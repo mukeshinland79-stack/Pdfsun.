@@ -4,6 +4,36 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/(sitemap.*\\.xml|.*\\.xml)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -39,15 +69,43 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=31536000; includeSubDomains; preload"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
         }
       ]
     }
   ],
   "routes": [
+    {
+      "src": "^/sitemap\\.xml$",
+      "headers": {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "public, max-age=3600, s-maxage=86400"
+      },
+      "dest": "/sitemap.xml"
+    },
+    {
+      "src": "^/sitemap-compress-sizes\\.xml$",
+      "headers": {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "public, max-age=3600, s-maxage=86400"
+      },
+      "dest": "/sitemap-compress-sizes.xml"
+    },
+    {
+      "src": "^/sitemap-pseo\\.xml$",
+      "headers": {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "public, max-age=3600, s-maxage=86400"
+      },
+      "dest": "/sitemap-pseo.xml"
+    },
+    {
+      "src": "^/robots\\.txt$",
+      "headers": {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "public, max-age=3600, s-maxage=86400"
+      },
+      "dest": "/robots.txt"
+    },
     {
       "src": "/assets/(.*)",
       "headers": {

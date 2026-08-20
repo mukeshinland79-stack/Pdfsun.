@@ -36,7 +36,7 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
 
   doc.setFontSize(8);
   doc.setTextColor(203, 213, 225);
-  doc.text("https://pdfsun.in/today-in-history", pageWidth - 14, 20, { align: "right" });
+  doc.text("https://www.pdfsun.in/today-in-history", pageWidth - 14, 20, { align: "right" });
 
   y = 38;
 
@@ -157,7 +157,7 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
   doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184); // Slate 400
   doc.text(
-    "Generated for free educational use via PDFSun (https://pdfsun.in) • 100% Client-Side WebAssembly Privacy Protected",
+    "Generated for free educational use via PDFSun (https://www.pdfsun.in) • 100% Client-Side WebAssembly Privacy Protected",
     14,
     pageHeight - 8
   );

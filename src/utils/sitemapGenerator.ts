@@ -44,7 +44,7 @@ function getIsoDate(): string {
 export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
   let baseUrl = customBaseUrl?.trim();
   if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("run.app") || baseUrl.includes("vercel.app")) {
-    baseUrl = "https://pdfsun.in";
+    baseUrl = "https://www.pdfsun.in";
   }
   // Strip trailing slash
   baseUrl = baseUrl.replace(/\/+$/, "");
