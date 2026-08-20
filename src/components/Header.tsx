@@ -468,11 +468,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* ========================================================= */}
           <div className="order-2 md:order-3 flex flex-wrap items-center space-x-1.5 sm:space-x-2.5 shrink-0 ml-auto md:ml-0">
             
-            {/* Language Switcher */}
-            <div>
-              <LanguageSwitcher showLabel={false} className="sm:hidden" />
-              <LanguageSwitcher showLabel={true} className="hidden sm:inline-block" />
-            </div>
+            {/* Language Dropdown Menu */}
+            <LanguageSwitcher showLabel={true} align="right" />
 
             {/* Single Unified Theme Selector */}
             <div className="relative" ref={themeDropdownRef}>

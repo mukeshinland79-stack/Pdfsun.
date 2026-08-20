@@ -1,0 +1,48 @@
+{
+  "mukeshkalonia241@gmail.com": {
+    "id": "owner-001",
+    "name": "Mukesh Kalonia",
+    "email": "mukeshkalonia241@gmail.com",
+    "phone": "+91 9991659655",
+    "passwordHash": "896132cb3ce50bee81fd03360b8f3713c67e489e387a28491339b6eb6a7c832de1ea4e9306f79f3b54a2d2cf2d69ffa3f2afbc75751b3d2fb9a3cc5a9ec51ca7",
+    "salt": "3906f48bccf3594b8ce9f3abf0d2a702",
+    "role": "owner",
+    "plan": "Founder & Owner - Unlimited",
+    "hasAdminAccess": true,
+    "isPro": true,
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-08-20T17:17:22.808Z"
+  },
+  "mukeshinland79@gmail.com": {
+    "id": "owner-002",
+    "name": "Mukesh Inland",
+    "email": "mukeshinland79@gmail.com",
+    "phone": "+91 9991659655",
+    "passwordHash": "8ef3e3abc1119d139cd7dea765a1339df4d8d655b193f1abd8a443bf8e8bfe0af2f69ac83f4e68c8b35f31179ff32482585f45fda7e8328a64e44f38618c443f",
+    "salt": "bd4ba2fb363aadeec2617399fa71dcd0",
+    "role": "owner",
+    "plan": "Founder & Owner - Unlimited",
+    "hasAdminAccess": true,
+    "isPro": true,
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-08-20T17:17:22.815Z",
+    "lastLoginAt": "2026-08-20T18:59:01.697Z"
+  },
+  "alex.rivera@university.edu": {
+    "id": "usr-demo-01",
+    "name": "Alex Rivera",
+    "email": "alex.rivera@university.edu",
+    "phone": "+91 9991659655",
+    "passwordHash": "90dcfaa5e1d888cabc276456097c8d9298a413d90d7748e2d9148bbb6e235dfb3492d3f19a945c19d366ded703ef23d1b3d496a0c8c3494c0efd9eafe188cdf1",
+    "salt": "acfdbc95f932bfa04861d1adc518dcee",
+    "role": "user",
+    "plan": "Student Pro",
+    "hasAdminAccess": false,
+    "isPro": true,
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-08-20T17:17:22.823Z"
+  }
+}

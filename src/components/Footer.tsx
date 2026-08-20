@@ -10,12 +10,27 @@ import {
   Sparkles,
   CheckCircle2,
   Lock,
+  Facebook,
+  Linkedin,
+  Youtube,
 } from "lucide-react";
 import { PolicyType } from "../types";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
+
+// Custom modern X (formerly Twitter) SVG icon
+const XIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 interface FooterProps {
   onOpenPolicy: (policy: PolicyType) => void;
@@ -224,40 +239,52 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Social Channels */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              {t("footer.social", "Social")}
+              {t("footer.social", "Social Media")}
             </h4>
-            <div className="grid grid-cols-1 gap-2 text-xs font-medium text-slate-400">
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              {t("footer.socialDesc", "Connect with our developer & PDF community")}
+            </p>
+            {/* Inline flex row with gap-3, glassmorphism container and smooth hover animations */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 hover:text-white transition flex items-center space-x-2"
+                aria-label="Follow PDFSun on Facebook"
+                title="Follow PDFSun on Facebook"
+                className="w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-sm"
               >
-                <span>Facebook</span>
+                <Facebook className="w-4 h-4" />
               </a>
               <a
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 hover:text-white transition flex items-center space-x-2"
+                aria-label="Follow PDFSun on LinkedIn"
+                title="Follow PDFSun on LinkedIn"
+                className="w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-sm"
               >
-                <span>LinkedIn</span>
+                <Linkedin className="w-4 h-4" />
               </a>
               <a
                 href="https://youtube.com"
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 hover:text-white transition flex items-center space-x-2"
+                aria-label="Subscribe to PDFSun on YouTube"
+                title="Subscribe to PDFSun on YouTube"
+                className="w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-sm"
               >
-                <span>YouTube</span>
+                <Youtube className="w-4 h-4" />
               </a>
               <a
                 href="https://x.com"
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 hover:text-white transition flex items-center space-x-2"
+                aria-label="Follow PDFSun on X (Twitter)"
+                title="Follow PDFSun on X (Twitter)"
+                className="w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-sm"
               >
-                <span>X (Twitter)</span>
+                <XIcon className="w-4 h-4" />
               </a>
             </div>
           </div>

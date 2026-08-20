@@ -47,6 +47,8 @@ import {
   resendBankingOtp,
   requestPasswordResetOtp,
   verifyAndResetPassword,
+  verifyRecoveryOtpAndIssueToken,
+  updatePasswordWithResetToken,
   getAccountLockoutStatus,
 } from "./src/server/authService";
 
@@ -1804,6 +1806,73 @@ const handleForgotPasswordRequest = async (req: express.Request, res: express.Re
 app.post("/api/v1/auth/forgot-password", handleForgotPasswordRequest);
 app.post("/api/auth/forgot-password-request", handleForgotPasswordRequest);
 app.post("/api/auth/forgot-password", handleForgotPasswordRequest);
+app.post("/api/v1/auth/reset-initiation", handleForgotPasswordRequest);
+app.post("/api/auth/reset-initiation", handleForgotPasswordRequest);
+
+// 7. Verify OTP for Password Recovery (Returns 5-min single-use resetToken)
+const handleVerifyRecoveryOtp = async (req: express.Request, res: express.Response) => {
+  try {
+    const { identifier, email, phone, otp } = req.body || {};
+    const input = identifier || email || phone;
+    const result = await verifyRecoveryOtpAndIssueToken({
+      identifier: input,
+      otp: String(otp || ""),
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to verify OTP." });
+  }
+};
+
+app.post("/api/v1/auth/verify-recovery-otp", handleVerifyRecoveryOtp);
+app.post("/api/auth/verify-recovery-otp", handleVerifyRecoveryOtp);
+
+// 8. New Password Submission with Reset Token
+const handleNewPasswordSubmission = async (req: express.Request, res: express.Response) => {
+  try {
+    const { resetToken, newPassword, identifier, otp } = req.body || {};
+
+    // If submitted via direct OTP flow (fallback)
+    if (!resetToken && otp && identifier && newPassword) {
+      return handleResetPassword(req, res);
+    }
+
+    const ip = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
+    const userAgent = String(req.headers["user-agent"] || "browser");
+
+    const result = await updatePasswordWithResetToken({
+      resetToken: String(resetToken || ""),
+      newPassword: String(newPassword || ""),
+      ip,
+      userAgent,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    if (result.token) {
+      res.setHeader("Set-Cookie", [
+        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      ]);
+    }
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to set new password.",
+      error: err.message || "Failed to set new password.",
+    });
+  }
+};
+
+app.post("/api/v1/auth/new-password", handleNewPasswordSubmission);
+app.post("/api/auth/new-password", handleNewPasswordSubmission);
 
 const handleResetPassword = async (req: express.Request, res: express.Response) => {
   try {

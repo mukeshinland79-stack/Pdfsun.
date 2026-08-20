@@ -25,6 +25,7 @@ import {
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson } from "../utils/apiHelper";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import { PasswordResetWizard } from "./PasswordResetWizard";
 
 /**
  * PII Data Protection: Client-side masking helpers
@@ -748,156 +749,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* 2. FORGOT PASSWORD VIA OTP RECOVERY */}
+        {/* 2. FORGOT PASSWORD VIA ADVANCED OTP RECOVERY WIZARD */}
         {authMode === "forgot-password" && (
-          <div className="space-y-3.5">
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("customer");
-                  setErrorMsg("");
-                  setSuccessMsg("");
-                }}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                title="Back to Sign In"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <div>
-                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">Account Password Recovery</h4>
-                <p className="text-[10px] text-slate-400">Reset your password via 6-digit OTP verification</p>
-              </div>
-            </div>
-
-            {!otpSent ? (
-              <form onSubmit={handleSendOtp} className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    Registered Email Address or Mobile Number
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="9050****55 or r***4@gmail.com"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition pr-9"
-                    />
-                    <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs transition shadow-md shadow-orange-600/20 flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98 cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Sending OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="w-4 h-4" />
-                      <span>Send Verification OTP</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleResetPasswordWithOtp} className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                      Enter 6-Digit OTP Code
-                    </label>
-                    <button
-                      type="button"
-                      disabled={otpCountdown > 0 || isSubmitting}
-                      onClick={handleSendOtp}
-                      className="text-[10px] text-orange-600 dark:text-orange-400 hover:underline font-semibold disabled:text-slate-400 cursor-pointer"
-                    >
-                      {otpCountdown > 0 ? `Resend OTP (${otpCountdown}s)` : "Resend OTP"}
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    placeholder="e.g. 123456"
-                    value={otpInput}
-                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono tracking-widest text-center font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showNewPassword ? "text" : "password"}
-                      placeholder="Enter at least 4 characters"
-                      value={newPasswordInput}
-                      onChange={(e) => setNewPasswordInput(e.target.value)}
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-                      aria-label="Toggle new password visibility"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {newPasswordInput && (
-                    <PasswordStrengthIndicator
-                      password={newPasswordInput}
-                      showCriteria={true}
-                    />
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98 cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verifying &amp; Resetting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Verify OTP &amp; Reset Password</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("customer");
-                  setErrorMsg("");
-                  setSuccessMsg("");
-                }}
-                className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer font-semibold"
-              >
-                ← Back to Regular Sign In
-              </button>
-            </div>
-          </div>
+          <PasswordResetWizard
+            initialIdentifier={emailInput}
+            isModal={true}
+            onBackToSignIn={() => {
+              setAuthMode("customer");
+              setErrorMsg("");
+              setSuccessMsg("");
+            }}
+            onSuccess={(profile, token) => {
+              if (profile) {
+                onSelectRole(profile.role, profile);
+              }
+              onClose();
+            }}
+          />
         )}
 
         {/* 3. MANDATORY MULTI-FACTOR AUTHENTICATION FOR OWNER & ADMINISTRATOR PORTAL */}

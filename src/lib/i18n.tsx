@@ -29,27 +29,31 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "te", name: "Telugu", nativeName: "తెలుగు", flag: "🇮🇳" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்", flag: "🇮🇳" },
   { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી", flag: "🇮🇳" },
+  { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳" },
   { code: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ", flag: "🇮🇳" },
   { code: "ml", name: "Malayalam", nativeName: "മലയാളം", flag: "🇮🇳" },
-  { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳" },
+  { code: "ur", name: "Urdu", nativeName: "اردو", flag: "🇵🇰", isRtl: true },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
-  { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", isRtl: true },
-  { code: "zh-CN", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
-  { code: "zh-TW", name: "Chinese Traditional", nativeName: "繁體中文", flag: "🇹🇼" },
+  { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹" },
+  { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹" },
+  { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
   { code: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵" },
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷" },
-  { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
-  { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹" },
-  { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹" },
-  { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", flag: "🇮🇩" },
+  { code: "zh", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
+  { code: "zh-CN", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
+  { code: "zh-TW", name: "Chinese Traditional", nativeName: "繁體中文", flag: "🇹🇼" },
+  { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", isRtl: true },
   { code: "tr", name: "Turkish", nativeName: "Türkçe", flag: "🇹🇷" },
-  { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳" },
-  { code: "th", name: "Thai", nativeName: "ไทย", flag: "🇹🇭" },
   { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱" },
   { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱" },
+  { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳" },
+  { code: "th", name: "Thai", nativeName: "ไทย", flag: "🇹🇭" },
+  { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", flag: "🇮🇩" },
   { code: "uk", name: "Ukrainian", nativeName: "Українська", flag: "🇺🇦" },
+  { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷", isRtl: true },
+  { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", flag: "🇲🇾" },
   { code: "sv", name: "Swedish", nativeName: "Svenska", flag: "🇸🇪" },
   { code: "el", name: "Greek", nativeName: "Ελληνικά", flag: "🇬🇷" },
 ];
@@ -60,9 +64,32 @@ export const isRtlLanguage = (code: string): boolean => {
   return RTL_LANGUAGES.includes(code);
 };
 
-const DEFAULT_LANGUAGE = "en";
-const STORAGE_KEY = "pdfsun_language";
+export const DEFAULT_LANGUAGE = "en";
+export const STORAGE_KEY = "pdfsun_language";
+export const FALLBACK_STORAGE_KEYS = ["pdfsun_lang", "i18nextLng", "user_language"];
 const CMS_STORAGE_KEY = "pdfsun_cms_overrides";
+
+/**
+ * Retrieves the persisted language from localStorage, checking primary and fallback keys
+ */
+export const getPersistedLanguage = (): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const primary = localStorage.getItem(STORAGE_KEY);
+    if (primary && SUPPORTED_LANGUAGES.some((l) => l.code === primary)) {
+      return primary;
+    }
+    for (const key of FALLBACK_STORAGE_KEYS) {
+      const fallback = localStorage.getItem(key);
+      if (fallback && SUPPORTED_LANGUAGES.some((l) => l.code === fallback)) {
+        return fallback;
+      }
+    }
+  } catch {
+    // Ignore storage read error
+  }
+  return null;
+};
 
 // Helpers for CMS Live Overrides
 export const getCmsOverrides = (): Record<string, Record<string, string>> => {
@@ -122,13 +149,16 @@ export const resetAllCmsOverrides = () => {
   }
 };
 
-const getInitialLanguage = (): string => {
+export const getInitialLanguage = (): string => {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("pdfsun_lang");
-    if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-      return saved;
+    // 1. Check persisted user selection from localStorage first
+    const persisted = getPersistedLanguage();
+    if (persisted) {
+      return persisted;
     }
+
+    // 2. Fall back to browser navigator language preference
     const nav = typeof navigator !== "undefined" ? navigator : null;
     if (nav) {
       const preferredLangs = Array.isArray(nav.languages) && nav.languages.length > 0
@@ -1463,6 +1493,7 @@ if (!i18n.isInitialized) {
 export interface LanguageContextType {
   currentLanguage: string;
   setLanguage: (lang: string) => void;
+  changeLanguage: (lang: string) => void;
   languageOption: LanguageOption;
   isRtl: boolean;
   t: (
@@ -1481,6 +1512,7 @@ export interface LanguageContextType {
 const defaultContextValue: LanguageContextType = {
   currentLanguage: DEFAULT_LANGUAGE,
   setLanguage: () => {},
+  changeLanguage: () => {},
   languageOption: SUPPORTED_LANGUAGES[0],
   isRtl: false,
   t: (key: string, fallback?: string | Record<string, any>) => (typeof fallback === "string" ? fallback : key),
@@ -1498,6 +1530,107 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [currentLanguage, setCurrentLanguageState] = useState<string>(getInitialLanguage);
   const [revision, setRevision] = useState<number>(0);
   const [cmsOverrides, setCmsOverrides] = useState<Record<string, Record<string, string>>>(getCmsOverrides);
+
+  // App mount & synchronization effect: Reads 'i18nextLng' or 'pdfsun_lang' from localStorage,
+  // updates the i18next configuration, and listens for language changes to update localStorage accordingly.
+  useEffect(() => {
+    // 1. Read 'i18nextLng' or 'pdfsun_lang' / 'pdfsun_language' from localStorage on app mount
+    try {
+      const storedLang =
+        (typeof window !== "undefined" &&
+          (localStorage.getItem("i18nextLng") ||
+            localStorage.getItem("pdfsun_lang") ||
+            localStorage.getItem(STORAGE_KEY))) ||
+        null;
+
+      if (storedLang) {
+        const cleanLang = storedLang.split("-")[0];
+        const targetLang = SUPPORTED_LANGUAGES.some((l) => l.code === storedLang)
+          ? storedLang
+          : SUPPORTED_LANGUAGES.some((l) => l.code === cleanLang)
+          ? cleanLang
+          : null;
+
+        if (targetLang) {
+          if (currentLanguage !== targetLang) {
+            setCurrentLanguageState(targetLang);
+          }
+          if (i18n.language !== targetLang) {
+            i18n.changeLanguage(targetLang).catch(() => {});
+          }
+          document.documentElement.lang = targetLang;
+          document.documentElement.dir = isRtlLanguage(targetLang) ? "rtl" : "ltr";
+        }
+      } else if (i18n.language !== currentLanguage) {
+        i18n.changeLanguage(currentLanguage).catch(() => {});
+      }
+    } catch (err) {
+      console.warn("LanguageProvider: error initializing language from localStorage:", err);
+    }
+
+    // 2. Listen for i18next language changes and persist to localStorage accordingly
+    const handleI18nLanguageChanged = (newLng: string) => {
+      if (!newLng || typeof newLng !== "string") return;
+      const cleanLng = newLng.split("-")[0];
+      const validLng = SUPPORTED_LANGUAGES.some((l) => l.code === newLng)
+        ? newLng
+        : SUPPORTED_LANGUAGES.some((l) => l.code === cleanLng)
+        ? cleanLng
+        : null;
+
+      if (validLng) {
+        try {
+          localStorage.setItem("i18nextLng", validLng);
+          localStorage.setItem("pdfsun_lang", validLng);
+          localStorage.setItem(STORAGE_KEY, validLng);
+          document.documentElement.lang = validLng;
+          document.documentElement.dir = isRtlLanguage(validLng) ? "rtl" : "ltr";
+        } catch {}
+
+        setCurrentLanguageState((prev) => (prev !== validLng ? validLng : prev));
+        setRevision((r) => r + 1);
+      }
+    };
+
+    i18n.on("languageChanged", handleI18nLanguageChanged);
+
+    // 3. Multi-tab storage sync
+    const handleStorageSync = (e: StorageEvent) => {
+      if (e.key === "i18nextLng" || e.key === "pdfsun_lang" || e.key === STORAGE_KEY) {
+        const updatedLang = e.newValue;
+        if (updatedLang && SUPPORTED_LANGUAGES.some((l) => l.code === updatedLang)) {
+          setCurrentLanguageState(updatedLang);
+          if (i18n.language !== updatedLang) {
+            i18n.changeLanguage(updatedLang).catch(() => {});
+          }
+          document.documentElement.lang = updatedLang;
+          document.documentElement.dir = isRtlLanguage(updatedLang) ? "rtl" : "ltr";
+          setRevision((r) => r + 1);
+        }
+      }
+    };
+
+    // 4. Custom event listener
+    const handleLanguageEvent = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.lang && SUPPORTED_LANGUAGES.some((l) => l.code === detail.lang)) {
+        setCurrentLanguageState(detail.lang);
+        if (i18n.language !== detail.lang) {
+          i18n.changeLanguage(detail.lang).catch(() => {});
+        }
+        setRevision((r) => r + 1);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageSync);
+    window.addEventListener("pdfsun_language_changed", handleLanguageEvent);
+
+    return () => {
+      i18n.off("languageChanged", handleI18nLanguageChanged);
+      window.removeEventListener("storage", handleStorageSync);
+      window.removeEventListener("pdfsun_language_changed", handleLanguageEvent);
+    };
+  }, []);
 
   // Synchronize with custom CMS update events
   useEffect(() => {
@@ -1536,6 +1669,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       localStorage.setItem(STORAGE_KEY, validLang);
       localStorage.setItem("pdfsun_lang", validLang);
+      localStorage.setItem("i18nextLng", validLang);
       document.documentElement.lang = validLang;
       document.documentElement.dir = isRtlLanguage(validLang) ? "rtl" : "ltr";
       window.dispatchEvent(new CustomEvent("pdfsun_language_changed", { detail: { lang: validLang } }));
@@ -1683,6 +1817,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
     () => ({
       currentLanguage,
       setLanguage,
+      changeLanguage: setLanguage,
       languageOption,
       isRtl,
       t,
@@ -1706,6 +1841,32 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
 export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
   return context || defaultContextValue;
+};
+
+/**
+ * Custom hook that reads the persisted language from localStorage,
+ * updates i18next on app load, and provides convenient helpers to switch and persist language.
+ */
+export const usePersistedLanguage = () => {
+  const context = useLanguage();
+
+  useEffect(() => {
+    // Ensures i18next reflects the persisted language
+    const persisted = getPersistedLanguage();
+    if (persisted && i18n.isInitialized && i18n.language !== persisted) {
+      i18n.changeLanguage(persisted).catch(() => {});
+    }
+  }, []);
+
+  return {
+    currentLanguage: context.currentLanguage,
+    setLanguage: context.setLanguage,
+    changeLanguage: context.changeLanguage,
+    languageOption: context.languageOption,
+    isRtl: context.isRtl,
+    t: context.t,
+    getPersistedLanguage,
+  };
 };
 
 export { i18n };

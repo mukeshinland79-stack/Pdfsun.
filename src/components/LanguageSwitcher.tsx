@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Globe, Check, ChevronDown, Search, X, Sparkles } from "lucide-react";
+import i18n from "i18next";
 import { useLanguage, SUPPORTED_LANGUAGES, LanguageOption } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -10,17 +11,30 @@ export interface LanguageSwitcherProps {
   align?: "right" | "left" | "center";
 }
 
-export const PRIMARY_LANGUAGES: Array<{
+/**
+ * 9 Core Supported Languages listed in SEO meta tags:
+ * (en, es, de, hi, fr, pt, ar, ja, ru)
+ */
+export const SEO_SUPPORTED_LANGUAGES: Array<{
   code: string;
   name: string;
   nativeName: string;
   flag: string;
   short: string;
+  isRtl?: boolean;
 }> = [
   { code: "en", name: "English", nativeName: "English", flag: "🇺🇸", short: "EN" },
-  { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳", short: "HI" },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸", short: "ES" },
+  { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪", short: "DE" },
+  { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳", short: "HI" },
+  { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷", short: "FR" },
+  { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹", short: "PT" },
+  { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", short: "AR", isRtl: true },
+  { code: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵", short: "JA" },
+  { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺", short: "RU" },
 ];
+
+export const PRIMARY_LANGUAGES = SEO_SUPPORTED_LANGUAGES;
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   className = "",
@@ -28,7 +42,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   showLabel = true,
   align = "right",
 }) => {
-  const { currentLanguage, setLanguage, languageOption } = useLanguage();
+  const { currentLanguage, setLanguage, changeLanguage, languageOption } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,11 +90,19 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 
   const handleSelectLanguage = useCallback(
     (code: string) => {
-      setLanguage(code);
+      // Trigger i18next changeLanguage function
+      if (i18n && typeof i18n.changeLanguage === "function") {
+        i18n.changeLanguage(code).catch(() => {});
+      }
+      if (typeof changeLanguage === "function") {
+        changeLanguage(code);
+      } else if (typeof setLanguage === "function") {
+        setLanguage(code);
+      }
       setIsOpen(false);
       setSearchQuery("");
     },
-    [setLanguage]
+    [changeLanguage, setLanguage]
   );
 
   const filteredLanguages = useMemo(() => {
@@ -347,15 +369,15 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                 )}
               </div>
 
-              {/* Primary Quick Toggle Languages: English, Hindi, Spanish */}
+              {/* Primary Quick Toggle Languages: en, es, de, hi, fr, pt, ar, ja, ru */}
               {!searchQuery && (
                 <div className="p-2 mb-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1">
                       <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Primary Quick Select</span>
+                      <span>Supported Languages</span>
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium">Instant</span>
+                    <span className="text-[9px] text-slate-400 font-medium">9 Core (SEO)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {PRIMARY_LANGUAGES.map((lang) => {
