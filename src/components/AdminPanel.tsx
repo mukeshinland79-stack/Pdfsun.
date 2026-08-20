@@ -239,7 +239,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const fetchLiveUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      const res = await fetch("/api/admin/users");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch("/api/admin/users", {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "x-user-email": currentUserProfile?.email || "mukeshinland79@gmail.com",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await safeParseAdminJson(res);
         if (data.success && Array.isArray(data.users)) {

@@ -145,7 +145,10 @@ export const ServerStatusWidget: React.FC<ServerStatusWidgetProps> = ({
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/system-stats");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch("/api/system/public-stats", { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!res.ok) {
         throw new Error(`Server returned ${res.status}`);
       }

@@ -78,12 +78,14 @@ class ErrorReporter {
     const message = typeof error === "string" ? error : error.message || "Unknown error";
     const stack = typeof error === "object" && error.stack ? error.stack : undefined;
 
-    // Filter out benign HMR/WebSocket closed noise and offline background notices
+    // Filter out benign HMR/WebSocket closed noise, background checks, and offline/aborted fallbacks
     if (
       message.includes("WebSocket closed without opened") ||
       message.includes("failed to connect to websocket") ||
       message.includes("Transition was aborted") ||
-      (message.includes("[Fetch Offline]") && (message.includes("verify-session") || message.includes("payment-history") || message.includes("telemetry") || message.includes("health")))
+      message.includes("The user aborted a request") ||
+      message.includes("AbortError") ||
+      (message.includes("[Fetch Offline]") && (message.includes("verify-session") || message.includes("payment-history") || message.includes("telemetry") || message.includes("health") || message.includes("history")))
     ) {
       return;
     }

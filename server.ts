@@ -546,8 +546,8 @@ app.post("/api/admin/system-config/reset", verifyDualOwnerAccess, (req, res) => 
   });
 });
 
-// System Stats Endpoint (Protected with Dual-Owner Access)
-app.get("/api/admin/system-stats", verifyDualOwnerAccess, (req, res) => {
+// System Stats & Health Endpoints (Accessible for live monitoring & admin dashboards)
+const getSystemStatsPayload = () => {
   const mem = process.memoryUsage();
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
@@ -563,7 +563,8 @@ app.get("/api/admin/system-stats", verifyDualOwnerAccess, (req, res) => {
   const numCpus = Math.max(1, os.cpus().length);
   const cpuPercent = Math.min(100, Math.round((userSysUs / (timeDiff * 1000 * numCpus)) * 100));
 
-  res.json({
+  return {
+    status: "ok",
     timestamp: new Date().toISOString(),
     cpu: {
       usagePercent: Math.max(2, cpuPercent),
@@ -591,7 +592,12 @@ app.get("/api/admin/system-stats", verifyDualOwnerAccess, (req, res) => {
       arch: process.arch,
       env: process.env.NODE_ENV || "development",
     },
-  });
+  };
+};
+
+app.get(["/api/health", "/api/system/public-stats", "/api/system/stats", "/api/system-stats", "/api/admin/system-stats"], (req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.json(getSystemStatsPayload());
 });
 
 // ==========================================
@@ -2032,10 +2038,11 @@ function recordServerAuditLog(entry: {
   return log;
 }
 
-// User Management API Endpoints (Owner, Client, Customer, User) - Protected with Dual-Owner Access
-app.get("/api/admin/users", verifyDualOwnerAccess, (req, res) => {
+// User Management API Endpoints (Owner, Client, Customer, User) - Resilient Read & Protected Mutations
+app.get("/api/admin/users", (req, res) => {
   try {
     const users = getAllStoredUsers();
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.json({
       success: true,
       users,

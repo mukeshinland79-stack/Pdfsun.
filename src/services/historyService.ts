@@ -14,9 +14,17 @@ export async function fetchDayInHistory(
   const day = date.getDate();
   const dateKey = `${month}-${day}`;
 
-  // 1. Try fetching from server API (which supports dynamic Gemini AI generation, country filtering, & translation)
+  // 1. Try fetching from server API with short timeout
   try {
-    const res = await fetch(`/api/history/today?month=${month}&day=${day}&lang=${langCode}&country=${countryCode}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    const res = await fetch(
+      `/api/history/today?month=${month}&day=${day}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
       if (data && data.events && data.events.length > 0) {
@@ -24,7 +32,7 @@ export async function fetchDayInHistory(
       }
     }
   } catch (e) {
-    // Gracefully handle network disconnects or API errors
+    // Gracefully handle network disconnects or API errors without failing
   }
 
   // 2. Client-side database fallback
