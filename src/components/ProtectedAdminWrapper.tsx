@@ -96,7 +96,7 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
       isCancelled = true;
       clearTimeout(safetyTimer);
     };
-  }, [canAccessAdmin, userProfile]);
+  }, [canAccessAdmin, userProfile?.id, userProfile?.email, userProfile?.role]);
 
   // If user clicked emergency bypass or is already validated/can access admin
   if (bypassed || canAccessAdmin || sessionValidation.isValid) {

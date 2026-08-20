@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
 
@@ -111,14 +111,9 @@ const STORAGE_KEY = "pdfsun_custom_keyboard_shortcuts";
 const ENABLED_STORAGE_KEY = "pdfsun_keyboard_shortcuts_enabled";
 
 export function useKeyboardShortcutsManager(options: UseKeyboardShortcutsOptions = {}) {
-  const {
-    onSelectTool,
-    onToggleSearch,
-    onToggleShortcutsModal,
-    onCloseActiveModalOrWorkspace,
-    onGoHome,
-    enabled: initialEnabled = true,
-  } = options;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const initialEnabled = options.enabled !== undefined ? options.enabled : true;
 
   const [shortcutsEnabled, setShortcutsEnabled] = useState<boolean>(() => {
     try {
@@ -223,17 +218,17 @@ export function useKeyboardShortcutsManager(options: UseKeyboardShortcutsOptions
           e.preventDefault();
 
           if (sc.id === "search") {
-            onToggleSearch?.();
+            optionsRef.current.onToggleSearch?.();
           } else if (sc.id === "go-home") {
-            onGoHome?.();
+            optionsRef.current.onGoHome?.();
           } else if (sc.id === "shortcuts-modal") {
-            onToggleShortcutsModal?.();
+            optionsRef.current.onToggleShortcutsModal?.();
           } else if (sc.id === "escape") {
-            onCloseActiveModalOrWorkspace?.();
+            optionsRef.current.onCloseActiveModalOrWorkspace?.();
           } else if (sc.actionSlug) {
             const tool = ALL_TOOLS.find((t) => t.slug === sc.actionSlug || t.id === sc.actionSlug);
             if (tool) {
-              onSelectTool?.(tool);
+              optionsRef.current.onSelectTool?.(tool);
             }
           }
           break;
@@ -243,15 +238,7 @@ export function useKeyboardShortcutsManager(options: UseKeyboardShortcutsOptions
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    shortcuts,
-    shortcutsEnabled,
-    onSelectTool,
-    onToggleSearch,
-    onToggleShortcutsModal,
-    onCloseActiveModalOrWorkspace,
-    onGoHome,
-  ]);
+  }, [shortcuts, shortcutsEnabled]);
 
   return {
     shortcuts,

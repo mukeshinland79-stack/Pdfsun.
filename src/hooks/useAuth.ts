@@ -107,6 +107,8 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const isMountedRef = useRef<boolean>(true);
+  const userProfileRef = useRef<UserProfile | null>(userProfile);
+  userProfileRef.current = userProfile;
 
   // Admin / Edit Mode toggle state
   const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
@@ -145,9 +147,9 @@ export function useAuth() {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       if (isMountedRef.current) {
         setIsLoading(false);
-        setAuthStatus(userProfile ? "authenticated" : "unauthenticated");
+        setAuthStatus(userProfileRef.current ? "authenticated" : "unauthenticated");
       }
-      return Boolean(userProfile);
+      return Boolean(userProfileRef.current);
     }
 
     try {
@@ -203,15 +205,15 @@ export function useAuth() {
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
-        setAuthStatus((prev) => (prev === "loading" ? (userProfile ? "authenticated" : "unauthenticated") : prev));
+        setAuthStatus((prev) => (prev === "loading" ? (userProfileRef.current ? "authenticated" : "unauthenticated") : prev));
       }
     }
     return false;
-  }, [userProfile]);
+  }, []);
 
   // Sync Subscription State with Payment Ledger
   const syncSubscription = useCallback(async (emailToSync?: string) => {
-    const email = emailToSync || userProfile?.email;
+    const email = emailToSync || userProfileRef.current?.email;
     if (!email) return;
 
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -222,13 +224,14 @@ export function useAuth() {
       const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await safeParseJson(res);
-        if (data.success && userProfile) {
+        const currentProf = userProfileRef.current;
+        if (data.success && currentProf) {
           const isPro = Boolean(data.isPro || data.totalPaidINR > 0);
           const badge = data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
 
-          if (userProfile.plan !== badge || userProfile.isPro !== isPro) {
+          if (currentProf.plan !== badge || currentProf.isPro !== isPro) {
             const updatedProfile: UserProfile = {
-              ...userProfile,
+              ...currentProf,
               plan: badge,
               isPro: isPro,
             };
@@ -244,7 +247,7 @@ export function useAuth() {
     } catch (err) {
       // Silently catch background subscription sync failure when network fluctuates
     }
-  }, [userProfile]);
+  }, []);
 
   // Initialize and verify on mount + Auto-reconnect on network restoration
   useEffect(() => {
@@ -253,8 +256,8 @@ export function useAuth() {
 
     const handleOnline = () => {
       verifySession();
-      if (userProfile?.email) {
-        syncSubscription(userProfile.email);
+      if (userProfileRef.current?.email) {
+        syncSubscription(userProfileRef.current.email);
       }
     };
 
@@ -268,14 +271,15 @@ export function useAuth() {
         window.removeEventListener("online", handleOnline);
       }
     };
-  }, [verifySession, syncSubscription, userProfile?.email]);
+  }, [verifySession, syncSubscription]);
 
   // Sync subscription when userProfile email changes
+  const userProfileEmail = userProfile?.email;
   useEffect(() => {
-    if (userProfile?.email) {
-      syncSubscription(userProfile.email);
+    if (userProfileEmail) {
+      syncSubscription(userProfileEmail);
     }
-  }, [userProfile?.email, syncSubscription]);
+  }, [userProfileEmail, syncSubscription]);
 
   // Multi-Tab & Multi-Window Synchronization Listener
   useEffect(() => {

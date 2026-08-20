@@ -43,7 +43,7 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [geoResult]);
+  }, [geoResult.detectedLanguage?.code, geoResult.detectedCountryCode]);
 
   const handleExportQuickPdf = async (e: React.MouseEvent) => {
     e.stopPropagation();
