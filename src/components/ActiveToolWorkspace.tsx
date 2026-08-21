@@ -114,6 +114,9 @@ import { parseHumanFriendlyError, DetailedErrorInfo } from "../lib/errorNotifica
 import { ErrorNotificationOverlay } from "./ErrorNotificationOverlay";
 import { AnnotatePdfWorkspace } from "./AnnotatePdfWorkspace";
 import { QuickShareModal } from "./QuickShareModal";
+import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
+import { QrCodeDisplay } from "./QrCodeDisplay";
+import { getPublicSiteUrl } from "../utils/siteConfig";
 import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
@@ -2879,19 +2882,22 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                 {/* Mobile QR Transfer Card Expansion */}
                 {showQrCodeModal && (
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-500/30 text-center space-y-2 shadow-md w-full max-w-sm animate-in fade-in zoom-in-95">
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center space-x-1.5">
-                      <QrCode className="w-4 h-4 text-amber-500" />
-                      <span>Scan QR Code on Mobile Device</span>
+                  <div className="w-full max-w-md my-2 animate-in fade-in zoom-in-95 space-y-3">
+                    <QrCodeDisplay
+                      url={`${getPublicSiteUrl()}/#download=${encodeURIComponent(downloadReady.fileName)}`}
+                      title="Instant Mobile Download"
+                      subtitle={downloadReady.fileName}
+                      size={250}
+                    />
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowQrCodeModal(false)}
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer"
+                      >
+                        Hide QR Code
+                      </button>
                     </div>
-                    <div className="flex justify-center p-2 bg-white rounded-xl shadow-inner border border-slate-100">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(window.location.origin + "/#download=" + downloadReady.fileName)}`}
-                        alt="Mobile Download QR Code"
-                        className="w-32 h-32"
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400">Scan with iPhone Camera or Android Lens for instant local download.</p>
                   </div>
                 )}
 

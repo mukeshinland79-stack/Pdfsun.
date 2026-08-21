@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getPublicShareUrl } from "../utils/siteConfig";
+import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import {
   Share2,
   Copy,
@@ -117,8 +118,6 @@ export const QuickShareModal: React.FC<QuickShareModalProps> = ({
     },
   ];
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}&bgcolor=1e293b&color=ffffff`;
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 relative animate-in zoom-in-95">
@@ -234,17 +233,13 @@ export const QuickShareModal: React.FC<QuickShareModalProps> = ({
 
         {/* QR Code Display Card */}
         {showQr && (
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2 animate-in slide-in-from-top-2">
-            <div className="w-36 h-36 bg-slate-800 rounded-xl p-2 mx-auto flex items-center justify-center border border-slate-700 shadow-md">
-              <img
-                src={qrImageUrl}
-                alt="Quick Share QR Code"
-                className="w-full h-full rounded-lg object-contain"
-              />
-            </div>
-            <p className="text-[11px] font-bold text-slate-300">
-              Scan with smartphone camera to view & download PDF instantly.
-            </p>
+          <div className="animate-in slide-in-from-top-2">
+            <DownloadQrCodeGenerator
+              fileName={fileName}
+              downloadUrl={shareUrl}
+              onClose={() => setShowQr(false)}
+              isModal={false}
+            />
           </div>
         )}
 

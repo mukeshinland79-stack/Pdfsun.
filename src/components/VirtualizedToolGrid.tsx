@@ -81,11 +81,14 @@ export const VirtualizedToolGrid: React.FC<VirtualizedToolGridProps> = ({
     <div
       ref={scrollRef}
       onScroll={handleScroll}
+      role="region"
+      aria-label="Virtualized PDF tools collection"
+      tabIndex={0}
       style={{
         height: Math.min(height, Math.max(240, totalHeight)),
         overflowY: "auto",
       }}
-      className="w-full relative scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 rounded-2xl pr-1"
+      className="w-full relative scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 rounded-2xl pr-1 focus:outline-hidden focus-visible:ring-1 focus-visible:ring-orange-500/50"
     >
       <div style={{ height: totalHeight, width: "100%", position: "relative" }}>
         {visibleRows.map(({ rowIndex, rowTools }) => (

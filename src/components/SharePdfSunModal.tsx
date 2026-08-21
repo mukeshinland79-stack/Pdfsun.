@@ -732,14 +732,14 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
 
               <div className="space-y-1 max-w-xs">
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  Scan QR Code with Phone Camera
+                  Scan QR Code with Camera or Google Lens
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Opens{" "}
+                  Scan with Google Lens or Camera to open{" "}
                   <strong className="text-amber-500 font-extrabold">
-                    pdfsun.in
+                    https://pdfsun.in
                   </strong>{" "}
-                  instantly on iOS or Android.
+                  instantly on mobile.
                 </p>
               </div>
 
