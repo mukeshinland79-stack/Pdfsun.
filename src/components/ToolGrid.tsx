@@ -41,7 +41,10 @@ interface ToolGridProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onPageChange?: (page: number, totalPages: number) => void;
+  popularTools?: ToolItem[];
 }
+
+const USAGE_STORAGE_KEY = "pdfsun_tool_usage_frequency";
 
 export const ToolGrid: React.FC<ToolGridProps> = ({
   favorites,
@@ -52,10 +55,22 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   searchQuery,
   setSearchQuery,
   onPageChange,
+  popularTools,
 }) => {
   const { t } = useLanguage();
   const { isMostPopular, getFormattedUsage, trackToolUsage } = useUsageAnalytics();
   const { getToolRating, rateTool } = useToolRatings();
+
+  // Track tool usage frequency in localStorage
+  const [usageCounts, setUsageCounts] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem(USAGE_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<"virtualized" | "infinite" | "paged">("virtualized");
@@ -63,6 +78,65 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   const pageSize = 16;
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize localStorage usage frequency updates across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === USAGE_STORAGE_KEY && e.newValue) {
+        try {
+          setUsageCounts(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Record tool usage frequency to localStorage and trigger analytics
+  const handleToolSelect = (tool: ToolItem) => {
+    try {
+      const updated = {
+        ...usageCounts,
+        [tool.id]: (usageCounts[tool.id] || 0) + 1,
+      };
+      setUsageCounts(updated);
+      localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn("Failed to store tool usage frequency:", e);
+    }
+    trackToolUsage(tool.id);
+    onSelectTool(tool);
+  };
+
+  // Compute Top 5 frequently used tools from localStorage frequency tracking
+  const top5FrequentTools = useMemo<ToolItem[]>(() => {
+    if (popularTools && popularTools.length > 0) {
+      return popularTools.slice(0, 5);
+    }
+
+    const publicTools = ALL_TOOLS.filter(
+      (t) =>
+        (t.category as string).toLowerCase() !== "owner" &&
+        (t.category as string).toLowerCase() !== "admin"
+    );
+
+    const trackedEntries = Object.entries(usageCounts).filter(([_, count]) => count > 0);
+
+    if (trackedEntries.length > 0) {
+      const sortedByUsage = [...publicTools].sort((a, b) => {
+        const countA = usageCounts[a.id] || 0;
+        const countB = usageCounts[b.id] || 0;
+        if (countB !== countA) return countB - countA;
+        return (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0);
+      });
+      return sortedByUsage.slice(0, 5);
+    }
+
+    // Default fallback to top popular tools
+    return publicTools
+      .filter((t) => isMostPopular(t.id) || t.isPopular)
+      .slice(0, 5);
+  }, [popularTools, usageCounts, isMostPopular]);
 
   // Reset page & visible count when category or search query changes
   React.useEffect(() => {
@@ -81,6 +155,10 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
   // Filter tools based on category and search query
   const filteredTools = useMemo(() => {
+    if (selectedCategory === "popular" && !searchQuery.trim()) {
+      return top5FrequentTools;
+    }
+
     return ALL_TOOLS.filter((tool) => {
       // Exclude internal admin tools from the public toolkit grid
       if (
@@ -94,8 +172,14 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       let matchesCategory = true;
       if (selectedCategory === "student") matchesCategory = !!tool.isStudentFavorite;
       else if (selectedCategory === "ai") matchesCategory = !!tool.isAi;
-      else if (selectedCategory === "popular") matchesCategory = isMostPopular(tool.id) || !!tool.isPopular;
-      else if (selectedCategory !== "all") matchesCategory = tool.category === selectedCategory;
+      else if (selectedCategory === "popular") {
+        matchesCategory =
+          top5FrequentTools.some((t) => t.id === tool.id) ||
+          isMostPopular(tool.id) ||
+          !!tool.isPopular;
+      } else if (selectedCategory !== "all") {
+        matchesCategory = tool.category === selectedCategory;
+      }
 
       // Search query match
       let matchesSearch = true;
@@ -110,7 +194,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery, isMostPopular]);
+  }, [selectedCategory, searchQuery, top5FrequentTools, isMostPopular]);
 
   // Observer for infinite scroll mode
   useEffect(() => {
@@ -252,6 +336,43 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
         })}
       </div>
 
+      {/* Popular Top 5 Highlight Banner */}
+      {selectedCategory === "popular" && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-slate-900 border border-orange-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+              <Flame className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                  {t("toolkit.top5Title", "Top 5 Most Popular Tools")}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-500 text-white shadow-xs">
+                  {top5FrequentTools.length} Ranked
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {Object.keys(usageCounts).length > 0
+                  ? t("toolkit.top5DescPersonal", "Dynamically ranked based on your personal device usage frequency and community trends.")
+                  : t("toolkit.top5DescDefault", "Most loved, high-speed PDF tools by millions of global users.")}
+              </p>
+            </div>
+          </div>
+          {Object.keys(usageCounts).length > 0 && (
+            <button
+              onClick={() => {
+                setUsageCounts({});
+                localStorage.removeItem(USAGE_STORAGE_KEY);
+              }}
+              className="text-xs font-bold text-slate-500 hover:text-red-500 transition px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 self-end sm:self-auto cursor-pointer"
+            >
+              Reset My Counts
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Tools Grid Display */}
       {filteredTools.length > 0 ? (
         <div className="space-y-8">
@@ -260,10 +381,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               tools={filteredTools}
               favorites={favorites}
               onToggleFavorite={onToggleFavorite}
-              onSelectTool={(selected) => {
-                trackToolUsage(selected.id);
-                onSelectTool(selected);
-              }}
+              onSelectTool={handleToolSelect}
               isMostPopular={(id) => isMostPopular(id) || !!filteredTools.find((t) => t.id === id)?.isPopular}
               getFormattedUsage={getFormattedUsage}
               getToolRating={getToolRating}
@@ -277,10 +395,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
                   tool={tool}
                   isFavorite={favorites.includes(tool.id)}
                   onToggleFavorite={onToggleFavorite}
-                  onSelectTool={(selected) => {
-                    trackToolUsage(selected.id);
-                    onSelectTool(selected);
-                  }}
+                  onSelectTool={handleToolSelect}
                   isMostPopular={isMostPopular(tool.id) || tool.isPopular}
                   usageFormatted={getFormattedUsage(tool.id)}
                   ratingState={getToolRating(tool.id)}

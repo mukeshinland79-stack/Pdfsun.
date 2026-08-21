@@ -51,6 +51,7 @@ import {
   updatePasswordWithResetToken,
   getAccountLockoutStatus,
 } from "./src/server/authService";
+import { authRouter } from "./src/server/authRoutes";
 
 dotenv.config();
 
@@ -207,6 +208,16 @@ app.get(["/icon-192.png", "/icon-512.png", "/og-image.png"], (_req, res) => {
   res.status(200).send("");
 });
 
+// Trailing Slash Normalization (HTTP 307 preserves POST method and body payload)
+app.use((req, res, next) => {
+  if (req.path.length > 1 && req.path.endsWith("/")) {
+    const query = req.url.slice(req.path.length);
+    const safePath = req.path.slice(0, -1);
+    return res.redirect(307, safePath + query);
+  }
+  next();
+});
+
 app.use(
   express.json({
     limit: "50mb",
@@ -215,6 +226,8 @@ app.use(
     },
   })
 );
+
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 app.use(idempotencyMiddleware);
 
@@ -601,6 +614,12 @@ app.get(["/api/health", "/api/system/public-stats", "/api/system/stats", "/api/s
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.json(getSystemStatsPayload());
 });
+
+// ==========================================
+// UNIFIED AUTHENTICATION ROUTER (/api/auth & /api/v1/auth)
+// ==========================================
+app.use("/api/auth", authRouter);
+app.use("/api/v1/auth", authRouter);
 
 // ==========================================
 // REAL-TIME LIVE ANALYTICS SYSTEM ENGINE

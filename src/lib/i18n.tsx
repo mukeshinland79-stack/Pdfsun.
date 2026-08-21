@@ -65,24 +65,28 @@ export const isRtlLanguage = (code: string): boolean => {
 };
 
 export const DEFAULT_LANGUAGE = "en";
-export const STORAGE_KEY = "pdfsun_language";
-export const FALLBACK_STORAGE_KEYS = ["pdfsun_lang", "i18nextLng", "user_language"];
+export const STORAGE_KEY = "pdfsun_lang";
+export const FALLBACK_STORAGE_KEYS = ["pdfsun_language", "i18nextLng", "user_language"];
 const CMS_STORAGE_KEY = "pdfsun_cms_overrides";
 
 /**
- * Retrieves the persisted language from localStorage, checking primary and fallback keys
+ * Retrieves the persisted language from localStorage using 'pdfsun_lang' key (with fallback support)
  */
 export const getPersistedLanguage = (): string | null => {
   if (typeof window === "undefined") return null;
   try {
     const primary = localStorage.getItem(STORAGE_KEY);
-    if (primary && SUPPORTED_LANGUAGES.some((l) => l.code === primary)) {
-      return primary;
+    if (primary) {
+      const cleanPrimary = primary.split("-")[0];
+      if (SUPPORTED_LANGUAGES.some((l) => l.code === primary)) return primary;
+      if (SUPPORTED_LANGUAGES.some((l) => l.code === cleanPrimary)) return cleanPrimary;
     }
     for (const key of FALLBACK_STORAGE_KEYS) {
       const fallback = localStorage.getItem(key);
-      if (fallback && SUPPORTED_LANGUAGES.some((l) => l.code === fallback)) {
-        return fallback;
+      if (fallback) {
+        const cleanFallback = fallback.split("-")[0];
+        if (SUPPORTED_LANGUAGES.some((l) => l.code === fallback)) return fallback;
+        if (SUPPORTED_LANGUAGES.some((l) => l.code === cleanFallback)) return cleanFallback;
       }
     }
   } catch {
@@ -1534,13 +1538,14 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // App mount & synchronization effect: Reads 'i18nextLng' or 'pdfsun_lang' from localStorage,
   // updates the i18next configuration, and listens for language changes to update localStorage accordingly.
   useEffect(() => {
-    // 1. Read 'i18nextLng' or 'pdfsun_lang' / 'pdfsun_language' from localStorage on app mount
+    // 1. Read 'pdfsun_lang' (or fallback 'i18nextLng' / 'pdfsun_language') from localStorage on app mount
     try {
       const storedLang =
         (typeof window !== "undefined" &&
-          (localStorage.getItem("i18nextLng") ||
-            localStorage.getItem("pdfsun_lang") ||
-            localStorage.getItem(STORAGE_KEY))) ||
+          (localStorage.getItem("pdfsun_lang") ||
+            localStorage.getItem(STORAGE_KEY) ||
+            localStorage.getItem("i18nextLng") ||
+            localStorage.getItem("pdfsun_language"))) ||
         null;
 
       if (storedLang) {
@@ -1580,9 +1585,9 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
       if (validLng) {
         try {
-          localStorage.setItem("i18nextLng", validLng);
           localStorage.setItem("pdfsun_lang", validLng);
           localStorage.setItem(STORAGE_KEY, validLng);
+          localStorage.setItem("i18nextLng", validLng);
           document.documentElement.lang = validLng;
           document.documentElement.dir = isRtlLanguage(validLng) ? "rtl" : "ltr";
         } catch {}
