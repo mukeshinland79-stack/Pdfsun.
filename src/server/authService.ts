@@ -1247,6 +1247,92 @@ export function getUserProfileByEmail(email: string): UserProfile | null {
 }
 
 /**
+ * Authenticate or register a social OAuth user (Google, Facebook, SSO)
+ */
+export function authenticateSocialUser(params: {
+  provider: "google" | "facebook" | "apple" | "sso";
+  email: string;
+  name?: string;
+  avatar?: string;
+  ssoDomain?: string;
+}): { success: boolean; token?: string; user?: UserProfile; role?: UserRole; error?: string } {
+  const email = (params.email || "").toLowerCase().trim();
+  if (!email || !email.includes("@")) {
+    return { success: false, error: "Valid email address is required for social sign-in." };
+  }
+
+  const isOwnerEmail =
+    DUAL_OWNER_EMAILS.includes(email) ||
+    email === "mukeshkalonia241@gmail.com" ||
+    email === "mukeshinland79@gmail.com" ||
+    email.includes("mukeshinland") ||
+    email.includes("mukeshkalonia");
+
+  let user = usersStore[email];
+  if (!user) {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const defaultName = params.name?.trim() || email.split("@")[0].replace(/[._]/g, " ");
+    user = {
+      id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
+      name: defaultName,
+      email,
+      phone: "+91 9991659655",
+      passwordHash: hashPassword(crypto.randomBytes(16).toString("hex"), salt),
+      salt,
+      role: isOwnerEmail ? "owner" : "user",
+      plan: isOwnerEmail ? "Founder & Owner" : "Free Plan",
+      hasAdminAccess: isOwnerEmail,
+      isPro: isOwnerEmail,
+      avatar: params.avatar || (params.provider === "google" ? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" : undefined),
+      joinedDate: "Jan 2026",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    usersStore[email] = user;
+  } else {
+    if (isOwnerEmail) {
+      user.role = "owner";
+      user.hasAdminAccess = true;
+      user.isPro = true;
+      user.plan = "Founder & Owner";
+    }
+    if (params.name && (!user.name || user.name === "PDFSun User")) {
+      user.name = params.name;
+    }
+    if (params.avatar && !user.avatar) {
+      user.avatar = params.avatar;
+    }
+    user.lastLoginAt = new Date().toISOString();
+  }
+
+  saveUsersStore();
+
+  const token = generateUserJwtToken({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    plan: user.plan,
+    hasAdminAccess: user.hasAdminAccess,
+    isPro: user.isPro,
+  });
+
+  const profile: UserProfile = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    plan: user.plan,
+    hasAdminAccess: user.hasAdminAccess,
+    isPro: user.isPro,
+    avatar: user.avatar,
+    joinedDate: user.joinedDate,
+  };
+
+  return { success: true, token, user: profile, role: user.role };
+}
+
+/**
  * Get all stored user accounts for Admin / Owner user management
  */
 export function getAllStoredUsers(): Array<{

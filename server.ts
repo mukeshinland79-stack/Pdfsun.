@@ -30,6 +30,7 @@ import { idempotencyMiddleware } from "./src/server/middleware/idempotencyMiddle
 import {
   registerUserAccount,
   authenticateUser,
+  authenticateSocialUser,
   verifySessionToken,
   getUserProfileByEmail,
   generateUserJwtToken,
@@ -1512,6 +1513,71 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
 
 app.post("/api/v1/auth/login", handleUnifiedLogin);
 app.post("/api/auth/login", handleUnifiedLogin);
+
+// 2b. Unified Social Login (Google, Facebook, SSO)
+const handleUnifiedSocialLogin = async (req: express.Request, res: express.Response) => {
+  try {
+    const { provider, email, name, avatar, ssoDomain } = req.body || {};
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required for social login.",
+        error: "Email address is required for social login.",
+      });
+    }
+
+    const result = authenticateSocialUser({
+      provider: provider || "google",
+      email,
+      name,
+      avatar,
+      ssoDomain,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error || "Social authentication failed.",
+        error: result.error || "Social authentication failed.",
+      });
+    }
+
+    const isOwner = result.role === "owner" || result.user?.hasAdminAccess;
+    const cookies = [
+      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+    ];
+    if (isOwner) {
+      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+    }
+    res.setHeader("Set-Cookie", cookies);
+
+    return res.status(200).json({
+      status: "ok",
+      success: true,
+      message: `Signed in successfully via ${provider || "OAuth"}!`,
+      data: {
+        token: result.token,
+        user: result.user,
+        role: result.role,
+        hasAdminAccess: isOwner,
+      },
+      token: result.token,
+      user: result.user,
+      role: result.role,
+      hasAdminAccess: isOwner,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Social login failed.",
+      error: err.message || "Social login failed.",
+    });
+  }
+};
+
+app.post("/api/v1/auth/social-login", handleUnifiedSocialLogin);
+app.post("/api/auth/social-login", handleUnifiedSocialLogin);
 
 // 3. Verify Session Token (Restores active session on page reload)
 const handleVerifySession = (req: express.Request, res: express.Response) => {

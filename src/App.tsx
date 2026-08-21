@@ -410,14 +410,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Restricted Admin Routing with Strict RBAC Authentication Wall
+    // Restricted Admin & Auth Routing with Hidden Gateway & Strict RBAC Authentication Wall
     if (typeof window !== "undefined" && !authLoading) {
       const params = new URLSearchParams(window.location.search);
+      const pathname = window.location.pathname.toLowerCase();
       const isAdminRoute =
-        window.location.pathname === "/admin" ||
-        window.location.pathname.startsWith("/admin/") ||
+        pathname === "/admin" ||
+        pathname.startsWith("/admin/") ||
+        pathname === "/admin-login" ||
+        pathname === "/admin-portal" ||
+        pathname === "/portal/auth" ||
         window.location.hash === "#admin" ||
-        params.get("view") === "admin";
+        params.get("view") === "admin" ||
+        params.get("role") === "owner";
+
+      const isLoginRoute =
+        pathname === "/login" ||
+        pathname === "/signin" ||
+        pathname === "/signup" ||
+        pathname === "/register" ||
+        params.get("view") === "login" ||
+        params.get("auth") === "true";
 
       if (isAdminRoute) {
         if (canAccessAdmin) {
@@ -426,9 +439,12 @@ export default function App() {
           setAuthModalInitialMode("owner");
           setAuthModalOpen(true);
         }
+      } else if (isLoginRoute && !isAuthenticated) {
+        setAuthModalInitialMode("customer");
+        setAuthModalOpen(true);
       }
     }
-  }, [authLoading, canAccessAdmin]);
+  }, [authLoading, canAccessAdmin, isAuthenticated]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !paymentHandledRef.current) {

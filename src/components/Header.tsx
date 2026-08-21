@@ -613,14 +613,30 @@ export const Header: React.FC<HeaderProps> = ({
                 <div
                   className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 space-y-1 z-[9999] animate-in fade-in"
                 >
-                  <div className="w-full p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
-                    <div className="w-full text-xs font-extrabold text-slate-900 dark:text-white flex flex-wrap items-center justify-between gap-1">
-                      <span className="truncate pr-2">{userProfile?.name || "Customer Account"}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                        {currentRole === "owner" ? "OWNER" : userProfile?.hasAdminAccess ? "ADMIN" : "PRO"}
+                  <div className="w-full p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-1 space-y-1">
+                    <div className="w-full flex items-center justify-between gap-1">
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                        {userProfile?.name || "Customer Account"}
+                      </span>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
+                        currentRole === "owner"
+                          ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                          : userProfile?.hasAdminAccess
+                          ? "bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30"
+                          : userProfile?.isPro
+                          ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                          : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                      }`}>
+                        {currentRole === "owner"
+                          ? "FOUNDER & OWNER"
+                          : userProfile?.hasAdminAccess
+                          ? "ADMIN ACCESS"
+                          : userProfile?.isPro
+                          ? "PRO CUSTOMER"
+                          : "FREE CUSTOMER"}
                       </span>
                     </div>
-                    <div className="w-full text-[10px] text-slate-400 font-mono truncate">
+                    <div className="w-full text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
                       {userProfile?.email
                         ? currentRole === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim())
                           ? userProfile.email.replace(/^(.{4})(.*)(.@.*)$/, "$1*********$3")

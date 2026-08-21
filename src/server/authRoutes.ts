@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import {
   registerUserAccount,
   authenticateUser,
+  authenticateSocialUser,
   verifySessionToken,
   getUserProfileByEmail,
   initiateBankingStep1Login,
@@ -646,9 +647,75 @@ export const handleRefreshSession = (req: Request, res: Response) => {
   });
 };
 
+/**
+ * 12. Social OAuth Login (Google, Facebook, SSO)
+ * POST /api/auth/social-login
+ */
+export const handleSocialLogin = (req: Request, res: Response) => {
+  try {
+    const { provider, email, name, avatar, ssoDomain } = req.body || {};
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required for social login.",
+        error: "Email address is required for social login.",
+      });
+    }
+
+    const result = authenticateSocialUser({
+      provider: provider || "google",
+      email,
+      name,
+      avatar,
+      ssoDomain,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error || "Social authentication failed.",
+        error: result.error || "Social authentication failed.",
+      });
+    }
+
+    const isOwner = result.role === "owner" || result.user?.hasAdminAccess;
+    const cookies = [
+      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+    ];
+    if (isOwner) {
+      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+    }
+    res.setHeader("Set-Cookie", cookies);
+
+    return res.status(200).json({
+      status: "ok",
+      success: true,
+      message: `Signed in successfully via ${provider || "OAuth"}!`,
+      data: {
+        token: result.token,
+        user: result.user,
+        role: result.role,
+        hasAdminAccess: isOwner,
+      },
+      token: result.token,
+      user: result.user,
+      role: result.role,
+      hasAdminAccess: isOwner,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Social login failed.",
+      error: err.message || "Social login failed.",
+    });
+  }
+};
+
 // Route Registration for Router
 authRouter.post("/register", handleRegister);
 authRouter.post("/login", handleLogin);
+authRouter.post("/social-login", handleSocialLogin);
 authRouter.post("/login-step1", handleStep1Login);
 authRouter.post("/send-mfa", handleStep1Login);
 authRouter.post("/verify-otp", handleVerifyOtp);
