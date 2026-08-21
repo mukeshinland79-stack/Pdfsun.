@@ -657,7 +657,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <span className="font-semibold">Listening... Speak now to search PDF tools</span>
                   </>
                 ) : (
-                  <span>{speechError}</span>
+                  <span>{speechError ? String(speechError) : ""}</span>
                 )}
               </div>
               {speechError && (

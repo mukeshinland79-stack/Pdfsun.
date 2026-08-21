@@ -144,7 +144,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </div>
 
             <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl p-4 text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-mono break-words leading-relaxed space-y-2">
-              <div>{this.state.error?.message || 'An unexpected runtime error occurred.'}</div>
+              <div>
+                {typeof this.state.error?.message === 'string' && this.state.error.message !== '[object Object]'
+                  ? this.state.error.message
+                  : typeof this.state.error === 'object' && this.state.error !== null
+                  ? (this.state.error as any).message || JSON.stringify(this.state.error)
+                  : String(this.state.error || 'An unexpected runtime error occurred.')}
+              </div>
               {diagnosticHint && (
                 <div className="text-xs text-amber-800 dark:text-amber-300 font-sans pt-2 border-t border-amber-200/60 dark:border-amber-900/50 flex items-start gap-2">
                   <Bug className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />

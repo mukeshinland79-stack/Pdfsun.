@@ -99,7 +99,11 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
               </button>
             </div>
             {status === "error" && (
-              <p className="text-[10px] text-rose-500 font-medium">{errorMessage}</p>
+              <p className="text-[10px] text-rose-500 font-medium">
+                {typeof errorMessage === "object" && errorMessage !== null
+                  ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+                  : String(errorMessage)}
+              </p>
             )}
           </form>
         )}
@@ -214,7 +218,11 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
                 {status === "error" && (
                   <div className="flex items-center space-x-2 text-rose-400 text-xs font-medium p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{errorMessage}</span>
+                    <span>
+                      {typeof errorMessage === "object" && errorMessage !== null
+                        ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+                        : String(errorMessage)}
+                    </span>
                   </div>
                 )}
 

@@ -97,11 +97,13 @@ export const ErrorNotificationOverlay: React.FC<ErrorNotificationOverlayProps> =
                 {error.badge}
               </span>
               <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                {error.title}
+                {typeof error.title === "object" && error.title !== null
+                  ? (error.title as any)?.message || JSON.stringify(error.title)
+                  : String(error.title || "")}
               </h3>
               {error.fileName && (
                 <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-xs">
-                  File: {error.fileName}
+                  File: {String(error.fileName)}
                 </p>
               )}
             </div>
@@ -124,7 +126,9 @@ export const ErrorNotificationOverlay: React.FC<ErrorNotificationOverlayProps> =
               <span>Diagnostic Analysis</span>
             </div>
             <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              {error.message}
+              {typeof error.message === "object" && error.message !== null
+                ? (error.message as any)?.message || JSON.stringify(error.message)
+                : String(error.message || "")}
             </p>
           </div>
 
@@ -135,7 +139,9 @@ export const ErrorNotificationOverlay: React.FC<ErrorNotificationOverlayProps> =
               <span>Recommended Resolution</span>
             </div>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              {error.suggestion}
+              {typeof error.suggestion === "object" && error.suggestion !== null
+                ? (error.suggestion as any)?.message || JSON.stringify(error.suggestion)
+                : String(error.suggestion || "")}
             </p>
           </div>
 
@@ -156,7 +162,11 @@ export const ErrorNotificationOverlay: React.FC<ErrorNotificationOverlayProps> =
 
               {showTechnicalDetails && (
                 <div className="p-3 bg-slate-900 text-slate-300 font-mono text-[10px] space-y-2 overflow-x-auto max-h-36">
-                  <div className="break-all whitespace-pre-wrap">{error.rawDetails}</div>
+                  <div className="break-all whitespace-pre-wrap">
+                    {typeof error.rawDetails === "object" && error.rawDetails !== null
+                      ? JSON.stringify(error.rawDetails, null, 2)
+                      : String(error.rawDetails)}
+                  </div>
                   <button
                     onClick={handleCopyLog}
                     className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold flex items-center space-x-1 transition"

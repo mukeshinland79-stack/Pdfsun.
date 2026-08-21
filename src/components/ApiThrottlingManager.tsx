@@ -446,7 +446,9 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
           )}
           {errorMessage && (
             <span className="text-xs font-bold text-rose-500 bg-rose-500/10 px-3 py-1 rounded-xl">
-              {errorMessage}
+              {typeof errorMessage === "object" && errorMessage !== null
+                ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+                : String(errorMessage)}
             </span>
           )}
         </div>

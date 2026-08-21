@@ -22,17 +22,66 @@ import {
   Sparkles,
 } from "lucide-react";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
-import { safeFetchJson } from "../utils/apiHelper";
+import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { PasswordResetWizard } from "./PasswordResetWizard";
 
-/**
- * Standardized error message extraction helper
- */
-export const getErrorMessage = (err: any): string => {
-  if (typeof err === "string") return err;
-  return err?.message || err?.error_description || "An error occurred. Please try again.";
-};
+export { getErrorMessage };
+
+interface AuthErrorBoundaryProps {
+  children: React.ReactNode;
+  onReset: () => void;
+}
+
+interface AuthErrorBoundaryState {
+  hasError: boolean;
+  error: any;
+}
+
+class AuthLocalErrorBoundary extends React.Component<AuthErrorBoundaryProps, AuthErrorBoundaryState> {
+  constructor(props: AuthErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, info: any) {
+    console.error("[AuthLocalErrorBoundary] Error caught locally inside Auth Modal:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const errorText = getErrorMessage(this.state.error);
+      return (
+        <div className="p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-center space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Authentication Form Notice
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            {errorText || "A temporary issue occurred while rendering this step."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              this.props.onReset();
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            Return to Login
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /**
  * PII Data Protection: Client-side masking helpers
@@ -467,7 +516,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }}
     >
       <div className="bg-white dark:bg-[#131b2e] rounded-3xl max-w-[440px] w-full shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-5 my-auto max-h-[95vh] overflow-y-auto relative">
-        
+        <AuthLocalErrorBoundary onReset={() => {
+          setAuthMode("customer");
+          setErrorMsg("");
+          setSuccessMsg("");
+        }}>
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -545,7 +598,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {errorMsg && (
           <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-start space-x-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="break-words leading-relaxed">{errorMsg}</span>
+            <span className="break-words leading-relaxed">
+              {typeof errorMsg === "object" && errorMsg !== null
+                ? (errorMsg as any)?.message || JSON.stringify(errorMsg)
+                : String(errorMsg)}
+            </span>
           </div>
         )}
 
@@ -553,7 +610,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {successMsg && (
           <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-start space-x-2 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="leading-relaxed">{successMsg}</span>
+            <span className="leading-relaxed">
+              {typeof successMsg === "object" && successMsg !== null
+                ? (successMsg as any)?.message || JSON.stringify(successMsg)
+                : String(successMsg)}
+            </span>
           </div>
         )}
 
@@ -1120,6 +1181,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Protected by PDFSun Privacy Shield • 256-Bit SSL Encryption
           </p>
         </div>
+        </AuthLocalErrorBoundary>
       </div>
     </div>
   );

@@ -314,7 +314,11 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       {errorMessage && (
         <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center space-x-2 animate-in slide-in-from-top-2">
           <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500" />
-          <span>{errorMessage}</span>
+          <span>
+            {typeof errorMessage === "object" && errorMessage !== null
+              ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+              : String(errorMessage)}
+          </span>
         </div>
       )}
 

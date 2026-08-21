@@ -1025,7 +1025,9 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                       <div className="text-center p-6 space-y-2">
                         <FileText className="w-8 h-8 text-slate-600 mx-auto" />
                         <p className="text-xs text-slate-400 font-medium">
-                          {previewError}
+                          {typeof previewError === "object" && previewError !== null
+                            ? (previewError as any)?.message || JSON.stringify(previewError)
+                            : String(previewError)}
                         </p>
                       </div>
                     ) : (

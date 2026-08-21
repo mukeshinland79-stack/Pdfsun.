@@ -17,7 +17,7 @@ import {
   Check,
 } from "lucide-react";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { safeFetchJson } from "../utils/apiHelper";
+import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { UserProfile, UserRole } from "../types";
 
 export interface PasswordResetWizardProps {
@@ -155,7 +155,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       });
 
       if (!ok || !data?.success) {
-        setErrorMessage(error || data?.message || "Failed to dispatch recovery OTP. Please try again.");
+        setErrorMessage(getErrorMessage(error || data?.message || "Failed to dispatch recovery OTP. Please try again."));
         return;
       }
 
@@ -174,7 +174,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
         otpInputRefs.current[0]?.focus();
       }, 150);
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error. Please try again.");
+      setErrorMessage(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +254,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       });
 
       if (!ok || !data?.success || !data.resetToken) {
-        setErrorMessage(error || data?.message || "Invalid or expired OTP code.");
+        setErrorMessage(getErrorMessage(error || data?.message || "Invalid or expired OTP code."));
         return;
       }
 
@@ -262,7 +262,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       setSuccessMessage(data.message || "OTP verified successfully! Please set your new password.");
       setCurrentStep(4);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to verify OTP. Please try again.");
+      setErrorMessage(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -300,7 +300,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       });
 
       if (!ok || !data?.success) {
-        setErrorMessage(error || data?.message || "Failed to update password. Please restart recovery.");
+        setErrorMessage(getErrorMessage(error || data?.message || "Failed to update password. Please restart recovery."));
         return;
       }
 
@@ -311,7 +311,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
         onSuccess(data.user || null, data.token);
       }, 1200);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to set new password. Please try again.");
+      setErrorMessage(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -369,7 +369,11 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       {errorMessage && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-start space-x-2.5 text-red-700 dark:text-red-300 text-xs">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="leading-relaxed">{errorMessage}</span>
+          <span className="leading-relaxed">
+            {typeof errorMessage === "object" && errorMessage !== null
+              ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+              : String(errorMessage)}
+          </span>
         </div>
       )}
 
@@ -377,7 +381,11 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       {successMessage && (
         <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start space-x-2.5 text-emerald-700 dark:text-emerald-300 text-xs">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="leading-relaxed font-medium">{successMessage}</span>
+          <span className="leading-relaxed font-medium">
+            {typeof successMessage === "object" && successMessage !== null
+              ? (successMessage as any)?.message || JSON.stringify(successMessage)
+              : String(successMessage)}
+          </span>
         </div>
       )}
 

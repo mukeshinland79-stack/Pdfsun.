@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
+import { getErrorMessage } from "../utils/apiHelper";
 
 export interface ToastItem {
   id: string;
@@ -31,8 +32,8 @@ const recentToastRegistry = new Map<string, number>();
  * Guarantees maximum 1 active toast message at a time to prevent UI spamming.
  */
 export function triggerErrorToast(
-  title: string,
-  message: string,
+  title: any,
+  message: any,
   options?: {
     type?: ToastItem["type"];
     fileName?: string;
@@ -42,7 +43,10 @@ export function triggerErrorToast(
 ) {
   if (typeof window === "undefined") return;
 
-  const rawKey = `${title.trim().toLowerCase()}::${message.trim().toLowerCase()}`;
+  const safeTitle = typeof title === "string" ? title : getErrorMessage(title);
+  const safeMessage = typeof message === "string" ? message : getErrorMessage(message);
+
+  const rawKey = `${safeTitle.trim().toLowerCase()}::${safeMessage.trim().toLowerCase()}`;
   const now = Date.now();
   const lastFired = recentToastRegistry.get(rawKey) || 0;
 
@@ -63,7 +67,7 @@ export function triggerErrorToast(
   }
 
   // Suppress non-actionable background noises or false-positives during local WebAssembly offline execution
-  const combined = `${title} ${message}`.toLowerCase();
+  const combined = `${safeTitle} ${safeMessage}`.toLowerCase();
   if (
     combined.includes("405") ||
     combined.includes("method not allowed") ||
@@ -73,15 +77,15 @@ export function triggerErrorToast(
     combined.includes("failed to fetch") ||
     combined.includes("websocket closed")
   ) {
-    console.warn("[GlobalErrorToast] Suppressed background network toast:", title, message);
+    console.warn("[GlobalErrorToast] Suppressed background network toast:", safeTitle, safeMessage);
     return;
   }
 
   const event = new CustomEvent("pdfsun_error_toast", {
     detail: {
       id: `toast_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      title,
-      message,
+      title: safeTitle,
+      message: safeMessage,
       type: options?.type || "generic",
       fileName: options?.fileName,
       duration: options?.duration || 4500,
@@ -210,7 +214,9 @@ export const GlobalErrorToast: React.FC = () => {
                 {theme.badgeText}
               </span>
               <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
-                {currentToast.title}
+                {typeof currentToast.title === "object" && currentToast.title !== null
+                  ? (currentToast.title as any)?.message || JSON.stringify(currentToast.title)
+                  : String(currentToast.title || "")}
               </h4>
             </div>
           </div>
@@ -225,12 +231,14 @@ export const GlobalErrorToast: React.FC = () => {
 
         {/* Message Body */}
         <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug font-medium">
-          {currentToast.message}
+          {typeof currentToast.message === "object" && currentToast.message !== null
+            ? (currentToast.message as any)?.message || JSON.stringify(currentToast.message)
+            : String(currentToast.message || "")}
         </p>
 
         {currentToast.fileName && (
           <p className="text-[10px] text-slate-400 font-mono truncate">
-            File: {currentToast.fileName}
+            File: {String(currentToast.fileName)}
           </p>
         )}
 

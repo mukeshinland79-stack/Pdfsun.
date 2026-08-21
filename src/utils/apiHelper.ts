@@ -5,6 +5,69 @@
  * Includes automated Retry with Exponential Backoff for transient network glitches.
  */
 
+/**
+ * Standardized error message extractor for API, network, and exception objects.
+ * Prevents [object Object] and Minified React Error #31 by always returning a clean string.
+ */
+export function getErrorMessage(err: any): string {
+  if (!err) return "An unexpected error occurred.";
+  if (typeof err === "string") return err.trim();
+
+  // Handle Axios / Fetch response objects: err.response.data
+  if (err?.response?.data) {
+    const data = err.response.data;
+    if (typeof data === "string") return data;
+    if (typeof data.message === "string") return data.message;
+    if (typeof data.error === "string") return data.error;
+    if (data.error && typeof data.error === "object") {
+      if (typeof data.error.message === "string") return data.error.message;
+      try {
+        return JSON.stringify(data.error);
+      } catch {
+        return "An unexpected server error occurred.";
+      }
+    }
+  }
+
+  // Handle Firebase / Auth error objects with { code, message }
+  if (err?.code && typeof err.code === "string" && err?.message && typeof err.message === "string") {
+    return err.message;
+  }
+
+  // Handle Error instances or objects with .message
+  if (typeof err.message === "string" && err.message.trim() && err.message !== "[object Object]") {
+    return err.message.trim();
+  }
+
+  // Handle objects with .error property
+  if (err?.error) {
+    if (typeof err.error === "string") return err.error;
+    if (typeof err.error.message === "string") return err.error.message;
+    if (typeof err.error === "object") {
+      try {
+        return JSON.stringify(err.error);
+      } catch {
+        return "An error occurred.";
+      }
+    }
+  }
+
+  // Handle description / statusText
+  if (typeof err.error_description === "string") return err.error_description;
+  if (typeof err.statusText === "string" && err.statusText) return err.statusText;
+
+  // Generic object serialization fallback
+  if (typeof err === "object") {
+    try {
+      const serialized = JSON.stringify(err);
+      if (serialized && serialized !== "{}") return serialized;
+    } catch {}
+  }
+
+  const str = String(err);
+  return str === "[object Object]" ? "An unexpected error occurred. Please try again." : str;
+}
+
 export interface SafeApiResponse<T = any> {
   ok: boolean;
   status: number;
@@ -80,10 +143,24 @@ export async function safeFetchJson<T = any>(
         };
       }
 
-      const hasError = !res.ok || (parsedData && parsedData.success === false && parsedData.error);
-      const errorMessage = hasError
-        ? parsedData?.error || parsedData?.message || `Request failed with status ${res.status}`
-        : undefined;
+      const hasError = !res.ok || (parsedData && parsedData.success === false);
+      let errorMessage: string | undefined = undefined;
+
+      if (hasError) {
+        if (typeof parsedData?.error === "string") {
+          errorMessage = parsedData.error;
+        } else if (parsedData?.error?.message && typeof parsedData.error.message === "string") {
+          errorMessage = parsedData.error.message;
+        } else if (typeof parsedData?.message === "string") {
+          errorMessage = parsedData.message;
+        } else if (parsedData?.error && typeof parsedData.error === "object") {
+          errorMessage = getErrorMessage(parsedData.error);
+        } else if (parsedData?.message && typeof parsedData.message === "object") {
+          errorMessage = getErrorMessage(parsedData.message);
+        } else {
+          errorMessage = `Request failed with status ${res.status}`;
+        }
+      }
 
       return {
         ok: res.ok && (!parsedData || parsedData.success !== false),
@@ -99,11 +176,12 @@ export async function safeFetchJson<T = any>(
         continue;
       }
 
+      const cleanErrorMsg = getErrorMessage(networkError);
       return {
         ok: false,
         status: 0,
-        data: { success: false, error: networkError?.message || "Network connection error." } as any,
-        error: networkError?.message || "Network connection error. Local offline processing is still available.",
+        data: { success: false, error: cleanErrorMsg } as any,
+        error: cleanErrorMsg || "Network connection error. Local offline processing is still available.",
       };
     }
   }
