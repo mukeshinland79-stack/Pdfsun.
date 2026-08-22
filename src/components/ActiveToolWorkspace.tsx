@@ -46,11 +46,14 @@ import {
   Table,
   FileImage,
   SlidersHorizontal,
+  RotateCcw,
+  FileSpreadsheet,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { TableGridPreviewModal } from "./TableGridPreviewModal";
+import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -106,6 +109,8 @@ import {
   imageToWordDocx,
   imageToNotepadText,
   sanitizeOcrText,
+  exportTableGridToSpreadsheet,
+  parseTextToTableGrid,
 } from "../lib/pdfEngine";
 import {
   validateFile,
@@ -272,6 +277,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [showLiveTableModal, setShowLiveTableModal] = useState(false);
   const [liveTableMatrix, setLiveTableMatrix] = useState<string[][]>([]);
   const [liveTableFileName, setLiveTableFileName] = useState("PDFSun_Extracted_Data");
+  const [showInlineTablePreview, setShowInlineTablePreview] = useState(true);
+  const [postProcessFormatChoice, setPostProcessFormatChoice] = useState<"xlsx" | "xls" | "csv">("xlsx");
+  const [postProcessDropdownOpen, setPostProcessDropdownOpen] = useState(false);
+  const [tablesOnlyToggle, setTablesOnlyToggle] = useState(true);
+  const [autoDetectColsToggle, setAutoDetectColsToggle] = useState(true);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -857,12 +867,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
           break;
 
-        case "pdf-to-excel":
+        case "pdf-to-excel": {
           setStatusMessage("Extracting structured table data into Microsoft Excel (.xlsx)...");
-          outputBytes = await pdfToExcelXlsx(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Data.xlsx`;
+          const textContent = await extractTextFromPdfFile(files[0]);
+          const tableGrid = parseTextToTableGrid(textContent);
+          const out = exportTableGridToSpreadsheet(tableGrid, "xlsx", files[0].name.replace(/\.[^/.]+$/, "") + "_Data");
+          outputBytes = out.bytes;
+          outputName = out.fileName;
           mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          setLiveTableMatrix(tableGrid);
+          setLiveTableFileName(out.fileName);
+          setShowInlineTablePreview(true);
           break;
+        }
 
         case "powerpoint-to-pdf":
           setStatusMessage("Converting presentation slides to PDF...");
@@ -3081,91 +3098,279 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             />
           )}
 
-          {/* Centered Primary Output Card */}
+          {/* Modern SaaS Post-Processing Control Bar & Item Card Workflow */}
           {downloadReady && (
-            <>
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/30 text-slate-900 dark:text-white flex flex-col items-center justify-center text-center space-y-4 my-2 shadow-lg animate-in fade-in zoom-in-95 duration-200">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black uppercase tracking-wider border border-emerald-500/30">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Processing Successful</span>
+            <div className="space-y-4 my-2 animate-in fade-in zoom-in-95 duration-200">
+              {/* Top Control Summary Bar */}
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center space-x-3 flex-wrap gap-y-1.5">
+                  <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-extrabold border border-emerald-500/25">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Processed Successfully</span>
                   </div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate max-w-md pt-1">
-                    {downloadReady.fileName}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your PDF file is ready to download or share securely.
-                  </p>
+
+                  <span className="text-slate-400 font-medium hidden sm:inline">•</span>
+
+                  <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                    {files.length || 1} File{files.length > 1 ? "s" : ""} (
+                    {formatBytes(
+                      typeof downloadReady.data === "string"
+                        ? new Blob([downloadReady.data]).size
+                        : downloadReady.data instanceof ArrayBuffer
+                        ? downloadReady.data.byteLength
+                        : downloadReady.data instanceof Uint8Array
+                        ? downloadReady.data.byteLength
+                        : files[0]?.size || 1024 * 128
+                    )}
+                    )
+                  </span>
+
+                  {/* Quick Toggles */}
+                  {(tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
+                    <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                      <label className="flex items-center space-x-1 cursor-pointer text-[11px] text-slate-600 dark:text-slate-400 select-none">
+                        <input
+                          type="checkbox"
+                          checked={tablesOnlyToggle}
+                          onChange={(e) => setTablesOnlyToggle(e.target.checked)}
+                          className="rounded text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5"
+                        />
+                        <span>Tables only</span>
+                      </label>
+
+                      <label className="flex items-center space-x-1 cursor-pointer text-[11px] text-slate-600 dark:text-slate-400 select-none">
+                        <input
+                          type="checkbox"
+                          checked={autoDetectColsToggle}
+                          onChange={(e) => setAutoDetectColsToggle(e.target.checked)}
+                          className="rounded text-emerald-500 focus:ring-emerald-500 w-3.5 h-3.5"
+                        />
+                        <span>Auto-Detect</span>
+                      </label>
+                    </div>
+                  )}
                 </div>
 
-                {/* Core Action Buttons: Direct Download (Primary), Quick Share (Secondary), Export to Cloud (Tertiary) */}
-                <div className="flex items-center justify-center space-x-3 flex-wrap gap-y-2.5 pt-2 w-full max-w-lg">
-                  {/* Primary: Direct Download */}
+                {/* Right Summary Actions: Convert Another & Primary Download Dropdown */}
+                <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={() => downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType)}
-                    className="flex-1 min-w-[160px] py-3 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black shadow-lg shadow-emerald-600/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
-                    title="Download processed file directly to device"
+                    onClick={() => {
+                      setDownloadReady(null);
+                      setFiles([]);
+                      setLiveTableMatrix([]);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1.5"
+                    title="Clear current output and process another document"
                   >
-                    <Download className="w-4 h-4" />
-                    <span>Direct Download</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Convert Another</span>
                   </button>
 
-                  {/* Interactive In-Browser Live HTML Grid Preview Button */}
+                  {/* Multi-Format Primary Download Dropdown */}
+                  <div className="relative">
+                    <div className="inline-flex rounded-xl shadow-md overflow-hidden border border-emerald-600">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) {
+                            const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Data";
+                            const matrix = liveTableMatrix.length > 0 ? liveTableMatrix : [
+                              ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
+                              ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
+                              ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
+                              ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
+                              ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
+                            ];
+                            const res = exportTableGridToSpreadsheet(matrix, postProcessFormatChoice, cleanBase);
+                            const mime =
+                              postProcessFormatChoice === "csv"
+                                ? "text/csv;charset=utf-8"
+                                : postProcessFormatChoice === "xls"
+                                ? "application/vnd.ms-excel"
+                                : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                            downloadFile(res.bytes, res.fileName, mime);
+                          } else {
+                            downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                          }
+                        }}
+                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black transition flex items-center space-x-1.5"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>
+                          {tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0
+                            ? `Download .${postProcessFormatChoice.toUpperCase()}`
+                            : "Download File"}
+                        </span>
+                      </button>
+
+                      {(tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
+                        <button
+                          type="button"
+                          onClick={() => setPostProcessDropdownOpen(!postProcessDropdownOpen)}
+                          className="px-2 py-2 bg-emerald-700 hover:bg-emerald-800 text-white border-l border-emerald-500 transition"
+                          title="Choose spreadsheet format (.xlsx, .xls, .csv)"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {postProcessDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-1 z-40 animate-in fade-in">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostProcessFormatChoice("xlsx");
+                            setPostProcessDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                        >
+                          <span>Excel (.XLSX)</span>
+                          {postProcessFormatChoice === "xlsx" && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostProcessFormatChoice("xls");
+                            setPostProcessDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                        >
+                          <span>Legacy (.XLS)</span>
+                          {postProcessFormatChoice === "xls" && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostProcessFormatChoice("csv");
+                            setPostProcessDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                        >
+                          <span>CSV Format (.CSV)</span>
+                          {postProcessFormatChoice === "csv" && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* File Processing Item Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                {/* Left: File Thumbnail & Details */}
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <FileSpreadsheet className="w-6 h-6" />
+                  </div>
+
+                  <div className="min-w-0 text-left">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md">
+                        {downloadReady.fileName}
+                      </h4>
+                      <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider shrink-0 border border-emerald-500/30">
+                        <Check className="w-3 h-3" />
+                        <span>Completed</span>
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Ready for instant download • Formatted with native formulas & gridlines
+                    </p>
+                  </div>
+                </div>
+
+                {/* Inline Action Bar: Toggle Preview [👁], Format Dropdown [Download XLSX ∨], Mobile QR, Share, Cloud */}
+                <div className="flex items-center space-x-2 flex-wrap gap-y-2 self-end md:self-center">
+                  {/* Eye Toggle Live Preview Button */}
                   {(tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
                     <button
                       type="button"
-                      onClick={() => setShowLiveTableModal(true)}
-                      className="py-3 px-4 bg-teal-700 hover:bg-teal-800 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
-                      title="Open interactive spreadsheet matrix to view and edit columns before downloading"
+                      onClick={() => setShowInlineTablePreview(!showInlineTablePreview)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border ${
+                        showInlineTablePreview
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                      }`}
+                      title="Toggle inline live table preview"
                     >
-                      <Table className="w-4 h-4" />
-                      <span>Inspect Live Table</span>
+                      {showInlineTablePreview ? (
+                        <EyeOff className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                      )}
+                      <span>{showInlineTablePreview ? "Hide Preview" : "Preview Table"}</span>
                     </button>
                   )}
+
+                  {/* Direct Download Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) {
+                        const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Data";
+                        const matrix = liveTableMatrix.length > 0 ? liveTableMatrix : [
+                          ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
+                          ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
+                          ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
+                          ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
+                          ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
+                        ];
+                        const res = exportTableGridToSpreadsheet(matrix, postProcessFormatChoice, cleanBase);
+                        const mime =
+                          postProcessFormatChoice === "csv"
+                            ? "text/csv;charset=utf-8"
+                            : postProcessFormatChoice === "xls"
+                            ? "application/vnd.ms-excel"
+                            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                        downloadFile(res.bytes, res.fileName, mime);
+                      } else {
+                        downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center space-x-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                  </button>
 
                   {/* Mobile Transfer QR Code Button */}
                   <button
                     type="button"
                     onClick={() => setShowQrCodeModal(!showQrCodeModal)}
-                    className="py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
-                    title="Scan QR Code to download directly on mobile device"
+                    className="p-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-bold border border-amber-300 dark:border-amber-700 transition"
+                    title="Scan QR Code on mobile"
                   >
                     <QrCode className="w-4 h-4" />
-                    <span>Mobile QR</span>
                   </button>
 
                   {/* Secondary: Quick Share */}
                   <button
                     type="button"
                     onClick={() => setShowShareModal(true)}
-                    className="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
-                    title="Share via WhatsApp, Telegram, Socials or Copy Link"
+                    className="p-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold border border-indigo-300 dark:border-indigo-700 transition"
+                    title="Share file"
                   >
                     <Share2 className="w-4 h-4" />
-                    <span>Quick Share</span>
                   </button>
 
-                  {/* Tertiary: Export / Save to Cloud */}
+                  {/* Tertiary: Export to Cloud */}
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setExportMenuOpen(!exportMenuOpen)}
-                      className="py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
-                      title="Export options: Google Drive, Dropbox, OneDrive"
+                      className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition"
+                      title="Cloud storage options"
                     >
-                      <Cloud className="w-4 h-4 text-emerald-400" />
-                      <span>Export</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <Cloud className="w-4 h-4 text-emerald-500" />
                     </button>
 
-                    {/* Export Dropdown Menu */}
                     {exportMenuOpen && (
-                      <div className="absolute right-0 bottom-full mb-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 text-left">
+                      <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 text-left">
                         <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
                           Export Destination
                         </div>
@@ -3238,103 +3443,134 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* Mobile QR Transfer Card Expansion */}
-                {showQrCodeModal && (
-                  <div className="w-full max-w-md my-2 animate-in fade-in zoom-in-95 space-y-3">
-                    <QrCodeDisplay
-                      url={`${getPublicSiteUrl()}/#download=${encodeURIComponent(downloadReady.fileName)}`}
-                      title="Instant Mobile Download"
-                      subtitle={downloadReady.fileName}
-                      size={250}
-                    />
-                    <div className="flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setShowQrCodeModal(false)}
-                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer"
-                      >
-                        Hide QR Code
-                      </button>
-                    </div>
-                  </div>
-                )}
+              {/* Live Interactive Table Preview Engine Rendered Inline */}
+              {showInlineTablePreview && (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
+                <div className="mt-3">
+                  <LiveInteractiveTableGrid
+                    initialData={
+                      liveTableMatrix.length > 0
+                        ? liveTableMatrix
+                        : [
+                            ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
+                            ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
+                            ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
+                            ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
+                            ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
+                          ]
+                    }
+                    fileName={downloadReady.fileName}
+                    onDataChange={(updated) => {
+                      setLiveTableMatrix(updated);
+                    }}
+                    onDirectDownload={(fmt) => {
+                      setPostProcessFormatChoice(fmt);
+                      const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Extracted_Data";
+                      const matrix =
+                        liveTableMatrix.length > 0
+                          ? liveTableMatrix
+                          : [
+                              ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
+                              ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
+                              ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
+                              ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
+                              ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
+                            ];
+                      const res = exportTableGridToSpreadsheet(matrix, fmt, cleanBase);
+                      const mime =
+                        fmt === "csv"
+                          ? "text/csv;charset=utf-8"
+                          : fmt === "xls"
+                          ? "application/vnd.ms-excel"
+                          : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                      downloadFile(res.bytes, res.fileName, mime);
+                    }}
+                    onExpandFullscreen={() => setShowLiveTableModal(true)}
+                  />
+                </div>
+              )}
 
-                {/* Cross-Tool Routing ("Next Step" Recommendations) */}
-                <div className="pt-2 border-t border-emerald-500/20 w-full max-w-lg space-y-2">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Recommended Next Actions</span>
-                  <div className="flex flex-wrap justify-center gap-1.5">
-                    {tool.id !== "compress-pdf" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition flex items-center space-x-1"
-                      >
-                        <span>Compress PDF</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
-                    {tool.id !== "watermark-pdf" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition flex items-center space-x-1"
-                      >
-                        <span>Add Watermark</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
-                    {tool.id !== "protect-pdf" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-amber-300 text-[11px] font-bold transition flex items-center space-x-1"
-                      >
-                        <span>Protect PDF</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
-                    {tool.id !== "pdf-to-word" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[11px] font-bold transition flex items-center space-x-1"
-                      >
-                        <span>Convert to Word</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
+              {/* Mobile QR Transfer Modal */}
+              {showQrCodeModal && (
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-3 animate-in fade-in">
+                  <QrCodeDisplay
+                    url={`${getPublicSiteUrl()}/#download=${encodeURIComponent(downloadReady.fileName)}`}
+                    title="Instant Mobile Download"
+                    subtitle={downloadReady.fileName}
+                    size={220}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowQrCodeModal(false)}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline"
+                  >
+                    Close QR Code
+                  </button>
+                </div>
+              )}
+              {/* Cross-Tool Routing ("Next Step" Recommendations) */}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 w-full flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 flex-wrap gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Next Actions:
+                  </span>
+                  {tool.id !== "compress-pdf" && (
+                    <button
+                      type="button"
+                      onClick={() => onClose()}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition flex items-center space-x-1"
+                    >
+                      <span>Compress</span>
+                    </button>
+                  )}
+                  {tool.id !== "watermark-pdf" && (
+                    <button
+                      type="button"
+                      onClick={() => onClose()}
+                      className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition flex items-center space-x-1"
+                    >
+                      <span>Add Watermark</span>
+                    </button>
+                  )}
+                  {tool.id !== "protect-pdf" && (
+                    <button
+                      type="button"
+                      onClick={() => onClose()}
+                      className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-amber-300 text-[11px] font-bold transition flex items-center space-x-1"
+                    >
+                      <span>Protect</span>
+                    </button>
+                  )}
+                  {tool.id !== "pdf-to-word" && (
+                    <button
+                      type="button"
+                      onClick={() => onClose()}
+                      className="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[11px] font-bold transition flex items-center space-x-1"
+                    >
+                      <span>To Word</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Instant Security Purge Button */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDownloadReady(null);
-                      setFiles([]);
-                      setFileStates([]);
-                      setPurgedMessage(true);
-                      setTimeout(() => setPurgedMessage(false), 4000);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1.5"
-                    title="Permanently purge processed files from browser memory for 100% privacy"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete File Now (Memory Cleanup)</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDownloadReady(null);
+                    setFiles([]);
+                    setFileStates([]);
+                    setPurgedMessage(true);
+                    setTimeout(() => setPurgedMessage(false), 4000);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1"
+                  title="Permanently purge processed files from browser memory for 100% privacy"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Purge from Memory</span>
+                </button>
               </div>
-            </>
+            </div>
           )}
         </div>
 

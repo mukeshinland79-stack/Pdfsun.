@@ -2481,19 +2481,19 @@ export async function imageToNotepadText(
 }
 
 /**
- * Direct exporter from live in-browser edited grid to downloadable XLSX/CSV
+ * Direct exporter from live in-browser edited grid to downloadable XLSX, XLS, or CSV
  */
 export function exportTableGridToSpreadsheet(
   grid: string[][],
-  format: "xlsx" | "csv" = "xlsx",
+  format: "xlsx" | "xls" | "csv" = "xlsx",
   baseName: string = "PDFSun_Edited_Table"
 ): { bytes: Uint8Array; fileName: string } {
   const wb = XLSX.utils.book_new();
   const ws = buildStructuredWorksheet(grid);
   XLSX.utils.book_append_sheet(wb, ws, "Sheet_1");
 
-  const bookType = format === "csv" ? "csv" : "xlsx";
-  const outBuffer = XLSX.write(wb, { bookType, type: "array" });
+  const bookType = format === "csv" ? "csv" : format === "xls" ? "biff8" : "xlsx";
+  const outBuffer = XLSX.write(wb, { bookType: bookType as any, type: "array" });
   const fileName = `${baseName}.${format}`;
 
   return {
