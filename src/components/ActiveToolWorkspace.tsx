@@ -45,10 +45,12 @@ import {
   Presentation,
   Table,
   FileImage,
+  SlidersHorizontal,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import { TableGridPreviewModal } from "./TableGridPreviewModal";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -264,6 +266,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [ocrNoiseFilter, setOcrNoiseFilter] = useState(true);
   const [pdfImageFormat, setPdfImageFormat] = useState<"jpg" | "png">("jpg");
   const [excelTableDetect, setExcelTableDetect] = useState(true);
+  const [advancedOptionsOpen, setAdvancedOptionsOpen] = useState(false);
+  const [lowResWarning, setLowResWarning] = useState<string | null>(null);
+  const [fileRotations, setFileRotations] = useState<Record<number, number>>({});
+  const [showLiveTableModal, setShowLiveTableModal] = useState(false);
+  const [liveTableMatrix, setLiveTableMatrix] = useState<string[][]>([]);
+  const [liveTableFileName, setLiveTableFileName] = useState("PDFSun_Extracted_Data");
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -419,6 +427,26 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       setFiles((prev) => [...prev, ...acceptedFiles]);
       setDownloadReady(null);
       setErrorMessage("");
+
+      // Check image resolution for OCR and conversion precision
+      acceptedFiles.forEach((file) => {
+        if (file.type.startsWith("image/")) {
+          const img = new window.Image();
+          const objectUrl = URL.createObjectURL(file);
+          img.src = objectUrl;
+          img.onload = () => {
+            if (img.naturalWidth < 800 || img.naturalHeight < 800) {
+              setLowResWarning(
+                `Low resolution image detected on "${file.name}" (${img.naturalWidth}×${img.naturalHeight}px). For optimal OCR table borders & text recognition, 1000px+ high-contrast images are recommended.`
+              );
+            }
+            URL.revokeObjectURL(objectUrl);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+          };
+        }
+      });
     }
   }, []);
 
@@ -647,6 +675,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputBytes = res.bytes;
           outputName = res.fileName;
           mimeType = imageExcelFormat === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          if (res.previewRows && res.previewRows.length > 0) {
+            setLiveTableMatrix(res.previewRows);
+            setLiveTableFileName(res.fileName);
+          }
           break;
         }
 
@@ -1226,6 +1258,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </div>
           )}
 
+          {/* Low Resolution Image Warning Toast/Banner */}
+          {lowResWarning && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>{lowResWarning}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLowResWarning(null)}
+                className="p-1 text-amber-600 hover:text-amber-800 dark:hover:text-amber-100 transition rounded-lg"
+                title="Dismiss warning"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Uploaded & Validated File List with Thumbnail Preview Grid */}
           {files.length > 0 && (
             <div className="space-y-3">
@@ -1316,7 +1366,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           <div
                             className="w-full h-full flex flex-col justify-between transition-transform duration-300"
                             style={{
-                              transform: tool.id === "rotate-pdf" ? `rotate(${rotationAngle}deg)` : undefined,
+                              transform: `rotate(${(fileRotations[idx] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}deg)`,
                             }}
                           >
                             <div className="space-y-1.5">
@@ -1387,7 +1437,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             <span className="text-[10px] text-slate-400 font-mono">{fs.sizeFormatted}</span>
                           </div>
 
-                          {/* Controls Bar: Reorder Left / Right & Delete */}
+                          {/* Controls Bar: Reorder Left / Right, Rotate & Delete */}
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                             <div className="flex items-center space-x-1">
                               <button
@@ -1407,6 +1457,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 title="Move document right (later in order)"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFileRotations((prev) => ({
+                                    ...prev,
+                                    [idx]: ((prev[idx] || 0) + 90) % 360,
+                                  }));
+                                }}
+                                className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 transition"
+                                title="Rotate thumbnail 90° clockwise"
+                              >
+                                <RotateCw className="w-3.5 h-3.5" />
                               </button>
                             </div>
 
@@ -2640,6 +2703,100 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
+            {/* Collapsible Advanced Engine Options Drawer */}
+            <div className="mt-3 border-t border-slate-200/80 dark:border-slate-700/80 pt-3">
+              <button
+                type="button"
+                onClick={() => setAdvancedOptionsOpen(!advancedOptionsOpen)}
+                className="flex items-center justify-between w-full py-2.5 px-3.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
+              >
+                <div className="flex items-center space-x-2">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Advanced Engine Fine-Tuning & Filters</span>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 font-extrabold uppercase">
+                    Advanced
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+                      advancedOptionsOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {advancedOptionsOpen && (
+                <div className="mt-3 p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 space-y-3 text-xs animate-in fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-start space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ocrNoiseFilter}
+                        onChange={(e) => setOcrNoiseFilter(e.target.checked)}
+                        className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
+                      />
+                      <div>
+                        <span className="font-bold block">100% Regex Noise Sanitization</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          Strips OCR artifacts, stray delimiter bars (|||), and non-standard symbols.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={excelTableDetect}
+                        onChange={(e) => setExcelTableDetect(e.target.checked)}
+                        className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
+                      />
+                      <div>
+                        <span className="font-bold block">Smart Table Border Detection</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          Aligns tabular columns, auto-fits cell widths, and formats numeric formulas.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                        Rendering Quality / Canvas DPI
+                      </label>
+                      <select
+                        value={convertFromDpi}
+                        onChange={(e) => setConvertFromDpi(Number(e.target.value) as any)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"
+                      >
+                        <option value={72}>72 DPI (Standard Web - Fast)</option>
+                        <option value={150}>150 DPI (Recommended Balance)</option>
+                        <option value={300}>300 DPI (Ultra Sharp OCR)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                        OCR Language Matrix
+                      </label>
+                      <select
+                        value={ocrLanguage}
+                        onChange={(e) => setOcrLanguage(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"
+                      >
+                        <option value="eng">English (Auto-Detect)</option>
+                        <option value="hin">Hindi & Regional</option>
+                        <option value="spa">Spanish (Español)</option>
+                        <option value="fra">French (Français)</option>
+                        <option value="deu">German (Deutsch)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2 text-[11px] text-slate-400 pt-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>Validated & processed locally with chunked memory safety. HTTPS Encrypted.</span>
@@ -2957,6 +3114,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <Download className="w-4 h-4" />
                     <span>Direct Download</span>
                   </button>
+
+                  {/* Interactive In-Browser Live HTML Grid Preview Button */}
+                  {(tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowLiveTableModal(true)}
+                      className="py-3 px-4 bg-teal-700 hover:bg-teal-800 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2"
+                      title="Open interactive spreadsheet matrix to view and edit columns before downloading"
+                    >
+                      <Table className="w-4 h-4" />
+                      <span>Inspect Live Table</span>
+                    </button>
+                  )}
 
                   {/* Mobile Transfer QR Code Button */}
                   <button
@@ -3426,6 +3596,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           </div>
         </div>
       )}
+      {/* In-Browser Live HTML Grid Preview & Cell Editor Modal */}
+      <TableGridPreviewModal
+        isOpen={showLiveTableModal}
+        initialData={liveTableMatrix}
+        fileName={liveTableFileName}
+        onClose={() => setShowLiveTableModal(false)}
+        onDownloadCustom={(customData) => {
+          setLiveTableMatrix(customData);
+        }}
+      />
     </div>
   );
 };

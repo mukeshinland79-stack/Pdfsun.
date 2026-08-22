@@ -2151,6 +2151,72 @@ export function parseTextToTableGrid(rawText: string): string[][] {
 }
 
 /**
+ * Build a highly-formatted, professional Excel Worksheet from a 2D text matrix
+ * - Automatically parses numbers and currencies into true numeric cells for formula support
+ * - Auto-fits column widths to eliminate ### overflow errors
+ * - Enables native Excel gridlines and freezes the top header row
+ */
+export function buildStructuredWorksheet(grid: string[][]): XLSX.WorkSheet {
+  const ws: XLSX.WorkSheet = {};
+  if (!grid || grid.length === 0) return ws;
+
+  const numRows = grid.length;
+  const numCols = Math.max(...grid.map((r) => r.length), 1);
+  const colMaxLengths: number[] = new Array(numCols).fill(10);
+
+  for (let r = 0; r < numRows; r++) {
+    const row = grid[r];
+    for (let c = 0; c < numCols; c++) {
+      const cellValue = (row[c] || "").trim();
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+
+      // Track max length for column auto-fitting
+      if (cellValue.length > colMaxLengths[c]) {
+        colMaxLengths[c] = Math.min(cellValue.length, 60);
+      }
+
+      // Check if value is numeric or currency (excluding pure header row if alphanumeric)
+      const cleanNumStr = cellValue.replace(/^[$€£₹¥\s]+/, "").replace(/,/g, "").trim();
+      const isNumeric = r > 0 && cleanNumStr !== "" && !isNaN(Number(cleanNumStr)) && !/^[0-9]{4}-[0-9]{2}/.test(cleanNumStr);
+
+      if (isNumeric) {
+        ws[cellRef] = {
+          t: "n",
+          v: Number(cleanNumStr),
+          z: cellValue.includes("$") ? "$#,##0.00" : cellValue.includes("₹") ? "₹#,##0.00" : cellValue.includes(".") ? "0.00" : "#,##0",
+        };
+      } else {
+        ws[cellRef] = {
+          t: "s",
+          v: cellValue,
+        };
+      }
+    }
+  }
+
+  // Set boundary range
+  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: numRows - 1, c: numCols - 1 } });
+
+  // Dynamic Column Auto-Fit: calculate max width + generous 3-character padding
+  ws["!cols"] = colMaxLengths.map((maxLen) => ({
+    wch: Math.max(12, maxLen + 3),
+  }));
+
+  // Freeze top row and enable visible Excel gridlines
+  ws["!views"] = [
+    {
+      showGridLines: true,
+      state: "frozen",
+      ySplit: 1,
+      topLeftCell: "A2",
+      activeCell: "A2",
+    },
+  ];
+
+  return ws;
+}
+
+/**
  * Image to Excel (.xlsx / .csv) Converter
  * Auto-detects table layout, headers, rows, and exports clean structured spreadsheets.
  */
@@ -2169,7 +2235,7 @@ export async function imageToExcel(
 
   const wb = XLSX.utils.book_new();
   let totalRows = 0;
-  let samplePreviewRows: string[][] = [];
+  let aggregatedPreviewRows: string[][] = [];
 
   for (let i = 0; i < fileList.length; i++) {
     const f = fileList[i];
@@ -2185,20 +2251,22 @@ export async function imageToExcel(
       rawText = `Document: ${f.name}\nExtracted row data content.`;
     }
 
-    if (onProgress) onProgress(baseProgress + 10, "Formatting & structuring tabular data...");
+    if (onProgress) onProgress(baseProgress + 10, "Structuring & formatting tabular gridlines...");
 
     const tableGrid = parseTextToTableGrid(rawText);
     totalRows += tableGrid.length;
-    if (samplePreviewRows.length === 0) {
-      samplePreviewRows = tableGrid.slice(0, 10);
+    if (aggregatedPreviewRows.length === 0) {
+      aggregatedPreviewRows = tableGrid;
+    } else {
+      aggregatedPreviewRows = [...aggregatedPreviewRows, ...tableGrid];
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(tableGrid);
+    const ws = buildStructuredWorksheet(tableGrid);
     const sheetName = `Sheet_${i + 1}`.slice(0, 31);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
 
-  if (onProgress) onProgress(90, "Generating spreadsheet file...");
+  if (onProgress) onProgress(90, "Applying column auto-fit & packing spreadsheet...");
 
   const bookType = outputFormat === "csv" ? "csv" : "xlsx";
   const outBuffer = XLSX.write(wb, { bookType, type: "array" });
@@ -2211,7 +2279,7 @@ export async function imageToExcel(
     bytes: new Uint8Array(outBuffer),
     fileName,
     rowCount: totalRows,
-    previewRows: samplePreviewRows,
+    previewRows: aggregatedPreviewRows,
   };
 }
 
@@ -2409,6 +2477,28 @@ export async function imageToNotepadText(
     bytes,
     fileName,
     text: fullSanitizedText,
+  };
+}
+
+/**
+ * Direct exporter from live in-browser edited grid to downloadable XLSX/CSV
+ */
+export function exportTableGridToSpreadsheet(
+  grid: string[][],
+  format: "xlsx" | "csv" = "xlsx",
+  baseName: string = "PDFSun_Edited_Table"
+): { bytes: Uint8Array; fileName: string } {
+  const wb = XLSX.utils.book_new();
+  const ws = buildStructuredWorksheet(grid);
+  XLSX.utils.book_append_sheet(wb, ws, "Sheet_1");
+
+  const bookType = format === "csv" ? "csv" : "xlsx";
+  const outBuffer = XLSX.write(wb, { bookType, type: "array" });
+  const fileName = `${baseName}.${format}`;
+
+  return {
+    bytes: new Uint8Array(outBuffer),
+    fileName,
   };
 }
 
