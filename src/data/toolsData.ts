@@ -27,6 +27,28 @@ export const ALL_TOOLS: ToolItem[] = [
     badge: "Most Used",
     supportedInput: [".pdf"],
     outputFormat: "PDF",
+    faqs: [
+      {
+        question: "How do I combine multiple PDF files into one single document?",
+        answer: "To merge PDFs on PDFSun, simply select or drag and drop all your PDF documents into the workspace. Drag the file cards to arrange them in your preferred sequence, then click 'Merge PDF' to immediately download your consolidated document.",
+      },
+      {
+        question: "Is there a limit on how many PDF files or pages I can merge?",
+        answer: "No! PDFSun allows you to merge dozens of PDF files and hundreds of pages simultaneously directly inside your browser with zero limits, zero fees, and no file size restrictions.",
+      },
+      {
+        question: "Will merging PDF files alter original font formatting or image quality?",
+        answer: "Not at all. PDFSun combines underlying PDF byte streams, page trees, and embedded fonts without rasterizing or recompressing text, preserving 100% of your original document clarity and vector fidelity.",
+      },
+      {
+        question: "Are my uploaded PDF files kept secure and private during merging?",
+        answer: "Yes, 100% private. All PDF merging operations execute locally inside your web browser via client-side WebAssembly. Your documents are never uploaded to, processed on, or stored in remote cloud servers.",
+      },
+      {
+        question: "Can I merge PDF files on my iPhone, Android phone, or Mac?",
+        answer: "Yes! PDFSun works seamlessly across all modern mobile and desktop browsers including Apple Safari, Google Chrome, Mozilla Firefox, and Microsoft Edge without installing third-party apps.",
+      },
+    ],
   },
   {
     id: "split-pdf",
@@ -39,6 +61,28 @@ export const ALL_TOOLS: ToolItem[] = [
     isStudentFavorite: true,
     supportedInput: [".pdf"],
     outputFormat: "PDF / ZIP",
+    faqs: [
+      {
+        question: "How do I extract specific page ranges (e.g. 1-5, 8, 12-20) from a PDF?",
+        answer: "Upload your document to Split PDF, choose 'Custom Page Range', enter your desired pages or intervals (such as '1-5, 8, 12-20'), and click 'Split PDF' to immediately download your extracted PDF file.",
+      },
+      {
+        question: "Can I split every page into separate individual single-page PDF files?",
+        answer: "Yes! Select the 'Extract All Pages' mode to automatically separate every page in your document into its own individual PDF file, delivered neatly packaged in a single downloadable ZIP archive.",
+      },
+      {
+        question: "Does splitting a PDF reduce its visual resolution or damage searchable text?",
+        answer: "No. Splitting extracts the native PDF page objects directly from the file structure without modifying typography, clickable hyperlinks, bookmarks, or vector artwork.",
+      },
+      {
+        question: "How can I split password-protected or encrypted PDF documents?",
+        answer: "If your document has an open password, first unlock it using our free Unlock PDF tool, and then split or extract pages freely.",
+      },
+      {
+        question: "Is Split PDF free and private on PDFSun?",
+        answer: "Yes, Split PDF is completely free with no watermarks and no registration required. All processing runs 100% client-side in your browser for absolute data confidentiality.",
+      },
+    ],
   },
   {
     id: "compress-pdf",
@@ -52,6 +96,28 @@ export const ALL_TOOLS: ToolItem[] = [
     badge: "Ultra Fast",
     supportedInput: [".pdf"],
     outputFormat: "PDF",
+    faqs: [
+      {
+        question: "How does PDF compression reduce file size without losing text clarity?",
+        answer: "PDFSun Compress optimizes internal PDF structure by removing redundant metadata, consolidating embedded font tables, stripping unreferenced objects, and applying intelligent image downsampling so typography and vector graphics remain razor sharp.",
+      },
+      {
+        question: "Can I compress a PDF to a specific size limit for email, job portals, or government portals (under 200KB, 500KB, or 1MB)?",
+        answer: "Yes! PDFSun offers multiple compression presets (Extreme Compression, Recommended Balanced, and Low Compression) allowing you to shrink large multi-megabyte PDFs down to meet strict attachment and portal upload limits.",
+      },
+      {
+        question: "How much file size reduction can I expect on scanned PDFs and images?",
+        answer: "Documents containing high-resolution scans, photos, or complex graphics typically achieve 40% to 85% file size reduction, while text-heavy PDFs with embedded fonts are efficiently streamlined.",
+      },
+      {
+        question: "Are my confidential business, financial, and tax documents safe when compressed?",
+        answer: "Absolutely. PDFSun processes your documents locally using client-side WebAssembly. Your files are never sent over the internet or stored on external servers.",
+      },
+      {
+        question: "Does compressing a PDF strip interactive form fields, bookmarks, or links?",
+        answer: "No. PDFSun preserves active form fields, table of contents bookmarks, internal links, and searchable text layers while minimizing byte weight.",
+      },
+    ],
   },
   {
     id: "pdf-to-word",
@@ -383,6 +449,28 @@ export const ALL_TOOLS: ToolItem[] = [
     category: "edit",
     supportedInput: [".pdf"],
     outputFormat: "PDF",
+    faqs: [
+      {
+        question: "How do I rotate sideways or upside-down PDF pages?",
+        answer: "Upload your document to Rotate PDF, click the rotate controls (90° clockwise, 90° counter-clockwise, or 180° inversion), and click 'Rotate PDF' to save and download your properly oriented document immediately.",
+      },
+      {
+        question: "Can I rotate specific individual pages without rotating the whole document?",
+        answer: "Yes! PDFSun displays live interactive visual thumbnails for every page. You can rotate individual pages independently by clicking the rotation icon on that specific page thumbnail, or click 'Rotate All' to adjust the entire file at once.",
+      },
+      {
+        question: "Is the page rotation permanent in Adobe Acrobat, Apple Preview, and mobile readers?",
+        answer: "Yes! PDFSun updates the internal PDF page dictionary `/Rotate` attribute and reconstructs the coordinate transformation matrix so your orientation changes are permanently recognized across all PDF software and operating systems.",
+      },
+      {
+        question: "Can I rotate scanned landscape spreadsheets, invoices, or blueprints to portrait?",
+        answer: "Absolutely. Rotate PDF easily corrects upside-down and sideways scans from photocopiers, mobile phone scanners, receipts, architectural plans, and financial reports.",
+      },
+      {
+        question: "Are my documents safe and private when using Rotate PDF?",
+        answer: "Yes, 100% private. All PDF page rotation is executed entirely within your browser using client-side WebAssembly. No files or personal data are ever uploaded to remote servers.",
+      },
+    ],
   },
   {
     id: "crop-pdf",

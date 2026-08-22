@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sun,
   Moon,
   Search,
-  Sparkles,
   Star,
   Clock,
-  Calendar,
   Menu,
   X,
   ShieldCheck,
   ChevronDown,
-  Layers,
   Crown,
   User,
   LogOut,
@@ -27,18 +24,11 @@ import {
   Edit3,
   Sliders,
   Wallet,
-  Grid,
-  GraduationCap,
-  Flame,
-  RefreshCw,
-  Shield,
-  Wrench,
   QrCode,
+  Sparkles,
   Share2,
-  Image,
-  FileText,
 } from "lucide-react";
-import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
+import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { SearchModal } from "./SearchModal";
@@ -46,18 +36,6 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { checkAdminRole } from "../hooks/useAuth";
-
-const CATEGORY_ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
-  Grid,
-  GraduationCap,
-  Sparkles,
-  Flame,
-  RefreshCw,
-  Sliders,
-  Shield,
-  Wrench,
-  Crown,
-};
 
 interface HeaderProps {
   darkMode: boolean;
@@ -113,24 +91,15 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   onOpenTodayInHistory,
   onOpenShareModal,
-  selectedCategory = "all",
-  onSelectCategory,
 }) => {
   const { t } = useLanguage();
 
   // Strict RBAC authorization: Server token verified & cryptographic role checked
-  // Hidden by default: All admin features are completely hidden unless canAccessAdmin is strictly true
   const isAuthenticated = Boolean(userProfile && userProfile.email && currentRole !== "public");
   const hasAdminRights = Boolean(canAccessAdmin) && isAuthenticated && checkAdminRole(userProfile, currentRole);
   const isAdminOrOwner = hasAdminRights;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
-  const [imageDropdownOpen, setImageDropdownOpen] = useState(false);
-  const [pdfConvertDropdownOpen, setPdfConvertDropdownOpen] = useState(false);
-  const [pdfUtilsDropdownOpen, setPdfUtilsDropdownOpen] = useState(false);
-  const [toolsSearchQuery, setToolsSearchQuery] = useState("");
-  const [toolsActiveCategory, setToolsActiveCategory] = useState<string>("all");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
@@ -140,11 +109,6 @@ export const Header: React.FC<HeaderProps> = ({
 
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const toolsDropdownRef = useRef<HTMLDivElement>(null);
-  const imageDropdownRef = useRef<HTMLDivElement>(null);
-  const pdfConvertDropdownRef = useRef<HTMLDivElement>(null);
-  const pdfUtilsDropdownRef = useRef<HTMLDivElement>(null);
-  const categoriesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof navigator !== "undefined") {
@@ -168,18 +132,6 @@ export const Header: React.FC<HeaderProps> = ({
       }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
         setProfileDropdownOpen(false);
-      }
-      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target as Node)) {
-        setToolsDropdownOpen(false);
-      }
-      if (imageDropdownRef.current && !imageDropdownRef.current.contains(e.target as Node)) {
-        setImageDropdownOpen(false);
-      }
-      if (pdfConvertDropdownRef.current && !pdfConvertDropdownRef.current.contains(e.target as Node)) {
-        setPdfConvertDropdownOpen(false);
-      }
-      if (pdfUtilsDropdownRef.current && !pdfUtilsDropdownRef.current.contains(e.target as Node)) {
-        setPdfUtilsDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -215,27 +167,6 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [handleOpenSearchModal]);
 
-  const handleCategorySelect = (catId: CategoryId) => {
-    if (onSelectCategory) {
-      onSelectCategory(catId);
-    }
-    const toolsElement = document.getElementById("tools");
-    if (toolsElement) {
-      toolsElement.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const aiTools = ALL_TOOLS.filter((t) => t.isAi);
-
-  // Available categories list for the public sticky category navigation (Strict RBAC isolation)
-  const visibleCategories = useMemo(() => {
-    return CATEGORIES.filter(
-      (cat) =>
-        (cat.id as string).toLowerCase() !== "owner" &&
-        (cat.id as string).toLowerCase() !== "admin"
-    );
-  }, []);
-
   return (
     <header
       id="main-header"
@@ -244,439 +175,26 @@ export const Header: React.FC<HeaderProps> = ({
       }`}
     >
       {/* ========================================================= */}
-      {/* TOP PRIMARY BAR: Logo, Nav, Search, Actions               */}
+      {/* PRIMARY CLEAN TOP BAR: Brand Logo, Global Search & Controls */}
       {/* ========================================================= */}
-      <div className="flex flex-wrap w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap w-full md:flex-nowrap items-center justify-between gap-2 sm:gap-4 py-2 sm:py-2.5 min-h-[3.75rem]">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 py-2 sm:py-2.5 min-h-[3.75rem]">
           
-          {/* ========================================================= */}
-          {/* ZONE 1: LEFT ZONE (Brand Logo & Main Desktop Nav Links)   */}
-          {/* ========================================================= */}
-          <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 shrink-0">
+          {/* ZONE 1: BRAND LOGO */}
+          <div className="flex items-center shrink-0">
             <PDFSunLogo
               layout="horizontal"
               size="md"
               onClick={onGoHome}
             />
-
-            {/* Primary Navigation Links (Desktop lg+) */}
-            <nav className="hidden lg:flex flex-wrap items-center space-x-1" aria-label="Main Navigation">
-              {/* Direct Home Link */}
-              <button
-                type="button"
-                onClick={onGoHome}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
-              >
-                <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>{t("home", "Home")}</span>
-              </button>
-
-              {/* Image Conversions (OCR & Direct) Dropdown */}
-              <div className="relative" ref={imageDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImageDropdownOpen(!imageDropdownOpen);
-                    setPdfConvertDropdownOpen(false);
-                    setPdfUtilsDropdownOpen(false);
-                    setToolsDropdownOpen(false);
-                  }}
-                  onMouseEnter={() => setImageDropdownOpen(true)}
-                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
-                >
-                  <Image className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Image & OCR</span>
-                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${imageDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {imageDropdownOpen && (
-                  <div
-                    onMouseLeave={() => setImageDropdownOpen(false)}
-                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
-                  >
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
-                      Image Conversions (OCR & Direct)
-                    </div>
-                    <div className="space-y-1">
-                      {[
-                        { id: "image-to-excel", name: "Image to Excel (.xlsx / .csv)", desc: "Auto-detect table layout & structured data", badge: "AI Table" },
-                        { id: "image-to-word", name: "Image to Word / WordPad", desc: "Extract styled text, headings & paragraphs", badge: ".docx / .rtf" },
-                        { id: "image-to-pdf", name: "Image to PDF (.pdf)", desc: "Single/multi-image searchable HD document", badge: "Fast" },
-                        { id: "image-to-notepad", name: "Image to Notepad (.txt)", desc: "100% regex noise-filtered pure text", badge: "Noise Filter" },
-                      ].map((item) => {
-                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id) || {
-                          id: item.id,
-                          name: item.name,
-                          slug: item.id,
-                          description: item.desc,
-                          icon: "FileText",
-                          category: "convert",
-                          supportedInput: [".png", ".jpg"],
-                          outputFormat: item.badge,
-                        };
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              onSelectTool(toolItem as any);
-                              setImageDropdownOpen(false);
-                            }}
-                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition group cursor-pointer"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
-                              ⚡
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                                  {item.name}
-                                </span>
-                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold shrink-0">
-                                  {item.badge}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* PDF Conversions Dropdown */}
-              <div className="relative" ref={pdfConvertDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPdfConvertDropdownOpen(!pdfConvertDropdownOpen);
-                    setImageDropdownOpen(false);
-                    setPdfUtilsDropdownOpen(false);
-                    setToolsDropdownOpen(false);
-                  }}
-                  onMouseEnter={() => setPdfConvertDropdownOpen(true)}
-                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Convert PDF</span>
-                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${pdfConvertDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {pdfConvertDropdownOpen && (
-                  <div
-                    onMouseLeave={() => setPdfConvertDropdownOpen(false)}
-                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
-                  >
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
-                      Convert to / from PDF
-                    </div>
-                    <div className="space-y-1">
-                      {[
-                        { id: "pdf-to-image", name: "PDF to Image (.jpg / .png)", desc: "High-resolution page extraction archive", badge: "HD ZIP" },
-                        { id: "pdf-to-excel", name: "PDF to Excel (.xlsx / .csv)", desc: "Extract tabular financial & numerical data", badge: "XLSX" },
-                        { id: "pdf-to-word", name: "PDF to Word (.docx)", desc: "Editable Microsoft Word document", badge: "DOCX" },
-                        { id: "word-to-pdf", name: "Word to PDF (.pdf)", desc: "Standardized PDF with preserved formatting", badge: "PDF" },
-                        { id: "excel-to-pdf", name: "Excel to PDF (.pdf)", desc: "Spreadsheet report to clean PDF tables", badge: "PDF" },
-                        { id: "powerpoint-to-pdf", name: "PowerPoint to PDF (.pdf)", desc: "Convert presentation slides to PDF", badge: "PDF" },
-                      ].map((item) => {
-                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id);
-                        if (!toolItem) return null;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              onSelectTool(toolItem);
-                              setPdfConvertDropdownOpen(false);
-                            }}
-                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition group cursor-pointer"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
-                              📄
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                  {item.name}
-                                </span>
-                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold shrink-0">
-                                  {item.badge}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* PDF Utilities Dropdown */}
-              <div className="relative" ref={pdfUtilsDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPdfUtilsDropdownOpen(!pdfUtilsDropdownOpen);
-                    setImageDropdownOpen(false);
-                    setPdfConvertDropdownOpen(false);
-                    setToolsDropdownOpen(false);
-                  }}
-                  onMouseEnter={() => setPdfUtilsDropdownOpen(true)}
-                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
-                >
-                  <Wrench className="w-3.5 h-3.5 text-orange-500" />
-                  <span>PDF Utilities</span>
-                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${pdfUtilsDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {pdfUtilsDropdownOpen && (
-                  <div
-                    onMouseLeave={() => setPdfUtilsDropdownOpen(false)}
-                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
-                  >
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
-                      PDF Optimization & Security
-                    </div>
-                    <div className="space-y-1">
-                      {[
-                        { id: "compress-pdf", name: "Compress PDF", desc: "Reduce file size with maximum visual quality", badge: "Fast" },
-                        { id: "merge-pdf", name: "Merge PDF", desc: "Combine multiple PDF documents seamlessly", badge: "Most Used" },
-                        { id: "split-pdf", name: "Split PDF", desc: "Extract specific page ranges or single pages", badge: "Flexible" },
-                        { id: "watermark-pdf", name: "Watermark PDF", desc: "Apply stamp or text across pages", badge: "Security" },
-                        { id: "protect-pdf", name: "Protect & Unlock PDF", desc: "Encrypt or remove passwords with 256-bit AES", badge: "AES-256" },
-                      ].map((item) => {
-                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id);
-                        if (!toolItem) return null;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              onSelectTool(toolItem);
-                              setPdfUtilsDropdownOpen(false);
-                            }}
-                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-orange-50 dark:hover:bg-orange-950/40 transition group cursor-pointer"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
-                              🔧
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-orange-600 dark:group-hover:text-orange-400">
-                                  {item.name}
-                                </span>
-                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-bold shrink-0">
-                                  {item.badge}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* All PDF Tools Mega Dropdown */}
-              <div className="relative" ref={toolsDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setToolsDropdownOpen(!toolsDropdownOpen);
-                    setImageDropdownOpen(false);
-                    setPdfConvertDropdownOpen(false);
-                    setPdfUtilsDropdownOpen(false);
-                  }}
-                  onMouseEnter={() => setToolsDropdownOpen(true)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
-                >
-                  <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>{t("allTools", "All PDF Tools")}</span>
-                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${toolsDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {toolsDropdownOpen && (
-                  <div
-                    onMouseLeave={() => setToolsDropdownOpen(false)}
-                    className="absolute top-full left-0 w-[420px] max-w-[calc(100vw-1.5rem)] mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-[9999] animate-in fade-in slide-in-from-top-2"
-                  >
-                    {/* Inline Tool Search & Category Filter */}
-                    <div className="w-full mb-2.5 space-y-2">
-                      <div className="w-full relative">
-                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={toolsSearchQuery}
-                          onChange={(e) => setToolsSearchQuery(e.target.value)}
-                          placeholder={`Quick find among ${ALL_TOOLS.length} tools...`}
-                          className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                        />
-                        {toolsSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setToolsSearchQuery("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            aria-label="Clear tool search"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Category Filter Chips */}
-                      {!toolsSearchQuery && (
-                        <div className="w-full flex flex-wrap items-center gap-1 overflow-x-auto no-scrollbar pb-1 text-[11px]">
-                          {[
-                            { id: "all", label: "Popular" },
-                            { id: "convert", label: "Convert" },
-                            { id: "organize", label: "Organize" },
-                            { id: "security", label: "Security" },
-                            { id: "ai", label: "AI Suite" },
-                          ].map((cat) => (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => setToolsActiveCategory(cat.id)}
-                              className={`px-2.5 py-1 rounded-lg font-bold transition whitespace-nowrap cursor-pointer ${
-                                toolsActiveCategory === cat.id
-                                  ? "bg-blue-600 text-white shadow-2xs"
-                                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700"
-                              }`}
-                            >
-                              {cat.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Filtered Tools List */}
-                    <div className="w-full max-h-[280px] overflow-y-auto space-y-1 pr-1 custom-scrollbar overscroll-contain">
-                      {(() => {
-                        let displayedTools = ALL_TOOLS;
-                        if (toolsSearchQuery.trim()) {
-                          const q = toolsSearchQuery.toLowerCase().trim();
-                          displayedTools = ALL_TOOLS.filter(
-                            (t) =>
-                              t.name.toLowerCase().includes(q) ||
-                              t.description.toLowerCase().includes(q) ||
-                              t.category.toLowerCase().includes(q)
-                          );
-                        } else if (toolsActiveCategory === "all") {
-                          displayedTools = ALL_TOOLS.filter((t) => t.isPopular || t.isStudentFavorite).slice(0, 10);
-                        } else if (toolsActiveCategory === "ai") {
-                          displayedTools = ALL_TOOLS.filter((t) => t.isAi || t.category === "ai");
-                        } else if (toolsActiveCategory === "security") {
-                          displayedTools = ALL_TOOLS.filter(
-                            (t) =>
-                              t.category === "security" ||
-                              ["protect-pdf", "unlock-pdf", "flatten-pdf", "redact-pdf", "watermark-pdf"].includes(t.id)
-                          );
-                        } else if (toolsActiveCategory === "organize") {
-                          displayedTools = ALL_TOOLS.filter(
-                            (t) =>
-                              t.category === "edit" ||
-                              ["merge-pdf", "split-pdf", "rotate-pdf", "remove-pages", "organize-pdf", "extract-pages"].includes(t.id)
-                          );
-                        } else if (toolsActiveCategory === "convert") {
-                          displayedTools = ALL_TOOLS.filter((t) => t.category === "convert").slice(0, 12);
-                        }
-
-                        if (displayedTools.length === 0) {
-                          return (
-                            <div className="w-full py-6 text-center text-xs text-slate-400">
-                              No tools found matching "{toolsSearchQuery}"
-                            </div>
-                          );
-                        }
-
-                        return displayedTools.map((tool) => (
-                          <button
-                            key={tool.id}
-                            type="button"
-                            onClick={() => {
-                              onSelectTool(tool);
-                              setToolsDropdownOpen(false);
-                              setToolsSearchQuery("");
-                            }}
-                            className="w-full flex flex-wrap sm:flex-nowrap items-center justify-between p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition text-slate-700 dark:text-slate-200 group cursor-pointer gap-1"
-                          >
-                            <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-                              <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition shrink-0">
-                                {tool.name[0]}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate flex items-center space-x-1.5">
-                                  <span>{tool.name}</span>
-                                  {tool.badge && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                                      {tool.badge}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[10px] text-slate-400 truncate max-w-[260px]">{tool.description}</div>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-mono font-bold text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0 ml-auto">
-                              Open →
-                            </span>
-                          </button>
-                        ));
-                      })()}
-                    </div>
-
-                    {/* Mega-menu Bottom Bar */}
-                    <div className="w-full mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <span className="text-slate-400 font-medium">
-                        {ALL_TOOLS.length} Total WebAssembly Tools
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setToolsDropdownOpen(false);
-                          handleOpenSearchModal();
-                        }}
-                        className="font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center space-x-1 cursor-pointer ml-auto"
-                      >
-                        <span>Command Palette</span>
-                        <kbd className="px-1 py-0.5 text-[9px] font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-500">⌘K</kbd>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* AI Tools Suite Pill */}
-              {aiTools.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onSelectTool(aiTools[0])}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition shadow-2xs whitespace-nowrap cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>{t("aiSuite", "AI Suite")}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 bg-blue-600 text-white rounded-full font-mono font-bold">
-                    PRO
-                  </span>
-                </button>
-              )}
-            </nav>
           </div>
 
-          {/* ========================================================= */}
-          {/* ZONE 2: CENTER ZONE (Responsive Search Bar)               */}
-          {/* ========================================================= */}
-          <div className="order-3 md:order-2 flex flex-wrap w-full md:w-auto flex-1 max-w-none md:max-w-xs lg:max-w-md mx-0 md:mx-2">
+          {/* ZONE 2: CENTER RESPONSIVE GLOBAL SEARCH BAR */}
+          <div className="flex flex-1 max-w-xs sm:max-w-md md:max-w-lg mx-2">
             <button
               type="button"
               onClick={handleOpenSearchModal}
-              className="flex flex-wrap w-full sm:flex-nowrap items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs cursor-pointer group gap-1"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs cursor-pointer group gap-1"
               title={`Command Palette (${isMac ? "Cmd+K" : "Ctrl+K"})`}
               aria-label="Open Command Palette tool search modal"
             >
@@ -687,8 +205,8 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
 
-              {/* Visual Shortcut Badge next to search input */}
-              <div className="flex items-center space-x-1 shrink-0 ml-auto sm:ml-2">
+              {/* Visual Shortcut Badge */}
+              <div className="flex items-center space-x-1 shrink-0 ml-2">
                 <span className="inline-flex items-center space-x-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300/80 dark:border-slate-700 rounded-md text-slate-500 dark:text-slate-400 shadow-2xs group-hover:border-blue-400 dark:group-hover:border-blue-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   <span>{isMac ? "⌘" : "Ctrl+"}</span>
                   <span>K</span>
@@ -697,15 +215,13 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* ========================================================= */}
-          {/* ZONE 3: RIGHT ZONE (Actions, Theme, Language & Auth)      */}
-          {/* ========================================================= */}
-          <div className="order-2 md:order-3 flex flex-wrap items-center space-x-1.5 sm:space-x-2.5 shrink-0 ml-auto md:ml-0">
+          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Language, Theme & Auth/Profile) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
             
-            {/* Language Dropdown Menu */}
+            {/* Language Selector */}
             <LanguageSwitcher showLabel={true} align="right" />
 
-            {/* Single Unified Theme Selector */}
+            {/* Theme Selector */}
             <div className="relative" ref={themeDropdownRef}>
               <button
                 type="button"
@@ -776,7 +292,7 @@ export const Header: React.FC<HeaderProps> = ({
                             }
                             setThemeDropdownOpen(false);
                           }}
-                          className={`w-full flex flex-wrap sm:flex-nowrap items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
+                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
                             isActive
                               ? "bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -798,7 +314,7 @@ export const Header: React.FC<HeaderProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Primary CTA / User Profile / Admin Menu */}
+            {/* Profile / Admin / Auth Menu */}
             <div className="relative" ref={profileDropdownRef}>
               {hasAdminRights ? (
                 <button
@@ -829,17 +345,15 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
                 </button>
               ) : (
-                <div className="flex flex-wrap items-center space-x-1.5">
-                  <button
-                    type="button"
-                    onClick={() => onOpenAuthModal("customer")}
-                    className="px-3.5 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer active:scale-95"
-                    aria-label="Login or Sign In"
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>{t("login", "Login / Sign In")}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenAuthModal("customer")}
+                  className="px-3.5 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer active:scale-95"
+                  aria-label="Login or Sign In"
+                >
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t("login", "Login / Sign In")}</span>
+                </button>
               )}
 
               {/* Profile / Admin Navigation Dropdown */}
@@ -882,7 +396,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {/* ADMIN ONLY MENU ITEMS */}
                   {hasAdminRights && (
                     <div className="w-full space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
-                      <div className="w-full px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex flex-wrap items-center justify-between gap-1">
+                      <div className="w-full px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center justify-between gap-1">
                         <span>{currentRole === "owner" ? "Owner Administration" : "Admin Suite"}</span>
                         {adminEditModeActive && (
                           <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
@@ -991,7 +505,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   )}
 
-                  {/* USER SHORTCUTS: FAVORITES & RECENT FILES */}
+                  {/* USER SHORTCUTS: FAVORITES, HISTORY & DASHBOARD */}
                   <div className="w-full space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
                     <button
                       type="button"
@@ -1071,7 +585,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Mobile Menu Toggle (< 1024px) */}
+            {/* Mobile Menu Toggle Button (< lg screens) */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -1085,136 +599,28 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* SECONDARY BAR: Sub-Header Navigation & Action Tools       */}
-      {/* ========================================================= */}
-      <div className="w-full border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/75 dark:bg-slate-900/75 backdrop-blur-xs">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between gap-2 sm:gap-3">
-          
-          {/* Scrollable Categories List */}
-          <div
-            ref={categoriesContainerRef}
-            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth min-w-0 flex-1 py-0.5"
-            role="tablist"
-            aria-label="PDF Tool Categories"
-          >
-            {visibleCategories.map((cat) => {
-              const IconComp = CATEGORY_ICON_MAP[cat.icon] || Grid;
-              const isSelected = selectedCategory === cat.id;
-
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleCategorySelect(cat.id as CategoryId)}
-                  role="tab"
-                  aria-selected={isSelected}
-                  className={`inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                    isSelected
-                      ? "bg-blue-600 text-white shadow-2xs scale-[1.02]"
-                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
-                  }`}
-                >
-                  <IconComp className={`w-3.5 h-3.5 ${isSelected ? "text-white" : "text-blue-600 dark:text-blue-400"}`} />
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sub-Header Actions: Today in History & Share / QR Code */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 pl-1.5 sm:pl-2 border-l border-slate-200/80 dark:border-slate-800">
-            {/* Today in History Action Badge/Button */}
-            {onOpenTodayInHistory && (
-              <button
-                type="button"
-                onClick={onOpenTodayInHistory}
-                className="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/70 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition shadow-2xs whitespace-nowrap cursor-pointer shrink-0 active:scale-95"
-                title="Explore Today in History in 30 Languages"
-              >
-                <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="hidden md:inline">Today in History</span>
-                <span className="md:hidden">History</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold shrink-0">
-                  30 Lang
-                </span>
-              </button>
-            )}
-
-            {/* Share & QR Code Button */}
-            {onOpenShareModal && (
-              <button
-                type="button"
-                onClick={onOpenShareModal}
-                className="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition shadow-2xs whitespace-nowrap cursor-pointer shrink-0 active:scale-95"
-                title="Share & Scan QR Code"
-                aria-label="Share and Scan QR Code"
-              >
-                <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="hidden sm:inline">Share</span>
-                <QrCode className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400 shrink-0" />
-              </button>
-            )}
-          </div>
-
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* RESPONSIVE MOBILE & TABLET SLIDE-OVER DRAWER (< 1024px)   */}
+      {/* RESPONSIVE MOBILE SLIDE-OVER DRAWER (< lg)                */}
       {/* ========================================================= */}
       {mobileMenuOpen && (
-        <div className="flex flex-wrap flex-col w-full lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0b1120]/98 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+        <div className="w-full lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0b1120]/98 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
 
           {/* Mobile Quick Search Button */}
-          <div className="flex flex-wrap w-full">
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setSearchOverlayOpen(true);
-              }}
-              className="flex flex-wrap w-full sm:flex-nowrap items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer gap-2"
-            >
-              <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="truncate">{t("searchTools", `Search ${ALL_TOOLS.length} PDF tools...`)}</span>
-              </div>
-              <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-auto">Ctrl+K</kbd>
-            </button>
-          </div>
-
-          {/* Mobile Tool Categories Quick Links */}
-          <div className="w-full p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-              Categories
-            </span>
-            <div className="w-full flex flex-wrap gap-1.5">
-              {visibleCategories.map((cat) => {
-                const IconComp = CATEGORY_ICON_MAP[cat.icon] || Grid;
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      handleCategorySelect(cat.id as CategoryId);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      isSelected
-                        ? "bg-blue-600 text-white shadow-2xs"
-                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
-                    }`}
-                  >
-                    <IconComp className={`w-3 h-3 ${isSelected ? "text-white" : "text-blue-500"}`} />
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setSearchOverlayOpen(true);
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer gap-2"
+          >
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="truncate">{t("searchTools", `Search ${ALL_TOOLS.length} PDF tools...`)}</span>
             </div>
-          </div>
+            <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-auto">Ctrl+K</kbd>
+          </button>
 
-          {/* Mobile Navigation Links */}
+          {/* Mobile Essential Navigation Links */}
           <div className="w-full space-y-1">
             <button
               type="button"
@@ -1228,47 +634,13 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t("home", "Home")}</span>
             </button>
 
-            {onOpenTodayInHistory && (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenTodayInHistory();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex flex-wrap sm:flex-nowrap items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs cursor-pointer gap-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>Today in History</span>
-                </div>
-                <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded font-bold shrink-0 ml-auto">30 Lang</span>
-              </button>
-            )}
-
-            {aiTools.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectTool(aiTools[0]);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex flex-wrap sm:flex-nowrap items-center justify-between p-2.5 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-bold text-xs cursor-pointer gap-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  <span>{t("aiSuite", "AI PDF Tools Suite")}</span>
-                </div>
-                <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold shrink-0 ml-auto">PRO</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => {
                 onOpenFavorites();
                 setMobileMenuOpen(false);
               }}
-              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between transition cursor-pointer gap-2"
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between transition cursor-pointer gap-2"
             >
               <div className="flex items-center space-x-2">
                 <Star className="w-4 h-4 text-amber-500 shrink-0" />
@@ -1312,7 +684,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Mobile Language Switcher Row */}
-          <div className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
+          <div className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
               <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
               <span>{t("language", "Language")}</span>
@@ -1358,7 +730,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* ADMIN MOBILE MENU OPTIONS */}
           {isAdminOrOwner && (
             <div className="w-full p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 space-y-2">
-              <div className="w-full text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-1 flex flex-wrap items-center justify-between gap-1">
+              <div className="w-full text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-1 flex items-center justify-between gap-1">
                 <span className="flex items-center space-x-1">
                   <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span>Admin Suite {currentRole === "owner" ? "(Owner)" : "(Granted)"}</span>
@@ -1517,7 +889,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
-          {/* GUEST AUTH BUTTONS (MOBILE) */}
+          {/* GUEST AUTH BUTTON (MOBILE) */}
           {!isAuthenticated && (
             <div className="w-full pt-1">
               <button
@@ -1534,24 +906,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
-          {/* SHARE & QR CODE BUTTON (MOBILE) */}
-          {onOpenShareModal && (
-            <div className="w-full pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenShareModal();
-                }}
-                className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center space-x-2 transition border border-slate-200 dark:border-slate-700 cursor-pointer"
-              >
-                <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Share PDFSun &amp; Scan QR Code</span>
-              </button>
-            </div>
-          )}
-
-          <div className="w-full pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-1">
+          <div className="w-full pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400 gap-1">
             <span className="flex items-center space-x-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>{t("privacyNote", "100% Local Privacy")}</span>

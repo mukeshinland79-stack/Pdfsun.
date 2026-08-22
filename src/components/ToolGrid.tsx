@@ -272,12 +272,54 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     }
   };
 
+  // Structured FAQPage JSON-LD schema for search engine indexing across tools (Compress, Split, Rotate, Merge, Protect, etc.)
+  const toolGridFaqSchema = useMemo(() => {
+    const faqEntities: Array<{
+      "@type": string;
+      name: string;
+      acceptedAnswer: { "@type": string; text: string };
+    }> = [];
+
+    ALL_TOOLS.forEach((tool) => {
+      if (tool.faqs && tool.faqs.length > 0) {
+        tool.faqs.forEach((faq) => {
+          const q = faq.question || (faq as any).q;
+          const a = faq.answer || (faq as any).a;
+          if (q && a) {
+            faqEntities.push({
+              "@type": "Question",
+              name: q,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: a,
+              },
+            });
+          }
+        });
+      }
+    });
+
+    return {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqEntities,
+    };
+  }, []);
+
   return (
     <section
       id="tools"
       aria-labelledby="toolkit-heading"
       className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5"
     >
+      {/* Search Engine FAQPage Schema for Tools in Grid (Compress, Split, Rotate, Merge, etc.) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(toolGridFaqSchema),
+        }}
+      />
+
       {/* Screen Reader Live Announcement */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {`Showing ${filteredTools.length} tools for ${

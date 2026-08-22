@@ -48,12 +48,14 @@ import {
   SlidersHorizontal,
   RotateCcw,
   FileSpreadsheet,
+  HelpCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { TableGridPreviewModal } from "./TableGridPreviewModal";
 import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
+import { getToolFAQs } from "./SEOManager";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -203,6 +205,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(48);
+  const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
+
+  // Compute rich tool FAQs for schema markup and user help
+  const toolFAQs = React.useMemo(() => {
+    return getToolFAQs(tool);
+  }, [tool]);
 
   // Extended Tool Options States (Master Schema)
   const [mergePagesToCopy, setMergePagesToCopy] = useState("all");
@@ -1191,6 +1199,26 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in">
+      {/* Individual Tool Search Engine FAQPage Schema */}
+      {toolFAQs && toolFAQs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: toolFAQs.map((faq) => ({
+                "@type": "Question",
+                name: faq.question,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: faq.answer,
+                },
+              })),
+            }),
+          }}
+        />
+      )}
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Workspace Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -3569,6 +3597,61 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   <Trash2 className="w-3 h-3" />
                   <span>Purge from Memory</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Collapsible In-Tool FAQ Section for Long-Tail SEO and User Guidance */}
+          {toolFAQs && toolFAQs.length > 0 && (
+            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <HelpCircle className="w-4 h-4 text-orange-500" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Frequently Asked Questions ({tool.name})
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {toolFAQs.length} questions answered
+                </span>
+              </div>
+
+              <div className="space-y-1.5" itemScope itemType="https://schema.org/FAQPage">
+                {toolFAQs.map((faq, fIdx) => {
+                  const isOpen = openFaqIdx === fIdx;
+                  return (
+                    <div
+                      key={fIdx}
+                      className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden"
+                      itemScope
+                      itemProp="mainEntity"
+                      itemType="https://schema.org/Question"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaqIdx(isOpen ? null : fIdx)}
+                        className="w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-orange-500 dark:hover:text-orange-400 transition"
+                      >
+                        <span itemProp="name">{faq.question}</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                            isOpen ? "rotate-180 text-orange-500" : ""
+                          }`}
+                        />
+                      </button>
+                      {isOpen && (
+                        <div
+                          className="px-3.5 pb-3 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200/50 dark:border-slate-800/50 pt-2 leading-relaxed"
+                          itemScope
+                          itemProp="acceptedAnswer"
+                          itemType="https://schema.org/Answer"
+                        >
+                          <span itemProp="text">{faq.answer}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
