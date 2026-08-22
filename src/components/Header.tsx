@@ -35,6 +35,8 @@ import {
   Wrench,
   QrCode,
   Share2,
+  Image,
+  FileText,
 } from "lucide-react";
 import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
@@ -124,6 +126,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
+  const [imageDropdownOpen, setImageDropdownOpen] = useState(false);
+  const [pdfConvertDropdownOpen, setPdfConvertDropdownOpen] = useState(false);
+  const [pdfUtilsDropdownOpen, setPdfUtilsDropdownOpen] = useState(false);
   const [toolsSearchQuery, setToolsSearchQuery] = useState("");
   const [toolsActiveCategory, setToolsActiveCategory] = useState<string>("all");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -136,6 +141,9 @@ export const Header: React.FC<HeaderProps> = ({
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const toolsDropdownRef = useRef<HTMLDivElement>(null);
+  const imageDropdownRef = useRef<HTMLDivElement>(null);
+  const pdfConvertDropdownRef = useRef<HTMLDivElement>(null);
+  const pdfUtilsDropdownRef = useRef<HTMLDivElement>(null);
   const categoriesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -163,6 +171,15 @@ export const Header: React.FC<HeaderProps> = ({
       }
       if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target as Node)) {
         setToolsDropdownOpen(false);
+      }
+      if (imageDropdownRef.current && !imageDropdownRef.current.contains(e.target as Node)) {
+        setImageDropdownOpen(false);
+      }
+      if (pdfConvertDropdownRef.current && !pdfConvertDropdownRef.current.contains(e.target as Node)) {
+        setPdfConvertDropdownOpen(false);
+      }
+      if (pdfUtilsDropdownRef.current && !pdfUtilsDropdownRef.current.contains(e.target as Node)) {
+        setPdfUtilsDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -254,11 +271,228 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{t("home", "Home")}</span>
               </button>
 
-              {/* PDF Tools Mega Dropdown */}
+              {/* Image Conversions (OCR & Direct) Dropdown */}
+              <div className="relative" ref={imageDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageDropdownOpen(!imageDropdownOpen);
+                    setPdfConvertDropdownOpen(false);
+                    setPdfUtilsDropdownOpen(false);
+                    setToolsDropdownOpen(false);
+                  }}
+                  onMouseEnter={() => setImageDropdownOpen(true)}
+                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
+                >
+                  <Image className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Image & OCR</span>
+                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${imageDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {imageDropdownOpen && (
+                  <div
+                    onMouseLeave={() => setImageDropdownOpen(false)}
+                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
+                      Image Conversions (OCR & Direct)
+                    </div>
+                    <div className="space-y-1">
+                      {[
+                        { id: "image-to-excel", name: "Image to Excel (.xlsx / .csv)", desc: "Auto-detect table layout & structured data", badge: "AI Table" },
+                        { id: "image-to-word", name: "Image to Word / WordPad", desc: "Extract styled text, headings & paragraphs", badge: ".docx / .rtf" },
+                        { id: "image-to-pdf", name: "Image to PDF (.pdf)", desc: "Single/multi-image searchable HD document", badge: "Fast" },
+                        { id: "image-to-notepad", name: "Image to Notepad (.txt)", desc: "100% regex noise-filtered pure text", badge: "Noise Filter" },
+                      ].map((item) => {
+                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id) || {
+                          id: item.id,
+                          name: item.name,
+                          slug: item.id,
+                          description: item.desc,
+                          icon: "FileText",
+                          category: "convert",
+                          supportedInput: [".png", ".jpg"],
+                          outputFormat: item.badge,
+                        };
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              onSelectTool(toolItem as any);
+                              setImageDropdownOpen(false);
+                            }}
+                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition group cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
+                              ⚡
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                  {item.name}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold shrink-0">
+                                  {item.badge}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PDF Conversions Dropdown */}
+              <div className="relative" ref={pdfConvertDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfConvertDropdownOpen(!pdfConvertDropdownOpen);
+                    setImageDropdownOpen(false);
+                    setPdfUtilsDropdownOpen(false);
+                    setToolsDropdownOpen(false);
+                  }}
+                  onMouseEnter={() => setPdfConvertDropdownOpen(true)}
+                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Convert PDF</span>
+                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${pdfConvertDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {pdfConvertDropdownOpen && (
+                  <div
+                    onMouseLeave={() => setPdfConvertDropdownOpen(false)}
+                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
+                      Convert to / from PDF
+                    </div>
+                    <div className="space-y-1">
+                      {[
+                        { id: "pdf-to-image", name: "PDF to Image (.jpg / .png)", desc: "High-resolution page extraction archive", badge: "HD ZIP" },
+                        { id: "pdf-to-excel", name: "PDF to Excel (.xlsx / .csv)", desc: "Extract tabular financial & numerical data", badge: "XLSX" },
+                        { id: "pdf-to-word", name: "PDF to Word (.docx)", desc: "Editable Microsoft Word document", badge: "DOCX" },
+                        { id: "word-to-pdf", name: "Word to PDF (.pdf)", desc: "Standardized PDF with preserved formatting", badge: "PDF" },
+                        { id: "excel-to-pdf", name: "Excel to PDF (.pdf)", desc: "Spreadsheet report to clean PDF tables", badge: "PDF" },
+                        { id: "powerpoint-to-pdf", name: "PowerPoint to PDF (.pdf)", desc: "Convert presentation slides to PDF", badge: "PDF" },
+                      ].map((item) => {
+                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id);
+                        if (!toolItem) return null;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              onSelectTool(toolItem);
+                              setPdfConvertDropdownOpen(false);
+                            }}
+                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-blue-50 dark:hover:bg-blue-950/40 transition group cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
+                              📄
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                  {item.name}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold shrink-0">
+                                  {item.badge}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PDF Utilities Dropdown */}
+              <div className="relative" ref={pdfUtilsDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfUtilsDropdownOpen(!pdfUtilsDropdownOpen);
+                    setImageDropdownOpen(false);
+                    setPdfConvertDropdownOpen(false);
+                    setToolsDropdownOpen(false);
+                  }}
+                  onMouseEnter={() => setPdfUtilsDropdownOpen(true)}
+                  className="flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
+                >
+                  <Wrench className="w-3.5 h-3.5 text-orange-500" />
+                  <span>PDF Utilities</span>
+                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${pdfUtilsDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {pdfUtilsDropdownOpen && (
+                  <div
+                    onMouseLeave={() => setPdfUtilsDropdownOpen(false)}
+                    className="absolute top-full left-0 w-80 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2.5 z-[9999] animate-in fade-in slide-in-from-top-2"
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
+                      PDF Optimization & Security
+                    </div>
+                    <div className="space-y-1">
+                      {[
+                        { id: "compress-pdf", name: "Compress PDF", desc: "Reduce file size with maximum visual quality", badge: "Fast" },
+                        { id: "merge-pdf", name: "Merge PDF", desc: "Combine multiple PDF documents seamlessly", badge: "Most Used" },
+                        { id: "split-pdf", name: "Split PDF", desc: "Extract specific page ranges or single pages", badge: "Flexible" },
+                        { id: "watermark-pdf", name: "Watermark PDF", desc: "Apply stamp or text across pages", badge: "Security" },
+                        { id: "protect-pdf", name: "Protect & Unlock PDF", desc: "Encrypt or remove passwords with 256-bit AES", badge: "AES-256" },
+                      ].map((item) => {
+                        const toolItem = ALL_TOOLS.find((t) => t.id === item.id);
+                        if (!toolItem) return null;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              onSelectTool(toolItem);
+                              setPdfUtilsDropdownOpen(false);
+                            }}
+                            className="w-full flex items-start space-x-2.5 p-2 rounded-xl text-left hover:bg-orange-50 dark:hover:bg-orange-950/40 transition group cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition">
+                              🔧
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-orange-600 dark:group-hover:text-orange-400">
+                                  {item.name}
+                                </span>
+                                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-bold shrink-0">
+                                  {item.badge}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate mt-0.5">{item.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* All PDF Tools Mega Dropdown */}
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
+                  onClick={() => {
+                    setToolsDropdownOpen(!toolsDropdownOpen);
+                    setImageDropdownOpen(false);
+                    setPdfConvertDropdownOpen(false);
+                    setPdfUtilsDropdownOpen(false);
+                  }}
                   onMouseEnter={() => setToolsDropdownOpen(true)}
                   className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition whitespace-nowrap cursor-pointer"
                 >

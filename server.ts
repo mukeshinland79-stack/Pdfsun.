@@ -52,7 +52,7 @@ import {
   updatePasswordWithResetToken,
   getAccountLockoutStatus,
 } from "./src/server/authService";
-import { authRouter } from "./src/server/authRoutes";
+import { authRouter, handleVerifySession } from "./src/server/authRoutes";
 
 dotenv.config();
 
@@ -428,27 +428,51 @@ app.post("/api/ai/explain", async (req, res) => {
 
 app.post("/api/ai/ocr", async (req, res) => {
   try {
-    const { imageBase64, mimeType = "application/pdf" } = req.body;
+    const { imageBase64, mimeType = "application/pdf", detectTables = false } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: "Missing imageBase64 payload." });
+    }
+
     const ai = getGeminiClient();
+    let lastErr = null;
+    let extractedText = "";
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: imageBase64,
-              mimeType: mimeType,
-            },
+    // Retry loop with exponential backoff (up to 3 attempts)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.6-flash",
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: imageBase64,
+                  mimeType: mimeType,
+                },
+              },
+              {
+                text: "You are a professional OCR document processing engine. Extract all text with 100% precision. Structure table data with clean row and column separators (using tab or pipe characters). Do not output garbage hallucination glyphs or repeating punctuation marks. Return the complete extracted text.",
+              },
+            ],
           },
-          {
-            text: "You are an advanced OCR document processing engine. Extract all readable text from this document/image accurately. Preserve document hierarchy, page titles, section headings, list items, paragraphs, and table structures. Return the full raw extracted plain text.",
-          },
-        ],
-      },
+        });
+        extractedText = response.text || "";
+        if (extractedText) break;
+      } catch (err) {
+        lastErr = err;
+        console.warn(`[AI OCR] Attempt ${attempt + 1} failed:`, err);
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      }
+    }
+
+    if (!extractedText && lastErr) {
+      throw lastErr;
+    }
+
+    res.json({
+      status: "ok",
+      result: extractedText || "No readable text could be recognized.",
     });
-
-    res.json({ result: response.text || "No text could be extracted from the document." });
   } catch (error: any) {
     console.error("AI OCR Error:", error);
     res.status(500).json({ error: error?.message || "Failed to perform AI OCR." });
@@ -621,6 +645,16 @@ app.get(["/api/health", "/api/system/public-stats", "/api/system/stats", "/api/s
 // ==========================================
 app.use("/api/auth", authRouter);
 app.use("/api/v1/auth", authRouter);
+app.all(
+  [
+    "/api/user/session",
+    "/api/user/check",
+    "/api/user/me",
+    "/api/user/profile",
+    "/api/user/current",
+  ],
+  handleVerifySession
+);
 
 // ==========================================
 // REAL-TIME LIVE ANALYTICS SYSTEM ENGINE
@@ -1580,74 +1614,6 @@ app.post("/api/v1/auth/social-login", handleUnifiedSocialLogin);
 app.post("/api/auth/social-login", handleUnifiedSocialLogin);
 
 // 3. Verify Session Token (Restores active session on page reload)
-const handleVerifySession = (req: express.Request, res: express.Response) => {
-  try {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    let token = "";
-
-    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7).trim();
-    } else if (typeof req.headers["x-user-token"] === "string") {
-      token = req.headers["x-user-token"];
-    } else if (typeof req.headers["x-admin-token"] === "string") {
-      token = req.headers["x-admin-token"];
-    } else if (req.body?.token) {
-      token = req.body.token;
-    } else if (req.query?.token) {
-      token = String(req.query.token);
-    } else if (req.headers.cookie) {
-      const match = req.headers.cookie
-        .split("; ")
-        .find((row) => row.startsWith("pdfsun_user_session=") || row.startsWith("pdfsun_admin_session="));
-      if (match) {
-        token = match.split("=")[1];
-      }
-    }
-
-    if (!token) {
-      return res.json({
-        success: false,
-        valid: false,
-        user: null,
-        role: "public",
-        error: "No active session token found",
-      });
-    }
-
-    const payload = verifySessionToken(token);
-    if (!payload) {
-      return res.json({
-        success: false,
-        valid: false,
-        user: null,
-        role: "public",
-        error: "Session expired or invalid",
-      });
-    }
-
-    // Refresh profile state from disk
-    const profile = getUserProfileByEmail(payload.email) || {
-      id: payload.id,
-      name: payload.name,
-      email: payload.email,
-      role: payload.role,
-      plan: payload.plan,
-      hasAdminAccess: payload.hasAdminAccess,
-      isPro: payload.isPro || false,
-    };
-
-    return res.json({
-      success: true,
-      valid: true,
-      user: profile,
-      role: profile.role,
-      token,
-    });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, valid: false, error: err.message });
-  }
-};
-
 app.all("/api/v1/auth/verify-session", handleVerifySession);
 app.all("/api/auth/verify-session", handleVerifySession);
 
@@ -2994,6 +2960,30 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Automated 30-minute Temp Storage Cleanup Routine
+  setInterval(() => {
+    try {
+      const tempDir = path.join(process.cwd(), "temp_uploads");
+      if (fs.existsSync(tempDir)) {
+        const files = fs.readdirSync(tempDir);
+        const now = Date.now();
+        const maxAgeMs = (currentSystemConfig.TEMP_STORAGE_RETENTION_MINUTES || 30) * 60 * 1000;
+        for (const file of files) {
+          const filePath = path.join(tempDir, file);
+          try {
+            const stats = fs.statSync(filePath);
+            if (now - stats.mtimeMs > maxAgeMs) {
+              fs.unlinkSync(filePath);
+              console.log(`[Auto-Clean] Removed expired temp file: ${file}`);
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.error("[Auto-Clean] Cleanup worker error:", err);
+    }
+  }, 5 * 60 * 1000);
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`[PDFSun App Server] Server running on http://0.0.0.0:${PORT}`);

@@ -43,6 +43,8 @@ import {
   ThumbsUp,
   QrCode,
   Presentation,
+  Table,
+  FileImage,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -98,6 +100,10 @@ import {
   xmlToPdf,
   generateAiResumePdf,
   extractTextFromPdfFile,
+  imageToExcel,
+  imageToWordDocx,
+  imageToNotepadText,
+  sanitizeOcrText,
 } from "../lib/pdfEngine";
 import {
   validateFile,
@@ -253,6 +259,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [flattenPageRangeStr, setFlattenPageRangeStr] = useState("1-5, 8, 11-13");
   const [showQrCodeModal, setShowQrCodeModal] = useState(false);
   const [purgedMessage, setPurgedMessage] = useState(false);
+  const [imageExcelFormat, setImageExcelFormat] = useState<"xlsx" | "csv">("xlsx");
+  const [imageWordFormat, setImageWordFormat] = useState<"docx" | "rtf">("docx");
+  const [ocrNoiseFilter, setOcrNoiseFilter] = useState(true);
+  const [pdfImageFormat, setPdfImageFormat] = useState<"jpg" | "png">("jpg");
+  const [excelTableDetect, setExcelTableDetect] = useState(true);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -623,12 +634,70 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputName = `PDFSun_Rotated_${files[0].name}`;
           break;
 
+        case "image-to-excel": {
+          setStatusMessage("Extracting structured table data and generating spreadsheet...");
+          const res = await imageToExcel(
+            files,
+            { outputFormat: imageExcelFormat, autoDetectTables: excelTableDetect },
+            (p, msg) => {
+              if (msg) setStatusMessage(msg);
+              setProgress(p);
+            }
+          );
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = imageExcelFormat === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          break;
+        }
+
+        case "image-to-word": {
+          setStatusMessage("Extracting styled text & structuring document headers...");
+          const res = await imageToWordDocx(
+            files,
+            { format: imageWordFormat, styleHeadings: true },
+            (p, msg) => {
+              if (msg) setStatusMessage(msg);
+              setProgress(p);
+            }
+          );
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = imageWordFormat === "rtf" ? "application/rtf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+          break;
+        }
+
+        case "image-to-notepad": {
+          setStatusMessage("Applying 100% regex noise filter & generating clean text...");
+          const res = await imageToNotepadText(
+            files,
+            { cleanNoise: ocrNoiseFilter },
+            (p, msg) => {
+              if (msg) setStatusMessage(msg);
+              setProgress(p);
+            }
+          );
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = "text/plain";
+          setOcrResultText(res.text);
+          break;
+        }
+
+        case "image-to-pdf":
         case "jpg-to-pdf":
         case "png-to-pdf":
-          setStatusMessage("Converting image files to PDF...");
+          setStatusMessage("Converting image files to high-quality PDF...");
           outputBytes = await imagesToPdf(files, (p) => setProgress(45 + Math.round((p / 100) * 50)));
           outputName = `PDFSun_Converted_Images.pdf`;
           break;
+
+        case "pdf-to-image": {
+          setStatusMessage(`Exporting PDF pages to ${pdfImageFormat.toUpperCase()} image archive...`);
+          outputBytes = await pdfToImagesZip(files[0], pdfImageFormat, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          outputName = `PDFSun_${pdfImageFormat.toUpperCase()}_Pages_${files[0].name}.zip`;
+          mimeType = "application/zip";
+          break;
+        }
 
         case "watermark-pdf":
           setStatusMessage("Applying custom watermark to PDF pages...");
@@ -1973,6 +2042,122 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Merge all images into 1 single PDF file</span>
                   </label>
                 )}
+              </div>
+            )}
+
+            {tool.id === "image-to-excel" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <Table className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Image to Spreadsheet Options</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Export Format</label>
+                    <select
+                      value={imageExcelFormat}
+                      onChange={(e) => setImageExcelFormat(e.target.value as "xlsx" | "csv")}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500/40"
+                    >
+                      <option value="xlsx">Microsoft Excel (.xlsx) — Structured</option>
+                      <option value="csv">Comma-Separated Values (.csv)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center space-x-2 pt-5">
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={excelTableDetect}
+                        onChange={(e) => setExcelTableDetect(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>Auto-detect headers, columns & table borders</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "image-to-word" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>Image to Word / WordPad Options</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Target Document Format</label>
+                    <select
+                      value={imageWordFormat}
+                      onChange={(e) => setImageWordFormat(e.target.value as "docx" | "rtf")}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500/40"
+                    >
+                      <option value="docx">Microsoft Word (.docx) — Styled</option>
+                      <option value="rtf">WordPad / Rich Text (.rtf)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center pt-5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Preserves font sizing, bold headings, bullet lists, and paragraphs.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "image-to-notepad" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <FileSearch className="w-4 h-4 text-orange-500" />
+                  <span>Image to Notepad (Text Extraction) Options</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={ocrNoiseFilter}
+                      onChange={(e) => setOcrNoiseFilter(e.target.checked)}
+                      className="rounded text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>100% Regex Noise Sanitization Filter (Strips '±±±', '|||', and stray non-ASCII glitches)</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-6">
+                    Ensures pristine, readable plain text export ready for Notepad, IDEs, code editors, and LLMs.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "pdf-to-image" && (
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <FileImage className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>PDF to Image Page Extraction Options</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Image Format</label>
+                    <select
+                      value={pdfImageFormat}
+                      onChange={(e) => setPdfImageFormat(e.target.value as "jpg" | "png")}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-purple-500/40"
+                    >
+                      <option value="jpg">JPG — Standard High Definition</option>
+                      <option value="png">PNG — Lossless Crystal Clear</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rendering Resolution</label>
+                    <select
+                      value={convertFromDpi}
+                      onChange={(e) => setConvertFromDpi(Number(e.target.value) as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    >
+                      <option value={150}>150 DPI — Recommended</option>
+                      <option value={300}>300 DPI — Ultra High Definition</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
 

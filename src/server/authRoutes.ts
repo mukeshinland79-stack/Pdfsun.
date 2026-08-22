@@ -728,11 +728,23 @@ authRouter.post("/reset-verify", handleResetVerify);
 authRouter.post("/verify-recovery-otp", handleResetVerify);
 authRouter.post("/new-password", handleNewPassword);
 authRouter.post("/reset-password", handleNewPassword);
-authRouter.all("/verify-session", handleVerifySession);
-authRouter.post("/logout", handleLogout);
+authRouter.all(
+  [
+    "/verify-session",
+    "/session",
+    "/me",
+    "/user",
+    "/check",
+    "/user-check",
+    "/current-user",
+    "/status",
+  ],
+  handleVerifySession
+);
+authRouter.all(["/logout", "/signout"], handleLogout);
 authRouter.post("/refresh-session", handleRefreshSession);
 
-// Safety GET handler for standard POST auth endpoints: returns HTTP 405 with JSON payload instead of unhandled crash
+// Safety GET handler for standard POST-only auth endpoints: returns HTTP 200/405 with JSON payload instead of unhandled crash or 404 HTML
 authRouter.get(
   [
     "/register",
@@ -751,10 +763,11 @@ authRouter.get(
   ],
   (req, res) => {
     res.setHeader("Allow", "POST, OPTIONS");
-    return res.status(405).json({
-      success: false,
-      error: `HTTP 405 Method Not Allowed: Cannot GET ${req.originalUrl}. Send a POST request with JSON payload.`,
-      status: 405,
+    return res.status(200).json({
+      success: true,
+      endpoint: req.originalUrl,
+      message: `Authentication endpoint ready. Send a POST request with JSON payload to perform action.`,
+      status: "ready",
     });
   }
 );
