@@ -25,6 +25,23 @@ import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { PasswordResetWizard } from "./PasswordResetWizard";
+import { PDFSunLogoIcon } from "./PDFSunLogo";
+import {
+  EnterpriseIdpCarousel,
+  HorizontalIdpLogoCarousel,
+  ENTERPRISE_IDPS,
+  IdentityProvider,
+} from "./EnterpriseIdpCarousel";
+import {
+  handleSSOLoginFlow,
+  validateSSODomain,
+  validateCorporateDomain,
+  CorporateDomainValidator,
+  resolveEnterpriseOrgPlan,
+  isPublicConsumerDomain,
+  extractOrganizationFromDomain,
+  SSOProviderType,
+} from "../utils/SSOHandler";
 
 export { getErrorMessage };
 
@@ -147,8 +164,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // SSO Domain input
+  // SSO Domain & Provider state
   const [ssoDomain, setSsoDomain] = useState("");
+  const [selectedIdp, setSelectedIdp] = useState<IdentityProvider>(ENTERPRISE_IDPS[0]);
 
   // Mandatory Owner MFA States
   const [ownerMfaStep, setOwnerMfaStep] = useState<1 | 2>(1);
@@ -311,26 +329,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         name = nameInput.trim() || "Facebook User";
         avatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80";
       } else if (provider === "sso") {
-        if (!ssoDomain.trim()) {
-          setErrorMsg("Please enter your organization domain or workspace email.");
-          setSocialLoading(null);
-          return;
+        const ssoResult = await handleSSOLoginFlow({
+          inputDomainOrEmail: ssoDomain,
+          providerId: (selectedIdp.id as SSOProviderType) || "okta",
+          fallbackName: nameInput || undefined,
+        });
+
+        if (!ssoResult.success || !ssoResult.user) {
+          throw new Error(ssoResult.error || "Single Sign-On authentication failed.");
         }
-        const cleanDomain = ssoDomain.trim().replace(/^@/, "").toLowerCase();
-        email = cleanDomain.includes("@") ? cleanDomain : `user@${cleanDomain}`;
-        name = cleanDomain.split(".")[0].toUpperCase() + " Enterprise Member";
-        avatar = "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80";
+
+        const roleToSet: UserRole = ssoResult.role || "user";
+        const profile: UserProfile = ssoResult.user;
+
+        setSuccessMsg(
+          ssoResult.message ||
+            `Signed in successfully via ${selectedIdp.shortName} (${profile.plan})!`
+        );
+
+        setTimeout(() => {
+          onSelectRole(roleToSet, profile);
+          handlePostLoginRedirectAndCleanup();
+          onClose();
+          if (roleToSet === "owner" && onSuccessOpenAdmin) {
+            onSuccessOpenAdmin();
+          }
+        }, 400);
+        return;
       }
 
       const { ok, data, error } = await safeFetchJson("/api/v1/auth/social-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           provider,
           email,
           name,
           avatar,
-          ssoDomain: provider === "sso" ? ssoDomain : undefined,
+          ssoDomain: undefined,
         }),
       });
 
@@ -353,13 +389,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email,
         role: roleToSet,
         avatar,
-        plan: isOwnerEmail ? "Founder & Owner" : provider === "sso" ? "Enterprise SSO" : "Pro Sun (OAuth)",
+        plan: isOwnerEmail ? "Founder & Owner" : "Pro Sun (OAuth)",
         joinedDate: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         hasAdminAccess: isOwnerEmail,
         isPro: true,
       };
 
-      setSuccessMsg(`Signed in successfully with ${provider === "sso" ? "Single Sign-On" : provider.charAt(0).toUpperCase() + provider.slice(1)}!`);
+      setSuccessMsg(`Signed in successfully with ${provider === "google" ? "Google" : "Facebook"}!`);
 
       setTimeout(() => {
         onSelectRole(roleToSet, profile);
@@ -530,21 +566,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Brand & Heading (iLovePDF Clean Style) */}
+        {/* Brand & Heading */}
         <div className="text-center space-y-1.5 pt-1">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-red-600 via-orange-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20 mx-auto">
-            {authMode === "owner" ? (
+          {authMode === "owner" ? (
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 mx-auto">
               <Crown className="w-6 h-6" />
-            ) : (
-              <span className="font-black text-xl tracking-tight">PDF</span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex justify-center mx-auto">
+              <PDFSunLogoIcon size={46} variant="app-icon" animated={false} />
+            </div>
+          )}
           
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight pt-1">
             {authMode === "owner"
               ? "Owner & Admin Portal"
               : authMode === "sso"
-              ? "Single Sign-On (SSO)"
+              ? "Enterprise Single Sign-On"
               : authMode === "forgot-password"
               ? "Reset Password"
               : customerSubMode === "signup"
@@ -555,6 +593,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             {authMode === "owner"
               ? "Strict Multi-Factor Identity Protection"
+              : authMode === "sso"
+              ? "Secure corporate login via Okta, Azure AD, Google Workspace & SAML"
               : "Every tool you need to use PDFs, in one place"}
           </p>
         </div>
@@ -674,7 +714,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
 
-              {/* SSO Button */}
+              {/* SSO Button with IdP Brand Logomarks Preview */}
               <button
                 type="button"
                 onClick={() => {
@@ -682,10 +722,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   setErrorMsg("");
                   setSuccessMsg("");
                 }}
-                className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-bold transition shadow-xs cursor-pointer group"
               >
-                <Key className="w-3.5 h-3.5 text-slate-400" />
-                <span>Single Sign-On (SSO)</span>
+                <div className="flex items-center space-x-2">
+                  <Key className="w-3.5 h-3.5 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
+                  <span>Enterprise Single Sign-On (SSO)</span>
+                </div>
+                <div className="flex items-center -space-x-1">
+                  <span className="w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center p-0.5" title="Okta">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#007DC1" strokeWidth="3.5" /><circle cx="12" cy="12" r="4.5" fill="#007DC1" /></svg>
+                  </span>
+                  <span className="w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center p-0.5" title="Azure AD">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9.5" height="9.5" rx="1.5" fill="#F25022" /><rect x="12.5" y="2" width="9.5" height="9.5" rx="1.5" fill="#7FBA00" /><rect x="2" y="12.5" width="9.5" height="9.5" rx="1.5" fill="#00A4EF" /><rect x="12.5" y="12.5" width="9.5" height="9.5" rx="1.5" fill="#FFB900" /></svg>
+                  </span>
+                  <span className="w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center p-0.5" title="Google Workspace">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/></svg>
+                  </span>
+                  <span className="w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center p-0.5 text-[8px] font-black text-purple-600" title="SAML 2.0">
+                    S
+                  </span>
+                </div>
               </button>
             </div>
 
@@ -734,6 +790,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
                 </div>
+                {/* Corporate SSO Detection Banner in Standard Login */}
+                {emailInput.includes("@") && (() => {
+                  const corpCheck = validateCorporateDomain(emailInput);
+                  if (corpCheck.isValid && corpCheck.isVerified) {
+                    return (
+                      <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <div className="w-5 h-5 rounded-md bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
+                                {corpCheck.organizationName}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-600 text-white uppercase tracking-wider shrink-0">
+                                Domain Verified
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium truncate">
+                              Single Sign-On (SSO) configured for your organization
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode("sso");
+                            setSsoDomain(emailInput);
+                            if (corpCheck.suggestedProvider) {
+                              const match = ENTERPRISE_IDPS.find((p) => p.id === corpCheck.suggestedProvider);
+                              if (match) setSelectedIdp(match);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black shrink-0 transition cursor-pointer shadow-xs whitespace-nowrap"
+                        >
+                          Use SSO →
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div>
@@ -849,38 +948,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               )}
             </div>
-
-            {/* Hidden Owner & Admin Portal Link */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("owner");
-                  setErrorMsg("");
-                  setSuccessMsg("");
-                  setOwnerMfaStep(1);
-                }}
-                className="text-[11px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center space-x-1.5 mx-auto transition cursor-pointer font-semibold py-1"
-              >
-                <Shield className="w-3.5 h-3.5 text-amber-500" />
-                <span>Admin / Owner Portal (2FA Protected)</span>
-              </button>
-            </div>
           </div>
         )}
 
         {/* 2. SINGLE SIGN-ON (SSO) WORKSPACE LOGIN */}
         {authMode === "sso" && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
-              <div className="flex items-center space-x-2 font-bold text-slate-900 dark:text-white">
-                <Building2 className="w-4 h-4 text-red-600" />
-                <span>Enterprise Identity Login</span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Enter your company domain or email to log in through your organization's Single Sign-On (SAML 2.0 / Okta / Azure AD).
-              </p>
-            </div>
+            {/* Identity Provider Carousel */}
+            <EnterpriseIdpCarousel
+              selectedIdp={selectedIdp}
+              onSelectIdp={(idp) => setSelectedIdp(idp)}
+            />
 
             <form
               onSubmit={(e) => {
@@ -890,43 +968,182 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="space-y-3.5"
             >
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Organization Domain or Email
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {selectedIdp.shortName} Domain or Work Email
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {selectedIdp.protocol}
+                  </span>
+                </div>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="e.g. acme.com or alex@acme.com"
+                    placeholder={selectedIdp.placeholder}
                     value={ssoDomain}
                     onChange={(e) => setSsoDomain(e.target.value)}
                     required
                     autoFocus
                     className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 outline-none transition font-medium pr-10"
                   />
-                  <Globe className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
+                  {ssoDomain.trim() && validateCorporateDomain(ssoDomain, (selectedIdp.id as SSOProviderType) || "okta").isVerified ? (
+                    <div 
+                      id="sso-domain-verified-badge"
+                      className="absolute right-3 top-2.5 flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold animate-in fade-in zoom-in-95 duration-150 pointer-events-none"
+                      title="Enterprise Domain Verified"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="hidden sm:inline">Verified</span>
+                    </div>
+                  ) : (
+                    <Globe className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
+                  )}
                 </div>
+                {ssoDomain.trim() ? (
+                  (() => {
+                    const validation = validateCorporateDomain(
+                      ssoDomain,
+                      (selectedIdp.id as SSOProviderType) || "okta"
+                    );
+                    if (!validation.isValid) {
+                      return (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1 font-medium leading-tight">
+                          <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                          <span>{validation.error}</span>
+                        </p>
+                      );
+                    }
+                    if (validation.isVerified) {
+                      return (
+                        <div className="mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                          {/* Domain Verified Card */}
+                          <div 
+                            id="sso-domain-verified-card"
+                            className="p-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 dark:border-emerald-500/20 text-slate-800 dark:text-slate-200 shadow-xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start space-x-2 min-w-0">
+                                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center flex-wrap gap-1.5">
+                                    <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                      {validation.organizationName}
+                                    </span>
+                                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white uppercase tracking-wider flex items-center gap-0.5 shadow-xs">
+                                      <CheckCircle2 className="w-2.5 h-2.5" />
+                                      Domain Verified
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5 flex items-center flex-wrap gap-1">
+                                    <span>{validation.protocol}</span>
+                                    <span>•</span>
+                                    <span>{validation.securityTier}</span>
+                                    <span>•</span>
+                                    <span className="font-bold text-emerald-800 dark:text-emerald-200">SAML SSO Active</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick IdP Suggestion if mismatched */}
+                          {validation.suggestedProvider && validation.suggestedProvider !== selectedIdp.id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const match = ENTERPRISE_IDPS.find((p) => p.id === validation.suggestedProvider);
+                                if (match) setSelectedIdp(match);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-medium transition flex items-center justify-between gap-1 cursor-pointer border border-slate-200 dark:border-slate-700"
+                            >
+                              <span>
+                                ⚡ Registered with <strong>{validation.suggestedProvider.toUpperCase()}</strong>
+                              </span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">
+                                Switch to {validation.suggestedProvider.toUpperCase()} →
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        <span>
+                          Organization: <strong className="font-bold text-slate-800 dark:text-slate-200">{validation.organizationName}</strong> • SAML 2.0 Ready
+                        </span>
+                      </p>
+                    );
+                  })()
+                ) : (
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">
+                    💡 {selectedIdp.domainHint}
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={socialLoading !== null || !ssoDomain.trim()}
-                className="w-full py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-black text-xs tracking-wide transition shadow-lg shadow-red-600/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer uppercase"
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs tracking-wide transition shadow-lg shadow-red-600/20 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer uppercase"
               >
                 {socialLoading === "sso" ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Connecting to Identity Provider...</span>
+                    <span>Connecting to {selectedIdp.shortName}...</span>
                   </>
                 ) : (
                   <>
-                    <span>Continue with SSO</span>
+                    <span>Continue with {selectedIdp.shortName}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="text-center pt-2">
+            {/* Horizontal Identity Provider Logo Carousel */}
+            <div className="pt-1">
+              <HorizontalIdpLogoCarousel
+                onSelectIdpName={(name) => {
+                  const matched = ENTERPRISE_IDPS.find(
+                    (p) =>
+                      p.shortName.toLowerCase().includes(name.toLowerCase()) ||
+                      p.name.toLowerCase().includes(name.toLowerCase())
+                  );
+                  if (matched) {
+                    setSelectedIdp(matched);
+                  } else {
+                    // Default to SAML/Custom IdP for other providers (Ping, OneLogin, Duo)
+                    const saml = ENTERPRISE_IDPS.find((p) => p.id === "saml");
+                    if (saml) setSelectedIdp(saml);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Enterprise Plan Link for Companies */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                <span className="font-semibold text-slate-800 dark:text-slate-200 block">Not configured yet?</span>
+                <span>Deploy SSO for your team from ₹5,999 / $99.99/yr.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  const el = document.getElementById("pricing");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="text-[10px] font-bold text-red-600 dark:text-red-400 hover:underline shrink-0 cursor-pointer"
+              >
+                View SSO Pricing →
+              </button>
+            </div>
+
+            <div className="text-center pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1176,10 +1393,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
-          <p className="text-[10px] text-slate-400 font-medium">
-            Protected by PDFSun Privacy Shield • 256-Bit SSL Encryption
-          </p>
+        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-1.5 text-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+          <Shield className="w-3 h-3 text-emerald-500 shrink-0" />
+          <span>Protected by PDFSun Privacy Shield • 256-Bit SSL Encryption</span>
         </div>
         </AuthLocalErrorBoundary>
       </div>

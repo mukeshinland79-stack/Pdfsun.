@@ -82,6 +82,11 @@ export interface UserProfile {
   joinedDate: string;
   hasAdminAccess?: boolean;
   isPro?: boolean;
+  phone?: string;
+  organizationName?: string;
+  ssoProvider?: string;
+  ssoDomain?: string;
+  isSsoManaged?: boolean;
 }
 
 export interface AdminUserAccount {
@@ -167,6 +172,7 @@ export interface AdminSettings {
 }
 
 export type AuditLogCategory = 
+  | "sso_auth"
   | "user_status" 
   | "sponsorship" 
   | "settings_update" 

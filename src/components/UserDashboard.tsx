@@ -62,11 +62,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
   const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
   const isOwner = userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
-  const isPaidUser = userProfile.plan?.toLowerCase().includes("pro") || userProfile.plan?.toLowerCase().includes("annual") || isOwner;
+  const isSsoUser =
+    Boolean(userProfile.isSsoManaged) ||
+    userProfile.plan?.toLowerCase().includes("enterprise") ||
+    userProfile.plan?.toLowerCase().includes("sso") ||
+    userProfile.plan?.toLowerCase().includes("saml") ||
+    Boolean(userProfile.ssoDomain) ||
+    Boolean(userProfile.ssoProvider) ||
+    Boolean(userProfile.organizationName);
+  const isPaidUser = userProfile.plan?.toLowerCase().includes("pro") || userProfile.plan?.toLowerCase().includes("annual") || isSsoUser || isOwner;
 
   // Calculate renewal / expiry info
   const planExpiryText = isOwner
     ? "Lifetime Super Admin Active (No Expiry)"
+    : isSsoUser
+    ? "Enterprise SSO Active (Managed by Organization IT)"
     : isPaidUser
     ? "Active for 30 Days (Auto-Renewable via Razorpay)"
     : "Free Tier Active (No Expiry)";
@@ -123,6 +133,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                   className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
                     isOwner
                       ? "bg-amber-500 text-slate-950"
+                      : isSsoUser
+                      ? "bg-blue-600 text-white"
                       : isPaidUser
                       ? "bg-orange-500 text-white"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
@@ -130,6 +142,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 >
                   {isOwner ? "SUPER ADMIN / OWNER" : userProfile.plan || "FREE PLAN"}
                 </span>
+
+                {isSsoUser && (
+                  <span
+                    id="user-dashboard-sso-managed-badge"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-blue-500/15 via-indigo-500/15 to-blue-600/10 dark:from-blue-500/25 dark:via-indigo-500/25 dark:to-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 dark:border-blue-400/40 shadow-xs shrink-0 select-none transition-all hover:border-blue-500/50"
+                    title={`SSO Managed: Authenticated via Enterprise Identity Provider ${userProfile.organizationName ? `(${userProfile.organizationName})` : userProfile.ssoProvider ? `(${userProfile.ssoProvider.toUpperCase()})` : ""}`}
+                  >
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                    </span>
+                    <ShieldCheck className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>SSO Managed</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userProfile.email}</p>
             </div>
@@ -312,27 +339,88 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       {userProfile.joinedDate || "Jan 2026"}
                     </div>
                   </div>
+
+                  {/* Authentication & SSO Status */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1 sm:col-span-2">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                      <span>Authentication Method</span>
+                      {isSsoUser && (
+                        <span
+                          id="sso-managed-profile-pill"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-blue-500/15 via-indigo-500/15 to-blue-600/10 dark:from-blue-500/25 dark:via-indigo-500/25 dark:to-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 dark:border-blue-400/40 shadow-xs select-none"
+                        >
+                          <span className="relative flex h-1.5 w-1.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500" />
+                          </span>
+                          <ShieldCheck className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>SSO Managed</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-2 text-xs">
+                      {isSsoUser ? (
+                        <>
+                          <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>
+                            {userProfile.organizationName
+                              ? `${userProfile.organizationName} Corporate IdP`
+                              : userProfile.ssoProvider
+                              ? `${userProfile.ssoProvider.toUpperCase()} Single Sign-On`
+                              : "Enterprise SAML 2.0 / OIDC Identity Provider"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <KeyRound className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>Direct Email &amp; Password Access</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Security & Password Reset Shortcut */}
-              <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center space-x-2.5">
-                  <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <div>
-                    <span className="font-bold text-slate-900 dark:text-white block">Account Security &amp; Password Recovery</span>
-                    <span className="text-[11px] text-slate-500">Need to reset your password? Use the OTP verification flow anytime.</span>
+              {/* Enterprise Governance / Security notice */}
+              {isSsoUser ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">Enterprise Identity Governance</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Authentication, user lifecycle, and role assignments are centrally managed by your organization's IT department.
+                      </span>
+                    </div>
                   </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white shadow-xs shrink-0 select-none transition">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-200 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                    </span>
+                    <ShieldCheck className="w-3 h-3 text-blue-100" />
+                    <span>SSO Managed</span>
+                  </span>
                 </div>
-                <button
-                  onClick={() => {
-                    onClose();
-                  }}
-                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Password &amp; Security
-                </button>
-              </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">Account Security &amp; Password Recovery</span>
+                      <span className="text-[11px] text-slate-500">Need to reset your password? Use the OTP verification flow anytime.</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onClose();
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Password &amp; Security
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -399,9 +487,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               {/* Active Plan Card */}
               <div className="p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 border border-orange-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2 min-w-0">
-                  <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] sm:text-xs font-black uppercase tracking-wider">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Plan Active &amp; Unlocked</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Plan Active &amp; Unlocked</span>
+                    </div>
+                    {isSsoUser && (
+                      <div
+                        id="sso-managed-plan-pill"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500/25 via-indigo-500/25 to-blue-600/20 text-blue-200 border border-blue-400/40 text-[10px] sm:text-xs font-black uppercase tracking-wider select-none shadow-xs"
+                      >
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
+                        </span>
+                        <ShieldCheck className="w-3 h-3 text-blue-300 shrink-0" />
+                        <span>SSO Managed Workspace</span>
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-base sm:text-lg font-black text-white flex items-center space-x-2">
                     <span>{isOwner ? "👑 Platform Owner Full Access" : isPaidUser ? `⭐ ${userProfile.plan || "Pro Sun"} Active` : "Free Tier (Standard Tools)"}</span>

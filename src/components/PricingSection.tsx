@@ -103,17 +103,21 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
 
   // Fetch real-time active user subscription bound to User ID
   const fetchUserSubscription = async () => {
+    if (!currentUserId) return;
     try {
-      const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`);
+      const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return;
       const data = await res.json();
-      if (data.success && data.subscription) {
+      if (data && data.success && data.subscription) {
         setUserSubscription(data.subscription);
-        if (data.isPro) {
+        if (data.isPro && data.subscription.plan_id) {
           setActivePlanId(data.subscription.plan_id);
         }
       }
-    } catch (err) {
-      console.warn("Error fetching user subscription:", err);
+    } catch {
+      // Gracefully handle offline or network delay
     }
   };
 

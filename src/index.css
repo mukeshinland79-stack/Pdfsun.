@@ -376,6 +376,37 @@ html.aurora-theme .aurora-glass {
   animation: floatUpAndDown 4.5s ease-in-out infinite;
 }
 
+/* Infinite Horizontal Marquee for Enterprise IdP Logos */
+@keyframes marqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  animation: marqueeScroll 20s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .animate-marquee {
+    animation-duration: 16s;
+  }
+}
+
+.animate-marquee:hover,
+.animate-marquee:focus-within {
+  animation-play-state: paused;
+}
+
 /* Layering & Z-Index System to Prevent Overlap & Bleed */
 .z-header {
   z-index: 40;

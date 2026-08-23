@@ -207,7 +207,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, vite websockets, local static translation files, third-party fonts/analytics/scripts)
+    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts)
     const isTelemetryEndpoint =
       urlStr.includes("/api/telemetry") ||
       urlStr.includes("/api/health") ||
@@ -217,7 +217,11 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       urlStr.includes("/api/admin/system-stats") ||
       urlStr.includes("/api/admin/users") ||
       urlStr.includes("/api/auth/verify-session") ||
-      urlStr.includes("/api/user/payment-history");
+      urlStr.includes("/api/user/payment-history") ||
+      urlStr.includes("/api/user/subscription") ||
+      urlStr.includes("/api/user/session") ||
+      urlStr.includes("/api/user/me") ||
+      urlStr.includes("/api/user/check");
     const isViteHmrNoise =
       urlStr.includes("ws:") ||
       urlStr.includes("wss:") ||

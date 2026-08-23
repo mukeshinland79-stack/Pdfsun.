@@ -752,13 +752,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
 
               <button
+                id="admin-tab-audit-logs"
                 onClick={() => setActiveTab("audit_logs")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
-                  effectiveActiveTab === "audit_logs" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs font-black" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  effectiveActiveTab === "audit_logs" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs font-black" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 font-bold"
                 }`}
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Audit Log Manager</span>
+                <span>Audit Logs</span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-blue-500/30 text-blue-200 uppercase font-black">
+                  SSO
+                </span>
               </button>
 
               <button

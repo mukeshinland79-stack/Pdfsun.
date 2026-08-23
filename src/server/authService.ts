@@ -1280,9 +1280,9 @@ export function authenticateSocialUser(params: {
       passwordHash: hashPassword(crypto.randomBytes(16).toString("hex"), salt),
       salt,
       role: isOwnerEmail ? "owner" : "user",
-      plan: isOwnerEmail ? "Founder & Owner" : "Free Plan",
+      plan: isOwnerEmail ? "Founder & Owner" : params.provider === "sso" ? "Enterprise SSO" : "Free Plan",
       hasAdminAccess: isOwnerEmail,
-      isPro: isOwnerEmail,
+      isPro: isOwnerEmail || params.provider === "sso",
       avatar: params.avatar || (params.provider === "google" ? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" : undefined),
       joinedDate: "Jan 2026",
       createdAt: new Date().toISOString(),
@@ -1295,6 +1295,9 @@ export function authenticateSocialUser(params: {
       user.hasAdminAccess = true;
       user.isPro = true;
       user.plan = "Founder & Owner";
+    } else if (params.provider === "sso") {
+      user.plan = "Enterprise SSO";
+      user.isPro = true;
     }
     if (params.name && (!user.name || user.name === "PDFSun User")) {
       user.name = params.name;

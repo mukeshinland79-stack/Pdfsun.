@@ -230,8 +230,8 @@ export const Footer: React.FC<FooterProps> = ({
                 </a>
               </li>
               <li className="pt-2 flex items-center space-x-1.5 text-emerald-400 font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                <span>{t("footer.gdprCompliant", "GDPR Compliant")}</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.2]" />
+                <span>{t("footer.isoGdprCompliant", "ISO 27001 & GDPR Compliant")}</span>
               </li>
             </ul>
           </div>
@@ -291,35 +291,44 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Security & Trust Section */}
-        <div className="flex flex-wrap items-center justify-around gap-6 py-4 my-4 border-t border-b border-slate-800/80 text-xs font-bold text-slate-300 bg-slate-900/60 rounded-2xl px-4">
-          <div className="flex items-center gap-2 text-emerald-400">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.5]" />
-            <span>{t("footer.securityEncrypted", "🔒 256-Bit SSL Encrypted Connection")}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 py-4 my-4 border-t border-b border-slate-800/80 text-xs font-semibold text-slate-300 bg-slate-900/60 backdrop-blur-xs rounded-2xl px-5">
+          <div className="flex items-center justify-center sm:justify-start gap-2.5 text-emerald-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.2]" />
+            <span className="truncate">{t("footer.securityEncrypted", "256-Bit SSL Encrypted Connection")}</span>
           </div>
-          <div className="flex items-center gap-2 text-blue-400">
-            <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 stroke-[2.5]" />
-            <span>{t("footer.paymentPartner", "🛡️ Razorpay Verified Partner (UPI, Cards, NetBanking Supported)")}</span>
+          <div className="flex items-center justify-center sm:justify-end lg:justify-center gap-2.5 text-emerald-400">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.2]" />
+            <span className="truncate">{t("footer.isoGdprCompliant", "ISO 27001 & GDPR Compliant")}</span>
           </div>
-          <div className="flex items-center gap-2 text-amber-400">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
-            <span>{t("footer.instantDelivery", "⚡ Instant Automated Delivery")}</span>
+          <div className="flex items-center justify-center sm:justify-start lg:justify-center gap-2.5 text-blue-400">
+            <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 stroke-[2.2]" />
+            <span className="truncate">{t("footer.paymentPartner", "Razorpay Verified Partner (UPI & Cards)")}</span>
+          </div>
+          <div className="flex items-center justify-center sm:justify-end gap-2.5 text-amber-400">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+            </span>
+            <span className="truncate">{t("footer.instantDelivery", "Instant In-Browser Processing")}</span>
           </div>
         </div>
 
         {/* Bottom Clean Copyright & Compliance Row */}
-        <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+        <div className="pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
-            <span>🇮🇳</span>
-            <span className="font-semibold text-slate-300">Proudly Made in India</span>
+            <span className="text-sm">🇮🇳</span>
+            <span className="font-semibold text-slate-200">Proudly Made in India</span>
             <span className="text-slate-600">•</span>
             <span>© 2026 <strong className="text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
             <span className="text-slate-600">•</span>
             <span className="text-slate-400">Designed &amp; Engineered by <span className="text-slate-300 font-medium">Mukesh Kalonia</span></span>
           </div>
 
-          <div className="flex items-center space-x-2 text-slate-400 text-xs shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.5]" />
-            <span className="font-medium">ISO 27001 &amp; GDPR Privacy Compliant</span>
+          <div className="flex items-center space-x-2 text-slate-400 text-xs shrink-0 bg-slate-900/40 border border-slate-800/60 rounded-full px-3.5 py-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.2]" />
+            <span className="font-medium text-slate-300">
+              {t("footer.complianceFull", "Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant")}
+            </span>
           </div>
         </div>
       </div>

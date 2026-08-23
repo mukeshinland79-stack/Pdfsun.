@@ -4,6 +4,8 @@ import { ToolItem } from "../types";
 import { FAQS } from "../data/toolsData";
 import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 import { PSEOLandingPage } from "../data/pSEOData";
+import { getLocalizedToolFAQs, buildFaqJsonLd, ToolFAQ } from "../lib/toolFaqHelper";
+import { useLanguage } from "../lib/i18n";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
@@ -15,108 +17,10 @@ export interface SEOManagerProps {
   pseoPage?: PSEOLandingPage | null;
 }
 
-export interface ToolFAQ {
-  question: string;
-  answer: string;
-}
+export type { ToolFAQ };
 
 export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
-  // Extract custom FAQs if provided on the tool definition
-  const customFaqs: ToolFAQ[] = (tool.faqs || [])
-    .map((f) => ({
-      question: (f.question || f.q || "").trim(),
-      answer: (f.answer || f.a || "").trim(),
-    }))
-    .filter((f) => f.question && f.answer);
-
-  // Category specific FAQ enhancement
-  const getCategoryFaq = (): ToolFAQ | null => {
-    switch (tool.category) {
-      case "ai":
-        return {
-          question: `How does AI technology process files in ${tool.name}?`,
-          answer: `${tool.name} utilizes secure Google Gemini 3.6 AI models to analyze, summarize, or extract structured data from your ${tool.supportedInput.join(" or ")} documents with enterprise-grade speed and precision.`,
-        };
-      case "security":
-        return {
-          question: `How does security and password protection work in ${tool.name}?`,
-          answer: `${tool.name} applies browser-native 256-bit Web Cryptography API standards directly on your device to protect, encrypt, or modify security permissions for your documents.`,
-        };
-      case "convert":
-        return {
-          question: `Will ${tool.name} preserve the original formatting and visual layout?`,
-          answer: `Yes! ${tool.name} uses advanced rendering pipelines to preserve text fonts, vector graphics, table structures, and page layouts when generating ${tool.outputFormat} files.`,
-        };
-      case "student":
-        return {
-          question: `Is ${tool.name} suitable for students and academic research papers?`,
-          answer: `Absolutely. ${tool.name} is optimized for students, researchers, and educators to process textbooks, lecture notes, assignments, and study materials free of cost.`,
-        };
-      case "edit":
-        return {
-          question: `Can I reorder, annotate, or adjust pages using ${tool.name}?`,
-          answer: `Yes! ${tool.name} offers a visual interactive workspace allowing you to configure, rearrange, and customize your files prior to exporting.`,
-        };
-      default:
-        return null;
-    }
-  };
-
-  const catFaq = getCategoryFaq();
-
-  const defaultFaqs: ToolFAQ[] = [
-    {
-      question: `How do I use ${tool.name} online on PDFSun?`,
-      answer: `To use ${tool.name}: 1) Select or drag and drop your ${tool.supportedInput.join(" or ")} files into the workspace. 2) Adjust preferences or order if needed. 3) Click Process to instantly convert and download your ${tool.outputFormat} file.`,
-    },
-    {
-      question: `Is ${tool.name} completely free to use without limits or watermarks?`,
-      answer: `Yes! ${tool.name} on PDFSun is 100% free with no hidden fees, no required subscriptions, no mandatory account sign-ups, and no intrusive watermarks added to your exported files.`,
-    },
-    {
-      question: `Are my files safe and private when using ${tool.name}?`,
-      answer: `At PDFSun, privacy is paramount. ${tool.name} processes files client-side locally inside your browser via WebAssembly. Your documents are never uploaded to or permanently stored on external servers.`,
-    },
-    {
-      question: `What file formats are supported by ${tool.name}?`,
-      answer: `${tool.name} accepts ${tool.supportedInput.join(", ")} input files and produces high-quality ${tool.outputFormat} outputs.`,
-    },
-  ];
-
-  if (catFaq) {
-    defaultFaqs.push(catFaq);
-  } else {
-    defaultFaqs.push({
-      question: `What features make ${tool.name} on PDFSun different?`,
-      answer: `${tool.description} It delivers instant, zero-latency browser processing with complete file security.`,
-    });
-  }
-
-  defaultFaqs.push(
-    {
-      question: `Can I use ${tool.name} on mobile or tablet devices?`,
-      answer: `Yes! ${tool.name} is fully responsive and compatible with all modern smartphones, tablets, Mac, Windows, iOS, and Android devices without installing extra software.`,
-    },
-    {
-      question: `Do I need to install any software or app for ${tool.name}?`,
-      answer: `No installation is required. ${tool.name} runs directly in any modern web browser such as Google Chrome, Apple Safari, Mozilla Firefox, or Microsoft Edge.`,
-    }
-  );
-
-  // Combine custom FAQs and default FAQs, deduplicating by question
-  const combined = [...customFaqs, ...defaultFaqs];
-  const seen = new Set<string>();
-  const uniqueFaqs: ToolFAQ[] = [];
-
-  for (const faq of combined) {
-    const qKey = faq.question.toLowerCase().trim();
-    if (!seen.has(qKey)) {
-      seen.add(qKey);
-      uniqueFaqs.push(faq);
-    }
-  }
-
-  return uniqueFaqs;
+  return getLocalizedToolFAQs(tool);
 }
 
 export const SEOManager: React.FC<SEOManagerProps> = ({
@@ -128,6 +32,8 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   isTodayInHistoryActive = false,
   pseoPage = null,
 }) => {
+  const { t, currentLanguage, getToolName, getToolDescription } = useLanguage();
+
   // 1. Base WebSite & SearchAction Schema
   const websiteSchema = {
     "@context": "https://schema.org",
@@ -165,7 +71,12 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   let faqSchema: Record<string, any>;
 
   if (activeTool) {
-    const baseFaqs = getToolFAQs(activeTool);
+    const baseFaqs = getLocalizedToolFAQs(activeTool, {
+      t,
+      currentLanguage,
+      getToolName,
+      getToolDescription,
+    });
     const customPseoFaqs = pseoPage?.customFaqs || [];
     const combinedFaqs = [
       ...customPseoFaqs.map((f) => ({ question: f.question, answer: f.answer })),
@@ -183,18 +94,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       }
     }
 
-    faqSchema = {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": uniqueFaqs.map((faq) => ({
-        "@type": "Question",
-        "name": faq.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": faq.answer,
-        },
-      })),
-    };
+    faqSchema = buildFaqJsonLd(uniqueFaqs);
   } else {
     faqSchema = {
       "@context": "https://schema.org",
