@@ -27,6 +27,11 @@ import {
   QrCode,
   Sparkles,
   Share2,
+  FileText,
+  Languages,
+  Zap,
+  Briefcase,
+  FileCheck,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
@@ -123,6 +128,13 @@ export const Header: React.FC<HeaderProps> = ({
       setSearchOverlayOpen(true);
     }
   }, [onOpenSearch]);
+
+  const handleSelectSpecificTool = (toolId: string) => {
+    const targetTool = ALL_TOOLS.find((t) => t.id === toolId);
+    if (targetTool) {
+      onSelectTool(targetTool);
+    }
+  };
 
   // Close dropdowns on outside click or touch
   useEffect(() => {
@@ -599,6 +611,101 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* ========================================================= */}
+      {/* MAIN NAVIGATION BAR: AI & Essential Tools Bar             */}
+      {/* ========================================================= */}
+      <div className="w-full border-t border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-sm">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-2 py-1.5 overflow-x-auto no-scrollbar">
+            {/* Left AI & Document Navigation Group */}
+            <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
+              {/* AI Badge / Label */}
+              <div className="hidden md:flex items-center space-x-1 px-2 py-1 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-black uppercase tracking-wider mr-1">
+                <Sparkles className="w-3 h-3 text-indigo-500" />
+                <span>AI Suite</span>
+              </div>
+
+              {/* Summary Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("ai-pdf-summary")}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-2xs hover:shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer shrink-0"
+                title="AI PDF Summary — Instant key takeaway extraction"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>Summary</span>
+              </button>
+
+              {/* Translate Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("ai-translate-pdf")}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-2xs hover:shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer shrink-0"
+                title="AI Translate PDF — Multi-language document translation"
+              >
+                <Languages className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span>Translate</span>
+              </button>
+
+              {/* Resume Ready Button with Professional Document Icon */}
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("ai-resume-builder")}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 dark:from-orange-500/20 dark:to-amber-500/20 hover:from-orange-500/20 hover:to-amber-500/30 border border-orange-200/70 dark:border-orange-500/30 hover:border-orange-400/80 shadow-2xs hover:shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 group"
+                title="Resume Ready — ATS scoring & professional resume generator"
+              >
+                <FileText className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform shrink-0" />
+                <span className="font-extrabold text-orange-950 dark:text-orange-200">Resume Ready</span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded shadow-2xs">
+                  ATS
+                </span>
+              </button>
+
+              {/* AI Chat Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("ai-chat-pdf")}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-2xs hover:shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer shrink-0"
+                title="AI Chat with PDF — Ask questions about any document"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>AI Chat</span>
+              </button>
+            </div>
+
+            {/* Right Quick Tools / Home Shortcuts */}
+            <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("pdf-to-word")}
+                className="hidden sm:flex px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800/80 transition items-center space-x-1 cursor-pointer"
+              >
+                <FileText className="w-3 h-3 text-blue-500" />
+                <span>PDF to Word</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectSpecificTool("merge-pdf")}
+                className="hidden md:flex px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800/80 transition items-center space-x-1 cursor-pointer"
+              >
+                <FileCheck className="w-3 h-3 text-emerald-500" />
+                <span>Merge PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onGoHome}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800/80 transition flex items-center space-x-1 cursor-pointer"
+              >
+                <Home className="w-3 h-3" />
+                <span>All {ALL_TOOLS.length} Tools</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
       {/* RESPONSIVE MOBILE SLIDE-OVER DRAWER (< lg)                */}
       {/* ========================================================= */}
       {mobileMenuOpen && (
@@ -633,6 +740,72 @@ export const Header: React.FC<HeaderProps> = ({
               <Home className="w-4 h-4 text-blue-600 shrink-0" />
               <span>{t("home", "Home")}</span>
             </button>
+
+            {/* Mobile AI Tools Quick Grid */}
+            <div className="w-full p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center space-x-1">
+                <Sparkles className="w-3 h-3 text-indigo-500" />
+                <span>AI Suite Tools</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {/* Summary */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSelectSpecificTool("ai-pdf-summary");
+                  }}
+                  className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-blue-400 transition"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="truncate">Summary</span>
+                </button>
+
+                {/* Translate */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSelectSpecificTool("ai-translate-pdf");
+                  }}
+                  className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-blue-400 transition"
+                >
+                  <Languages className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="truncate">Translate</span>
+                </button>
+
+                {/* Resume Ready */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSelectSpecificTool("ai-resume-builder");
+                  }}
+                  className="p-2 rounded-lg bg-orange-50/80 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-500/30 text-left text-xs font-bold text-orange-900 dark:text-orange-200 flex items-center justify-between cursor-pointer hover:border-orange-400 transition col-span-2"
+                >
+                  <div className="flex items-center space-x-1.5">
+                    <FileText className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span>Resume Ready</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded font-black uppercase">
+                    ATS
+                  </span>
+                </button>
+
+                {/* AI Chat */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSelectSpecificTool("ai-chat-pdf");
+                  }}
+                  className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-indigo-400 transition col-span-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span className="truncate">AI Chat with PDF</span>
+                </button>
+              </div>
+            </div>
 
             <button
               type="button"

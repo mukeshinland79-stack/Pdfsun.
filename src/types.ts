@@ -195,3 +195,108 @@ export interface AuditLogEntry {
   details: string;
   metadata?: Record<string, any>;
 }
+
+// ==========================================
+// RESUME READY & AI RESUME BUILDER ENGINE TYPES
+// ==========================================
+
+export type ResumeStyle = "ats" | "modern" | "executive";
+
+export interface ResumePersonal {
+  fullName: string;
+  title: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin?: string;
+  portfolio?: string;
+  github?: string;
+  photoUrl?: string;
+}
+
+export interface ResumeExperience {
+  id: string;
+  role: string;
+  company: string;
+  location?: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+  highlights: string[];
+}
+
+export interface ResumeEducation {
+  id: string;
+  degree: string;
+  field?: string;
+  school: string;
+  location?: string;
+  startYear?: string;
+  endYear: string;
+  gpa?: string;
+  honors?: string;
+}
+
+export interface ResumeProject {
+  id: string;
+  name: string;
+  link?: string;
+  description: string;
+  technologies?: string[];
+}
+
+export interface ResumeCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  date?: string;
+  link?: string;
+}
+
+export interface ResumeLanguage {
+  language: string;
+  proficiency: "Native" | "Fluent" | "Professional" | "Intermediate" | "Basic";
+}
+
+export interface ResumeSkills {
+  technical: string[];
+  soft: string[];
+  tools: string[];
+}
+
+export interface ResumeData {
+  personal: ResumePersonal;
+  summary: string;
+  experience: ResumeExperience[];
+  education: ResumeEducation[];
+  skills: ResumeSkills;
+  projects: ResumeProject[];
+  certifications: ResumeCertification[];
+  languages: ResumeLanguage[];
+  achievements: string[];
+}
+
+export interface AtsAuditItem {
+  section: string;
+  status: "good" | "warning" | "error";
+  title: string;
+  feedback: string;
+  tip?: string;
+}
+
+export interface AtsAuditResult {
+  score: number; // 0 - 100
+  rating: "Poor" | "Needs Improvement" | "Good" | "Excellent" | "ATS Ready";
+  breakdown: AtsAuditItem[];
+  strengths: string[];
+  actionableFixes: string[];
+}
+
+export interface JobMatchResult {
+  matchPercentage: number;
+  matchingKeywords: string[];
+  missingKeywords: string[];
+  recommendations: string[];
+  analyzedAt: string;
+}
+

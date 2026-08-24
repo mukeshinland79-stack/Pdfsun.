@@ -28,6 +28,7 @@ import { extractTextFromPdfFile, textToPdf, downloadFile } from "../lib/pdfEngin
 import { QuickShareModal } from "./QuickShareModal";
 import { useUsageTracker } from "../hooks/useUsageTracker";
 import { FreeLimitPaywallModal } from "./FreeLimitPaywallModal";
+import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -90,7 +91,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   };
 
   // Active AI Tab
-  const [activeTab, setActiveTab] = useState<"chat" | "summary" | "translate" | "flashcards" | "notes" | "grammar" | "explain">(() => {
+  const [activeTab, setActiveTab] = useState<"chat" | "summary" | "translate" | "flashcards" | "notes" | "grammar" | "explain" | "resume">(() => {
+    if (tool.id === "ai-resume-builder" || tool.id === "ai-resume") return "resume";
     if (tool.id === "ai-pdf-summary") return "summary";
     if (tool.id === "ai-translate-pdf") return "translate";
     if (tool.id === "ai-flashcards") return "flashcards";
@@ -412,6 +414,19 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab("resume")}
+            className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition ${
+              activeTab === "resume" ? "bg-orange-500 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Resume Ready</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500 text-white font-black uppercase ml-1">
+              ATS
+            </span>
+          </button>
+
+          <button
             onClick={() => {
               setActiveTab("flashcards");
               runAiFeature("flashcards");
@@ -452,7 +467,14 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         </div>
 
         {/* Workspace Content Grid */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+        {activeTab === "resume" ? (
+          <ResumeReadyWorkspace
+            initialDocumentText={documentText}
+            initialFile={file}
+            onAddHistory={onAddHistory}
+          />
+        ) : (
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
           {/* Left Column: File Drop & Text Preview */}
           <div className="md:col-span-4 p-4 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col space-y-4 overflow-y-auto">
             {/* Document Picker with react-dropzone integration */}
@@ -702,6 +724,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Quick Share Modal */}

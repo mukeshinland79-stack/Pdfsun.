@@ -567,36 +567,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Brand & Heading */}
-        <div className="text-center space-y-1.5 pt-1">
+        <div className="text-center space-y-2 pt-1">
           {authMode === "owner" ? (
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 mx-auto">
               <Crown className="w-6 h-6" />
             </div>
           ) : (
-            <div className="flex justify-center mx-auto">
-              <PDFSunLogoIcon size={46} variant="app-icon" animated={false} />
+            <div className="flex flex-col items-center justify-center mx-auto space-y-1">
+              <PDFSunLogoIcon size={44} variant="app-icon" animated={false} />
+              <div className="flex items-center space-x-1 font-black text-lg tracking-tight leading-none">
+                <span className="text-slate-900 dark:text-white">PDF</span>
+                <span className="text-amber-500">Sun</span>
+                <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 pl-0.5">.in</span>
+              </div>
             </div>
           )}
           
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight pt-1">
-            {authMode === "owner"
-              ? "Owner & Admin Portal"
-              : authMode === "sso"
-              ? "Enterprise Single Sign-On"
-              : authMode === "forgot-password"
-              ? "Reset Password"
-              : customerSubMode === "signup"
-              ? "Create a free account"
-              : "Log in to your account"}
-          </h2>
+          <div className="space-y-1 pt-0.5">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {authMode === "owner"
+                ? "Owner & Admin Portal"
+                : authMode === "sso"
+                ? "Enterprise Single Sign-On"
+                : authMode === "forgot-password"
+                ? "Reset Password"
+                : customerSubMode === "signup"
+                ? "Create a free account"
+                : "Log in to your account"}
+            </h2>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {authMode === "owner"
-              ? "Strict Multi-Factor Identity Protection"
-              : authMode === "sso"
-              ? "Secure corporate login via Okta, Azure AD, Google Workspace & SAML"
-              : "Every tool you need to use PDFs, in one place"}
-          </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {authMode === "owner"
+                ? "Strict Multi-Factor Identity Protection"
+                : authMode === "sso"
+                ? "Secure corporate login via Okta, Azure AD, Google Workspace & SAML"
+                : "Every tool you need to use PDFs, in one place"}
+            </p>
+          </div>
         </div>
 
         {/* Current Active Account Card (if logged in) */}

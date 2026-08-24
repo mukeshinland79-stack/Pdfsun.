@@ -75,6 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { name: t("pdfToWord", "PDF to Word"), toolId: "pdf-to-word", icon: FileText },
     { name: t("chatWithPdf", "AI Chat with PDF"), toolId: "ai-chat-pdf", icon: Sparkles },
     { name: t("aiSummary", "AI Summary"), toolId: "ai-pdf-summary", icon: Zap },
+    { name: "Resume Ready", toolId: "ai-resume-builder", icon: FileText },
   ];
 
   return (

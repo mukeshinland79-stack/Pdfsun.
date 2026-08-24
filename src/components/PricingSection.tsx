@@ -10,12 +10,18 @@ import {
   ArrowRight,
   Star,
   Globe,
-  AlertCircle,
   Sparkles,
+  Users,
+  Building2,
+  Send,
+  X,
+  Mail,
+  HelpCircle,
 } from "lucide-react";
 import { PaymentBlinkingRedirectModal } from "./PaymentBlinkingRedirectModal";
 import { UserProfile } from "../types";
 import { useLanguage } from "../lib/i18n";
+import { ALL_SUPPORTED_IDPS } from "./EnterpriseIdpCarousel";
 
 interface PricingSectionProps {
   onSuccessUpgrade?: () => void;
@@ -33,6 +39,7 @@ export interface PlanTier {
   billingType: "free" | "one-time" | "subscription" | "enterprise";
   paymentLinkId?: string;
   razorpayLink?: string;
+  seats?: number;
   priceINR: {
     monthly: number;
     yearly: number;
@@ -58,7 +65,12 @@ export interface PlanTier {
   disabled?: boolean;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade, isProUser = false, onOpenPolicy, userProfile }) => {
+export const PricingSection: React.FC<PricingSectionProps> = ({
+  onSuccessUpgrade,
+  isProUser = false,
+  onOpenPolicy,
+  userProfile,
+}) => {
   const { t } = useLanguage();
   const currentUserId = (userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
 
@@ -81,6 +93,20 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
   const [refundModalOpen, setRefundModalOpen] = useState<boolean>(false);
   const [refundTxId, setRefundTxId] = useState<string>("");
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
+
+  // Enterprise Sales Contact Modal State
+  const [enterpriseSalesModalOpen, setEnterpriseSalesModalOpen] = useState<boolean>(false);
+  const [enterpriseForm, setEnterpriseForm] = useState({
+    companyName: "",
+    contactName: "",
+    workEmail: "",
+    companyDomain: "",
+    estimatedSeats: "20-50",
+    preferredIdp: "Okta",
+    customRequirements: "",
+  });
+  const [enterpriseInquirySubmitted, setEnterpriseInquirySubmitted] = useState<boolean>(false);
+  const [enterpriseTicketId, setEnterpriseTicketId] = useState<string>("");
 
   // Sequential 3-Step Blinking Redirect Modal & User Subscription State
   const [blinkingModalOpen, setBlinkingModalOpen] = useState<boolean>(false);
@@ -130,34 +156,34 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     {
       id: "free",
       name: "Free Plan",
-      badge: "FREE FOREVER",
+      badge: "FREEMIUM TIER",
       badgeBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-      description: "Basic WebAssembly PDF processing with daily task limits.",
+      description: "Basic WebAssembly processing with daily task limits & zero server logs.",
       billingType: "free",
       priceINR: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "₹0",
         labelYearly: "₹0",
-        subtextMonthly: "Free forever / 3 daily limit",
-        subtextYearly: "Free forever / 3 daily limit",
+        subtextMonthly: "Free forever / 3 tasks daily",
+        subtextYearly: "Free forever / 3 tasks daily",
       },
       priceUSD: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "$0",
         labelYearly: "$0",
-        subtextMonthly: "Free forever / 3 daily limit",
-        subtextYearly: "Free forever / 3 daily limit",
+        subtextMonthly: "Free forever / 3 tasks daily",
+        subtextYearly: "Free forever / 3 tasks daily",
       },
       guaranteeText: "100% Free Forever",
       popular: false,
       features: [
         "3 Free tasks per 24 hours",
-        "Up to 15 MB file size limit",
-        "100% In-browser privacy & zero server logs",
-        "Standard WebAssembly processing",
-        "Basic PDF tools (Merge, Split, Compress)",
+        "Max 15 MB file size limit",
+        "WebAssembly in-browser engine",
+        "Zero server logs & 100% privacy",
+        "Standard PDF tools (Merge, Split, Compress)",
       ],
       cta: "Current Free Plan",
       disabled: true,
@@ -165,7 +191,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     {
       id: "flexi",
       name: "Flexi Pack",
-      badge: "ONE-TIME TOP-UP",
+      badge: "PAY-AS-YOU-GO",
       badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
@@ -177,8 +203,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         oneTime: 99,
         labelMonthly: "₹99",
         labelYearly: "₹99",
-        subtextMonthly: "100 Lifetime Credits (No Expiry)",
-        subtextYearly: "100 Lifetime Credits (No Expiry)",
+        subtextMonthly: "100 Lifetime Credits (One-Time)",
+        subtextYearly: "100 Lifetime Credits (One-Time)",
       },
       priceUSD: {
         monthly: 1.99,
@@ -186,19 +212,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         oneTime: 1.99,
         labelMonthly: "$1.99",
         labelYearly: "$1.99",
-        subtextMonthly: "100 Lifetime Credits (No Expiry)",
-        subtextYearly: "100 Lifetime Credits (No Expiry)",
+        subtextMonthly: "100 Lifetime Credits (One-Time)",
+        subtextYearly: "100 Lifetime Credits (One-Time)",
       },
       guaranteeText: "Strictly Non-Refundable",
       popular: false,
       features: [
-        "100 Instant Processing Credits (No Expiry)",
-        "Use on all premium PDF & AI OCR tools",
-        "Up to 500 MB max file size support",
-        "Pay once — zero recurring charges",
+        "100 Lifetime Credits (No Expiry)",
+        "500 MB max file size limit",
+        "Pay once — no recurring fee",
+        "All premium PDF & AI OCR tools",
         "Single-user instant credit top-up",
       ],
-      cta: "Buy 100 Credits — ₹99",
+      cta: "Buy 100 Credits",
     },
     {
       id: "pro-monthly",
@@ -214,25 +240,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         yearly: 199,
         labelMonthly: "₹199",
         labelYearly: "₹199",
-        subtextMonthly: "Billed monthly at ₹199",
-        subtextYearly: "Billed monthly at ₹199",
+        subtextMonthly: "Billed monthly at ₹199/mo",
+        subtextYearly: "Billed monthly at ₹199/mo",
       },
       priceUSD: {
-        monthly: 2.99,
-        yearly: 2.99,
-        labelMonthly: "$2.99",
-        labelYearly: "$2.99",
-        subtextMonthly: "Billed monthly at $2.99",
-        subtextYearly: "Billed monthly at $2.99",
+        monthly: 3.99,
+        yearly: 3.99,
+        labelMonthly: "$3.99",
+        labelYearly: "$3.99",
+        subtextMonthly: "Billed monthly at $3.99/mo",
+        subtextYearly: "Billed monthly at $3.99/mo",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
       popular: false,
       features: [
-        "UNLIMITED daily downloads & conversions",
+        "Unlimited daily processing & downloads",
         "Up to 2 GB max file size support",
-        "Priority Gemini 3.6 AI Chat & OCR engine",
+        "Priority Gemini 3.6 AI Chat & OCR",
         "Batch processing multi-file tools",
-        "Zero watermarks & max compression ratio",
+        "Zero watermarks & max conversion speed",
         "Cancel anytime with 1-click",
       ],
       cta: "Subscribe Monthly",
@@ -255,61 +281,103 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         subtextYearly: "₹1,499 / Year (~₹125/month)",
       },
       priceUSD: {
-        monthly: 2.99,
-        yearly: 19.99,
-        labelMonthly: "$19.99",
-        labelYearly: "$19.99",
-        subtextMonthly: "$19.99 / Year (~$1.66/month)",
-        subtextYearly: "$19.99 / Year (~$1.66/month)",
+        monthly: 3.99,
+        yearly: 24.99,
+        labelMonthly: "$24.99",
+        labelYearly: "$24.99",
+        subtextMonthly: "$24.99 / Year (~$2.08/month)",
+        subtextYearly: "$24.99 / Year (~$2.08/month)",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
       popular: true,
       features: [
-        "EVERYTHING in Monthly Plan",
-        "Save 40% vs monthly rate",
-        "Dedicated priority processing bandwidth",
+        "All Pro Monthly features included",
+        "Save 40% vs monthly billing",
         "Multi-device cloud sync",
+        "Dedicated priority processing bandwidth",
         "24/7 Priority Support Desk",
       ],
       cta: "Get Annual Access — Save 40%",
     },
     {
-      id: "enterprise",
-      name: "Enterprise / Team Plan",
-      badge: "5 SEATS & ADMIN TOOLS",
-      badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-      description: "Comprehensive team license with admin controls & multi-user seats.",
+      id: "business-team",
+      name: "Business Team + SSO",
+      badge: "5 SEATS • SSO ADMIN",
+      badgeBg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+      description: "Standard Team tier with Google Workspace & Microsoft 365 SSO.",
       billingType: "enterprise",
-      paymentLinkId: "plink_pdfsun_enterprise",
-      razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
+      seats: 5,
+      paymentLinkId: "plink_pdfsun_business",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-business",
       priceINR: {
-        monthly: 3999,
-        yearly: 3999,
-        labelMonthly: "₹3,999",
-        labelYearly: "₹3,999",
-        subtextMonthly: "5 User Seats Included (~₹66/mo per seat)",
-        subtextYearly: "5 User Seats Included (~₹66/mo per seat)",
+        monthly: 499,
+        yearly: 4999,
+        labelMonthly: "₹4,999",
+        labelYearly: "₹4,999",
+        subtextMonthly: "₹4,999/yr (5 Seats ~₹83/user/mo)",
+        subtextYearly: "₹4,999/yr (5 Seats ~₹83/user/mo)",
       },
       priceUSD: {
-        monthly: 49.99,
-        yearly: 49.99,
-        labelMonthly: "$49.99",
-        labelYearly: "$49.99",
-        subtextMonthly: "5 User Seats Included (~$0.83/mo per seat)",
-        subtextYearly: "5 User Seats Included (~$0.83/mo per seat)",
+        monthly: 7.99,
+        yearly: 69,
+        labelMonthly: "$69",
+        labelYearly: "$69",
+        subtextMonthly: "$69/yr (5 Seats ~$1.15/user/mo)",
+        subtextYearly: "$69/yr (5 Seats ~$1.15/user/mo)",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
       popular: false,
       features: [
-        "5 User Seats Included",
+        "5 User Seats Included (+₹799 / $10 per extra seat)",
+        "Google Workspace & Microsoft 365 SSO",
         "Centralized Team Billing & Admin Portal",
-        "Priority OCR & Gemini AI Pipeline",
-        "Unlimited file size & batch speed",
-        "Dedicated Account Manager & 24/7 SLA",
+        "Priority Gemini AI & OCR Pipeline",
+        "Admin role management & seat licensing",
       ],
       cta: "Get Team Access",
     },
   ];
+
+  // Enterprise SSO Unlimited Tier (Dedicated Banner / High Value Tier)
+  const enterprisePlanTier: PlanTier = {
+    id: "enterprise",
+    name: "Enterprise SSO Unlimited",
+    badge: "CUSTOM / HIGH SECURITY TIER",
+    badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), SCIM provisioning, and Dedicated Account Manager.",
+    billingType: "enterprise",
+    seats: 20,
+    paymentLinkId: "plink_pdfsun_enterprise",
+    razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
+    priceINR: {
+      monthly: 999,
+      yearly: 9999,
+      labelMonthly: "₹9,999",
+      labelYearly: "₹9,999",
+      subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+      subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+    },
+    priceUSD: {
+      monthly: 14.99,
+      yearly: 149,
+      labelMonthly: "$149",
+      labelYearly: "$149",
+      subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+      subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+    },
+    guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+    popular: false,
+    features: [
+      "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
+      "Custom Domain Enforced Auto-Join (@yourcompany.com)",
+      "SCIM User Provisioning & Granular Access Controls",
+      "GST Compliant Invoicing & Dedicated SLA Account Manager",
+      "Flat up to 20 Seats included (Custom bulk volume available)",
+      "Dedicated high-throughput Gemini AI & OCR pipeline",
+      "Zero server logs & 100% In-Browser Privacy SLA",
+    ],
+    cta: "Get Instant Enterprise Access",
+  };
 
   const [incompleteNoticeOpen, setIncompleteNoticeOpen] = useState<boolean>(false);
   const [activePlanId, setActivePlanId] = useState<string>(() => {
@@ -321,7 +389,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
   });
 
   const handleSelectPlan = async (plan: PlanTier) => {
-    if (plan.disabled || (isProUser && plan.id !== "flexi")) return;
+    if (plan.disabled || (isProUser && plan.id !== "flexi" && plan.id !== "business-team" && plan.id !== "enterprise")) return;
 
     setIsProcessing(true);
     const isYearly = billingCycle === "yearly";
@@ -330,7 +398,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     if (currency === "INR") {
       if (plan.billingType === "one-time") {
         amount = plan.priceINR.oneTime || 99;
-      } else if (plan.billingType === "enterprise") {
+      } else if (plan.id === "business-team") {
+        amount = plan.priceINR.yearly;
+      } else if (plan.id === "enterprise") {
         amount = plan.priceINR.yearly;
       } else {
         amount = isYearly ? plan.priceINR.yearly : plan.priceINR.monthly;
@@ -338,7 +408,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     } else {
       if (plan.billingType === "one-time") {
         amount = plan.priceUSD.oneTime || 1.99;
-      } else if (plan.billingType === "enterprise") {
+      } else if (plan.id === "business-team") {
+        amount = plan.priceUSD.yearly;
+      } else if (plan.id === "enterprise") {
         amount = plan.priceUSD.yearly;
       } else {
         amount = isYearly ? plan.priceUSD.yearly : plan.priceUSD.monthly;
@@ -358,30 +430,30 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           planId: plan.id,
           amount,
           currency: currency === "INR" ? "INR" : "USD",
-          userEmail: "user@pdfsun.in",
+          userEmail: currentUserId || "user@pdfsun.in",
         }),
       });
       const data = await res.json();
 
-      // 2. Check if Razorpay Checkout JS is loaded for Desktop / Laptop / Mobile Pop-up Modal
+      // 2. Check if Razorpay Checkout JS is loaded for Pop-up Modal
       if (typeof window !== "undefined" && (window as any).Razorpay) {
         const options = {
           key: data.keyId || "rzp_live_pdfsun_key",
           amount: data.amount || amount * 100,
           currency: currency === "INR" ? "INR" : "USD",
           name: "PDFSun.in",
-          description: `${plan.name} — Instant Premium Access`,
+          description: `${plan.name} — Instant Access`,
           image: "https://www.pdfsun.in/icon-192.png",
           order_id: data.orderId,
           subscription_id: data.subscriptionId,
           prefill: {
-            name: "PDFSun User",
-            email: "user@pdfsun.in",
+            name: userProfile?.name || "PDFSun User",
+            email: currentUserId || "user@pdfsun.in",
             contact: "",
           },
           notes: {
             planId: plan.id,
-            userEmail: "user@pdfsun.in",
+            userEmail: currentUserId || "user@pdfsun.in",
             site: "PDFSun.in",
             payment_link_id: plan.paymentLinkId,
           },
@@ -392,15 +464,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             console.log("[Razorpay Pop-up Modal] Payment completed successfully:", response);
             const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
 
-            // Fire GA4 Purchase Event according to requirement #5
+            // Fire GA4 Purchase Event
             if (typeof (window as any).gtag === "function") {
               (window as any).gtag("event", "purchase", {
                 transaction_id: payId,
-                value: amount, // Dynamic: 99, 199, 1499, or 3999
+                value: amount,
                 currency: currency === "INR" ? "INR" : "USD",
                 items: [
                   {
-                    item_name: plan.name, // Dynamic: 'Flexi Pack', 'Pro Sun Monthly', etc.
+                    item_name: plan.name,
                     price: amount,
                     quantity: 1,
                   },
@@ -488,7 +560,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     } else if (selectedPlanName.toLowerCase().includes("monthly")) {
       targetPlanId = "pro-monthly";
       localStorage.setItem("pdfsun_user_plan_v1", "pro-monthly");
-    } else if (selectedPlanName.toLowerCase().includes("enterprise") || selectedPlanName.toLowerCase().includes("team")) {
+    } else if (selectedPlanName.toLowerCase().includes("business") || selectedPlanName.toLowerCase().includes("team")) {
+      targetPlanId = "business-team";
+      localStorage.setItem("pdfsun_user_plan_v1", "business-team");
+    } else if (selectedPlanName.toLowerCase().includes("enterprise")) {
       targetPlanId = "enterprise";
       localStorage.setItem("pdfsun_user_plan_v1", "enterprise");
     } else {
@@ -502,7 +577,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     if (typeof (window as any).gtag === "function") {
       (window as any).gtag("event", "purchase", {
         transaction_id: payId,
-        value: selectedPlanAmount, // Dynamic: 99, 199, 1499, or 3999
+        value: selectedPlanAmount,
         currency: currency === "INR" ? "INR" : "USD",
         items: [
           {
@@ -563,7 +638,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transactionId: refundTxId,
-          userEmail: "user@pdfsun.in",
+          userEmail: currentUserId || "user@pdfsun.in",
           reason: "7-Day Satisfaction Guarantee",
         }),
       });
@@ -583,51 +658,73 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     }
   };
 
+  const handleEnterpriseFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/enterprise/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(enterpriseForm),
+      });
+      const data = await res.json();
+      setEnterpriseTicketId(data.ticketId || `ENT-${Math.floor(100000 + Math.random() * 900000)}`);
+      setEnterpriseInquirySubmitted(true);
+    } catch {
+      setEnterpriseTicketId(`ENT-${Math.floor(100000 + Math.random() * 900000)}`);
+      setEnterpriseInquirySubmitted(true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <section id="pricing" className="py-16 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto space-y-12">
       {/* Header Section */}
       <div className="text-center space-y-4">
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black uppercase tracking-wider shadow-xs">
           <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500" />
-          <span>{t("pricing.badge", "INSTANT UNLIMITED PDF PROCESSING")}</span>
+          <span>{t("pricing.badge", "INSTANT UNLIMITED PDF PROCESSING & ENTERPRISE SSO")}</span>
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
-          {t("pricing.title", "Simple, Transparent")} <span className="text-amber-600 dark:text-amber-400">{t("pricing.titleHighlight", "Pricing Plans")}</span>
+          {t("pricing.title", "Simple, Transparent")} <span className="text-amber-600 dark:text-amber-400">{t("pricing.titleHighlight", "Pricing & SSO Plans")}</span>
         </h2>
 
         <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          {t("pricing.subtitle", "Process unlimited PDF files with 100% private WebAssembly speed. No hidden fees. First 7 Days 100% Money-Back Guarantee on all subscription plans.")}
+          {t("pricing.subtitle", "High-speed WebAssembly processing with 100% private in-browser security. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe/USD). First 7 Days 100% Money-Back Guarantee.")}
         </p>
 
         {/* Currency & Billing Controls Bar */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          {/* Smart Currency Switcher */}
+          {/* Active Multi-Currency Switcher */}
           <div className="inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700/80 text-xs font-bold shadow-md">
             <button
               type="button"
+              id="currency-switch-inr"
               aria-label="Switch Currency to INR Razorpay"
               onClick={() => setCurrency("INR")}
-              className={`px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 ${
+              className={`px-4 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer ${
                 currency === "INR"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              <span>{t("pricing.currencyInr", "🇮🇳 INR (₹) Razorpay")}</span>
+              <span>🇮🇳 INR (₹) Razorpay</span>
             </button>
             <button
               type="button"
-              aria-label="Switch Currency to USD Razorpay"
+              id="currency-switch-usd"
+              aria-label="Switch Currency to USD International"
               onClick={() => setCurrency("USD")}
-              className={`px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 ${
+              className={`px-4 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer ${
                 currency === "USD"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>{t("pricing.currencyUsd", "🌎 USD ($) Razorpay")}</span>
+              <span>🌎 USD ($) International</span>
             </button>
           </div>
 
@@ -635,9 +732,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           <div className="inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700/80 text-xs font-bold shadow-md">
             <button
               type="button"
+              id="billing-cycle-monthly"
               aria-label="Switch to Monthly Billing"
               onClick={() => setBillingCycle("monthly")}
-              className={`px-4 py-2 rounded-xl transition ${
+              className={`px-4 py-2 rounded-xl transition cursor-pointer ${
                 billingCycle === "monthly"
                   ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md border border-slate-300 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -647,9 +745,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             </button>
             <button
               type="button"
+              id="billing-cycle-yearly"
               aria-label="Switch to Annual Billing"
               onClick={() => setBillingCycle("yearly")}
-              className={`px-4 py-2 rounded-xl transition flex items-center space-x-1.5 ${
+              className={`px-4 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer ${
                 billingCycle === "yearly"
                   ? "bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black shadow-md"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -664,7 +763,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         </div>
       </div>
 
-      {/* Pricing Cards Grid (5 Responsive Columns) */}
+      {/* Main Pricing Cards Grid (5 Responsive Columns: Free, Flexi, Pro Monthly, Pro Annual, Business Team) */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
         {plans.map((plan) => {
           const isYearly = billingCycle === "yearly";
@@ -682,13 +781,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
           if (plan.billingType === "free") {
             displayPriceStr = `${currencySymbol}0`;
             periodLabel = "/ forever";
-            subtext = "Forever free access";
+            subtext = "Free forever • 3 tasks/24hrs";
           } else if (plan.billingType === "one-time") {
             displayPriceStr = `${currencySymbol}${priceObj.oneTime}`;
             periodLabel = "one-time";
             subtext = priceObj.subtextMonthly;
-          } else if (plan.billingType === "enterprise") {
-            displayPriceStr = `${currencySymbol}${priceObj.yearly}`;
+          } else if (plan.id === "business-team") {
+            displayPriceStr = `${currencySymbol}${priceObj.yearly.toLocaleString()}`;
             periodLabel = "/ year";
             subtext = priceObj.subtextYearly;
           } else {
@@ -699,7 +798,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               subtext = isYearly ? priceObj.subtextYearly : priceObj.subtextMonthly;
             } else {
               // Pro Sun Annual
-              displayPriceStr = `${currencySymbol}${priceObj.yearly}`;
+              displayPriceStr = `${currencySymbol}${priceObj.yearly.toLocaleString()}`;
               periodLabel = "/ year";
               subtext = priceObj.subtextYearly;
             }
@@ -804,15 +903,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan)}
-                  disabled={plan.disabled || (isPlanActiveForUser) || isProcessing}
-                  className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 ${
+                  disabled={plan.disabled || isPlanActiveForUser || isProcessing}
+                  className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 cursor-pointer ${
                     isPlanActiveForUser
                       ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-500 shadow-emerald-500/20 cursor-default"
                       : isCardHighlighted
                       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20"
                       : plan.disabled
                       ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700"
-                      : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700"
+                      : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700 hover:scale-[1.01]"
                   }`}
                 >
                   {isPlanActiveForUser ? (
@@ -864,7 +963,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center space-x-1">
                     <CreditCard className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                     <span>
-                      Razorpay (UPI, Netbanking, Cards, Auto-pay)
+                      {currency === "INR" ? "Razorpay (UPI, Cards, NetBanking)" : "Stripe / Razorpay (Intl Cards)"}
                     </span>
                   </p>
                 )}
@@ -874,21 +973,150 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
         })}
       </div>
 
-      {/* Security & Trust Bar (Directly below Pricing Table) */}
+      {/* ENTERPRISE SSO UNLIMITED (SPECIAL HIGH-VALUE FEATURED BANNER CARD) */}
+      <div
+        id="enterprise-sso-banner"
+        className="relative rounded-3xl p-6 sm:p-8 lg:p-10 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white border-2 border-indigo-500/40 shadow-2xl overflow-hidden"
+      >
+        {/* Ambient background glows */}
+        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl" />
+
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Column: Heading, IdP Chips, and Specs */}
+          <div className="lg:col-span-7 space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-300">
+                ⭐ {enterprisePlanTier.badge}
+              </span>
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                <span>Flat Up to 20 Seats Included</span>
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5">
+                <Building2 className="w-8 h-8 text-indigo-400 shrink-0" />
+                <span>{enterprisePlanTier.name}</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
+                {enterprisePlanTier.description}
+              </p>
+            </div>
+
+            {/* Supported SSO Identity Provider Chips */}
+            <div className="space-y-2 pt-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Seamless Integration With Your Identity Provider (IdP):</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ALL_SUPPORTED_IDPS.map((idp, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-semibold text-slate-200 shadow-xs hover:border-indigo-400 transition"
+                  >
+                    <div className="w-4 h-4 flex items-center justify-center">
+                      {idp.renderLogo({ className: "w-3.5 h-3.5" })}
+                    </div>
+                    <span>{idp.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Enterprise Feature Pillars Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+              {enterprisePlanTier.features.map((feat, idx) => (
+                <div key={idx} className="flex items-start space-x-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5 stroke-[3]" />
+                  <span className="text-xs text-slate-200 font-medium leading-snug">{feat}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column: Pricing Box & Dual High-Contrast CTAs */}
+          <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-slate-950/80 border border-indigo-500/30 shadow-inner space-y-6">
+            <div className="space-y-2 border-b border-slate-800 pb-4">
+              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300">
+                Transparent Enterprise Rate
+              </span>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                  {currency === "INR" ? "₹9,999" : "$149"}
+                </span>
+                <span className="text-xs font-bold text-slate-400">/ year</span>
+              </div>
+              <p className="text-xs text-emerald-400 font-bold font-mono">
+                {currency === "INR"
+                  ? "Flat up to 20 Seats (~₹41/user/month)"
+                  : "Flat up to 20 Seats (~$0.62/user/month)"}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Standard competitors charge $7–$10/seat/month. Save over 85% with PDFSun Enterprise.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Primary Instant Access Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectPlan(enterprisePlanTier)}
+                disabled={isProcessing}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4 fill-slate-950" />
+                <span>Get Instant Enterprise Access ({currency === "INR" ? "₹9,999" : "$149"})</span>
+                <ArrowRight className="w-4 h-4 stroke-[3]" />
+              </button>
+
+              {/* Secondary Contact Enterprise Sales Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setEnterpriseInquirySubmitted(false);
+                  setEnterpriseSalesModalOpen(true);
+                }}
+                className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 hover:border-slate-600 transition flex items-center justify-center space-x-2 cursor-pointer"
+              >
+                <Mail className="w-4 h-4 text-indigo-400" />
+                <span>Contact Enterprise Sales / Request Quote</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+              <span className="flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-400" />
+                <span>GST Compliant Invoicing</span>
+              </span>
+              <span>•</span>
+              <span>Direct SLA Desk</span>
+              <span>•</span>
+              <span className="text-amber-400 font-bold">2-Hour Response SLA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Security & Trust Badges Bar (Footer of Pricing Box) */}
       <div className="max-w-5xl mx-auto my-6 p-4 rounded-2xl bg-slate-900/90 dark:bg-slate-900/80 border border-amber-500/30 text-white shadow-lg flex flex-wrap items-center justify-around gap-4 text-xs font-bold">
         <div className="flex items-center space-x-2 text-emerald-400">
           <Lock className="w-4 h-4 shrink-0 text-emerald-400 stroke-[2.5]" />
-          <span>🔒 256-Bit SSL Encrypted Connection</span>
+          <span>🔒 256-Bit SSL Encryption</span>
         </div>
         <div className="flex items-center space-x-2 text-blue-400">
           <ShieldCheck className="w-4 h-4 shrink-0 text-blue-400 stroke-[2.5]" />
-          <span>🛡️ Razorpay Verified Partner (UPI, Cards, NetBanking)</span>
+          <span>🛡️ Razorpay / Stripe Verified</span>
         </div>
         <div className="flex items-center space-x-2 text-amber-400">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
-          <span>⚡ Instant Automated Delivery</span>
+          <span>⚡ Instant Automated License Delivery</span>
         </div>
       </div>
+
+      {/* Disclaimer & Refund Terms */}
       <div className="max-w-4xl mx-auto my-8 p-6 sm:p-8 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center shadow-sm flex flex-col items-center justify-center space-y-4">
         {/* Top Row — Centered Trust Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -913,7 +1141,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
 
         {/* Disclaimer Text */}
         <p className="max-w-3xl mx-auto text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal text-center">
-          {t("pricing.termsText", "7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends. Refunds are processed through available self-service or support options.")} All purchases are subject to our{" "}
+          {t(
+            "pricing.termsText",
+            "7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends."
+          )}{" "}
+          All purchases are subject to our{" "}
           {onOpenPolicy ? (
             <button
               type="button"
@@ -936,9 +1168,167 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
             </button>
           ) : (
             <span className="font-semibold text-slate-700 dark:text-slate-300">Refund Policy</span>
-          )}.
+          )}
+          .
         </p>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setRefundModalOpen(true)}
+            className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Need a refund? Open Self-Service Refund Portal</span>
+          </button>
+        </div>
       </div>
+
+      {/* Enterprise Sales Consultation Modal */}
+      {enterpriseSalesModalOpen && (
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-[#0f172a] border border-indigo-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-white space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Enterprise SSO & Team Sales</h3>
+                  <p className="text-[11px] text-slate-400">Direct consultation with PDFSun Enterprise Team</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnterpriseSalesModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {enterpriseInquirySubmitted ? (
+              <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+                <h4 className="text-base font-bold text-white">Enterprise Inquiry Received!</h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Your ticket <span className="font-mono text-amber-400 font-bold">#{enterpriseTicketId}</span> has been created. A dedicated account manager will reach out to <span className="text-emerald-400 font-bold">{enterpriseForm.workEmail}</span> within 2 hours.
+                </p>
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEnterpriseSalesModalOpen(false)}
+                    className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleEnterpriseFormSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Company / Organization Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Acme Corp"
+                      value={enterpriseForm.companyName}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, companyName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Contact Person Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Jane Doe"
+                      value={enterpriseForm.contactName}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, contactName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Work Email *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="jane@acme.com"
+                      value={enterpriseForm.workEmail}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, workEmail: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Company Domain for SSO Auto-Join</label>
+                    <input
+                      type="text"
+                      placeholder="@acme.com"
+                      value={enterpriseForm.companyDomain}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, companyDomain: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Estimated Team Seats</label>
+                    <select
+                      value={enterpriseForm.estimatedSeats}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, estimatedSeats: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400 cursor-pointer"
+                    >
+                      <option value="5-20">5 – 20 Seats (Standard Tier)</option>
+                      <option value="20-50">20 – 50 Seats</option>
+                      <option value="50-100">50 – 100 Seats</option>
+                      <option value="100+">100+ Enterprise Unlimited</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-300">Preferred SSO Identity Provider</label>
+                    <select
+                      value={enterpriseForm.preferredIdp}
+                      onChange={(e) => setEnterpriseForm({ ...enterpriseForm, preferredIdp: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400 cursor-pointer"
+                    >
+                      <option value="Okta">Okta Workforce Identity</option>
+                      <option value="Azure AD">Microsoft Azure AD / Entra ID</option>
+                      <option value="Google Workspace">Google Workspace</option>
+                      <option value="SAML 2.0">SAML 2.0 / Ping / OneLogin</option>
+                      <option value="Auth0">Auth0</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">Custom Requirements / Notes</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Specific security policies, SCIM provisioning requirements, invoicing details..."
+                    value={enterpriseForm.customRequirements}
+                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, customRequirements: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-bold text-xs uppercase tracking-wider hover:opacity-90 transition flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{isProcessing ? "Submitting Inquiry..." : "Submit Enterprise Inquiry (2-Hr SLA)"}</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Simulated Payment Gateway Modal */}
       {activeGatewayModal && (
@@ -950,16 +1340,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   ⚡
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">
-                    Razorpay Payment Gateway
-                  </h3>
+                  <h3 className="text-base font-black text-white">Razorpay Payment Gateway</h3>
                   <p className="text-[11px] text-slate-400">Secure Order Verification</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveGatewayModal(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
+                className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
               >
                 Cancel
               </button>
@@ -973,7 +1361,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Payable:</span>
                 <span className="font-bold text-amber-400 font-mono text-sm">
-                  {currency === "INR" ? "₹" : "$"}{selectedPlanAmount}
+                  {currency === "INR" ? "₹" : "$"}{selectedPlanAmount.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -994,7 +1382,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 📲 Laptop / Mobile Payment Options
               </p>
               <div className="bg-white p-3 rounded-xl inline-block shadow-inner mx-auto">
-                {/* Dynamically generated UPI QR link placeholder for quick scan on phone */}
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=9991659655@axl&pn=PDFSun%20India&am=${selectedPlanAmount}&cu=INR`}
                   alt="Razorpay UPI Payment QR Code"
@@ -1066,7 +1453,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                 onClick={() => {
                   setIncompleteNoticeOpen(false);
                   if (selectedPlanName) {
-                    const matchedPlan = plans.find((p) => p.name === selectedPlanName);
+                    const matchedPlan = [...plans, enterprisePlanTier].find((p) => p.name === selectedPlanName);
                     if (matchedPlan) handleSelectPlan(matchedPlan);
                   }
                 }}
@@ -1112,7 +1499,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
                   setRefundModalOpen(false);
                   setRefundStatus(null);
                 }}
-                className="text-slate-400 hover:text-white text-xs font-bold"
+                className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
               >
                 Close
               </button>
@@ -1146,7 +1533,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition"
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition cursor-pointer"
               >
                 {isProcessing ? "Processing Refund..." : "Initiate Instant Refund"}
               </button>
@@ -1167,4 +1554,3 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSuccessUpgrade
     </section>
   );
 };
-
