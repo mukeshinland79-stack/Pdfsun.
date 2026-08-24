@@ -567,18 +567,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Brand & Heading */}
-        <div className="text-center space-y-2 pt-1">
+        <div className="text-center space-y-2.5 pt-1">
           {authMode === "owner" ? (
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 mx-auto">
               <Crown className="w-6 h-6" />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center mx-auto space-y-1">
-              <PDFSunLogoIcon size={44} variant="app-icon" animated={false} />
-              <div className="flex items-center space-x-1 font-black text-lg tracking-tight leading-none">
+            <div className="flex flex-col items-center justify-center mx-auto space-y-2">
+              {/* Official PDFSun Logo (Document + Sun) - Clean, transparent background, responsive 56-88px */}
+              <PDFSunLogoIcon
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-[84px] md:h-[84px] drop-shadow-md hover:scale-105 transition-transform duration-300"
+                variant="default"
+                animated={false}
+              />
+              <div className="flex items-center justify-center space-x-1 font-black text-2xl sm:text-3xl tracking-tight leading-none">
                 <span className="text-slate-900 dark:text-white">PDF</span>
                 <span className="text-amber-500">Sun</span>
-                <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 pl-0.5">.in</span>
+                <span className="text-xs sm:text-sm font-mono font-bold text-slate-400 dark:text-slate-500 pl-0.5">.in</span>
               </div>
             </div>
           )}

@@ -20,7 +20,7 @@ export interface PDFSunLogoIconProps {
  * Combines Folded PDF Document + Rising Sun + AI Glow Sparkle + Precision Geometry
  */
 export const PDFSunLogoIcon: React.FC<PDFSunLogoIconProps> = ({
-  size = 40,
+  size,
   variant = "default",
   className = "",
   animated = false,
@@ -28,10 +28,18 @@ export const PDFSunLogoIcon: React.FC<PDFSunLogoIconProps> = ({
   const isMonoDark = variant === "monochrome-dark";
   const isMonoLight = variant === "monochrome-light";
 
+  const sizeStyle =
+    size !== undefined
+      ? {
+          width: typeof size === "number" ? `${size}px` : size,
+          height: typeof size === "number" ? `${size}px` : size,
+        }
+      : undefined;
+
   if (variant === "rounded-square" || variant === "app-icon") {
     return (
       <div
-        style={{ width: size, height: size }}
+        style={sizeStyle || { width: 40, height: 40 }}
         className={`relative flex items-center justify-center rounded-[22%] bg-gradient-to-br from-slate-950 via-[#0B3D91] to-slate-900 shadow-xl shadow-blue-900/40 p-[12%] overflow-hidden border border-white/10 ${className}`}
       >
         {/* Soft background glow */}
@@ -46,7 +54,7 @@ export const PDFSunLogoIcon: React.FC<PDFSunLogoIconProps> = ({
   if (variant === "circle") {
     return (
       <div
-        style={{ width: size, height: size }}
+        style={sizeStyle || { width: 40, height: 40 }}
         className={`relative flex items-center justify-center rounded-full bg-gradient-to-tr from-[#0B3D91] via-[#1E40AF] to-[#2563EB] shadow-lg shadow-blue-600/30 p-[15%] overflow-hidden border border-white/20 ${className}`}
       >
         <PDFSunLogoSvg animated={animated} isMonoDark={false} isMonoLight={false} />
@@ -57,7 +65,7 @@ export const PDFSunLogoIcon: React.FC<PDFSunLogoIconProps> = ({
   if (variant === "glass") {
     return (
       <div
-        style={{ width: size, height: size }}
+        style={sizeStyle || { width: 40, height: 40 }}
         className={`relative flex items-center justify-center rounded-2xl bg-slate-900/80 backdrop-blur-md p-[10%] border border-slate-700/80 shadow-lg ${className}`}
       >
         <PDFSunLogoSvg animated={animated} isMonoDark={false} isMonoLight={false} />
@@ -67,8 +75,8 @@ export const PDFSunLogoIcon: React.FC<PDFSunLogoIconProps> = ({
 
   return (
     <div
-      style={{ width: size, height: size }}
-      className={`relative flex items-center justify-center shrink-0 ${className}`}
+      style={sizeStyle}
+      className={`relative flex items-center justify-center shrink-0 ${!sizeStyle && !className.includes("w-") ? "w-10 h-10" : ""} ${className}`}
     >
       <PDFSunLogoSvg
         animated={animated}
