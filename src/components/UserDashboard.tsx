@@ -52,7 +52,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onOpenAdminPanel,
   onOpenPricing,
 }) => {
-  const [activeTab, setActiveTab] = useState<"profile" | "files" | "plan" | "overview">("profile");
+  const [activeTab, setActiveTab] = useState<"overview" | "profile" | "files" | "plan">("overview");
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal] = useState(userProfile.name || "");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -186,9 +186,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
         </div>
 
-        {/* Dashboard Navigation Tabs - All 3 Required Core Tabs Fully Unlocked */}
+        {/* Dashboard Navigation Tabs */}
         <div className="px-4 sm:px-6 pt-2 sm:pt-3 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-2 text-xs font-extrabold overflow-x-auto">
-          {/* Tab 1: Profile */}
+          {/* Tab 1: Overview & Tools */}
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "overview"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 text-orange-500" />
+            <span>1. Overview &amp; Tools</span>
+          </button>
+
+          {/* Tab 2: Profile & Account */}
           <button
             onClick={() => setActiveTab("profile")}
             className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
@@ -197,11 +210,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <User className="w-4 h-4 text-orange-500" />
-            <span>1. Profile &amp; Account</span>
+            <User className="w-4 h-4 text-blue-500" />
+            <span>2. Profile &amp; Account</span>
           </button>
 
-          {/* Tab 2: Recent Files */}
+          {/* Tab 3: Recent Files */}
           <button
             onClick={() => setActiveTab("files")}
             className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
@@ -210,11 +223,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <Clock className="w-4 h-4 text-blue-500" />
-            <span>2. Recent Files ({history.length})</span>
+            <Clock className="w-4 h-4 text-emerald-500" />
+            <span>3. Recent Files ({history.length})</span>
           </button>
 
-          {/* Tab 3: Plan Details */}
+          {/* Tab 4: Plan Details */}
           <button
             onClick={() => setActiveTab("plan")}
             className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
@@ -224,21 +237,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             }`}
           >
             <Zap className="w-4 h-4 text-amber-500" />
-            <span>3. Plan Details &amp; Invoices</span>
+            <span>4. Plan &amp; Invoices</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
-
-          {/* Tab 4: Overview & Tools */}
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "overview"
-                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
-                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4 text-purple-500" />
-            <span>Overview &amp; Tools</span>
           </button>
         </div>
 
@@ -542,9 +542,101 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           )}
 
-          {/* TAB 4: OVERVIEW & TOOLS */}
+          {/* TAB 1: OVERVIEW & TOOLS */}
           {activeTab === "overview" && (
             <div className="space-y-5">
+              {/* Welcome Banner */}
+              <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-500/10 via-amber-500/10 to-orange-500/10 border border-blue-500/20 dark:border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                      👋 Welcome back, <span className="text-orange-600 dark:text-orange-400">{userProfile.name || "PDFSun User"}</span>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {isOwner
+                      ? "👑 Platform Owner & Super Admin · Manage tools, users, and system analytics."
+                      : "Access all your secure PDF tools, recent files, and settings in one place."}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold">
+                      {userProfile.email}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                        isOwner
+                          ? "bg-amber-500 text-slate-950"
+                          : isPaidUser
+                          ? "bg-orange-500 text-white"
+                          : "bg-blue-600 text-white"
+                      }`}
+                    >
+                      {isOwner ? "👑 Super Admin" : userProfile.plan || "Free Account"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  {onOpenAdminPanel && (isOwner || userProfile.hasAdminAccess) && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAdminPanel();
+                      }}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-md hover:shadow-lg transition cursor-pointer"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>⚙️ Admin Panel</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions PDF Grid (6 Core Tools) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <span>Quick PDF Actions</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Direct Launch</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: "merge-pdf", name: "Merge PDF", icon: "🔀", desc: "Combine multiple files" },
+                    { id: "split-pdf", name: "Split PDF", icon: "✂️", desc: "Extract target pages" },
+                    { id: "compress-pdf", name: "Compress PDF", icon: "📦", desc: "Reduce file size" },
+                    { id: "pdf-to-word", name: "Convert PDF", icon: "🔄", desc: "Word, PPT, Images" },
+                    { id: "edit-pdf", name: "Edit PDF", icon: "✏️", desc: "Annotate, draw & sign" },
+                    { id: "protect-pdf", name: "Protect PDF", icon: "🔒", desc: "256-Bit AES encryption" },
+                  ].map((item) => {
+                    const matchedTool = allTools.find((t) => t.id === item.id || t.slug === item.id) || allTools[0];
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onClose();
+                          if (matchedTool) onSelectTool(matchedTool);
+                        }}
+                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition text-left flex flex-col justify-between group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="text-2xl">{item.icon}</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 line-clamp-1">{item.desc}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Overview Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center space-x-3">
@@ -572,24 +664,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                     <HardDrive className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-lg font-black text-slate-900 dark:text-white">100% Local</div>
-                    <div className="text-[11px] text-slate-400 font-medium">Client-Side Memory</div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">100% Client-Side</div>
+                    <div className="text-[11px] text-slate-400 font-medium">Zero-Cloud Storage</div>
                   </div>
                 </div>
               </div>
 
               {/* Favorite Quick Tools */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                  <Star className="w-4 h-4 text-amber-500" />
-                  <span>Your Favorite Tools ({favoriteTools.length})</span>
-                </h3>
+              {favoriteTools.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                    <Star className="w-4 h-4 text-amber-500" />
+                    <span>Your Favorite Tools ({favoriteTools.length})</span>
+                  </h3>
 
-                {favoriteTools.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
-                    You haven't starred any favorite tools yet. Click the star icon on any tool card!
-                  </div>
-                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {favoriteTools.map((tool) => (
                       <button
@@ -610,7 +698,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       </button>
                     ))}
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Security Shield Footer */}
+              <div className="pt-3 pb-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-3 text-[11px] text-slate-400 flex-wrap">
+                <span className="inline-flex items-center gap-1">
+                  <span>🔐</span> 256‑Bit SSL Encryption
+                </span>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span>🛡️</span> Privacy Shield Protected
+                </span>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span>⚡</span> 99.9% Uptime
+                </span>
               </div>
             </div>
           )}
