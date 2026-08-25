@@ -712,7 +712,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
             {/* Invoice Footer Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
               <span className="text-[10px] text-slate-400">
-                Payment verified by Razorpay Webhook Engine (Secret: 905065)
+                Payment verified securely via Razorpay Gateway (256-Bit SSL Encrypted)
               </span>
               <button
                 onClick={() => window.print()}

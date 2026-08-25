@@ -39,6 +39,7 @@ interface FooterProps {
   onOpenTodayInHistory?: () => void;
   onOpenBlogModal: () => void;
   onOpenContactModal: () => void;
+  onOpenPricing?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -48,6 +49,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenTodayInHistory,
   onOpenBlogModal,
   onOpenContactModal,
+  onOpenPricing,
 }) => {
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
   const { t } = useLanguage();
@@ -154,9 +156,19 @@ export const Footer: React.FC<FooterProps> = ({
                 </li>
               )}
               <li>
-                <a href="#pricing" className="hover:text-amber-400 transition">
-                  {t("footer.pricingPlans", "Pricing Plans")}
-                </a>
+                {onOpenPricing ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPricing}
+                    className="hover:text-amber-400 transition cursor-pointer text-left"
+                  >
+                    {t("footer.pricingPlans", "Pricing Plans")}
+                  </button>
+                ) : (
+                  <a href="#pricing" className="hover:text-amber-400 transition">
+                    {t("footer.pricingPlans", "Pricing Plans")}
+                  </a>
+                )}
               </li>
               <li>
                 <button onClick={onOpenBlogModal} className="hover:text-amber-400 transition cursor-pointer">

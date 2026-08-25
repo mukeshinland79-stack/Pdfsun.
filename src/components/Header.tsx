@@ -67,6 +67,7 @@ interface HeaderProps {
   onGoHome: () => void;
   onOpenTodayInHistory?: () => void;
   onOpenShareModal?: () => void;
+  onOpenPricing?: () => void;
   selectedCategory?: CategoryId;
   onSelectCategory?: (cat: CategoryId) => void;
 }
@@ -96,6 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   onOpenTodayInHistory,
   onOpenShareModal,
+  onOpenPricing,
 }) => {
   const { t } = useLanguage();
 
@@ -135,6 +137,17 @@ export const Header: React.FC<HeaderProps> = ({
       onSelectTool(targetTool);
     }
   };
+
+  const handleOpenPricing = useCallback(() => {
+    if (onOpenPricing) {
+      onOpenPricing();
+    } else {
+      const el = document.getElementById("pricing");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [onOpenPricing]);
 
   // Close dropdowns on outside click or touch
   useEffect(() => {
@@ -227,9 +240,24 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Language, Theme & Auth/Profile) */}
+          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Pricing, Language, Theme & Auth/Profile) */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
             
+            {/* Pricing Plans Menu Item (Directly before Language Selector) */}
+            <button
+              type="button"
+              id="header-nav-pricing-btn"
+              onClick={handleOpenPricing}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-amber-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              title="View PDFSun Pricing & Plans"
+              aria-label="View Pricing Plans"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400/30 shrink-0" />
+              <span className="whitespace-nowrap font-bold">
+                {t("pricingPlans", "Pricing Plans")}
+              </span>
+            </button>
+
             {/* Language Selector */}
             <LanguageSwitcher showLabel={true} align="right" />
 
@@ -644,6 +672,24 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Home className="w-4 h-4 text-blue-600 shrink-0" />
               <span>{t("home", "Home")}</span>
+            </button>
+
+            {/* Mobile Pricing Plans Link */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleOpenPricing();
+              }}
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-amber-900 dark:text-amber-200 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/20 flex items-center justify-between transition cursor-pointer"
+            >
+              <div className="flex items-center space-x-2">
+                <Zap className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
+                <span>{t("pricingPlans", "Pricing Plans")}</span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 uppercase tracking-wider">
+                PRO &amp; SSO
+              </span>
             </button>
 
             {/* Mobile AI Tools Quick Grid */}

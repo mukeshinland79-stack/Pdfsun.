@@ -82,7 +82,7 @@ export const FinanceHub: React.FC = () => {
       accountNumberMasked: '1215********3493',
       ifscCode: 'PUNB0121500',
       branch: 'Behal-Haryana Branch',
-      upiId: '9991659655@axl',
+      upiId: 'pdfsun@axl',
       autoPayout: true,
     },
     transactions: [

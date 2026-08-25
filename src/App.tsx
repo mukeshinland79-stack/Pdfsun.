@@ -356,15 +356,45 @@ export default function App() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
   const [todayInHistoryOpen, setTodayInHistoryOpen] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
   const paymentHandledRef = useRef(false);
 
+  const handleOpenPricing = useCallback(() => {
+    if (activeTool) setActiveTool(null);
+    setPricingModalOpen(true);
+    if (typeof window !== "undefined" && window.location.pathname !== "/pricing") {
+      window.history.pushState({}, "", "/pricing");
+    }
+  }, [activeTool]);
+
+  const handleClosePricing = useCallback(() => {
+    setPricingModalOpen(false);
+    if (
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/pricing" || window.location.hash === "#pricing")
+    ) {
+      window.history.pushState({}, "", "/");
+    }
+  }, []);
+
   useEffect(() => {
-    // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links
+    // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links & Dedicated Pricing Page
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const currentPath = window.location.pathname;
+
+      const isPricingUrl =
+        currentPath === "/pricing" ||
+        window.location.hash === "#pricing" ||
+        params.get("view") === "pricing" ||
+        params.has("pricing") ||
+        params.get("page") === "pricing";
+
+      if (isPricingUrl) {
+        setPricingModalOpen(true);
+      }
 
       const isHistoryUrl =
         currentPath === "/today-in-history" ||
@@ -492,6 +522,7 @@ export default function App() {
     },
     onCloseActiveModalOrWorkspace: () => {
       if (searchModalOpen) setSearchModalOpen(false);
+      else if (pricingModalOpen) handleClosePricing();
       else if (shortcutsModalOpen) setShortcutsModalOpen(false);
       else if (historyModalOpen) setHistoryModalOpen(false);
       else if (authModalOpen) setAuthModalOpen(false);
@@ -703,6 +734,7 @@ export default function App() {
         }}
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
+        onOpenPricing={handleOpenPricing}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
@@ -763,9 +795,6 @@ export default function App() {
 
         {/* Newsletter Subscription Banner */}
         <NewsletterSubscription variant="standalone" />
-
-        {/* Pricing Comparison & Pre-Footer */}
-        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
       </main>
 
       {/* Enterprise Clean Footer */}
@@ -781,6 +810,7 @@ export default function App() {
         }}
         onOpenBlogModal={() => setBlogModalOpen(true)}
         onOpenContactModal={() => setContactModalOpen(true)}
+        onOpenPricing={handleOpenPricing}
       />
 
       {/* Interactive Active Tool Workspace Modals */}
@@ -944,12 +974,19 @@ export default function App() {
           onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined}
           onOpenPricing={() => {
             setUserDashboardOpen(false);
-            setTimeout(() => {
-              document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
-            }, 100);
+            handleOpenPricing();
           }}
         />
       )}
+
+      {/* Dedicated Standalone "Pricing Plans" Page / Full Modal */}
+      <PricingSection
+        isOpen={pricingModalOpen}
+        onClose={handleClosePricing}
+        isModal={true}
+        onOpenPolicy={(p) => setActivePolicy(p)}
+        userProfile={userProfile}
+      />
 
       {/* Blog & Knowledge Base Modal */}
       <BlogModal isOpen={blogModalOpen} onClose={() => setBlogModalOpen(false)} />

@@ -349,7 +349,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                     </div>
                   </th>
 
-                  {/* Business Team + SSO Column */}
+                  {/* Enterprise Plan (5 Seats) Column */}
                   <th className="p-4 sm:p-5 text-center w-1/6 min-w-[140px] border-l border-slate-200 dark:border-slate-800/60 bg-indigo-500/5 dark:bg-indigo-500/10">
                     <div className="space-y-1">
                       <div className="inline-block px-2 py-0.5 rounded-md bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wide">
@@ -359,7 +359,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                         {businessPlan.name}
                       </div>
                       <div className="text-base sm:text-lg font-black text-indigo-600 dark:text-indigo-400">
-                        {currency === "INR" ? "₹4,999" : "$69"}
+                        {currency === "INR" ? "₹3,999" : "$59"}
                         <span className="text-[10px] font-normal text-slate-500">/yr</span>
                       </div>
                       <button

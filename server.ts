@@ -1156,25 +1156,28 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
 
   // 1. Enterprise SSO Unlimited (₹9,999 / year - 20 Seats)
   if (
-    planId === "enterprise" ||
+    planId === "enterprise-sso" ||
     planId === "enterprise-sso-unlimited" ||
     amountPaisa === 999900 ||
     amountPaisa >= 800000 ||
-    paymentLinkId.includes("pdfsun-enterprise") ||
-    subscription.plan_id?.toLowerCase().includes("enterprise")
+    paymentLinkId.includes("DTBivZF") ||
+    subscription.plan_id?.toLowerCase().includes("sso")
   ) {
     activatedAction = "ENTERPRISE_SSO_UNLIMITED_20_SEATS_ACTIVATED";
-    membershipType = "enterprise";
+    membershipType = "enterprise-sso";
   }
-  // 2. Business Team + SSO (₹4,999 / year - 5 Seats)
+  // 2. Enterprise Plan (₹3,999 / year - 5 Seats)
   else if (
+    planId === "enterprise" ||
     planId === "business-team" ||
+    amountPaisa === 399900 ||
     amountPaisa === 499900 ||
+    paymentLinkId.includes("pdfsun-enterprise") ||
     paymentLinkId.includes("pdfsun-business") ||
-    subscription.plan_id?.toLowerCase().includes("business")
+    subscription.plan_id?.toLowerCase().includes("enterprise")
   ) {
-    activatedAction = "BUSINESS_TEAM_5_SEATS_ACTIVATED";
-    membershipType = "business-team";
+    activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
+    membershipType = "enterprise";
   }
   // 3. Pro Sun Annual (₹1,499 / year)
   else if (
@@ -1426,8 +1429,9 @@ function handleVerifySubscriptionPayment(req: express.Request, res: express.Resp
       flexi: { name: "Flexi Pack (100 Credits)", amount: 99 },
       "pro-monthly": { name: "Pro Sun Monthly", amount: 199 },
       "pro-yearly": { name: "Pro Sun Annual", amount: 1499 },
-      "business-team": { name: "Business Team + SSO (5 Seats)", amount: 4999 },
-      enterprise: { name: "Enterprise SSO Unlimited (20 Seats)", amount: 9999 },
+      enterprise: { name: "Enterprise Plan (5 Seats)", amount: 3999 },
+      "enterprise-sso": { name: "Enterprise SSO Unlimited (20 Seats)", amount: 9999 },
+      "business-team": { name: "Enterprise Plan (5 Seats)", amount: 3999 },
     };
     const planInfo = planNames[planId] || { name: "Enterprise SSO Unlimited", amount: 9999 };
 

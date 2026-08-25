@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import {
   Check,
   CheckCircle2,
@@ -17,6 +18,7 @@ import {
   X,
   Mail,
   HelpCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { PaymentBlinkingRedirectModal } from "./PaymentBlinkingRedirectModal";
 import { UserProfile } from "../types";
@@ -25,6 +27,9 @@ import { ALL_SUPPORTED_IDPS } from "./EnterpriseIdpCarousel";
 import { PricingCompareTable } from "./PricingCompareTable";
 
 interface PricingSectionProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  isModal?: boolean;
   onSuccessUpgrade?: () => void;
   isProUser?: boolean;
   onOpenPolicy?: (policy: "privacy" | "terms" | "cookie" | "refund" | "about") => void;
@@ -67,6 +72,9 @@ export interface PlanTier {
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({
+  isOpen = true,
+  onClose,
+  isModal = false,
   onSuccessUpgrade,
   isProUser = false,
   onOpenPolicy,
@@ -74,6 +82,69 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 }) => {
   const { t } = useLanguage();
   const currentUserId = (userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
+
+  // Structured Data (JSON-LD Product & Offer Schema) for Pricing Plans
+  const pricingProductSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "PDFSun Professional & Enterprise Plans",
+    "image": "https://www.pdfsun.in/og-image.png",
+    "description": "Flexible PDF processing and enterprise SSO plans for students, lawyers, researchers, and organizations with 100% data privacy.",
+    "brand": {
+      "@type": "Brand",
+      "name": "PDFSun"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.pdfsun.in/pricing"
+      },
+      {
+        "@type": "Offer",
+        "name": "Flexi Pack (100 Lifetime Credits)",
+        "price": "99",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-flexi"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Sun Monthly",
+        "price": "199",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-monthly"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Sun Annual",
+        "price": "1499",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-annual"
+      },
+      {
+        "@type": "Offer",
+        "name": "Enterprise Plan (5 Seats)",
+        "price": "3999",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-enterprise"
+      },
+      {
+        "@type": "Offer",
+        "name": "Enterprise SSO Unlimited (20 Seats)",
+        "price": "9999",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/DTBivZF"
+      }
+    ]
+  };
 
   const [currency, setCurrency] = useState<"INR" | "USD">(() => {
     try {
@@ -152,7 +223,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     fetchUserSubscription();
   }, [currentUserId]);
 
-  // High-Conversion Pricing Tiers Matrix (Ordered Left to Right)
+  // High-Conversion Pricing Tiers Matrix (6 Tiers: Free, Flexi, Pro Monthly, Pro Annual, Enterprise, Enterprise SSO)
   const plans: PlanTier[] = [
     {
       id: "free",
@@ -196,15 +267,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
-      paymentLinkId: "plink_pdfsun_flexi",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-flexi",
       priceINR: {
         monthly: 99,
         yearly: 99,
         oneTime: 99,
         labelMonthly: "₹99",
         labelYearly: "₹99",
-        subtextMonthly: "100 Lifetime Credits (One-Time)",
-        subtextYearly: "100 Lifetime Credits (One-Time)",
+        subtextMonthly: "100 Lifetime Credits (No Expiry)",
+        subtextYearly: "100 Lifetime Credits (No Expiry)",
       },
       priceUSD: {
         monthly: 1.99,
@@ -212,28 +283,28 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         oneTime: 1.99,
         labelMonthly: "$1.99",
         labelYearly: "$1.99",
-        subtextMonthly: "100 Lifetime Credits (One-Time)",
-        subtextYearly: "100 Lifetime Credits (One-Time)",
+        subtextMonthly: "100 Lifetime Credits (No Expiry)",
+        subtextYearly: "100 Lifetime Credits (No Expiry)",
       },
       guaranteeText: "Strictly Non-Refundable",
       popular: false,
       features: [
         "100 Lifetime Credits (No Expiry)",
         "500 MB max file size limit",
-        "Pay once — no recurring fee",
+        "Pay once — no recurring commitments",
         "All premium PDF & AI OCR tools",
-        "Single-user instant credit top-up",
+        "Instant Dynamic QR with Auto-Amount",
       ],
-      cta: "Buy 100 Credits",
+      cta: "Buy Flexi Pack (₹99)",
     },
     {
       id: "pro-monthly",
       name: "Pro Sun Monthly",
       badge: "FLEXIBLE RECURRING",
       badgeBg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
-      description: "Full unlimited power for active power users & students.",
+      description: "Full unlimited power for active power users, freelancers & students.",
       billingType: "subscription",
-      paymentLinkId: "plink_pdfsun_monthly",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-monthly",
       priceINR: {
         monthly: 199,
         yearly: 199,
@@ -260,16 +331,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         "Zero watermarks & max conversion speed",
         "Cancel anytime with 1-click",
       ],
-      cta: "Subscribe Monthly",
+      cta: "Subscribe Monthly (₹199)",
     },
     {
       id: "pro-yearly",
       name: "Pro Sun Annual",
       badge: "MOST POPULAR • SAVE 40%",
       badgeBg: "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black border-amber-400 shadow-xs",
-      description: "Best value subscription for professionals & active users.",
+      description: "Best value subscription for professionals & active creators.",
       billingType: "subscription",
-      paymentLinkId: "plink_pdfsun_annual",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-annual",
       priceINR: {
         monthly: 199,
         yearly: 1499,
@@ -294,86 +365,88 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         "Multi-device cloud sync",
         "Dedicated priority processing bandwidth",
         "24/7 Priority Support Desk",
+        "First 7 Days 100% Money-Back Guarantee",
       ],
-      cta: "Get Annual Access — Save 40%",
+      cta: "Get Annual Access — Save 40% (₹1,499)",
     },
     {
-      id: "business-team",
-      name: "Business Team + SSO",
-      badge: "5 SEATS • SSO ADMIN",
+      id: "enterprise",
+      name: "Enterprise Plan",
+      badge: "5 SEATS • ENTERPRISE",
       badgeBg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
       description: "Standard Team tier with Google Workspace & Microsoft 365 SSO.",
       billingType: "enterprise",
       seats: 5,
-      paymentLinkId: "plink_pdfsun_business",
+      razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
       priceINR: {
-        monthly: 499,
-        yearly: 4999,
-        labelMonthly: "₹4,999",
-        labelYearly: "₹4,999",
-        subtextMonthly: "₹4,999/yr (5 Seats ~₹83/user/mo)",
-        subtextYearly: "₹4,999/yr (5 Seats ~₹83/user/mo)",
+        monthly: 399,
+        yearly: 3999,
+        labelMonthly: "₹3,999",
+        labelYearly: "₹3,999",
+        subtextMonthly: "₹3,999/yr (5 Seats ~₹66/user/mo)",
+        subtextYearly: "₹3,999/yr (5 Seats ~₹66/user/mo)",
       },
       priceUSD: {
-        monthly: 7.99,
-        yearly: 69,
-        labelMonthly: "$69",
-        labelYearly: "$69",
-        subtextMonthly: "$69/yr (5 Seats ~$1.15/user/mo)",
-        subtextYearly: "$69/yr (5 Seats ~$1.15/user/mo)",
+        monthly: 5.99,
+        yearly: 59,
+        labelMonthly: "$59",
+        labelYearly: "$59",
+        subtextMonthly: "$59/yr (5 Seats ~$0.98/user/mo)",
+        subtextYearly: "$59/yr (5 Seats ~$0.98/user/mo)",
       },
       guaranteeText: "First 7 Days 100% Money-Back Guarantee",
       popular: false,
       features: [
-        "5 User Seats Included (+₹799 / $10 per extra seat)",
+        "5 User Seats Included (+₹799 per extra seat)",
         "Google Workspace & Microsoft 365 SSO",
         "Centralized Team Billing & Admin Portal",
         "Priority Gemini AI & OCR Pipeline",
-        "Admin role management & seat licensing",
+        "GST Invoicing & Priority Support Desk",
+        "Instant Dynamic QR with Auto-Amount",
       ],
-      cta: "Get Team Access",
+      cta: "Get Enterprise Plan (₹3,999)",
+    },
+    {
+      id: "enterprise-sso",
+      name: "Enterprise SSO Unlimited",
+      badge: "20 SEATS • CUSTOM SAML 2.0",
+      badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), and SCIM provisioning.",
+      billingType: "enterprise",
+      seats: 20,
+      razorpayLink: "https://rzp.io/rzp/DTBivZF",
+      priceINR: {
+        monthly: 999,
+        yearly: 9999,
+        labelMonthly: "₹9,999",
+        labelYearly: "₹9,999",
+        subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+        subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+      },
+      priceUSD: {
+        monthly: 14.99,
+        yearly: 149,
+        labelMonthly: "$149",
+        labelYearly: "$149",
+        subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+        subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+      },
+      guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+      popular: false,
+      features: [
+        "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
+        "Custom Domain Enforced Auto-Join (@yourcompany.com)",
+        "SCIM User Provisioning & Granular Access Controls",
+        "Flat up to 20 Seats included (Custom bulk volume available)",
+        "Dedicated SLA Account Manager",
+        "Instant Dynamic QR with Auto-Amount",
+      ],
+      cta: "Get Enterprise SSO (₹9,999)",
     },
   ];
 
-  // Enterprise SSO Unlimited Tier (Dedicated Banner / High Value Tier)
-  const enterprisePlanTier: PlanTier = {
-    id: "enterprise",
-    name: "Enterprise SSO Unlimited",
-    badge: "CUSTOM / HIGH SECURITY TIER",
-    badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-    description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), SCIM provisioning, and Dedicated Account Manager.",
-    billingType: "enterprise",
-    seats: 20,
-    paymentLinkId: "plink_pdfsun_enterprise",
-    priceINR: {
-      monthly: 999,
-      yearly: 9999,
-      labelMonthly: "₹9,999",
-      labelYearly: "₹9,999",
-      subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
-      subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
-    },
-    priceUSD: {
-      monthly: 14.99,
-      yearly: 149,
-      labelMonthly: "$149",
-      labelYearly: "$149",
-      subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
-      subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
-    },
-    guaranteeText: "First 7 Days 100% Money-Back Guarantee",
-    popular: false,
-    features: [
-      "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
-      "Custom Domain Enforced Auto-Join (@yourcompany.com)",
-      "SCIM User Provisioning & Granular Access Controls",
-      "GST Compliant Invoicing & Dedicated SLA Account Manager",
-      "Flat up to 20 Seats included (Custom bulk volume available)",
-      "Dedicated high-throughput Gemini AI & OCR pipeline",
-      "Zero server logs & 100% In-Browser Privacy SLA",
-    ],
-    cta: "Get Instant Enterprise Access",
-  };
+  // Enterprise SSO Unlimited Tier Reference
+  const enterprisePlanTier: PlanTier = plans[5];
 
   const [incompleteNoticeOpen, setIncompleteNoticeOpen] = useState<boolean>(false);
   const [activePlanId, setActivePlanId] = useState<string>(() => {
@@ -385,7 +458,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   });
 
   const handleSelectPlan = async (plan: PlanTier) => {
-    if (plan.disabled || (isProUser && plan.id !== "flexi" && plan.id !== "business-team" && plan.id !== "enterprise")) return;
+    if (plan.disabled || plan.id === "free" || plan.billingType === "free") return;
 
     setIsProcessing(true);
     const isYearly = billingCycle === "yearly";
@@ -394,9 +467,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     if (currency === "INR") {
       if (plan.billingType === "one-time") {
         amount = plan.priceINR.oneTime || 99;
-      } else if (plan.id === "business-team") {
-        amount = plan.priceINR.yearly;
-      } else if (plan.id === "enterprise") {
+      } else if (plan.id === "enterprise" || plan.id === "enterprise-sso") {
         amount = plan.priceINR.yearly;
       } else {
         amount = isYearly ? plan.priceINR.yearly : plan.priceINR.monthly;
@@ -404,9 +475,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     } else {
       if (plan.billingType === "one-time") {
         amount = plan.priceUSD.oneTime || 1.99;
-      } else if (plan.id === "business-team") {
-        amount = plan.priceUSD.yearly;
-      } else if (plan.id === "enterprise") {
+      } else if (plan.id === "enterprise" || plan.id === "enterprise-sso") {
         amount = plan.priceUSD.yearly;
       } else {
         amount = isYearly ? plan.priceUSD.yearly : plan.priceUSD.monthly;
@@ -415,141 +484,20 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
     setSelectedPlanName(plan.name);
     setSelectedPlanAmount(amount);
-    setSelectedPlanRazorpayLink("");
+    setSelectedPlanRazorpayLink(plan.razorpayLink || "");
 
-    try {
-      // 1. Fetch Secure Subscription or Order from Backend
-      const isSubscription = plan.billingType === "subscription" || plan.billingType === "enterprise";
-      const endpoint = isSubscription ? "/api/create-subscription" : "/api/create-razorpay-order";
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: plan.id,
-          amount,
-          currency: currency === "INR" ? "INR" : "USD",
-          userEmail: currentUserId || "user@pdfsun.in",
-          userName: userProfile?.name || "PDFSun Enterprise User",
-        }),
-      });
-      const data = await res.json();
-
-      if (!data.success && !data.subscription_id && !data.subscriptionId && !data.orderId) {
-        throw new Error(data.error || "Failed to initiate checkout");
+    // 1. Open official Razorpay hosted link in a new tab for seamless dynamic amount QR detection
+    if (plan.razorpayLink) {
+      try {
+        window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
+      } catch (e) {
+        console.warn("Popup blocked or not permitted:", e);
       }
-
-      const subscriptionId = data.subscription_id || data.subscriptionId;
-      const orderId = data.order_id || data.orderId;
-      const keyId = data.key_id || data.keyId || "rzp_live_pdfsun_key";
-
-      // 2. Check if Razorpay Checkout JS is loaded for Pop-up Modal
-      if (typeof window !== "undefined" && (window as any).Razorpay) {
-        const options: any = {
-          key: keyId,
-          name: "PDFSun.in",
-          description: `${plan.name} — ${isYearly || plan.id === 'enterprise' ? 'Yearly' : 'Monthly'} Subscription`,
-          image: "https://www.pdfsun.in/icon-192.png",
-          prefill: {
-            name: userProfile?.name || "PDFSun Enterprise User",
-            email: currentUserId || "user@pdfsun.in",
-            contact: "",
-          },
-          notes: {
-            planId: plan.id,
-            userEmail: currentUserId || "user@pdfsun.in",
-            site: "PDFSun.in",
-          },
-          theme: {
-            color: "#f59e0b",
-          },
-          handler: async function (response: any) {
-            console.log("[Razorpay Pop-up Modal] Checkout completed:", response);
-            const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
-
-            // Fire GA4 Purchase Event
-            if (typeof (window as any).gtag === "function") {
-              (window as any).gtag("event", "purchase", {
-                transaction_id: payId,
-                value: amount,
-                currency: currency === "INR" ? "INR" : "USD",
-                items: [
-                  {
-                    item_name: plan.name,
-                    price: amount,
-                    quantity: 1,
-                  },
-                ],
-              });
-            }
-
-            // Cryptographically verify subscription / payment on server & activate user subscription
-            try {
-              await fetch("/api/verify-subscription", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  razorpay_payment_id: payId,
-                  razorpay_subscription_id: response.razorpay_subscription_id || subscriptionId,
-                  razorpay_order_id: response.razorpay_order_id || orderId,
-                  razorpay_signature: response.razorpay_signature,
-                  planId: plan.id,
-                  userEmail: currentUserId,
-                }),
-              });
-            } catch (e) {
-              console.warn("Backend verification call note:", e);
-            }
-
-            // Update local user session entitlements
-            if (plan.id === "flexi") {
-              const current = parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "0", 10);
-              localStorage.setItem("pdfsun_user_credits_v1", (current + 100).toString());
-            } else {
-              localStorage.setItem("pdfsun_user_plan_v1", plan.id);
-              localStorage.setItem("pdfsun_plan_activated_at", new Date().toISOString());
-              setActivePlanId(plan.id);
-            }
-
-            // Trigger Sequential 3-Step Success Notification Modal
-            setActivePaymentDetails({
-              planName: plan.name,
-              paymentId: payId,
-              amountStr: currency === "INR" ? `₹${amount}` : `$${amount}`,
-              planId: plan.id,
-            });
-            setBlinkingModalOpen(true);
-          },
-          modal: {
-            ondismiss: function () {
-              console.log("[Razorpay Pop-up Modal] User dismissed checkout modal before completion.");
-              setIncompleteNoticeOpen(true);
-            },
-          },
-        };
-
-        if (subscriptionId) {
-          options.subscription_id = subscriptionId;
-        } else if (orderId) {
-          options.order_id = orderId;
-          options.amount = data.amount || amount * 100;
-          options.currency = currency === "INR" ? "INR" : "USD";
-        }
-
-        const razorpayInstance = new (window as any).Razorpay(options);
-        razorpayInstance.open();
-        setIsProcessing(false);
-        return;
-      }
-
-      // 3. Fallback: If Razorpay Checkout JS is unavailable (e.g. adblocker), open the secure in-app modal
-      setActiveGatewayModal("razorpay");
-    } catch (e) {
-      console.error("Subscription checkout initiation error:", e);
-      setActiveGatewayModal("razorpay");
-    } finally {
-      setIsProcessing(false);
     }
+
+    // 2. Open PDFSUN Checkout Transition Modal
+    setActiveGatewayModal("razorpay");
+    setIsProcessing(false);
   };
 
   const completePaymentSimulation = async () => {
@@ -561,9 +509,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     } else if (selectedPlanName.toLowerCase().includes("monthly")) {
       targetPlanId = "pro-monthly";
       localStorage.setItem("pdfsun_user_plan_v1", "pro-monthly");
-    } else if (selectedPlanName.toLowerCase().includes("business") || selectedPlanName.toLowerCase().includes("team")) {
-      targetPlanId = "business-team";
-      localStorage.setItem("pdfsun_user_plan_v1", "business-team");
+    } else if (selectedPlanName.toLowerCase().includes("enterprise sso") || selectedPlanName.toLowerCase().includes("unlimited")) {
+      targetPlanId = "enterprise-sso";
+      localStorage.setItem("pdfsun_user_plan_v1", "enterprise-sso");
     } else if (selectedPlanName.toLowerCase().includes("enterprise")) {
       targetPlanId = "enterprise";
       localStorage.setItem("pdfsun_user_plan_v1", "enterprise");
@@ -601,14 +549,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         }),
       });
     } catch (e) {
-      console.warn("Backend activation call sync error:", e);
+      console.warn("Backend activation call sync note:", e);
     }
 
     setActiveGatewayModal(null);
     setActivePaymentDetails({
       planName: selectedPlanName || "Pro Sun Annual",
       paymentId: payId,
-      amountStr: currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`,
+      amountStr: currency === "INR" ? `₹${selectedPlanAmount}` : `${selectedPlanAmount}`,
       planId: targetPlanId,
     });
     setBlinkingModalOpen(true);
@@ -679,10 +627,73 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     }
   };
 
-  return (
-    <section id="pricing" className="py-16 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto space-y-12">
-      {/* Header Section */}
-      <div className="text-center space-y-4">
+  if (isModal && !isOpen) {
+    return null;
+  }
+
+  const content = (
+    <div className="w-full max-w-[1400px] mx-auto space-y-10 py-6 px-4 sm:px-6 lg:px-8">
+      {/* On-Page SEO & Structured Data (JSON-LD Product Schema) */}
+      <Helmet>
+        <title>Flexible PDF Tools &amp; Pricing Plans | PDFSUN</title>
+        <meta
+          name="description"
+          content="Choose the best plan for PDF processing. Dedicated solutions for Students, Lawyers, and Researchers with 100% data privacy."
+        />
+        <meta property="og:title" content="Flexible PDF Tools & Pricing Plans | PDFSUN" />
+        <meta
+          property="og:description"
+          content="Choose the best plan for PDF processing. Dedicated solutions for Students, Lawyers, and Researchers with 100% data privacy."
+        />
+        <meta property="og:url" content="https://www.pdfsun.in/pricing" />
+        <link rel="canonical" href="https://www.pdfsun.in/pricing" />
+        <script type="application/ld+json">
+          {JSON.stringify(pricingProductSchema)}
+        </script>
+      </Helmet>
+
+      {/* Top Navigation & Close Header for Modal Mode */}
+      {isModal && (
+        <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs mb-6">
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer border border-slate-200 dark:border-slate-700"
+              aria-label="Back to PDF Tools & Home"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t("pricing.backToTools", "← Back to Tools & Home")}</span>
+            </button>
+            <span className="hidden sm:inline-block text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              |
+            </span>
+            <span className="hidden sm:inline-block text-xs font-black text-slate-900 dark:text-white">
+              PDFSun Plans &amp; Subscriptions
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>256-Bit SSL Encrypted Razorpay Checkout</span>
+            </div>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition cursor-pointer"
+                aria-label="Close Pricing Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Header Section */}
+      <div className="text-center space-y-4 pt-2">
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black uppercase tracking-wider shadow-xs">
           <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500" />
           <span>{t("pricing.badge", "INSTANT UNLIMITED PDF PROCESSING & ENTERPRISE SSO")}</span>
@@ -697,7 +708,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         </p>
 
         {/* Currency & Billing Controls Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           {/* Active Multi-Currency Switcher */}
           <div className="inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700/80 text-xs font-bold shadow-md">
             <button
@@ -760,6 +771,68 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 {t("pricing.savePercent", "Save 40%")}
               </span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Social Proof & Trust Section */}
+      <div className="max-w-5xl mx-auto p-5 sm:p-7 rounded-3xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-lg space-y-5">
+        <div className="text-center space-y-1">
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-black uppercase tracking-wider border border-amber-500/20">
+            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+            <span>Social Proof &amp; Verified Trust</span>
+          </div>
+          <h3 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            Trusted by Students, Lawyers, Researchers &amp; Enterprises
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+            Engineered for high security, zero-latency WebAssembly processing, and client data confidentiality.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* 🎓 Students */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2 hover:border-amber-500/40 transition">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg font-bold">
+              🎓
+            </div>
+            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Students &amp; Academia</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Fast processing for thesis, assignments, coursework, and study materials.
+            </p>
+          </div>
+
+          {/* ⚖️ Lawyers */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2 hover:border-indigo-500/40 transition">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg font-bold">
+              ⚖️
+            </div>
+            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Lawyers &amp; Legal Firms</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Legal-grade security, client confidentiality, and multi-file OCR accuracy.
+            </p>
+          </div>
+
+          {/* 🔬 Researchers */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2 hover:border-emerald-500/40 transition">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg font-bold">
+              🔬
+            </div>
+            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Researchers &amp; Labs</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Bulk processing, high-precision OCR extraction, and fast file conversion.
+            </p>
+          </div>
+
+          {/* 🏢 Enterprises */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2 hover:border-purple-500/40 transition">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-lg font-bold">
+              🏢
+            </div>
+            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Enterprises &amp; Teams</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Dedicated SLA, SAML 2.0 SSO, centralized administration, and GST invoices.
+            </p>
           </div>
         </div>
       </div>
@@ -1107,8 +1180,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         onSelectPlan={handleSelectPlan}
         isProcessing={isProcessing}
         proYearlyPlan={plans.find((p) => p.id === "pro-yearly") || plans[3]}
-        businessPlan={plans.find((p) => p.id === "business-team") || plans[4]}
-        enterprisePlan={enterprisePlanTier}
+        businessPlan={plans.find((p) => p.id === "enterprise" || p.id === "business-team") || plans[4]}
+        enterprisePlan={plans.find((p) => p.id === "enterprise-sso") || plans[5]}
         freePlan={plans[0]}
       />
 
@@ -1379,30 +1452,41 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               <div className="flex justify-between">
                 <span className="text-slate-400">Payment Modes:</span>
                 <span className="font-bold text-emerald-400">
-                  UPI QR / PhonePe / GPay / Cards / Netbanking
+                  Dynamic UPI QR / PhonePe / GPay / Cards / Netbanking
                 </span>
               </div>
-              <div className="flex justify-between text-[11px] pt-1 border-t border-slate-800">
-                <span className="text-slate-500">Webhook Secret:</span>
-                <span className="font-mono text-slate-300">905065 (Verified)</span>
+              <div className="flex justify-between text-[11px] pt-2 border-t border-slate-800 text-slate-400">
+                <span>Security &amp; Encryption:</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 inline text-emerald-400" />
+                  256-Bit SSL Encrypted
+                </span>
               </div>
             </div>
 
-            {/* Laptop / Mobile UPI QR & Checkout Options */}
-            <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 text-center space-y-3">
-              <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
-                📲 Laptop / Mobile Payment Options
-              </p>
-              <div className="bg-white p-3 rounded-xl inline-block shadow-inner mx-auto">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=upi://pay?pa=9991659655@axl&pn=PDFSun%20India&am=${selectedPlanAmount}&cu=INR`}
-                  alt="Razorpay UPI Payment QR Code"
-                  className="w-32 h-32 object-contain mx-auto"
-                />
+            {/* Razorpay Standard Dynamic Auto-Amount Detection Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900 to-indigo-500/10 border border-amber-500/30 text-center space-y-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                <Zap className="w-5 h-5 fill-amber-400" />
               </div>
-              <div className="text-[11px] text-slate-300 space-y-1">
-                <p className="font-semibold text-white">Scan with PhonePe, Paytm, Google Pay, or BHIM</p>
-                <p className="text-[10px] text-slate-400">VPA: <span className="font-mono text-amber-300">9991659655@axl</span></p>
+              <div className="space-y-1">
+                <p className="text-xs font-black text-white uppercase tracking-wider">
+                  Razorpay Standard Dynamic Checkout
+                </p>
+                <p className="text-[11px] text-slate-300">
+                  Auto-detects payable amount ({currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`}) when scanning QR on Mobile or Laptop.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
+                  PhonePe / GPay
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
+                  Paytm / BHIM
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
+                  Cards / Netbanking
+                </span>
               </div>
             </div>
 
@@ -1415,19 +1499,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>Open Official Razorpay Link ({selectedPlanRazorpayLink.replace("https://", "")}) →</span>
+                  <span>Proceed to Official Razorpay Checkout ({currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`}) →</span>
                 </a>
               )}
 
               <button
                 type="button"
                 onClick={completePaymentSimulation}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 hover:border-slate-600 transition flex items-center justify-center space-x-2 cursor-pointer"
               >
-                <span>Confirm Payment &amp; Auto-Activate Account →</span>
+                <span>I Have Completed Payment (Auto-Activate Account)</span>
               </button>
               <p className="text-[10px] text-slate-400 text-center">
-                Instant webhook verification active. Webhook handler listens at <span className="font-mono text-amber-300">/api/razorpay-webhook</span> with secret <span className="font-mono text-amber-300">905065</span>.
+                Secure real-time payment verification handled directly by Razorpay Webhook Infrastructure.
               </p>
             </div>
           </div>
@@ -1563,6 +1647,27 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         userId={currentUserId}
         amountStr={activePaymentDetails?.amountStr || "₹199"}
       />
+    </div>
+  );
+
+  if (isModal) {
+    return (
+      <div
+        id="pricing-modal"
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-950/90 dark:bg-slate-950/95 backdrop-blur-md animate-in fade-in flex justify-center"
+      >
+        <div className="w-full bg-white dark:bg-slate-950 min-h-screen shadow-2xl">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section id="pricing" className="py-12 bg-white dark:bg-slate-950 transition-colors">
+      {content}
     </section>
   );
 };

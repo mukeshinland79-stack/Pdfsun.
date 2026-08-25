@@ -38,19 +38,31 @@ export function getRazorpayClient(): Razorpay {
 /**
  * Known Plan IDs Mapping for Production & Development
  */
-export const PLAN_CONFIGS: Record<string, { name: string; amountINR: number; planIdEnvKey: string; defaultPlanId: string; seats?: number }> = {
-  enterprise: {
+export const PLAN_CONFIGS: Record<
+  string,
+  {
+    name: string;
+    amountINR: number;
+    planIdEnvKey: string;
+    defaultPlanId: string;
+    razorpayHostedLink: string;
+    seats?: number;
+  }
+> = {
+  "enterprise-sso": {
     name: "Enterprise SSO Unlimited",
     amountINR: 9999,
-    planIdEnvKey: "RAZORPAY_ENTERPRISE_PLAN_ID",
+    planIdEnvKey: "RAZORPAY_ENTERPRISE_SSO_PLAN_ID",
     defaultPlanId: "plan_EnterpriseSSO2026",
+    razorpayHostedLink: "https://rzp.io/rzp/DTBivZF",
     seats: 20,
   },
-  "business-team": {
-    name: "Business Team + SSO",
-    amountINR: 4999,
-    planIdEnvKey: "RAZORPAY_BUSINESS_PLAN_ID",
-    defaultPlanId: "plan_BusinessTeam2026",
+  enterprise: {
+    name: "Enterprise Plan",
+    amountINR: 3999,
+    planIdEnvKey: "RAZORPAY_ENTERPRISE_PLAN_ID",
+    defaultPlanId: "plan_Enterprise2026",
+    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-enterprise",
     seats: 5,
   },
   "pro-yearly": {
@@ -58,18 +70,21 @@ export const PLAN_CONFIGS: Record<string, { name: string; amountINR: number; pla
     amountINR: 1499,
     planIdEnvKey: "RAZORPAY_PRO_YEARLY_PLAN_ID",
     defaultPlanId: "plan_ProYearly2026",
+    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-annual",
   },
   "pro-monthly": {
     name: "Pro Sun Monthly",
     amountINR: 199,
     planIdEnvKey: "RAZORPAY_PRO_MONTHLY_PLAN_ID",
     defaultPlanId: "plan_ProMonthly2026",
+    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-monthly",
   },
   flexi: {
     name: "Flexi Pack (100 Credits)",
     amountINR: 99,
     planIdEnvKey: "RAZORPAY_FLEXI_PLAN_ID",
     defaultPlanId: "plan_Flexi100Credits",
+    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-flexi",
   },
 };
 
