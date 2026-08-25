@@ -22,6 +22,7 @@ import { PaymentBlinkingRedirectModal } from "./PaymentBlinkingRedirectModal";
 import { UserProfile } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { ALL_SUPPORTED_IDPS } from "./EnterpriseIdpCarousel";
+import { PricingCompareTable } from "./PricingCompareTable";
 
 interface PricingSectionProps {
   onSuccessUpgrade?: () => void;
@@ -1099,6 +1100,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Compare Plans Feature Matrix Table */}
+      <PricingCompareTable
+        currency={currency}
+        onSelectPlan={handleSelectPlan}
+        isProcessing={isProcessing}
+        proYearlyPlan={plans.find((p) => p.id === "pro-yearly") || plans[3]}
+        businessPlan={plans.find((p) => p.id === "business-team") || plans[4]}
+        enterprisePlan={enterprisePlanTier}
+        freePlan={plans[0]}
+      />
 
       {/* Security & Trust Badges Bar (Footer of Pricing Box) */}
       <div className="max-w-5xl mx-auto my-6 p-4 rounded-2xl bg-slate-900/90 dark:bg-slate-900/80 border border-amber-500/30 text-white shadow-lg flex flex-wrap items-center justify-around gap-4 text-xs font-bold">
