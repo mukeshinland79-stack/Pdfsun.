@@ -12,6 +12,7 @@ import i18n from "i18next";
 import HttpBackend from "i18next-http-backend";
 import { INDIAN_LANGUAGES_TRANSLATIONS } from "./translations/indianLanguages";
 import { GLOBAL_LANGUAGES_TRANSLATIONS } from "./translations/globalLanguages";
+import { TOOL_TRANSLATIONS } from "./translations/toolTranslations";
 
 export interface LanguageOption {
   code: string;
@@ -1528,6 +1529,80 @@ const defaultContextValue: LanguageContextType = {
   resetCmsText: () => {},
 };
 
+export const KEY_ALIASES: Record<string, string[]> = {
+  // Navigation & Header
+  home: ["nav.home", "footer.home"],
+  allTools: ["nav.allTools", "footer.allTools", "categories.all"],
+  aiSuite: ["nav.aiSuite", "footer.aiSuite", "categories.ai"],
+  pricing: ["nav.pricing", "footer.pricing", "pricing.titleHighlight", "pricing.title"],
+  pricingPlans: ["nav.pricing", "footer.pricing", "pricing.titleHighlight", "footer.pricingPlans"],
+  login: ["nav.loginRegister", "nav.login"],
+  loginRegister: ["nav.loginRegister"],
+  brandKit: ["nav.brandKit", "footer.brandKit", "footer.brandGuidelines"],
+  searchBtn: ["nav.searchBtn", "hero.searchPlaceholder", "toolkit.filterPlaceholder"],
+  searchTools: ["nav.searchBtn", "hero.searchPlaceholder", "toolkit.filterPlaceholder"],
+  history: ["nav.history"],
+  favorites: ["nav.favorites"],
+  "favorites.title": ["nav.favorites", "favorites"],
+  theme: ["nav.theme"],
+  themeMode: ["nav.theme"],
+  language: ["nav.language"],
+  adminPanel: ["nav.adminPanel"],
+  dashboard: ["nav.userPortal"],
+  userPortal: ["nav.userPortal"],
+  logout: ["nav.logout"],
+  privacyNote: ["badges.privacyTitle", "hero.statsPrivate"],
+
+  // Hero Section
+  heroTitle: ["hero.title"],
+  heroSub: ["hero.subtitle"],
+  searchPlaceholder: ["hero.searchPlaceholder", "nav.searchBtn", "toolkit.filterPlaceholder"],
+  chooseFiles: ["hero.chooseFiles", "workspace.dropOrSelect"],
+  dropzoneTitle: ["hero.dropzoneTitle", "workspace.dropOrSelect"],
+  dropzoneSub: ["hero.dropzoneSub"],
+  dropzoneActiveTitle: ["hero.dropzoneActiveTitle"],
+  dropzoneActiveSub: ["hero.dropzoneActiveSub"],
+  or: ["hero.or"],
+  statsFiles: ["hero.statsFiles"],
+  statsPrivate: ["hero.statsPrivate", "badges.privacyTitle"],
+
+  // Quick actions
+  mergePdf: ["quick_actions.merge", "tools.merge-pdf.name"],
+  splitPdf: ["quick_actions.split", "tools.split-pdf.name"],
+  compressPdf: ["quick_actions.compress", "tools.compress-pdf.name"],
+  pdfToWord: ["quick_actions.pdfToWord", "tools.pdf-to-word.name"],
+  chatWithPdf: ["quick_actions.chatWithPdf", "tools.ai-chat-pdf.name"],
+  aiSummary: ["quick_actions.aiSummary", "tools.ai-pdf-summary.name"],
+
+  // Toolkit
+  "toolkit.title": ["categories.all", "badges.tools50"],
+  "toolkit.subtitle": ["hero.subtitle", "badges.tools50Desc"],
+  "toolkit.filterPlaceholder": ["hero.searchPlaceholder", "nav.searchBtn"],
+  "toolkit.toolsCount": ["badges.tools50", "nav.allTools"],
+
+  // Categories
+  "categories.all": ["categories.all"],
+  "categories.student": ["categories.student"],
+  "categories.ai": ["categories.ai"],
+  "categories.popular": ["categories.popular"],
+  "categories.convert": ["categories.convert"],
+  "categories.edit": ["categories.edit"],
+  "categories.organize": ["categories.organize"],
+  "categories.security": ["categories.security"],
+  "categories.optimize": ["categories.optimize"],
+  "categories.advanced": ["categories.advanced"],
+
+  // Footer & Legal
+  privacyPolicy: ["footer.privacyPolicy", "policies.privacy", "footer.policies"],
+  termsOfService: ["footer.termsOfService", "policies.terms", "footer.policies"],
+  aboutUs: ["footer.aboutUs", "policies.about", "footer.policies"],
+  contactUs: ["footer.supportContact", "footer.support"],
+  helpCenter: ["footer.helpCenter", "footer.resources"],
+  blogArticles: ["footer.blog", "footer.blogArticles", "footer.resources"],
+  sitemap: ["footer.sitemap"],
+  rights: ["footer.rights"],
+};
+
 export const LanguageContext = createContext<LanguageContextType>(defaultContextValue);
 
 export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
@@ -1741,37 +1816,89 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
         return val;
       }
 
-      // 2. Check In-Memory Dictionary (Fast 0ms path for instant multi-language switching)
+      // 2. Check Tool Translations directly if key targets tool name/description
+      if (key.startsWith("tools.")) {
+        const parts = key.split(".");
+        if (parts.length >= 3) {
+          const toolId = parts[1];
+          const field = parts[2] as "name" | "desc";
+          const localized = TOOL_TRANSLATIONS[currentLanguage]?.[toolId]?.[field];
+          if (typeof localized === "string" && localized.trim() !== "") {
+            return localized;
+          }
+        }
+      }
+
+      // 3. Multi-path In-Memory Resolution with Aliasing (Fast 0ms path for instant zero-refresh language switching)
       const getNested = (obj: any, path: string) => {
         if (!obj) return undefined;
         return path.split(".").reduce((curr, part) => (curr ? curr[part] : undefined), obj);
       };
 
-      const langBundle = IN_MEMORY_TRANSLATIONS[currentLanguage];
-      if (langBundle) {
-        let val = getNested(langBundle, key);
-        if (typeof val === "string") {
-          if (params) {
-            for (const [pk, pv] of Object.entries(params)) {
-              val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
+      const resolveBundle = (bundle: any, rawKey: string): string | undefined => {
+        if (!bundle) return undefined;
+
+        // 3a. Direct nested match
+        const direct = getNested(bundle, rawKey);
+        if (typeof direct === "string" && direct.trim() !== "") return direct;
+
+        // 3b. Canonical Aliases match
+        const aliases = KEY_ALIASES[rawKey];
+        if (aliases && aliases.length > 0) {
+          for (const alias of aliases) {
+            const aliasVal = getNested(bundle, alias);
+            if (typeof aliasVal === "string" && aliasVal.trim() !== "") return aliasVal;
+          }
+        }
+
+        // 3c. Top-level section scan (for flat keys like 'home', 'privacyPolicy', 'mergePdf', 'title', etc.)
+        if (!rawKey.includes(".")) {
+          const sections = [
+            "nav",
+            "hero",
+            "quick_actions",
+            "badges",
+            "categories",
+            "pricing",
+            "footer",
+            "workspace",
+            "faq",
+            "testimonials",
+          ];
+          for (const sec of sections) {
+            if (bundle[sec] && typeof bundle[sec][rawKey] === "string" && bundle[sec][rawKey].trim() !== "") {
+              return bundle[sec][rawKey];
             }
           }
-          return val;
         }
+
+        return undefined;
+      };
+
+      // Check current language bundle
+      const langBundle = IN_MEMORY_TRANSLATIONS[currentLanguage];
+      const match = resolveBundle(langBundle, key);
+      if (match) {
+        let val = match;
+        if (params) {
+          for (const [pk, pv] of Object.entries(params)) {
+            val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
+          }
+        }
+        return val;
       }
 
       // Fallback to English in-memory dictionary
       const enBundle = IN_MEMORY_TRANSLATIONS["en"];
-      if (enBundle) {
-        let val = getNested(enBundle, key);
-        if (typeof val === "string") {
-          if (params) {
-            for (const [pk, pv] of Object.entries(params)) {
-              val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
-            }
+      const enMatch = resolveBundle(enBundle, key);
+      if (enMatch) {
+        let val = enMatch;
+        if (params) {
+          for (const [pk, pv] of Object.entries(params)) {
+            val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
           }
-          return val;
         }
+        return val;
       }
 
       const isValidString = (val: unknown): val is string => {
@@ -1799,16 +1926,20 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const getToolName = useCallback(
     (tool: { id: string; name: string }): string => {
+      const localized = TOOL_TRANSLATIONS[currentLanguage]?.[tool.id]?.name;
+      if (localized) return localized;
       return t(`tools.${tool.id}.name`, tool.name);
     },
-    [t]
+    [currentLanguage, t]
   );
 
   const getToolDescription = useCallback(
     (tool: { id: string; description?: string }): string => {
+      const localized = TOOL_TRANSLATIONS[currentLanguage]?.[tool.id]?.desc;
+      if (localized) return localized;
       return t(`tools.${tool.id}.desc`, tool.description || "");
     },
-    [t]
+    [currentLanguage, t]
   );
 
   const getCategoryName = useCallback(
