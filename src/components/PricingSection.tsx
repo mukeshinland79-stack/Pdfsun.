@@ -196,7 +196,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       description: "Pay-as-you-go credit top-up without any recurring commitments.",
       billingType: "one-time",
       paymentLinkId: "plink_pdfsun_flexi",
-      razorpayLink: "https://rzp.io/rzp/pdfsun-flexi",
       priceINR: {
         monthly: 99,
         yearly: 99,
@@ -234,7 +233,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       description: "Full unlimited power for active power users & students.",
       billingType: "subscription",
       paymentLinkId: "plink_pdfsun_monthly",
-      razorpayLink: "https://rzp.io/rzp/pdfsun-monthly",
       priceINR: {
         monthly: 199,
         yearly: 199,
@@ -271,7 +269,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       description: "Best value subscription for professionals & active users.",
       billingType: "subscription",
       paymentLinkId: "plink_pdfsun_annual",
-      razorpayLink: "https://rzp.io/rzp/pdfsun-annual",
       priceINR: {
         monthly: 199,
         yearly: 1499,
@@ -308,7 +305,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       billingType: "enterprise",
       seats: 5,
       paymentLinkId: "plink_pdfsun_business",
-      razorpayLink: "https://rzp.io/rzp/pdfsun-business",
       priceINR: {
         monthly: 499,
         yearly: 4999,
@@ -348,7 +344,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     billingType: "enterprise",
     seats: 20,
     paymentLinkId: "plink_pdfsun_enterprise",
-    razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
     priceINR: {
       monthly: 999,
       yearly: 9999,
@@ -419,11 +414,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
     setSelectedPlanName(plan.name);
     setSelectedPlanAmount(amount);
-    setSelectedPlanRazorpayLink(plan.razorpayLink || "");
+    setSelectedPlanRazorpayLink("");
 
     try {
-      // 1. Fetch Order & Subscription details from backend
-      const res = await fetch("/api/create-razorpay-order", {
+      // 1. Fetch Secure Subscription or Order from Backend
+      const isSubscription = plan.billingType === "subscription" || plan.billingType === "enterprise";
+      const endpoint = isSubscription ? "/api/create-subscription" : "/api/create-razorpay-order";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -431,23 +429,28 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           amount,
           currency: currency === "INR" ? "INR" : "USD",
           userEmail: currentUserId || "user@pdfsun.in",
+          userName: userProfile?.name || "PDFSun Enterprise User",
         }),
       });
       const data = await res.json();
 
+      if (!data.success && !data.subscription_id && !data.subscriptionId && !data.orderId) {
+        throw new Error(data.error || "Failed to initiate checkout");
+      }
+
+      const subscriptionId = data.subscription_id || data.subscriptionId;
+      const orderId = data.order_id || data.orderId;
+      const keyId = data.key_id || data.keyId || "rzp_live_pdfsun_key";
+
       // 2. Check if Razorpay Checkout JS is loaded for Pop-up Modal
       if (typeof window !== "undefined" && (window as any).Razorpay) {
-        const options = {
-          key: data.keyId || "rzp_live_pdfsun_key",
-          amount: data.amount || amount * 100,
-          currency: currency === "INR" ? "INR" : "USD",
+        const options: any = {
+          key: keyId,
           name: "PDFSun.in",
-          description: `${plan.name} — Instant Access`,
+          description: `${plan.name} — ${isYearly || plan.id === 'enterprise' ? 'Yearly' : 'Monthly'} Subscription`,
           image: "https://www.pdfsun.in/icon-192.png",
-          order_id: data.orderId,
-          subscription_id: data.subscriptionId,
           prefill: {
-            name: userProfile?.name || "PDFSun User",
+            name: userProfile?.name || "PDFSun Enterprise User",
             email: currentUserId || "user@pdfsun.in",
             contact: "",
           },
@@ -455,13 +458,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             planId: plan.id,
             userEmail: currentUserId || "user@pdfsun.in",
             site: "PDFSun.in",
-            payment_link_id: plan.paymentLinkId,
           },
           theme: {
             color: "#f59e0b",
           },
           handler: async function (response: any) {
-            console.log("[Razorpay Pop-up Modal] Payment completed successfully:", response);
+            console.log("[Razorpay Pop-up Modal] Checkout completed:", response);
             const payId = response.razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
 
             // Fire GA4 Purchase Event
@@ -480,21 +482,22 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               });
             }
 
-            // Synchronously verify payment on server & activate user subscription
+            // Cryptographically verify subscription / payment on server & activate user subscription
             try {
-              await fetch("/api/razorpay/verify-payment", {
+              await fetch("/api/verify-subscription", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   razorpay_payment_id: payId,
-                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_subscription_id: response.razorpay_subscription_id || subscriptionId,
+                  razorpay_order_id: response.razorpay_order_id || orderId,
                   razorpay_signature: response.razorpay_signature,
                   planId: plan.id,
                   userEmail: currentUserId,
                 }),
               });
             } catch (e) {
-              console.warn("Backend verification call sync note:", e);
+              console.warn("Backend verification call note:", e);
             }
 
             // Update local user session entitlements
@@ -507,7 +510,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               setActivePlanId(plan.id);
             }
 
-            // Trigger Sequential 3-Step Blinking Redirect Modal
+            // Trigger Sequential 3-Step Success Notification Modal
             setActivePaymentDetails({
               planName: plan.name,
               paymentId: payId,
@@ -524,28 +527,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           },
         };
 
+        if (subscriptionId) {
+          options.subscription_id = subscriptionId;
+        } else if (orderId) {
+          options.order_id = orderId;
+          options.amount = data.amount || amount * 100;
+          options.currency = currency === "INR" ? "INR" : "USD";
+        }
+
         const razorpayInstance = new (window as any).Razorpay(options);
         razorpayInstance.open();
         setIsProcessing(false);
         return;
       }
 
-      // 3. Fallback: If Razorpay JS script not loaded, trigger Razorpay Hosted Link or Modal
-      if (plan.razorpayLink) {
-        const opened = window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
-        if (!opened || opened.closed) {
-          window.location.href = plan.razorpayLink;
-          return;
-        }
-      }
+      // 3. Fallback: If Razorpay Checkout JS is unavailable (e.g. adblocker), open the secure in-app modal
       setActiveGatewayModal("razorpay");
     } catch (e) {
-      console.error("Payment initiation error:", e);
-      if (plan.razorpayLink) {
-        window.open(plan.razorpayLink, "_blank");
-      } else {
-        setActiveGatewayModal("razorpay");
-      }
+      console.error("Subscription checkout initiation error:", e);
+      setActiveGatewayModal("razorpay");
     } finally {
       setIsProcessing(false);
     }

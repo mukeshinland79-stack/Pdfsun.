@@ -38,6 +38,7 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.2.108",
     "pptxgenjs": "^4.0.1",
+    "razorpay": "^2.9.8",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-dropzone": "^19.1.1",

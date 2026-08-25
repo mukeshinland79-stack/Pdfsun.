@@ -53,6 +53,13 @@ import {
   getAccountLockoutStatus,
 } from "./src/server/authService";
 import { authRouter, handleVerifySession } from "./src/server/authRoutes";
+import {
+  createSubscriptionInstance,
+  verifySubscriptionSignature,
+  verifyWebhookSignature,
+  resolveRazorpayPlanId,
+  PLAN_CONFIGS,
+} from "./src/server/razorpayService";
 
 dotenv.config();
 
@@ -1097,6 +1104,22 @@ function activateUserSubscription(userId: string, planId: string, paymentId?: st
   return record;
 }
 
+/**
+ * Halts or expires a user subscription upon subscription.halted or subscription.cancelled
+ */
+function haltUserSubscription(userId: string, reason = "subscription.halted"): UserSubscriptionRecord | null {
+  const normalizedUserId = (userId || "user@pdfsun.in").toLowerCase().trim();
+  const sub = userSubscriptionsStore[normalizedUserId];
+  if (sub) {
+    sub.status = "expired";
+    sub.updated_at = new Date().toISOString();
+    saveSubscriptionsStore();
+    console.log(`[Subscription Engine] Subscription for user '${normalizedUserId}' set to EXPIRED due to event: ${reason}`);
+    return sub;
+  }
+  return null;
+}
+
 // Background Cron Task: Automatically check & expire subscriptions every 5 minutes
 setInterval(() => {
   const now = new Date();
@@ -1131,77 +1154,58 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   let creditsAdded = 0;
   let membershipType = "";
 
-  // 1. Flexi Pack (₹99 - 100 Lifetime Credits) -> https://rzp.io/rzp/pdfsun-flexi
+  // 1. Enterprise SSO Unlimited (₹9,999 / year - 20 Seats)
   if (
-    paymentLinkId === "plink_TNVaEM74eyNQXw" ||
-    paymentLinkId === "plink_pdfsun_flexi" ||
-    paymentLinkId.includes("pdfsun-flexi") ||
-    planId === "flexi" ||
-    amountPaisa === 9900 ||
-    payment.description?.toLowerCase().includes("flexi") ||
-    payment.description?.includes("100 Credits") ||
-    payment.description?.includes("50 Credits")
+    planId === "enterprise" ||
+    planId === "enterprise-sso-unlimited" ||
+    amountPaisa === 999900 ||
+    amountPaisa >= 800000 ||
+    paymentLinkId.includes("pdfsun-enterprise") ||
+    subscription.plan_id?.toLowerCase().includes("enterprise")
   ) {
-    activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
-    creditsAdded = 100;
-    membershipType = "flexi";
+    activatedAction = "ENTERPRISE_SSO_UNLIMITED_20_SEATS_ACTIVATED";
+    membershipType = "enterprise";
   }
-  // 2. Pro Sun Monthly (₹199 / month) -> https://rzp.io/rzp/pdfsun-monthly
+  // 2. Business Team + SSO (₹4,999 / year - 5 Seats)
   else if (
-    paymentLinkId === "plink_TNVIn12A8mraUf" ||
-    paymentLinkId === "plink_pdfsun_monthly" ||
-    paymentLinkId.includes("pdfsun-monthly") ||
-    planId === "pro-monthly" ||
-    amountPaisa === 19900 ||
-    subscription.plan_id?.toLowerCase().includes("monthly")
+    planId === "business-team" ||
+    amountPaisa === 499900 ||
+    paymentLinkId.includes("pdfsun-business") ||
+    subscription.plan_id?.toLowerCase().includes("business")
   ) {
-    activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
-    membershipType = "pro-monthly";
+    activatedAction = "BUSINESS_TEAM_5_SEATS_ACTIVATED";
+    membershipType = "business-team";
   }
-  // 3. Pro Sun Annual (₹1,499 / year) -> https://rzp.io/rzp/pdfsun-annual
+  // 3. Pro Sun Annual (₹1,499 / year)
   else if (
-    paymentLinkId === "plink_TNVqrjIUkML9tK" ||
-    paymentLinkId === "plink_pdfsun_annual" ||
-    paymentLinkId.includes("pdfsun-annual") ||
     planId === "pro-yearly" ||
     amountPaisa === 149900 ||
+    paymentLinkId.includes("pdfsun-annual") ||
     subscription.plan_id?.toLowerCase().includes("yearly") ||
     subscription.plan_id?.toLowerCase().includes("annual")
   ) {
     activatedAction = "PRO_ANNUAL_MEMBERSHIP_ACTIVATED";
     membershipType = "pro-yearly";
   }
-  // 4. Enterprise Plan (₹3,999 / year - 5 User Seats + Admin Tools) -> https://rzp.io/rzp/pdfsun-enterprise
+  // 4. Pro Sun Monthly (₹199 / month)
   else if (
-    paymentLinkId === "plink_TNVtCUOhX6OR3D" ||
-    paymentLinkId === "plink_pdfsun_enterprise" ||
-    paymentLinkId.includes("pdfsun-enterprise") ||
-    planId === "enterprise" ||
-    amountPaisa === 399900 ||
-    subscription.plan_id?.toLowerCase().includes("enterprise")
+    planId === "pro-monthly" ||
+    amountPaisa === 19900 ||
+    paymentLinkId.includes("pdfsun-monthly") ||
+    subscription.plan_id?.toLowerCase().includes("monthly")
   ) {
-    activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
-    membershipType = "enterprise";
+    activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
+    membershipType = "pro-monthly";
   }
+  // 5. Flexi Pack (₹99 - 100 Lifetime Credits)
   else {
-    if (amountPaisa >= 399900) {
-      activatedAction = "ENTERPRISE_PLAN_5_SEATS_ACTIVATED";
-      membershipType = "enterprise";
-    } else if (amountPaisa >= 149900) {
-      activatedAction = "PRO_ANNUAL_MEMBERSHIP_ACTIVATED";
-      membershipType = "pro-yearly";
-    } else if (amountPaisa >= 19900) {
-      activatedAction = "PRO_MONTHLY_MEMBERSHIP_ACTIVATED";
-      membershipType = "pro-monthly";
-    } else {
-      activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
-      creditsAdded = 100;
-      membershipType = "flexi";
-    }
+    activatedAction = "FLEXI_PACK_100_CREDITS_ADDED";
+    creditsAdded = 100;
+    membershipType = "flexi";
   }
 
   // Bind to user subscription record directly
-  const activeSubRecord = activateUserSubscription(userEmail, membershipType || "pro-monthly", payment.id || order.id);
+  const activeSubRecord = activateUserSubscription(userEmail, membershipType || "pro-monthly", payment.id || subscription.id || order.id);
 
   return {
     userEmail,
@@ -1215,7 +1219,7 @@ function processRazorpayAutoActivation(payload: any, eventType: string) {
   };
 }
 
-// Unified Webhook Handler Function for Razorpay Auto-Activation
+// Unified Webhook Handler Function for Razorpay Auto-Activation and Lifecycle
 const handleRazorpayWebhook = (req: express.Request, res: express.Response) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "905065";
@@ -1229,20 +1233,15 @@ const handleRazorpayWebhook = (req: express.Request, res: express.Response) => {
         ? req.body
         : JSON.stringify(req.body);
 
-      const expectedSignature = crypto
-        .createHmac("sha256", webhookSecret)
-        .update(rawBodyString)
-        .digest("hex");
-
-      if (signature !== expectedSignature) {
+      const isValid = verifyWebhookSignature(rawBodyString, signature);
+      if (!isValid) {
         console.warn("[Razorpay Webhook] Invalid HMAC-SHA256 Signature!", {
           receivedSignature: signature,
-          expectedSignature,
           secretUsed: webhookSecret,
         });
         return res.status(400).json({ success: false, error: "Invalid Razorpay Webhook Signature" });
       }
-      console.log(`[Razorpay Webhook] Signature verified successfully with secret '${webhookSecret}'!`);
+      console.log(`[Razorpay Webhook] Signature verified successfully with secret!`);
     }
 
     const event = req.body.event || "payment.captured";
@@ -1271,7 +1270,7 @@ const handleRazorpayWebhook = (req: express.Request, res: express.Response) => {
 
     console.log(`[Razorpay Webhook] Received verified event: ${event}`);
 
-    // Auto-Activation Logic
+    // Auto-Activation / Status Update Logic
     let activationResult = null;
     if (
       event === "payment.captured" ||
@@ -1281,13 +1280,23 @@ const handleRazorpayWebhook = (req: express.Request, res: express.Response) => {
       event === "subscription.charged"
     ) {
       activationResult = processRazorpayAutoActivation(payload, event);
+    } else if (
+      event === "subscription.halted" ||
+      event === "subscription.cancelled" ||
+      event === "subscription.paused"
+    ) {
+      const subscription = payload?.subscription?.entity || payload?.subscription || {};
+      const notes = subscription.notes || {};
+      const userEmail = notes.userEmail || notes.email || subscription.customer_email || "user@pdfsun.in";
+      const haltedSub = haltUserSubscription(userEmail, event);
+      activationResult = { userEmail, event, status: "expired", subscription: haltedSub };
     }
 
     // Always respond immediately with 200 OK
     res.status(200).json({
       status: "ok",
       success: true,
-      message: "Razorpay Webhook event processed and auto-activated successfully",
+      message: `Razorpay Webhook event '${event}' processed successfully`,
       event,
       activationResult,
     });
@@ -1301,94 +1310,115 @@ const handleRazorpayWebhook = (req: express.Request, res: express.Response) => {
 app.post("/api/razorpay-webhook", handleRazorpayWebhook);
 app.post("/api/webhooks/razorpay", handleRazorpayWebhook);
 
-// 2. Razorpay Order & Subscription Creation Endpoint (INR ₹)
-app.post("/api/create-razorpay-order", (req, res) => {
+// 2. Razorpay Order & Standard Order Creation Endpoint (INR ₹)
+app.post("/api/create-razorpay-order", async (req, res) => {
   try {
-    const { planId, amount, currency = "INR", userEmail } = req.body;
+    const { planId = "enterprise", amount, currency = "INR", userEmail, userName } = req.body;
+    const subResult = await createSubscriptionInstance({
+      planId,
+      userEmail: userEmail || "user@pdfsun.in",
+      userName,
+    });
+
     const orderId = "order_rzp_" + Math.random().toString(36).substring(2, 12);
-    const subscriptionId = "sub_rzp_" + Math.random().toString(36).substring(2, 12);
-    const keyId = process.env.RAZORPAY_KEY_ID || "rzp_live_pdfsun_key";
+    const keyId = subResult.keyId;
 
-    const razorpayLinks: Record<string, string> = {
-      flexi: "https://rzp.io/rzp/pdfsun-flexi",
-      "pro-monthly": "https://rzp.io/rzp/pdfsun-monthly",
-      "pro-yearly": "https://rzp.io/rzp/pdfsun-annual",
-      "business-team": "https://rzp.io/rzp/pdfsun-business",
-      enterprise: "https://rzp.io/rzp/pdfsun-enterprise",
-    };
-
-    const razorpayLink = razorpayLinks[planId] || "https://rzp.io/rzp/pdfsun-monthly";
-
-    console.log(`[Razorpay Order Engine] Created ${orderId} / ${subscriptionId} for ${userEmail || "user"} (${currency} ₹${amount}) -> Link: ${razorpayLink}`);
+    console.log(`[Razorpay Order Engine] Created ${orderId} / ${subResult.subscriptionId} for ${userEmail || "user"} (${currency} ₹${amount || subResult.amount / 100})`);
 
     res.json({
       success: true,
       orderId,
-      subscriptionId,
-      amount: (amount || 99) * 100, // amount in paisa
-      currency,
+      subscriptionId: subResult.subscriptionId,
+      subscription_id: subResult.subscriptionId,
       keyId,
-      razorpayLink,
-      paymentUrl: razorpayLink,
-      notes: {
-        planId,
-        userEmail: userEmail || "guest@pdfsun.in",
-        site: "PDFSun.in",
-        webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || "905065",
-      },
+      key_id: keyId,
+      amount: subResult.amount,
+      currency,
+      planName: subResult.planName,
+      planId,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 3. Razorpay Subscription Creation Endpoint
-app.post("/api/razorpay/create-subscription", (req, res) => {
+// 3. Official Razorpay Subscription Creation Endpoints (/api/create-subscription and /api/razorpay/create-subscription)
+async function handleCreateSubscription(req: express.Request, res: express.Response) {
   try {
-    const { planId, userEmail } = req.body;
-    const subscriptionId = "sub_rzp_" + Math.random().toString(36).substring(2, 12);
-    const keyId = process.env.RAZORPAY_KEY_ID || "rzp_live_pdfsun_key";
-
-    const planAmounts: Record<string, number> = {
-      "pro-monthly": 199,
-      "pro-yearly": 1499,
-      "business-team": 4999,
-      enterprise: 9999,
-    };
-    const amount = planAmounts[planId] || 199;
+    const { planId = "enterprise", userEmail, userName, totalCount = 10 } = req.body;
+    const result = await createSubscriptionInstance({
+      planId,
+      userEmail: userEmail || "user@pdfsun.in",
+      userName,
+      totalCount,
+    });
 
     res.json({
       success: true,
-      subscriptionId,
-      planId,
-      amount: amount * 100,
-      currency: "INR",
-      keyId,
-      userEmail,
+      subscription_id: result.subscriptionId,
+      subscriptionId: result.subscriptionId,
+      key_id: result.keyId,
+      keyId: result.keyId,
+      planId: result.planId,
+      amount: result.amount,
+      currency: result.currency,
+      planName: result.planName,
     });
   } catch (err: any) {
+    console.error("[Create Subscription Error]:", err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+}
 
-// 4. Razorpay Payment Client Verification Endpoint
-app.post("/api/razorpay/verify-payment", (req, res) => {
+app.post("/api/create-subscription", handleCreateSubscription);
+app.post("/api/razorpay/create-subscription", handleCreateSubscription);
+
+// 4. Razorpay Subscription & Payment Verification Endpoints (/api/verify-subscription and /api/razorpay/verify-payment)
+function handleVerifySubscriptionPayment(req: express.Request, res: express.Response) {
   try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, planId, userEmail } = req.body;
-    console.log(`[Razorpay Payment Verification] Verifying payment ${razorpay_payment_id} for plan '${planId}' (${userEmail})`);
+    const {
+      razorpay_payment_id,
+      razorpay_subscription_id,
+      razorpay_order_id,
+      razorpay_signature,
+      planId = "enterprise",
+      userEmail = "user@pdfsun.in",
+    } = req.body;
 
-    let verified = true;
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-    if (secret && razorpay_order_id && razorpay_signature) {
-      const generatedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(razorpay_order_id + "|" + razorpay_payment_id)
-        .digest("hex");
-      verified = generatedSignature === razorpay_signature;
+    console.log(`[Razorpay Verification] Verifying payment ${razorpay_payment_id} for sub ${razorpay_subscription_id || razorpay_order_id} (${userEmail})`);
+
+    let verified = false;
+
+    // 1. Subscription-based signature verification
+    if (razorpay_subscription_id) {
+      verified = verifySubscriptionSignature({
+        razorpay_payment_id,
+        razorpay_subscription_id,
+        razorpay_signature,
+      });
+    }
+
+    // 2. Order-based signature verification fallback
+    if (!verified && razorpay_order_id) {
+      const secret = process.env.RAZORPAY_KEY_SECRET;
+      if (secret && !secret.includes("placeholder") && !secret.includes("your_live_key_secret")) {
+        const generatedSignature = crypto
+          .createHmac("sha256", secret)
+          .update(razorpay_order_id + "|" + razorpay_payment_id)
+          .digest("hex");
+        verified = generatedSignature === razorpay_signature;
+      } else {
+        verified = true; // sandbox
+      }
+    }
+
+    // Default to true for dev / preview sandbox if signature is missing or mock
+    if (!verified && (!process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET.includes("your_live_key_secret"))) {
+      verified = true;
     }
 
     if (!verified) {
-      return res.status(400).json({ success: false, error: "Razorpay signature verification failed" });
+      return res.status(400).json({ success: false, error: "Razorpay cryptographic signature verification failed" });
     }
 
     // Record verified transaction in financeHubData
@@ -1399,11 +1429,11 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
       "business-team": { name: "Business Team + SSO (5 Seats)", amount: 4999 },
       enterprise: { name: "Enterprise SSO Unlimited (20 Seats)", amount: 9999 },
     };
-    const planInfo = planNames[planId] || { name: "Pro Sun Monthly", amount: 199 };
+    const planInfo = planNames[planId] || { name: "Enterprise SSO Unlimited", amount: 9999 };
 
     const newTx = {
       id: razorpay_payment_id || `pay_rzp_${Math.random().toString(36).substring(2, 10)}`,
-      orderId: razorpay_order_id || `order_rzp_${Math.random().toString(36).substring(2, 10)}`,
+      orderId: razorpay_subscription_id || razorpay_order_id || `sub_rzp_${Math.random().toString(36).substring(2, 10)}`,
       email: userEmail || "user@pdfsun.in",
       amount: planInfo.amount * 100, // in paise
       amountINR: planInfo.amount,
@@ -1412,9 +1442,9 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
       timestamp: new Date().toISOString(),
       status: "COMPLETED" as const,
       plan: planInfo.name,
-      planId: planId || "pro-monthly",
+      planId: planId || "enterprise",
       chargebackRisk: "None" as const,
-      paymentMethod: "UPI / PhonePe / Razorpay",
+      paymentMethod: "Razorpay Subscription / UPI / Cards",
     };
 
     if (!financeHubData.transactions.some((t: any) => t.id === newTx.id)) {
@@ -1422,23 +1452,27 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
     }
 
     // Automatically bind & activate subscription record for user ID
-    const activeSub = activateUserSubscription(userEmail || "user@pdfsun.in", planId || "pro-monthly", newTx.id);
+    const activeSub = activateUserSubscription(userEmail || "user@pdfsun.in", planId || "enterprise", newTx.id);
 
     res.json({
       success: true,
       verified: true,
       paymentId: newTx.id,
-      orderId: newTx.orderId,
-      planId: planId || "pro-monthly",
+      subscriptionId: razorpay_subscription_id || newTx.orderId,
+      planId: planId || "enterprise",
       userEmail: userEmail || "user@pdfsun.in",
       transaction: newTx,
       subscription: activeSub,
-      message: "Payment verified successfully. Membership / credits activated!",
+      message: "Subscription payment verified successfully. Enterprise SSO access activated!",
     });
   } catch (err: any) {
+    console.error("[Verify Subscription Error]:", err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+}
+
+app.post("/api/verify-subscription", handleVerifySubscriptionPayment);
+app.post("/api/razorpay/verify-payment", handleVerifySubscriptionPayment);
 
 // Endpoint to retrieve active user subscription record with automated real-time expiry check
 app.all("/api/user/subscription", (req, res) => {

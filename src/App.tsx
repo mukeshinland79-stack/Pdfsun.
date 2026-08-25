@@ -755,9 +755,6 @@ export default function App() {
         {/* Supported File Formats */}
         <SupportedFormats />
 
-        {/* Pricing Comparison */}
-        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
-
         {/* Testimonials */}
         <TestimonialsSection />
 
@@ -766,6 +763,9 @@ export default function App() {
 
         {/* Newsletter Subscription Banner */}
         <NewsletterSubscription variant="standalone" />
+
+        {/* Pricing Comparison & Pre-Footer */}
+        <PricingSection onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
       </main>
 
       {/* Enterprise Clean Footer */}
