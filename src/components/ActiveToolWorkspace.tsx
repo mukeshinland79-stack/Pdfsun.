@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
+import { ALL_TOOLS } from "../data/toolsData";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { TableGridPreviewModal } from "./TableGridPreviewModal";
 import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
@@ -146,6 +147,7 @@ interface ActiveToolWorkspaceProps {
   tool: ToolItem;
   initialFiles?: File[];
   onClose: () => void;
+  onSelectTool?: (tool: ToolItem, initialFiles?: File[]) => void;
   onAddHistory: (item: ToolHistoryItem) => void;
   usageTracker?: {
     count: number;
@@ -163,6 +165,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   tool,
   initialFiles = [],
   onClose,
+  onSelectTool,
   onAddHistory,
   usageTracker,
 }) => {
@@ -180,6 +183,42 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     fileName: string;
     mimeType: string;
   } | null>(null);
+  const [toolSwapOpen, setToolSwapOpen] = useState(false);
+
+  // 1-Click Pipeline helper: passes processed output directly into another tool
+  const handlePipelineToTool = useCallback((targetToolId: string) => {
+    const targetTool = ALL_TOOLS.find((t) => t.id === targetToolId || t.slug === targetToolId);
+    if (!targetTool) {
+      onClose();
+      return;
+    }
+
+    if (downloadReady && downloadReady.data) {
+      try {
+        let blob: Blob;
+        if (downloadReady.data instanceof Blob) {
+          blob = downloadReady.data;
+        } else if (typeof downloadReady.data === "string") {
+          blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "text/plain" });
+        } else {
+          blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "application/pdf" });
+        }
+        const pipelinedFile = new File([blob], downloadReady.fileName || "document.pdf", { type: blob.type });
+        if (onSelectTool) {
+          onSelectTool(targetTool, [pipelinedFile]);
+          return;
+        }
+      } catch (err) {
+        console.warn("Pipeline file conversion error:", err);
+      }
+    }
+
+    if (onSelectTool) {
+      onSelectTool(targetTool, files);
+    } else {
+      onClose();
+    }
+  }, [downloadReady, files, onClose, onSelectTool]);
 
   // Tool specific options
   const [splitRange, setSplitRange] = useState("1, 2-3");
@@ -1249,12 +1288,52 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            <div className="flex items-center space-x-2">
+              {/* Dynamic Quick Tool Switcher */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setToolSwapOpen(!toolSwapOpen)}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1 border border-slate-200 dark:border-slate-700"
+                  title="Switch to another tool keeping current files"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="hidden sm:inline">Swap Tool</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+
+                {toolSwapOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 max-h-72 overflow-y-auto">
+                    <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                      Switch Active Tool
+                    </div>
+                    {ALL_TOOLS.filter((t) => t.id !== tool.id).slice(0, 10).map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setToolSwapOpen(false);
+                          if (onSelectTool) {
+                            onSelectTool(t, files);
+                          }
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-200 hover:text-orange-600 transition flex items-center justify-between"
+                      >
+                        <span className="truncate">{t.name}</span>
+                        {t.isAi && <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold uppercase">AI</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
         </div>
 
         {/* Workspace Body */}
@@ -3537,66 +3616,119 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   </button>
                 </div>
               )}
-              {/* Cross-Tool Routing ("Next Step" Recommendations) */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 w-full flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center space-x-2 flex-wrap gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Next Actions:
-                  </span>
+              {/* Dedicated "Next Suggested Action" Drawer & 1-Click Pipeline */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-orange-50/30 to-amber-50/20 dark:from-slate-800/80 dark:via-slate-800/50 dark:to-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 w-full space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-orange-500" />
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Suggested Next Actions (1-Click Pipeline)
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium">Keep editing without re-uploading</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                   {tool.id !== "compress-pdf" && (
                     <button
                       type="button"
-                      onClick={() => onClose()}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      onClick={() => handlePipelineToTool("compress-pdf")}
+                      className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-left transition group shadow-2xs"
                     >
-                      <span>Compress</span>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 flex items-center space-x-1">
+                        <span>🗜️ Compress</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">Reduce size</div>
                     </button>
                   )}
-                  {tool.id !== "watermark-pdf" && (
-                    <button
-                      type="button"
-                      onClick={() => onClose()}
-                      className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold transition flex items-center space-x-1"
-                    >
-                      <span>Add Watermark</span>
-                    </button>
-                  )}
+
                   {tool.id !== "protect-pdf" && (
                     <button
                       type="button"
-                      onClick={() => onClose()}
-                      className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-amber-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      onClick={() => handlePipelineToTool("protect-pdf")}
+                      className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-slate-200 dark:border-slate-800 hover:border-orange-500 text-left transition group shadow-2xs"
                     >
-                      <span>Protect</span>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-orange-600 flex items-center space-x-1">
+                        <span>🛡️ Protect</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">Add password</div>
                     </button>
                   )}
+
+                  {tool.id !== "watermark-pdf" && (
+                    <button
+                      type="button"
+                      onClick={() => handlePipelineToTool("watermark-pdf")}
+                      className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 hover:border-blue-500 text-left transition group shadow-2xs"
+                    >
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 flex items-center space-x-1">
+                        <span>💧 Watermark</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">Brand or stamp</div>
+                    </button>
+                  )}
+
                   {tool.id !== "pdf-to-word" && (
                     <button
                       type="button"
-                      onClick={() => onClose()}
-                      className="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[11px] font-bold transition flex items-center space-x-1"
+                      onClick={() => handlePipelineToTool("pdf-to-word")}
+                      className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-slate-200 dark:border-slate-800 hover:border-purple-500 text-left transition group shadow-2xs"
                     >
-                      <span>To Word</span>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 flex items-center space-x-1">
+                        <span>📝 To Word</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">Editable DOCX</div>
                     </button>
                   )}
+
+                  {tool.id !== "split-pdf" && (
+                    <button
+                      type="button"
+                      onClick={() => handlePipelineToTool("split-pdf")}
+                      className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-slate-800 hover:border-amber-500 text-left transition group shadow-2xs"
+                    >
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-amber-600 flex items-center space-x-1">
+                        <span>✂️ Split</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">Extract pages</div>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handlePipelineToTool("ai-pdf-chat")}
+                    className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 text-left transition group shadow-2xs"
+                  >
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 flex items-center space-x-1">
+                      <span>🤖 AI Notes</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 line-clamp-1">Gemini AI chat</div>
+                  </button>
                 </div>
 
-                {/* Instant Security Purge Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDownloadReady(null);
-                    setFiles([]);
-                    setFileStates([]);
-                    setPurgedMessage(true);
-                    setTimeout(() => setPurgedMessage(false), 4000);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1"
-                  title="Permanently purge processed files from browser memory for 100% privacy"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Purge from Memory</span>
-                </button>
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Memory Auto-Purged when tab closes</span>
+                  </div>
+
+                  {/* Instant Security Purge Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDownloadReady(null);
+                      setFiles([]);
+                      setFileStates([]);
+                      setPurgedMessage(true);
+                      setTimeout(() => setPurgedMessage(false), 4000);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1"
+                    title="Permanently purge processed files from browser memory for 100% privacy"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Purge from Memory</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

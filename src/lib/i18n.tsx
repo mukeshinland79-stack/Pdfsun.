@@ -59,10 +59,11 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "el", name: "Greek", nativeName: "Ελληνικά", flag: "🇬🇷" },
 ];
 
-export const RTL_LANGUAGES = ["ar", "ur", "fa"];
+export const RTL_LANGUAGES = ["ar", "ur", "fa", "he"];
 
 export const isRtlLanguage = (code: string): boolean => {
-  return RTL_LANGUAGES.includes(code);
+  const clean = code.toLowerCase().split("-")[0];
+  return RTL_LANGUAGES.includes(clean);
 };
 
 export const DEFAULT_LANGUAGE = "en";
@@ -71,11 +72,12 @@ export const FALLBACK_STORAGE_KEYS = ["pdfsun_language", "i18nextLng", "user_lan
 const CMS_STORAGE_KEY = "pdfsun_cms_overrides";
 
 /**
- * Retrieves the persisted language from localStorage using 'pdfsun_lang' key (with fallback support)
+ * Retrieves the persisted language from localStorage or document.cookie
  */
 export const getPersistedLanguage = (): string | null => {
   if (typeof window === "undefined") return null;
   try {
+    // 1. Check localStorage
     const primary = localStorage.getItem(STORAGE_KEY);
     if (primary) {
       const cleanPrimary = primary.split("-")[0];
@@ -88,6 +90,17 @@ export const getPersistedLanguage = (): string | null => {
         const cleanFallback = fallback.split("-")[0];
         if (SUPPORTED_LANGUAGES.some((l) => l.code === fallback)) return fallback;
         if (SUPPORTED_LANGUAGES.some((l) => l.code === cleanFallback)) return cleanFallback;
+      }
+    }
+
+    // 2. Check Cookie fallback
+    if (document.cookie) {
+      const match = document.cookie.match(/(?:^|; )\s*pdfsun_lang=([^;]+)/);
+      if (match && match[1]) {
+        const cookieVal = decodeURIComponent(match[1]);
+        const cleanCookie = cookieVal.split("-")[0];
+        if (SUPPORTED_LANGUAGES.some((l) => l.code === cookieVal)) return cookieVal;
+        if (SUPPORTED_LANGUAGES.some((l) => l.code === cleanCookie)) return cleanCookie;
       }
     }
   } catch {
@@ -1750,6 +1763,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       localStorage.setItem(STORAGE_KEY, validLang);
       localStorage.setItem("pdfsun_lang", validLang);
       localStorage.setItem("i18nextLng", validLang);
+      document.cookie = `pdfsun_lang=${encodeURIComponent(validLang)}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = validLang;
       document.documentElement.dir = isRtlLanguage(validLang) ? "rtl" : "ltr";
       window.dispatchEvent(new CustomEvent("pdfsun_language_changed", { detail: { lang: validLang } }));

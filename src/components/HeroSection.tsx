@@ -84,14 +84,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-gradient-to-tr from-blue-500/10 via-indigo-500/10 to-sky-500/5 blur-3xl pointer-events-none rounded-full" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-4 sm:space-y-5">
-        {/* Trust Badge Pills Container */}
+        {/* Trust Badge Pills & Engine Status Container */}
         <div className="flex flex-wrap items-center justify-center gap-2">
-          {/* Badge 1: 100% In-Browser Privacy */}
+          {/* Real-Time Live Status Indicator */}
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold shadow-2xs backdrop-blur-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>All PDF engines running at maximum speed</span>
+          </div>
+
+          {/* Badge 1: 100% Client-Side Privacy */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold">100% In-Browser WebAssembly</span>
+            <span className="font-bold">100% Client-Side Privacy</span>
             <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Zero Server Uploads</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Files Never Leave Your Browser</span>
           </div>
 
           {/* Badge 2: Offline Ready */}

@@ -670,6 +670,7 @@ export default function App() {
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
+        isPricingActive={pricingModalOpen}
         pseoPage={activePseoPage}
       />
 
@@ -898,6 +899,7 @@ export default function App() {
                   setActiveTool(null);
                   setActivePseoPage(null);
                 }}
+                onSelectTool={handleSelectTool}
                 onAddHistory={addHistory}
               />
             )}

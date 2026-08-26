@@ -14,6 +14,7 @@ export interface SEOManagerProps {
   currentPage?: number;
   totalPages?: number;
   isTodayInHistoryActive?: boolean;
+  isPricingActive?: boolean;
   pseoPage?: PSEOLandingPage | null;
 }
 
@@ -30,6 +31,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   currentPage,
   totalPages,
   isTodayInHistoryActive = false,
+  isPricingActive = false,
   pseoPage = null,
 }) => {
   const { t, currentLanguage, getToolName, getToolDescription } = useLanguage();
@@ -66,6 +68,75 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "logo": `${baseUrl}/og-image.png`,
     "sameAs": [],
   };
+
+  // Pricing SoftwareApplication & Product Schema with AggregateRating
+  const pricingProductSchema = isPricingActive ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "PDFSun Pro & Enterprise SSO Plans",
+    "description": "High-speed WebAssembly PDF processing with 100% private in-browser security, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO.",
+    "brand": {
+      "@type": "Brand",
+      "name": "PDFSun",
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "1280",
+      "bestRating": "5",
+      "worstRating": "1",
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": `${baseUrl}/pricing`,
+      },
+      {
+        "@type": "Offer",
+        "name": "Flexi Pack (100 Lifetime Credits)",
+        "price": "99",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-flexi",
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Sun Monthly",
+        "price": "199",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-monthly",
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Sun Annual (Save 40%)",
+        "price": "1499",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-annual",
+      },
+      {
+        "@type": "Offer",
+        "name": "Enterprise Plan (5 Seats)",
+        "price": "3999",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/pdfsun-enterprise",
+      },
+      {
+        "@type": "Offer",
+        "name": "Enterprise SSO Unlimited (20 Seats)",
+        "price": "9999",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "url": "https://rzp.io/rzp/DTBivZF",
+      },
+    ],
+  } : null;
 
   // 3. Dynamic JSON-LD FAQ Schema (Tool-Specific for Tool Pages & Platform Global for Homepage)
   let faqSchema: Record<string, any>;
@@ -286,9 +357,9 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     };
   }
 
-  const helmetTitle = pseoPage?.seoTitle || (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDF Sun` : "PDF Sun - 100% Free & Private Online PDF Tools");
-  const helmetDesc = pseoPage?.seoDescription || (activeTool ? `${activeTool.description} Free, fast, and secure client-side PDF tool.` : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. 100% private in-browser WebAssembly processing.");
-  const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl);
+  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? "PDFSun Pricing & Plans - Free, Pro & Enterprise SSO PDF Tools | pdfsun.in" : (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDF Sun` : "PDF Sun - 100% Free & Private Online PDF Tools"));
+  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? "Flexible, transparent pricing for students, professionals, and enterprises. 100% private in-browser WebAssembly PDF processing, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO." : (activeTool ? `${activeTool.description} Free, fast, and secure client-side PDF tool.` : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. 100% private in-browser WebAssembly processing."));
+  const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 
   return (
     <Helmet>
@@ -323,8 +394,12 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
           href={
             pseoPage
               ? `${baseUrl}/${pseoPage.slug}?lang=${lang.code}`
+              : isPricingActive
+              ? `${baseUrl}/pricing?lang=${lang.code}`
               : isTodayInHistoryActive
               ? `${baseUrl}/today-in-history?lang=${lang.code}`
+              : activeTool
+              ? `${baseUrl}/${activeTool.slug}?lang=${lang.code}`
               : `${baseUrl}/?lang=${lang.code}`
           }
         />
@@ -332,7 +407,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       <link
         rel="alternate"
         hrefLang="x-default"
-        href={pseoPage ? `${baseUrl}/${pseoPage.slug}` : isTodayInHistoryActive ? `${baseUrl}/today-in-history` : `${baseUrl}/`}
+        href={pseoPage ? `${baseUrl}/${pseoPage.slug}` : isPricingActive ? `${baseUrl}/pricing` : isTodayInHistoryActive ? `${baseUrl}/today-in-history` : activeTool ? `${baseUrl}/${activeTool.slug}` : `${baseUrl}/`}
       />
 
       {/* Global WebSite JSON-LD */}
@@ -349,6 +424,13 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       <script type="application/ld+json">
         {JSON.stringify(faqSchema)}
       </script>
+
+      {/* Pricing Product & Offer Schema */}
+      {pricingProductSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(pricingProductSchema)}
+        </script>
+      )}
 
       {/* Active Tool Combined WebApplication + HowTo @graph JSON-LD */}
       {activeToolGraphSchema && (

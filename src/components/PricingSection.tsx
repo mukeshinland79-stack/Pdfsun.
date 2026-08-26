@@ -523,47 +523,46 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       ],
       cta: "Get Enterprise Plan (₹3,999)",
     },
-    {
-      id: "enterprise-sso",
-      name: "Enterprise SSO Unlimited",
-      badge: "20 SEATS • CUSTOM SAML 2.0",
-      badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-      description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), and SCIM provisioning.",
-      billingType: "enterprise",
-      seats: 20,
-      razorpayLink: "https://rzp.io/rzp/DTBivZF",
-      priceINR: {
-        monthly: 999,
-        yearly: 9999,
-        labelMonthly: "₹9,999",
-        labelYearly: "₹9,999",
-        subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
-        subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
-      },
-      priceUSD: {
-        monthly: 14.99,
-        yearly: 149,
-        labelMonthly: "$149",
-        labelYearly: "$149",
-        subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
-        subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
-      },
-      guaranteeText: "First 7 Days 100% Money-Back Guarantee",
-      popular: false,
-      features: [
-        "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
-        "Custom Domain Enforced Auto-Join (@yourcompany.com)",
-        "SCIM User Provisioning & Granular Access Controls",
-        "Flat up to 20 Seats included (Custom bulk volume available)",
-        "Dedicated SLA Account Manager",
-        "Instant Dynamic QR with Auto-Amount",
-      ],
-      cta: "Get Enterprise SSO (₹9,999)",
-    },
   ];
 
-  // Enterprise SSO Unlimited Tier Reference
-  const enterprisePlanTier: PlanTier = plans[5];
+  // Dedicated Enterprise SSO Unlimited Tier (Featured in Dark Blue Banner below Grid)
+  const enterprisePlanTier: PlanTier = {
+    id: "enterprise-sso",
+    name: "Enterprise SSO Unlimited",
+    badge: "20 SEATS • CUSTOM SAML 2.0",
+    badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), and SCIM provisioning.",
+    billingType: "enterprise",
+    seats: 20,
+    razorpayLink: "https://rzp.io/rzp/DTBivZF",
+    priceINR: {
+      monthly: 999,
+      yearly: 9999,
+      labelMonthly: "₹9,999",
+      labelYearly: "₹9,999",
+      subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+      subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+    },
+    priceUSD: {
+      monthly: 14.99,
+      yearly: 149,
+      labelMonthly: "$149",
+      labelYearly: "$149",
+      subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+      subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
+    },
+    guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+    popular: false,
+    features: [
+      "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
+      "Custom Domain Enforced Auto-Join (@yourcompany.com)",
+      "SCIM User Provisioning & Granular Access Controls",
+      "Flat up to 20 Seats included (Custom bulk volume available)",
+      "Dedicated SLA Account Manager",
+      "Instant Dynamic QR with Auto-Amount",
+    ],
+    cta: "Get Enterprise SSO (₹9,999)",
+  };
 
   const [incompleteNoticeOpen, setIncompleteNoticeOpen] = useState<boolean>(false);
   const [activePlanId, setActivePlanId] = useState<string>(() => {
@@ -1527,7 +1526,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         isProcessing={isProcessing}
         proYearlyPlan={plans.find((p) => p.id === "pro-yearly") || plans[3]}
         businessPlan={plans.find((p) => p.id === "enterprise" || p.id === "business-team") || plans[4]}
-        enterprisePlan={plans.find((p) => p.id === "enterprise-sso") || plans[5]}
+        enterprisePlan={enterprisePlanTier}
         freePlan={plans[0]}
       />
 
