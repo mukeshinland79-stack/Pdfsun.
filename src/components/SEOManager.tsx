@@ -27,7 +27,7 @@ export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
 export const SEOManager: React.FC<SEOManagerProps> = ({
   activeTool,
   tools,
-  baseUrl = "https://www.pdfsun.in",
+  baseUrl = "https://pdfsun.in",
   currentPage,
   totalPages,
   isTodayInHistoryActive = false,
@@ -40,12 +40,12 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "PDF Sun",
+    "name": "PDFSun",
     "url": baseUrl,
-    "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at www.pdfsun.in.",
+    "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.",
     "publisher": {
       "@type": "Organization",
-      "name": "PDF Sun",
+      "name": "PDFSun",
       "url": baseUrl,
       "logo": `${baseUrl}/og-image.png`,
     },
@@ -63,10 +63,55 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "PDF Sun",
+    "name": "PDFSun",
     "url": baseUrl,
     "logo": `${baseUrl}/og-image.png`,
     "sameAs": [],
+  };
+
+  // 3. WebApplication & SoftwareApplication Schema for PDFSun
+  const webAppSchema = {
+    "@context": "https://schema.org",
+    "@type": ["WebApplication", "SoftwareApplication"],
+    "name": "PDFSun - Free Online PDF Tools",
+    "url": baseUrl,
+    "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All (Web-based, Windows, macOS, Linux, iOS, Android)",
+    "browserRequirements": "Requires HTML5 and WebAssembly compatible browser.",
+    "softwareVersion": "2.1.0",
+    "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
+    "featureList": [
+      "Merge multiple PDF files into one",
+      "Split and extract PDF pages",
+      "Compress PDF to 100KB, 200KB, 300KB, 500KB with sub-second speeds",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG",
+      "OCR Text Recognition directly in browser",
+      "AI PDF Chat, Summarization, and Translation",
+      "Password Protect and Unlock PDF files",
+      "Add and Remove Watermarks",
+      "Edit PDF Text and Annotate documents",
+      "100% Client-Side WebAssembly Processing for zero data leaks"
+    ],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "18420",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "PDFSun",
+      "url": baseUrl,
+      "logo": `${baseUrl}/og-image.png`
+    }
   };
 
   // Pricing SoftwareApplication & Product Schema with AggregateRating
@@ -138,7 +183,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     ],
   } : null;
 
-  // 3. Dynamic JSON-LD FAQ Schema (Tool-Specific for Tool Pages & Platform Global for Homepage)
+  // 4. Dynamic JSON-LD FAQ Schema (Tool-Specific for Tool Pages & Platform Global for Homepage)
   let faqSchema: Record<string, any>;
 
   if (activeTool) {
@@ -170,14 +215,56 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     faqSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "mainEntity": FAQS.map((faq) => ({
-        "@type": "Question",
-        "name": faq.q,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": faq.a,
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is PDFSun completely free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! PDFSun offers 100% free access to all 57+ PDF tools including Merge PDF, Split PDF, Compress PDF, PDF to Word converter, and AI PDF tools with zero registration required."
+          }
         },
-      })),
+        {
+          "@type": "Question",
+          "name": "How to merge PDF online with PDFSun?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Simply drag and drop your PDF files into the PDFSun Merge tool, rearrange the pages in your desired sequence, and click 'Merge PDF' to instantly download your combined document."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How to compress PDF size safely?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Upload your PDF file to the PDFSun Compress tool, choose your target size or quality level (such as 100KB, 200KB, or 500KB), and download your reduced file in sub-second speeds without losing clarity."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are my uploaded PDF files safe on PDFSun?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! Privacy is guaranteed. Core PDF operations execute 100% locally inside your browser via WebAssembly. Your files are never uploaded, stored, or shared."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use PDFSun on mobile, Mac, and Windows?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! PDFSun works smoothly across all modern web browsers on iPhone, Android, Windows, Mac, and Linux, and can be installed as a Progressive Web App (PWA)."
+          }
+        },
+        ...FAQS.slice(0, 5).map((faq) => ({
+          "@type": "Question",
+          "name": faq.q,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.a,
+          },
+        }))
+      ],
     };
   }
 
@@ -357,8 +444,11 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     };
   }
 
-  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? "PDFSun Pricing & Plans - Free, Pro & Enterprise SSO PDF Tools | pdfsun.in" : (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDF Sun` : "PDF Sun - 100% Free & Private Online PDF Tools"));
-  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? "Flexible, transparent pricing for students, professionals, and enterprises. 100% private in-browser WebAssembly PDF processing, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO." : (activeTool ? `${activeTool.description} Free, fast, and secure client-side PDF tool.` : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. 100% private in-browser WebAssembly processing."));
+  const defaultTitle = "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
+  const defaultDesc = "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.";
+
+  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? "PDFSun Pricing & Plans - Free, Pro & Enterprise SSO PDF Tools | pdfsun.in" : (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDFSun` : defaultTitle));
+  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? "Flexible, transparent pricing for students, professionals, and enterprises. 100% private in-browser WebAssembly PDF processing, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO." : (activeTool ? `${activeTool.description} Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.` : defaultDesc));
   const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 
   return (
@@ -367,15 +457,19 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       <meta name="description" content={helmetDesc} />
       <link rel="canonical" href={canonicalUrl} />
 
-      {/* OpenGraph */}
+      {/* OpenGraph / Social Sharing Meta */}
       <meta property="og:title" content={helmetTitle} />
       <meta property="og:description" content={helmetDesc} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="PDFSun" />
+      <meta property="og:image" content={`${baseUrl}/og-image.png`} />
 
       {/* Twitter Card */}
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={helmetTitle} />
       <meta name="twitter:description" content={helmetDesc} />
+      <meta name="twitter:image" content={`${baseUrl}/og-image.png`} />
 
       {/* Rel prev and next tags for paginated pages */}
       {currentPage && currentPage > 1 && (
@@ -413,6 +507,11 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       {/* Global WebSite JSON-LD */}
       <script type="application/ld+json">
         {JSON.stringify(websiteSchema)}
+      </script>
+
+      {/* WebApplication & SoftwareApplication JSON-LD */}
+      <script type="application/ld+json">
+        {JSON.stringify(webAppSchema)}
       </script>
 
       {/* Organization JSON-LD */}

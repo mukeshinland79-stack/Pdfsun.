@@ -79,7 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   ];
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-blue-500/5 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 py-6 sm:py-8 border-b border-slate-200 dark:border-slate-800">
+    <section id="hero-section" aria-label="PDFSun Hero Section" className="relative overflow-hidden bg-gradient-to-b from-blue-500/5 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 py-6 sm:py-8 border-b border-slate-200 dark:border-slate-800">
       {/* Background Decorative Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-gradient-to-tr from-blue-500/10 via-indigo-500/10 to-sky-500/5 blur-3xl pointer-events-none rounded-full" />
 
@@ -221,6 +221,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

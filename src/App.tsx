@@ -625,32 +625,21 @@ export default function App() {
 
   // Dynamic SEO Helmet variables
   const pageTitle = activeTool
-    ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
-    : "PDF Sun - Free Online PDF Tools, Converter, Merge & Compress";
+    ? `${activeTool.name} - Free Online PDF Tool | PDFSun`
+    : "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
 
   const pageDescription = activeTool
-    ? `${activeTool.description} Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.`
-    : "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at www.pdfsun.in.";
+    ? `${activeTool.description} Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.`
+    : "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.";
 
   const canonicalUrl = activeTool
-    ? `https://www.pdfsun.in/?tool=${activeTool.slug}`
-    : "https://www.pdfsun.in/";
+    ? `https://pdfsun.in/${activeTool.slug}`
+    : "https://pdfsun.in";
 
-  const ogTitle = activeTool
-    ? `${activeTool.name} - Free Online PDF Tool | PDF Sun`
-    : "PDF Sun - Free Online PDF Tools & Converter";
-
-  const ogDescription = activeTool
-    ? `${activeTool.description} Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.`
-    : "Easily convert, merge, compress, and edit PDF files online for free with PDF Sun.";
-
-  const twitterTitle = activeTool
-    ? `${activeTool.name} - Free Online PDF Tool`
-    : "PDF Sun - Free Online PDF Tools";
-
-  const twitterDescription = activeTool
-    ? `${activeTool.description} Fast and secure online PDF tools at www.pdfsun.in`
-    : "Fast and secure online PDF tools at www.pdfsun.in";
+  const ogTitle = pageTitle;
+  const ogDescription = pageDescription;
+  const twitterTitle = pageTitle;
+  const twitterDescription = pageDescription;
 
   // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
   const adPlacements = calculateAdPlacements(
@@ -666,7 +655,7 @@ export default function App() {
       <SEOManager
         activeTool={activeTool}
         tools={ALL_TOOLS}
-        baseUrl="https://www.pdfsun.in"
+        baseUrl="https://pdfsun.in"
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
@@ -678,8 +667,8 @@ export default function App() {
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
-        <meta name="keywords" content="PDF Sun, pdf tools, online pdf converter, merge pdf, compress pdf, edit pdf online, pdfsun.in, www.pdfsun.in" />
-        <meta name="author" content="PDF Sun" />
+        <meta name="keywords" content="Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF, convert PDF to Word, online PDF editor, WebAssembly PDF, PDFSun, pdfsun.in" />
+        <meta name="author" content="PDFSun" />
         <meta name="robots" content="index, follow, max-image-preview:large" />
 
         <link rel="canonical" href={canonicalUrl} />
@@ -690,14 +679,14 @@ export default function App() {
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:title" content={ogTitle} />
         <meta property="og:description" content={ogDescription} />
-        <meta property="og:image" content="https://www.pdfsun.in/og-image.png" />
-        <meta property="og:site_name" content="PDF Sun" />
+        <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+        <meta property="og:site_name" content="PDFSun" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={twitterTitle} />
         <meta name="twitter:description" content={twitterDescription} />
-        <meta name="twitter:image" content="https://www.pdfsun.in/og-image.png" />
+        <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
       </Helmet>
 
       {/* Sticky Top Header */}

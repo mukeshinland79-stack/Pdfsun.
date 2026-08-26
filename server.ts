@@ -3211,9 +3211,9 @@ app.get("/robots.txt", (req, res) => {
 Allow: /
 Disallow: /api/admin/
 
-Sitemap: https://www.pdfsun.in/sitemap.xml
-Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
-Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
+Sitemap: https://pdfsun.in/sitemap.xml
+Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://pdfsun.in/sitemap-pseo.xml
 `);
 });
 
@@ -3226,7 +3226,7 @@ app.get("/sitemap-compress-sizes.xml", (req, res) => {
 
   const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
     return `  <url>
-    <loc>https://www.pdfsun.in/compress-pdf-to-${size}</loc>
+    <loc>https://pdfsun.in/compress-pdf-to-${size}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -3248,7 +3248,7 @@ app.get("/sitemap-pseo.xml", (req, res) => {
 
   const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
     return `  <url>
-    <loc>https://www.pdfsun.in/${page.slug}</loc>
+    <loc>https://pdfsun.in/${page.slug}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
@@ -3268,7 +3268,7 @@ app.get("/sitemap.xml", (req, res) => {
   res.set("X-Content-Type-Options", "nosniff");
   
   // Collect unique slugs from all tools, pSEO landing pages, popular compress sizes, plus root and static pages
-  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history"];
+  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history", "pricing"];
   const toolSlugs = ALL_TOOLS.map((t) => t.slug).filter(Boolean);
   const pseoSlugs = PSEO_LANDING_PAGES.map((p) => p.slug);
   const compressSlugs = POPULAR_COMPRESS_SIZES.map((s) => `compress-pdf-to-${s}`);
@@ -3286,7 +3286,7 @@ app.get("/sitemap.xml", (req, res) => {
       const urlPath = slug ? `/${slug}` : "";
 
       return `  <url>
-    <loc>https://www.pdfsun.in${urlPath}</loc>
+    <loc>https://pdfsun.in${urlPath}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>

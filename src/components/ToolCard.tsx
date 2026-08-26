@@ -177,7 +177,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
     isFavorite ? " Currently in favorites." : " Not in favorites."
   } Press Enter or Space to open tool.`;
 
-  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       // Avoid triggering when focused on inner interactive controls (like buttons)
       const target = e.target as HTMLElement;
@@ -190,7 +190,8 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   };
 
   return (
-    <div
+    <article
+      id={`tool-card-${tool.id}`}
       role="button"
       tabIndex={0}
       aria-label={fullAriaDescription}
@@ -328,6 +329,6 @@ export const ToolCard: React.FC<ToolCardProps> = ({
           <ArrowRight className="w-3.5 h-3.5" />
         </span>
       </div>
-    </div>
+    </article>
   );
 };

@@ -25,35 +25,42 @@ export const TestimonialsSection: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {TESTIMONIALS.map((item) => (
-            <div
+            <article
               key={item.id}
+              itemScope
+              itemType="https://schema.org/Review"
               className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
-                <div className="flex items-center space-x-1 text-amber-400">
+                <div className="flex items-center space-x-1 text-amber-400" itemProp="reviewRating" itemScope itemType="https://schema.org/Rating">
+                  <meta itemProp="ratingValue" content={item.rating.toString()} />
+                  <meta itemProp="bestRating" content="5" />
                   {Array.from({ length: item.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400" />
+                    <Star key={i} className="w-4 h-4 fill-amber-400" aria-hidden="true" />
                   ))}
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed" itemProp="reviewBody">
                   "{t(`testimonials.quote_${item.id}`, item.quote)}"
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex items-center space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700" itemProp="author" itemScope itemType="https://schema.org/Person">
                 <img
                   src={item.avatar}
                   alt={item.name}
+                  loading="lazy"
+                  width="40"
+                  height="40"
                   className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/30"
                 />
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">{item.name}</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white" itemProp="name">{item.name}</div>
                   <div className="text-[10px] text-slate-400">
                     {t(`testimonials.role_${item.id}`, item.role)} • {item.organization}
                   </div>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
