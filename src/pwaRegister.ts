@@ -20,7 +20,6 @@ export const CORE_PWA_ASSETS = [
   '/favicon.ico',
   '/sw.js',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap',
-  'https://fonts.gstatic.com',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
 ];
 
@@ -29,7 +28,7 @@ export const CORE_PWA_ASSETS = [
  */
 export async function fetchWithStaleWhileRevalidate(requestUrl: string, cacheName: string = CACHE_NAME): Promise<Response> {
   if (typeof window === 'undefined' || !('caches' in window)) {
-    return fetch(requestUrl);
+    return fetch(requestUrl).catch(() => new Response('Offline Asset Unavailable', { status: 503 }));
   }
 
   const cache = await caches.open(cacheName);
@@ -61,15 +60,17 @@ export async function precacheAppFontsAndIcons(): Promise<boolean> {
       'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap',
     ]);
 
-    // Gather all icons, stylesheets, and font links in current document
-    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"], link[rel="icon"], link[rel="apple-touch-icon"], link[rel="preconnect"]').forEach((link) => {
-      if (link.href && !link.href.startsWith('data:')) fontAndIconUrls.add(link.href);
+    // Gather all icons, stylesheets, and font links in current document (exclude preconnect / bare hostnames)
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"], link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
+      if (link.href && !link.href.startsWith('data:') && !link.href.endsWith('gstatic.com') && !link.href.endsWith('gstatic.com/')) {
+        fontAndIconUrls.add(link.href);
+      }
     });
 
     // Gather external SVG icons or image assets
     document.querySelectorAll<HTMLImageElement>('img[src], svg image').forEach((img) => {
       const src = img.getAttribute('src');
-      if (src && !src.startsWith('data:')) fontAndIconUrls.add(src);
+      if (src && !src.startsWith('data:') && !src.startsWith('blob:')) fontAndIconUrls.add(src);
     });
 
     await Promise.allSettled(
@@ -78,15 +79,14 @@ export async function precacheAppFontsAndIcons(): Promise<boolean> {
           const match = await cache.match(url);
           if (!match) {
             const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' });
-            if (res.ok) await cache.put(url, res);
+            if (res && res.ok) await cache.put(url, res);
           }
         } catch {
-          // Ignore individual network failures
+          // Ignore individual network failures silently
         }
       })
     );
 
-    console.log('[PDFSun PWA] Fonts, icons, and static CSS assets aggressively precached.');
     return true;
   } catch {
     return false;
@@ -106,19 +106,17 @@ export async function precacheToolAssets(urls: string[] = CORE_PWA_ASSETS): Prom
     const fetchPromises = urls.map(async (url) => {
       try {
         const response = await fetch(url, { cache: 'no-cache', mode: url.startsWith('http') ? 'cors' : 'same-origin' });
-        if (response.ok) {
+        if (response && response.ok) {
           await cache.put(url, response.clone());
         }
       } catch (err) {
-        console.warn(`[PDFSun PWA] Could not precache ${url}:`, err);
+        // Silently skip non-cacheable asset
       }
     });
 
     await Promise.allSettled(fetchPromises);
-    console.log('[PDFSun PWA] Core assets & fonts precached successfully for offline use.');
     return true;
   } catch (error) {
-    console.error('[PDFSun PWA] Precache error:', error);
     return false;
   }
 }
@@ -146,10 +144,12 @@ export async function precacheLoadedAppShell(): Promise<number> {
       if (s.src) assetUrls.add(s.src);
     });
     document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"], link[rel="modulepreload"], link[rel="icon"], link[rel="apple-touch-icon"]').forEach((l) => {
-      if (l.href) assetUrls.add(l.href);
+      if (l.href && !l.href.startsWith('data:') && !l.href.endsWith('gstatic.com') && !l.href.endsWith('gstatic.com/')) {
+        assetUrls.add(l.href);
+      }
     });
     document.querySelectorAll<HTMLImageElement>('img[src]').forEach((img) => {
-      if (img.src && !img.src.startsWith('data:')) assetUrls.add(img.src);
+      if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) assetUrls.add(img.src);
     });
 
     const urlsToFetch = Array.from(assetUrls);
@@ -161,7 +161,7 @@ export async function precacheLoadedAppShell(): Promise<number> {
           const match = await cache.match(url);
           if (!match) {
             const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' });
-            if (res.ok) {
+            if (res && res.ok) {
               await cache.put(url, res.clone());
               cachedCount++;
             }

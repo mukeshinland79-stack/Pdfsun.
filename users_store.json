@@ -44,5 +44,20 @@
     "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     "joinedDate": "Jan 2026",
     "createdAt": "2026-08-20T17:17:22.823Z"
+  },
+  "test@example.com": {
+    "id": "usr-cysek32",
+    "name": "test",
+    "email": "test@example.com",
+    "phone": "+91 9991659655",
+    "passwordHash": "8c0ce0e08b28585b6d7c32c44dc43db5836ca5361315c0421beef7c1f8e620f4f1a1936077198325b1432d5208f1cb28cf0c43a93f639be4d0cb8e58df3838ce",
+    "salt": "b7b3ef1e928f4a24de01891552884892",
+    "role": "user",
+    "plan": "Free Customer",
+    "hasAdminAccess": false,
+    "isPro": false,
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-08-26T16:58:30.021Z",
+    "lastLoginAt": "2026-08-26T16:58:30.021Z"
   }
 }

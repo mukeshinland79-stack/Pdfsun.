@@ -982,11 +982,30 @@ app.get(["/api/health", "/api/system/public-stats", "/api/system/stats", "/api/s
 });
 
 // ==========================================
-// UNIFIED AUTHENTICATION ROUTER (/api/auth, /api/v1/auth, /api/admin/auth)
+// UNIFIED AUTHENTICATION ROUTER (/api/auth, /api/v1/auth, /api/admin/auth, /auth)
 // ==========================================
 app.use("/api/auth", authRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/admin/auth", authRouter);
+app.use("/auth", authRouter);
+
+// Direct root route fallbacks for POST /login, POST /signup, POST /register, POST /signin
+app.post("/signup", (req, res, next) => {
+  req.url = "/register";
+  authRouter(req, res, next);
+});
+app.post("/register", (req, res, next) => {
+  req.url = "/register";
+  authRouter(req, res, next);
+});
+app.post("/login", (req, res, next) => {
+  req.url = "/login";
+  authRouter(req, res, next);
+});
+app.post("/signin", (req, res, next) => {
+  req.url = "/login";
+  authRouter(req, res, next);
+});
 app.all(
   [
     "/api/user/session",
