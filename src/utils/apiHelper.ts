@@ -130,10 +130,14 @@ export async function safeFetchJson<T = any>(
         try {
           parsedData = JSON.parse(text);
         } catch (parseError) {
+          const isHtml = text.trim().startsWith("<") || text.includes("<!DOCTYPE") || text.includes("<html");
+          const safeMessage = isHtml
+            ? (res.status === 404 ? "The requested service endpoint was not found (HTTP 404)." : `Server error (HTTP ${res.status}).`)
+            : text.substring(0, 200);
           parsedData = {
             success: res.ok,
-            message: text.substring(0, 200),
-            error: res.ok ? "Invalid server response format." : `Server responded with HTTP ${res.status}`,
+            message: safeMessage,
+            error: res.ok ? "Invalid server response format." : safeMessage,
           };
         }
       } else {

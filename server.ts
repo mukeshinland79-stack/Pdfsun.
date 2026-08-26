@@ -982,10 +982,11 @@ app.get(["/api/health", "/api/system/public-stats", "/api/system/stats", "/api/s
 });
 
 // ==========================================
-// UNIFIED AUTHENTICATION ROUTER (/api/auth & /api/v1/auth)
+// UNIFIED AUTHENTICATION ROUTER (/api/auth, /api/v1/auth, /api/admin/auth)
 // ==========================================
 app.use("/api/auth", authRouter);
 app.use("/api/v1/auth", authRouter);
+app.use("/api/admin/auth", authRouter);
 app.all(
   [
     "/api/user/session",

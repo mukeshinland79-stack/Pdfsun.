@@ -714,13 +714,19 @@ export const handleSocialLogin = (req: Request, res: Response) => {
 
 // Route Registration for Router
 authRouter.post("/register", handleRegister);
+authRouter.post("/signup", handleRegister);
 authRouter.post("/login", handleLogin);
+authRouter.post("/signin", handleLogin);
 authRouter.post("/social-login", handleSocialLogin);
+authRouter.post("/social", handleSocialLogin);
 authRouter.post("/login-step1", handleStep1Login);
 authRouter.post("/send-mfa", handleStep1Login);
+authRouter.post("/initiate-login", handleStep1Login);
 authRouter.post("/verify-otp", handleVerifyOtp);
 authRouter.post("/verify-mfa", handleVerifyOtp);
+authRouter.post("/step2-verify", handleVerifyOtp);
 authRouter.post("/resend-otp", handleResendOtp);
+authRouter.post("/resend-mfa", handleResendOtp);
 authRouter.post("/reset-initiation", handleResetInitiation);
 authRouter.post("/forgot-password", handleResetInitiation);
 authRouter.post("/forgot-password-request", handleResetInitiation);
@@ -728,6 +734,11 @@ authRouter.post("/reset-verify", handleResetVerify);
 authRouter.post("/verify-recovery-otp", handleResetVerify);
 authRouter.post("/new-password", handleNewPassword);
 authRouter.post("/reset-password", handleNewPassword);
+
+// Enterprise SSO & SAML Callbacks
+authRouter.all(["/sso/initiate", "/saml/initiate", "/sso/login"], handleSocialLogin);
+authRouter.all(["/sso/callback", "/saml/callback", "/sso/response"], handleSocialLogin);
+
 authRouter.all(
   [
     "/verify-session",
@@ -744,13 +755,24 @@ authRouter.all(
 authRouter.all(["/logout", "/signout"], handleLogout);
 authRouter.post("/refresh-session", handleRefreshSession);
 
-// Safety GET handler for standard POST-only auth endpoints: returns HTTP 200/405 with JSON payload instead of unhandled crash or 404 HTML
+// Preflight CORS Handler
+authRouter.options("*", (req, res) => {
+  res.setHeader("Allow", "POST, GET, OPTIONS, HEAD");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, HEAD");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-user-token, x-admin-token");
+  res.status(204).end();
+});
+
+// Safety GET handler for standard POST-only auth endpoints: returns HTTP 200 with JSON payload
 authRouter.get(
   [
     "/register",
+    "/signup",
     "/login",
+    "/signin",
     "/login-step1",
     "/send-mfa",
+    "/initiate-login",
     "/verify-otp",
     "/verify-mfa",
     "/resend-otp",
@@ -760,14 +782,26 @@ authRouter.get(
     "/verify-recovery-otp",
     "/new-password",
     "/reset-password",
+    "/social-login",
+    "/sso/initiate",
+    "/sso/callback",
   ],
   (req, res) => {
     res.setHeader("Allow", "POST, OPTIONS");
     return res.status(200).json({
       success: true,
       endpoint: req.originalUrl,
-      message: `Authentication endpoint ready. Send a POST request with JSON payload to perform action.`,
+      message: "Authentication endpoint ready. Send a POST request with JSON payload to perform action.",
       status: "ready",
     });
   }
 );
+
+// Explicit 404 handler for unrecognized auth subpaths
+authRouter.all("*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Authentication endpoint '${req.method} ${req.originalUrl}' not found.`,
+    status: 404,
+  });
+});
