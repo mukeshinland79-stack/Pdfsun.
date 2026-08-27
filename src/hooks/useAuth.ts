@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getAuth, signOut as firebaseSignOut } from "firebase/auth";
+import { getFirebaseApp } from "../lib/firebase";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import {
   getLocalStoredUser,
@@ -561,7 +563,16 @@ export function useAuth() {
       console.warn("[useAuth] Facebook logout notice:", e);
     }
 
-    // 4. Completely clear all client auth state and storage keys
+    // 4. Sign out from Firebase Auth
+    try {
+      const firebaseApp = getFirebaseApp();
+      const auth = getAuth(firebaseApp);
+      await firebaseSignOut(auth);
+    } catch (e) {
+      console.warn("[useAuth] Firebase signOut notice:", e);
+    }
+
+    // 5. Completely clear all client auth state and storage keys
     setCurrentRole("public");
     setUserProfile(null);
     setAuthStatus("unauthenticated");
