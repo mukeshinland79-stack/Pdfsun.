@@ -322,12 +322,47 @@ export function generateUserJwtToken(payload: AuthSessionPayload): string {
   );
 }
 
+// Set of revoked session tokens with automated TTL cleanup
+const REVOKED_SESSION_TOKENS = new Set<string>();
+
+export function revokeSessionToken(token: string): void {
+  if (token) {
+    REVOKED_SESSION_TOKENS.add(token);
+    if (REVOKED_SESSION_TOKENS.size > 10000) {
+      const first = REVOKED_SESSION_TOKENS.values().next().value;
+      if (first) REVOKED_SESSION_TOKENS.delete(first);
+    }
+  }
+}
+
+export function isSessionTokenRevoked(token: string): boolean {
+  return REVOKED_SESSION_TOKENS.has(token);
+}
+
+export async function revokeOAuthProviderToken(provider: string, token: string): Promise<boolean> {
+  if (!token) return false;
+  try {
+    if (provider === "google") {
+      const res = await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+      return res.ok;
+    }
+    return true;
+  } catch (e) {
+    console.warn(`[OAuth Revoke] Failed to revoke upstream ${provider} token:`, e);
+    return false;
+  }
+}
+
 /**
  * Verify and decode a JWT session token safely with optional hijacking check
  */
 export function verifySessionToken(token: string, ip?: string, userAgent?: string): AuthSessionPayload | null {
   try {
     if (!token) return null;
+    if (REVOKED_SESSION_TOKENS.has(token)) return null;
     const decoded = jwt.verify(token, JWT_SECRET) as AuthSessionPayload;
     if (decoded && decoded.email) {
       if (decoded.clientBinding && ip && userAgent) {

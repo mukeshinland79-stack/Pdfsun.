@@ -14,6 +14,8 @@ import {
   verifyAndResetPassword,
   normalizeLoginIdentifier,
   repairAndRestoreDatabase,
+  revokeSessionToken,
+  revokeOAuthProviderToken,
 } from "./authService";
 import { DUAL_OWNER_EMAILS } from "../types";
 
@@ -616,21 +618,55 @@ export const handleVerifySession = (req: Request, res: Response) => {
 };
 
 /**
- * 10. Logout & Session Termination
- * POST /api/auth/logout
+ * 10. Logout & Session Termination (Banking & Enterprise Grade)
+ * POST /api/auth/logout & POST /api/v1/auth/logout
  */
-export const handleLogout = (req: Request, res: Response) => {
-  res.setHeader("Set-Cookie", [
-    "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
-    "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
-    "pdfsun_user_email=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax",
-  ]);
-  return res.json({
-    status: "ok",
-    success: true,
-    message: "Session token invalidated and cleared server-side.",
-    timestamp: new Date().toISOString(),
-  });
+export const handleLogout = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    const bodyToken = req.body?.token;
+    const cookieToken = (req as any).cookies?.pdfsun_user_session || (req as any).cookies?.pdfsun_admin_session;
+    const tokenToRevoke = bearerToken || bodyToken || cookieToken;
+
+    if (tokenToRevoke) {
+      revokeSessionToken(tokenToRevoke);
+    }
+
+    const provider = req.body?.provider || (req.headers["x-auth-provider"] as string);
+    const providerToken = req.body?.providerToken;
+    if (provider && providerToken) {
+      await revokeOAuthProviderToken(provider, providerToken);
+    }
+
+    // Set-Cookie clearing headers for all authentication cookies
+    res.setHeader("Set-Cookie", [
+      "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
+      "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
+      "pdfsun_user_email=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax",
+      "session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
+      "access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
+      "refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
+      "pdfsun_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax",
+    ]);
+
+    // Instruct browser to purge stored session data
+    res.setHeader("Clear-Site-Data", '"cache", "cookies", "storage"');
+
+    return res.json({
+      status: "ok",
+      success: true,
+      revoked: Boolean(tokenToRevoke),
+      message: "Session token invalidated and cleared server-side.",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      status: "error",
+      success: false,
+      error: err.message || "Failed to process logout revocation.",
+    });
+  }
 };
 
 /**

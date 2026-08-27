@@ -49,6 +49,12 @@ import {
   extractOrganizationFromDomain,
   SSOProviderType,
 } from "../utils/SSOHandler";
+import {
+  initGoogleIdentityServices,
+  initFacebookSdk,
+  triggerGoogleExplicitLogin,
+  triggerFacebookExplicitLogin,
+} from "../services/oauthService";
 
 export { getErrorMessage };
 
@@ -186,6 +192,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [ownerMfaCountdown, setOwnerMfaCountdown] = useState(0);
   const [ownerMfaOtpHint, setOwnerMfaOtpHint] = useState<string | null>(null);
 
+  // Initialize Google Identity Services (auto_select: false) & Facebook SDK
+  useEffect(() => {
+    initGoogleIdentityServices();
+    initFacebookSdk();
+  }, []);
+
   // Sync mode when initialMode or isOpen changes
   useEffect(() => {
     if (isOpen) {
@@ -311,7 +323,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Social Sign In Handler (Google, Facebook, SSO)
+  // Social Sign In Handler (Google, Facebook, SSO) with enforced explicit account selection & re-request
   const handleSocialSignIn = async (provider: "google" | "facebook" | "sso") => {
     setErrorMsg("");
     setSuccessMsg("");
@@ -321,15 +333,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       let email = "";
       let name = "";
       let avatar = "";
+      let providerToken: string | undefined = undefined;
 
       if (provider === "google") {
-        email = emailInput.trim().toLowerCase() || "user.google@pdfsun.in";
-        name = nameInput.trim() || "Google User";
-        avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80";
+        // Enforce prompt: "select_account" so the user always chooses an account
+        const googleAuth = await triggerGoogleExplicitLogin();
+        email = googleAuth.email;
+        name = googleAuth.name;
+        avatar = googleAuth.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80";
+        providerToken = googleAuth.providerToken;
       } else if (provider === "facebook") {
-        email = emailInput.trim().toLowerCase() || "user.facebook@pdfsun.in";
-        name = nameInput.trim() || "Facebook User";
-        avatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80";
+        // Enforce auth_type: "rerequest" to force interactive permission/login check
+        const fbAuth = await triggerFacebookExplicitLogin();
+        email = fbAuth.email;
+        name = fbAuth.name;
+        avatar = fbAuth.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80";
+        providerToken = fbAuth.providerToken;
       } else if (provider === "sso") {
         const ssoResult = await handleSSOLoginFlow({
           inputDomainOrEmail: ssoDomain,
@@ -372,12 +391,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
       const token = `jwt-social-${Date.now()}`;
       saveLocalStoredUser(profile, token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_provider", provider);
+        if (providerToken) {
+          localStorage.setItem("provider_access_token", providerToken);
+        }
+      }
 
-      // Optional background sync
+      // Sync with server session
       fetch("/api/v1/auth/social-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, email, name, avatar }),
+        body: JSON.stringify({ provider, email, name, avatar, providerToken }),
       }).catch(() => null);
 
       setSuccessMsg(`Signed in successfully with ${provider === "google" ? "Google" : "Facebook"}!`);

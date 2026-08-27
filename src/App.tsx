@@ -586,6 +586,9 @@ export default function App() {
   const handleLogout = useCallback(async () => {
     setAdminPanelOpen(false);
     setUserDashboardOpen(false);
+    setHistoryModalOpen(false);
+    setAuthModalOpen(false);
+    // Explicitly execute full session revocation, cookie clearance & provider token cleanup
     await rawLogout();
   }, [rawLogout]);
 

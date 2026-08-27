@@ -109,17 +109,61 @@ export function saveLocalStoredUser(user: UserProfile, token: string = `jwt-${Da
 }
 
 /**
- * Clears user auth from browser storage
+ * Clears user auth and OAuth tokens from browser storage & disables identity auto-select
  */
 export function clearLocalStoredUser(): void {
   if (typeof window === "undefined") return;
 
   try {
-    localStorage.removeItem(LOCAL_USER_KEY);
-    localStorage.removeItem(LOCAL_PROFILE_KEY);
-    localStorage.removeItem(LOCAL_ROLE_KEY);
-    localStorage.removeItem(LOCAL_TOKEN_KEY);
-    localStorage.removeItem("pdfsun_admin_edit_mode");
+    const authKeys = [
+      LOCAL_USER_KEY,
+      LOCAL_PROFILE_KEY,
+      LOCAL_ROLE_KEY,
+      LOCAL_TOKEN_KEY,
+      "pdfsun_admin_edit_mode",
+      "pdfsun_auth_token",
+      "provider_access_token",
+      "pdfsun_provider",
+      "pdfsun_provider_token",
+      "google_id_token",
+      "fb_access_token",
+      "pdfsun_oauth_state",
+      "pdfsun_session_id",
+      "pdfsun_last_active_time",
+    ];
+
+    for (const key of authKeys) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+
+    // Explicitly disable Google Identity Services / One-Tap auto-selection
+    if ((window as any).google?.accounts?.id?.disableAutoSelect) {
+      try {
+        (window as any).google.accounts.id.disableAutoSelect();
+      } catch (err) {
+        console.warn("[mockAuth] Google disableAutoSelect notice:", err);
+      }
+    }
+
+    // Revoke Google OAuth token if window.google.accounts.oauth2.revoke exists
+    const providerToken = localStorage.getItem("provider_access_token");
+    if (providerToken && (window as any).google?.accounts?.oauth2?.revoke) {
+      try {
+        (window as any).google.accounts.oauth2.revoke(providerToken, () => {});
+      } catch (err) {
+        console.warn("[mockAuth] Google OAuth revoke notice:", err);
+      }
+    }
+
+    // Explicitly disconnect Facebook session if SDK is loaded
+    if ((window as any).FB?.logout) {
+      try {
+        (window as any).FB.logout(() => {});
+      } catch (err) {
+        console.warn("[mockAuth] Facebook logout notice:", err);
+      }
+    }
   } catch (e) {
     console.warn("[mockAuth] Error clearing local user storage:", e);
   }

@@ -52,7 +52,7 @@ import {
   updatePasswordWithResetToken,
   getAccountLockoutStatus,
 } from "./src/server/authService";
-import { authRouter, handleVerifySession } from "./src/server/authRoutes";
+import { authRouter, handleVerifySession, handleLogout } from "./src/server/authRoutes";
 import {
   createSubscriptionInstance,
   verifySubscriptionSignature,
@@ -2210,23 +2210,10 @@ app.post("/api/admin/auth/login", async (req, res) => {
   });
 });
 
-// 5. Session Management & Inactivity Endpoints
-const handleLogout = (req: express.Request, res: express.Response) => {
-  res.setHeader("Set-Cookie", [
-    "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
-    "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
-    "pdfsun_user_email=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax",
-  ]);
-  res.json({
-    success: true,
-    status: "terminated",
-    message: "Session token invalidated and cleared server-side.",
-    timestamp: new Date().toISOString(),
-  });
-};
-
+// 5. Session Management & Inactivity Endpoints (Enterprise & Banking Grade Revocation)
 app.post("/api/v1/auth/logout", handleLogout);
 app.post("/api/auth/logout", handleLogout);
+app.all("/api/logout", handleLogout);
 
 // 6. Account Recovery: OTP Generation & Password Reset (Banking Grade)
 const handleForgotPasswordRequest = async (req: express.Request, res: express.Response) => {

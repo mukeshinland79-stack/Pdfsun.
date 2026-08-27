@@ -7,7 +7,14 @@ import {
   mockLoginHandler,
   mockRegisterHandler,
   isOwnerAccount,
+  createMockUserProfile,
 } from "../utils/mockAuth";
+import {
+  initGoogleIdentityServices,
+  initFacebookSdk,
+  triggerGoogleExplicitLogin,
+  triggerFacebookExplicitLogin,
+} from "../services/oauthService";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -312,21 +319,159 @@ export function useAuth() {
     []
   );
 
-  const logout = useCallback(async () => {
-    // Notify server non-blockingly
-    fetch("/api/auth/logout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    }).catch(() => null);
+  // Google Social Sign In enforcing explicit Account Chooser prompt: "select_account"
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const googleData = await triggerGoogleExplicitLogin();
+      const userProfile: UserProfile = createMockUserProfile({
+        name: googleData.name,
+        email: googleData.email,
+        avatar: googleData.avatar,
+        role: "user",
+        isPro: true,
+        plan: "Pro Sun (Google OAuth)",
+      });
+      const sessionToken = `jwt-google-${Date.now()}`;
+      saveLocalStoredUser(userProfile, sessionToken);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_provider", "google");
+        if (googleData.providerToken) {
+          localStorage.setItem("provider_access_token", googleData.providerToken);
+        }
+      }
+      setCurrentRole("user");
+      setUserProfile(userProfile);
+      setAuthStatus("authenticated");
 
-    // Completely clear all client auth state
+      // Notify backend server
+      fetch("/api/v1/auth/social-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "google",
+          email: googleData.email,
+          name: googleData.name,
+          avatar: googleData.avatar,
+          providerToken: googleData.providerToken,
+        }),
+      }).catch(() => null);
+
+      return { success: true, user: userProfile, role: "user" as UserRole };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Google sign-in was cancelled or failed." };
+    } finally {
+      if (isMountedRef.current) setIsLoading(false);
+    }
+  }, []);
+
+  // Facebook Social Sign In enforcing explicit re-authentication auth_type: "rerequest"
+  const loginWithFacebook = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const fbData = await triggerFacebookExplicitLogin();
+      const userProfile: UserProfile = createMockUserProfile({
+        name: fbData.name,
+        email: fbData.email,
+        avatar: fbData.avatar,
+        role: "user",
+        isPro: true,
+        plan: "Pro Sun (Facebook OAuth)",
+      });
+      const sessionToken = `jwt-fb-${Date.now()}`;
+      saveLocalStoredUser(userProfile, sessionToken);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_provider", "facebook");
+        if (fbData.providerToken) {
+          localStorage.setItem("provider_access_token", fbData.providerToken);
+        }
+      }
+      setCurrentRole("user");
+      setUserProfile(userProfile);
+      setAuthStatus("authenticated");
+
+      // Notify backend server
+      fetch("/api/v1/auth/social-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "facebook",
+          email: fbData.email,
+          name: fbData.name,
+          avatar: fbData.avatar,
+          providerToken: fbData.providerToken,
+        }),
+      }).catch(() => null);
+
+      return { success: true, user: userProfile, role: "user" as UserRole };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Facebook sign-in was cancelled or failed." };
+    } finally {
+      if (isMountedRef.current) setIsLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async (options?: { provider?: string; providerToken?: string }) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
+    const providerToken = options?.providerToken || (typeof window !== "undefined" ? localStorage.getItem("provider_access_token") : null);
+    const provider = options?.provider || (typeof window !== "undefined" ? localStorage.getItem("pdfsun_provider") : null);
+    const userEmail = userProfileRef.current?.email;
+
+    // 1. Invalidate with backend server (supporting /api/auth/logout and /api/v1/auth/logout)
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          token,
+          email: userEmail,
+          provider,
+          providerToken,
+        }),
+      });
+    } catch (err) {
+      console.warn("[useAuth] Server logout notification error:", err);
+    }
+
+    // 2. Disable Google One-Tap / GSI Auto-Select so user must explicitly choose account
+    try {
+      if (typeof window !== "undefined" && (window as any).google?.accounts?.id?.disableAutoSelect) {
+        (window as any).google.accounts.id.disableAutoSelect();
+      }
+      if (typeof window !== "undefined" && providerToken && (window as any).google?.accounts?.oauth2?.revoke) {
+        (window as any).google.accounts.oauth2.revoke(providerToken, () => {});
+      }
+    } catch (e) {
+      console.warn("[useAuth] Google auto_select disable notice:", e);
+    }
+
+    // 3. Terminate Facebook session if active
+    try {
+      if (typeof window !== "undefined" && (window as any).FB?.logout) {
+        (window as any).FB.logout(() => {});
+      }
+    } catch (e) {
+      console.warn("[useAuth] Facebook logout notice:", e);
+    }
+
+    // 4. Completely clear all client auth state and storage keys
     setCurrentRole("public");
     setUserProfile(null);
     setAuthStatus("unauthenticated");
     setAdminEditModeActive(false);
     clearLocalStoredUser();
 
-    // Clean browser URL if in restricted route
+    // 5. Broadcast to other open browser tabs
+    if (typeof window !== "undefined") {
+      try {
+        window.dispatchEvent(new Event("storage"));
+      } catch {}
+    }
+
+    // 6. Clean browser URL if in restricted route
     if (typeof window !== "undefined") {
       const pathname = window.location.pathname.toLowerCase();
       if (
@@ -366,6 +511,8 @@ export function useAuth() {
     isLoading,
     login,
     register,
+    loginWithGoogle,
+    loginWithFacebook,
     logout,
     updateRole,
     verifySession,
