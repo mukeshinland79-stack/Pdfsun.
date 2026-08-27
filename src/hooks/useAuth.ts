@@ -19,6 +19,110 @@ import {
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 /**
+ * Sanitizes authentication errors to protect internal system architecture,
+ * database details, provider tokens, or stack traces from reaching the UI,
+ * while returning clear, friendly, and actionable messages to the user.
+ */
+export function sanitizeAuthError(err: unknown, fallbackMessage = "Authentication failed. Please try again."): string {
+  if (!err) return fallbackMessage;
+
+  const rawMessage =
+    typeof err === "string"
+      ? err
+      : typeof (err as any)?.message === "string"
+      ? (err as any).message
+      : typeof (err as any)?.error === "string"
+      ? (err as any).error
+      : "";
+
+  const lower = rawMessage.toLowerCase();
+
+  // User cancellation or popup closure
+  if (
+    lower.includes("cancel") ||
+    lower.includes("closed") ||
+    lower.includes("dismissed") ||
+    lower.includes("popup_closed_by_user") ||
+    lower.includes("access_denied") ||
+    lower.includes("user declined")
+  ) {
+    return "Sign-in was cancelled. Please try again when ready.";
+  }
+
+  // Network / Connection issues
+  if (
+    lower.includes("network") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("connection") ||
+    lower.includes("timeout") ||
+    lower.includes("cors")
+  ) {
+    return "Unable to connect to authentication server. Please check your internet connection.";
+  }
+
+  // Invalid credentials or account issues
+  if (
+    lower.includes("invalid password") ||
+    lower.includes("wrong password") ||
+    lower.includes("password") && lower.includes("incorrect") ||
+    lower.includes("invalid credential") ||
+    lower.includes("user-not-found") ||
+    lower.includes("no account found")
+  ) {
+    return "Invalid email or password. Please verify your credentials.";
+  }
+
+  // Email format or missing input
+  if (lower.includes("valid email") || lower.includes("invalid email") || lower.includes("email is required")) {
+    return "Please provide a valid email address.";
+  }
+
+  // Password policy requirements
+  if (lower.includes("security requirements") || lower.includes("character") && lower.includes("password")) {
+    return rawMessage; // Safe policy guidance
+  }
+
+  // Account already exists
+  if (lower.includes("already registered") || lower.includes("email-already-in-use") || lower.includes("already exists")) {
+    return "An account with this email already exists. Please sign in instead.";
+  }
+
+  // Owner / Passkey authentication errors
+  if (lower.includes("passkey") || lower.includes("secret key") || lower.includes("owner key") || lower.includes("mfa")) {
+    return "Invalid owner access key or security passkey.";
+  }
+
+  // Provider SDK errors (Google / Facebook / OAuth)
+  if (lower.includes("google") || lower.includes("facebook") || lower.includes("oauth") || lower.includes("gsi") || lower.includes("token")) {
+    return "Unable to complete social sign-in. Please try again or use email sign-in.";
+  }
+
+  // Rate limiting / Throttling
+  if (lower.includes("too many requests") || lower.includes("rate limit") || lower.includes("throttle") || lower.includes("try again later")) {
+    return "Too many sign-in attempts. Please wait a few moments before trying again.";
+  }
+
+  // If raw message is clean and doesn't contain stack trace / DB / technical internal patterns, return it
+  const isSuspicious =
+    rawMessage.includes("Error:") ||
+    rawMessage.includes("TypeError") ||
+    rawMessage.includes("at ") ||
+    rawMessage.includes("SQL") ||
+    rawMessage.includes("jwt") ||
+    rawMessage.includes("undefined") ||
+    rawMessage.includes("null") ||
+    rawMessage.includes("http://") ||
+    rawMessage.includes("https://") ||
+    rawMessage.includes("{");
+
+  if (!isSuspicious && rawMessage.length > 3 && rawMessage.length < 120) {
+    return rawMessage;
+  }
+
+  return fallbackMessage;
+}
+
+/**
  * Pure helper function to verify if a user holds Admin / Owner privileges
  * Validates cryptographic email identity & server-signed claims.
  * STRICT: Returns false if user is unauthenticated, guest, or missing valid email.
@@ -289,7 +393,7 @@ export function useAuth() {
 
         return { success: true, user: result.user, role: result.role };
       } catch (err: any) {
-        return { success: false, error: err.message || "Login failed. Please try again." };
+        return { success: false, error: sanitizeAuthError(err, "Login failed. Please verify your credentials and try again.") };
       }
     },
     []
@@ -313,7 +417,7 @@ export function useAuth() {
 
         return { success: true, user: result.user, role: result.role };
       } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed. Please try again." };
+        return { success: false, error: sanitizeAuthError(err, "Registration failed. Please check your details and try again.") };
       }
     },
     []
@@ -359,7 +463,7 @@ export function useAuth() {
 
       return { success: true, user: userProfile, role: "user" as UserRole };
     } catch (err: any) {
-      return { success: false, error: err.message || "Google sign-in was cancelled or failed." };
+      return { success: false, error: sanitizeAuthError(err, "Google sign-in was cancelled or failed. Please try again.") };
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -405,7 +509,7 @@ export function useAuth() {
 
       return { success: true, user: userProfile, role: "user" as UserRole };
     } catch (err: any) {
-      return { success: false, error: err.message || "Facebook sign-in was cancelled or failed." };
+      return { success: false, error: sanitizeAuthError(err, "Facebook sign-in was cancelled or failed. Please try again.") };
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }

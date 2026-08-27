@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
+import { sanitizeAuthError } from "../hooks/useAuth";
 import {
   mockLoginHandler,
   mockRegisterHandler,
@@ -31,6 +32,11 @@ import {
   createMockUserProfile,
 } from "../utils/mockAuth";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import {
+  PasswordStrengthValidator,
+  validatePasswordStrength,
+  PasswordPolicyTooltip,
+} from "./common";
 import { PasswordResetWizard } from "./PasswordResetWizard";
 import { PDFSunLogoIcon } from "./PDFSunLogo";
 import {
@@ -264,6 +270,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    if (customerSubMode === "signup") {
+      const passwordValidation = validatePasswordStrength(passwordInput);
+      if (!passwordValidation.isValid) {
+        setErrorMsg("Password does not meet security requirements: " + passwordValidation.errors.join(", "));
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -317,7 +331,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }, 350);
     } catch (err: any) {
-      setErrorMsg(getErrorMessage(err));
+      setErrorMsg(sanitizeAuthError(err, "Authentication failed. Please verify your credentials."));
     } finally {
       setIsSubmitting(false);
     }
@@ -413,7 +427,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
       }, 350);
     } catch (err: any) {
-      setErrorMsg(getErrorMessage(err));
+      setErrorMsg(sanitizeAuthError(err, `${provider.toUpperCase()} sign-in was cancelled or failed. Please try again.`));
     } finally {
       setSocialLoading(null);
     }
@@ -459,7 +473,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       setSuccessMsg(`Multi-Factor Authentication initiated. 6-digit OTP code sent to registered Email and Phone.`);
     } catch (err: any) {
-      setErrorMsg(getErrorMessage(err));
+      setErrorMsg(sanitizeAuthError(err, "Failed to initiate Multi-Factor Authentication. Please verify your credentials."));
     } finally {
       setIsSubmitting(false);
     }
@@ -515,7 +529,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }, 350);
     } catch (err: any) {
-      setErrorMsg(getErrorMessage(err));
+      setErrorMsg(sanitizeAuthError(err, "Invalid MFA security code or verification expired. Please try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -837,9 +851,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Password
-                  </label>
+                  <div className="flex items-center space-x-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Password
+                    </label>
+                    <PasswordPolicyTooltip
+                      policyText="Minimum 8 characters, including a symbol and a number."
+                      tooltipId="auth-customer-password-policy-tooltip"
+                    />
+                  </div>
                   {customerSubMode === "signin" && (
                     <button
                       type="button"
@@ -872,11 +892,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {passwordInput && (
-                  <PasswordStrengthIndicator
+                {customerSubMode === "signup" ? (
+                  <PasswordStrengthValidator
                     password={passwordInput}
-                    showCriteria={customerSubMode === "signup"}
+                    minLength={8}
+                    requireNumber={true}
+                    requireSpecial={true}
+                    showRulesList={true}
+                    showStrengthBar={true}
                   />
+                ) : (
+                  passwordInput && (
+                    <PasswordStrengthValidator
+                      password={passwordInput}
+                      showRulesList={false}
+                      showStrengthBar={true}
+                    />
+                  )
                 )}
               </div>
 
@@ -1238,9 +1270,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                      Owner Password / Passkey
-                    </label>
+                    <div className="flex items-center space-x-1.5">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Owner Password / Passkey
+                      </label>
+                      <PasswordPolicyTooltip
+                        policyText="Owner security policy requires minimum 8 characters, numbers, and symbols for MFA access."
+                        tooltipId="auth-owner-password-policy-tooltip"
+                        iconClassName="text-amber-500 hover:text-amber-700 dark:text-amber-400"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => {

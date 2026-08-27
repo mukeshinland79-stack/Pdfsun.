@@ -16,7 +16,11 @@ import {
   Clock,
   Check,
 } from "lucide-react";
-import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import {
+  PasswordStrengthValidator,
+  validatePasswordStrength,
+  PasswordPolicyTooltip,
+} from "./common";
 import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { UserProfile, UserRole } from "../types";
 
@@ -554,9 +558,15 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       {currentStep === 4 && (
         <form onSubmit={handleSetNewPassword} className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-              New Password
-            </label>
+            <div className="flex items-center space-x-1.5 mb-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                New Password
+              </label>
+              <PasswordPolicyTooltip
+                policyText="Minimum 8 characters, including a symbol and a number."
+                tooltipId="reset-wizard-password-policy-tooltip"
+              />
+            </div>
             <div className="relative">
               <input
                 type={showNewPassword ? "text" : "password"}
@@ -576,7 +586,14 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
             </div>
             {newPassword && (
               <div className="mt-2">
-                <PasswordStrengthIndicator password={newPassword} />
+                <PasswordStrengthValidator
+                  password={newPassword}
+                  minLength={8}
+                  requireNumber={true}
+                  requireSpecial={true}
+                  showRulesList={true}
+                  showStrengthBar={true}
+                />
               </div>
             )}
           </div>
