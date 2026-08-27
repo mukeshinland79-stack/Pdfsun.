@@ -15,27 +15,39 @@ import {
   deleteDoc,
   Firestore
 } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 import firebaseConfigData from "../../firebase-applet-config.json";
+
+export const firebaseConfig = {
+  apiKey: firebaseConfigData.apiKey || "AIzaSyA7_lXBjejnJVhPAvjiV6I0KNLOMp1aIFU",
+  authDomain: firebaseConfigData.authDomain || "tangential-stratum-43bk6.firebaseapp.com",
+  projectId: firebaseConfigData.projectId || "tangential-stratum-43bk6",
+  storageBucket: firebaseConfigData.storageBucket || "tangential-stratum-43bk6.firebasestorage.app",
+  messagingSenderId: firebaseConfigData.messagingSenderId || "387001792487",
+  appId: firebaseConfigData.appId || "1:387001792487:web:6551ca469fae1b69706f42"
+};
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 
 export function getFirebaseApp(): FirebaseApp {
   if (!app) {
     if (getApps().length > 0) {
       app = getApp();
     } else {
-      app = initializeApp({
-        apiKey: firebaseConfigData.apiKey,
-        authDomain: firebaseConfigData.authDomain,
-        projectId: firebaseConfigData.projectId,
-        storageBucket: firebaseConfigData.storageBucket,
-        messagingSenderId: firebaseConfigData.messagingSenderId,
-        appId: firebaseConfigData.appId
-      });
+      app = initializeApp(firebaseConfig);
     }
   }
   return app;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (!auth) {
+    const firebaseApp = getFirebaseApp();
+    auth = getAuth(firebaseApp);
+  }
+  return auth;
 }
 
 export function getFirestoreDb(): Firestore {
