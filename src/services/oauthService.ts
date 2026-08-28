@@ -42,7 +42,7 @@ export interface OAuthUserPayload {
 
 const GOOGLE_CLIENT_ID =
   (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
-  "387001792487-dv3evm8lhg6te75ldq7f4sff039ec11d.apps.googleusercontent.com";
+  "";
 
 const FB_APP_ID =
   (import.meta as any).env?.VITE_FACEBOOK_APP_ID ||

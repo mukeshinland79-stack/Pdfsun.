@@ -19,12 +19,12 @@ import { getAuth, Auth } from "firebase/auth";
 import firebaseConfigData from "../../firebase-applet-config.json";
 
 export const firebaseConfig = {
-  apiKey: firebaseConfigData.apiKey || "AIzaSyA7_lXBjejnJVhPAvjiV6I0KNLOMp1aIFU",
-  authDomain: firebaseConfigData.authDomain || "tangential-stratum-43bk6.firebaseapp.com",
-  projectId: firebaseConfigData.projectId || "tangential-stratum-43bk6",
-  storageBucket: firebaseConfigData.storageBucket || "tangential-stratum-43bk6.firebasestorage.app",
-  messagingSenderId: firebaseConfigData.messagingSenderId || "387001792487",
-  appId: firebaseConfigData.appId || "1:387001792487:web:6551ca469fae1b69706f42"
+  apiKey: firebaseConfigData.apiKey || "AIzaSyAeO3-CIUwMOPKeJEpqSpAmj8jIh9jiUw4",
+  authDomain: firebaseConfigData.authDomain || "pdfsun-app.firebaseapp.com",
+  projectId: firebaseConfigData.projectId || "pdfsun-app",
+  storageBucket: firebaseConfigData.storageBucket || "pdfsun-app.firebasestorage.app",
+  messagingSenderId: firebaseConfigData.messagingSenderId || "125719086147",
+  appId: firebaseConfigData.appId || "1:125719086147:web:d1e5ed9cfbb065d36a80f6"
 };
 
 let app: FirebaseApp | null = null;
