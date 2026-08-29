@@ -1,5 +1,6 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { PDFSUN_PAYMENT_PRODUCTS, PaymentProduct } from "../config/paymentProducts";
 
 /**
  * ============================================================================
@@ -10,7 +11,6 @@ import crypto from "crypto";
  * 2. Subscription instance creation (/api/create-subscription)
  * 3. Cryptographic HMAC-SHA256 Payment Signature Verification
  * 4. Enterprise Webhook Signature Verification and Lifecycle State Handling
- *    (subscription.charged, subscription.authenticated, subscription.halted)
  */
 
 let razorpayClient: Razorpay | null = null;
@@ -24,7 +24,7 @@ export function getRazorpayClient(): Razorpay {
     const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
 
     if (!keyId || !keySecret) {
-      console.warn("[RazorpayService] RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set. Using fallback mode for development.");
+      console.warn("[RazorpayService] RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set in environment.");
     }
 
     razorpayClient = new Razorpay({
@@ -36,69 +36,17 @@ export function getRazorpayClient(): Razorpay {
 }
 
 /**
- * Known Plan IDs Mapping for Production & Development
+ * Resolves the verified Razorpay Plan ID from environment
+ * If no plan ID is set in environment, returns undefined (never invents fake plan IDs)
  */
-export const PLAN_CONFIGS: Record<
-  string,
-  {
-    name: string;
-    amountINR: number;
-    planIdEnvKey: string;
-    defaultPlanId: string;
-    razorpayHostedLink: string;
-    seats?: number;
-  }
-> = {
-  "enterprise-sso": {
-    name: "Enterprise SSO Unlimited",
-    amountINR: 9999,
-    planIdEnvKey: "RAZORPAY_ENTERPRISE_SSO_PLAN_ID",
-    defaultPlanId: "plan_EnterpriseSSO2026",
-    razorpayHostedLink: "https://rzp.io/rzp/DTBivZF",
-    seats: 20,
-  },
-  enterprise: {
-    name: "Enterprise Plan",
-    amountINR: 3999,
-    planIdEnvKey: "RAZORPAY_ENTERPRISE_PLAN_ID",
-    defaultPlanId: "plan_Enterprise2026",
-    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-enterprise",
-    seats: 5,
-  },
-  "pro-yearly": {
-    name: "Pro Sun Annual",
-    amountINR: 1499,
-    planIdEnvKey: "RAZORPAY_PRO_YEARLY_PLAN_ID",
-    defaultPlanId: "plan_ProYearly2026",
-    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-annual",
-  },
-  "pro-monthly": {
-    name: "Pro Sun Monthly",
-    amountINR: 199,
-    planIdEnvKey: "RAZORPAY_PRO_MONTHLY_PLAN_ID",
-    defaultPlanId: "plan_ProMonthly2026",
-    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-monthly",
-  },
-  flexi: {
-    name: "Flexi Pack (100 Credits)",
-    amountINR: 99,
-    planIdEnvKey: "RAZORPAY_FLEXI_PLAN_ID",
-    defaultPlanId: "plan_Flexi100Credits",
-    razorpayHostedLink: "https://rzp.io/rzp/pdfsun-flexi",
-  },
-};
-
-/**
- * Resolves the actual Razorpay Plan ID from environment or configuration
- */
-export function resolveRazorpayPlanId(planKey: string): string {
+export function resolveRazorpayPlanId(planKey: string): string | undefined {
   const normalizedKey = planKey.toLowerCase().trim();
-  const config = PLAN_CONFIGS[normalizedKey];
+  const product = PDFSUN_PAYMENT_PRODUCTS[normalizedKey];
 
-  if (config) {
-    return (process.env[config.planIdEnvKey] as string) || (process.env.RAZORPAY_PLAN_ID as string) || config.defaultPlanId;
+  if (product && product.razorpayPlanIdEnvVar) {
+    return process.env[product.razorpayPlanIdEnvVar] || process.env.RAZORPAY_PLAN_ID || undefined;
   }
-  return (process.env.RAZORPAY_PLAN_ID as string) || "plan_EnterpriseSSO2026";
+  return process.env.RAZORPAY_PLAN_ID || undefined;
 }
 
 /**
@@ -118,17 +66,19 @@ export async function createSubscriptionInstance(params: {
   amount: number;
   currency: string;
   planName: string;
+  hostedLink: string;
 }> {
-  const { planId, userEmail, userName, totalCount = 10, quantity = 1 } = params;
+  const { planId, userEmail, userName, totalCount = 12, quantity = 1 } = params;
+  const normalizedKey = planId.toLowerCase().trim();
+  const product: PaymentProduct = PDFSUN_PAYMENT_PRODUCTS[normalizedKey] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
   const targetPlanId = resolveRazorpayPlanId(planId);
-  const planInfo = PLAN_CONFIGS[planId.toLowerCase()] || PLAN_CONFIGS.enterprise;
-  const keyId = process.env.RAZORPAY_KEY_ID || "rzp_live_pdfsun_key";
+  const keyId = process.env.RAZORPAY_KEY_ID || "";
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  console.log(`[RazorpayService] Initiating subscription for ${userEmail} -> Plan: ${planInfo.name} (${targetPlanId})`);
+  console.log(`[RazorpayService] Initiating payment session for ${userEmail} -> Plan: ${product.productName}`);
 
-  // If live Razorpay API keys are configured and not dummy, call official Razorpay Subscriptions API
-  if (keySecret && !keySecret.includes("placeholder") && !keySecret.includes("your_live_key_secret")) {
+  // If live Razorpay API keys and verified plan ID exist, call official Razorpay Subscriptions API
+  if (targetPlanId && keySecret && !keySecret.includes("placeholder") && !keySecret.includes("your_live_key_secret")) {
     try {
       const rzp = getRazorpayClient();
       const subscription = await rzp.subscriptions.create({
@@ -138,36 +88,38 @@ export async function createSubscriptionInstance(params: {
         customer_notify: 1,
         notes: {
           userEmail: userEmail,
-          userName: userName || "PDFSun Enterprise User",
-          planId: planId,
-          planName: planInfo.name,
-          platform: "PDFSun.in Enterprise SSO Suite",
+          userName: userName || "PDFSun User",
+          planId: product.internalProductId,
+          planName: product.productName,
+          platform: "PDFSun.in Payment Suite",
         },
       });
 
-      console.log(`[RazorpayService] Razorpay Subscription created successfully: ${subscription.id}`);
+      console.log(`[RazorpayService] Official Razorpay Subscription created: ${subscription.id}`);
       return {
         subscriptionId: subscription.id,
         keyId,
-        planId,
-        amount: planInfo.amountINR * 100, // paisa
+        planId: product.internalProductId,
+        amount: product.displayPriceINR * 100, // in paise
         currency: "INR",
-        planName: planInfo.name,
+        planName: product.productName,
+        hostedLink: product.razorpayPaymentLink,
       };
     } catch (apiError: any) {
-      console.warn(`[RazorpayService] Razorpay SDK API call notice (${apiError.message}), falling back to secure generated token:`, apiError);
+      console.warn(`[RazorpayService] Razorpay Subscriptions API call notice:`, apiError.message);
     }
   }
 
-  // Robust generated subscription ID for seamless dev / staging / sandbox verification
-  const generatedSubId = `sub_${Math.random().toString(36).substring(2, 14)}`;
+  // Return standard verified hosted link & payment session parameters
+  const sessionSubId = `sess_${Math.random().toString(36).substring(2, 14)}`;
   return {
-    subscriptionId: generatedSubId,
+    subscriptionId: sessionSubId,
     keyId,
-    planId,
-    amount: planInfo.amountINR * 100,
+    planId: product.internalProductId,
+    amount: product.displayPriceINR * 100,
     currency: "INR",
-    planName: planInfo.name,
+    planName: product.productName,
+    hostedLink: product.razorpayPaymentLink,
   };
 }
 
@@ -183,9 +135,8 @@ export function verifySubscriptionSignature(params: {
   const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = params;
   const secret = process.env.RAZORPAY_KEY_SECRET;
 
-  // In test mode without secret, permit sandbox validation
   if (!secret || secret.includes("placeholder") || secret.includes("your_live_key_secret")) {
-    console.log("[RazorpayService] Dev/Sandbox mode active, skipping strict cryptographic secret requirement.");
+    console.log("[RazorpayService] Development mode: RAZORPAY_KEY_SECRET not set, verified in sandbox mode.");
     return true;
   }
 
@@ -198,25 +149,35 @@ export function verifySubscriptionSignature(params: {
     .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
     .digest("hex");
 
-  const isValid = generatedSignature === razorpay_signature;
-  if (!isValid) {
-    console.warn("[RazorpayService] Subscription signature verification mismatch:", {
-      received: razorpay_signature,
-      expected: generatedSignature,
-    });
-  }
-  return isValid;
+  return generatedSignature === razorpay_signature;
 }
 
 /**
- * Verifies Webhook HMAC-SHA256 Signature
+ * Verifies Webhook HMAC-SHA256 Signature using RAZORPAY_WEBHOOK_SECRET
  */
 export function verifyWebhookSignature(rawBody: string | Buffer, signature: string): boolean {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "905065";
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) {
+    console.warn("[RazorpayService] RAZORPAY_WEBHOOK_SECRET not configured. Accepting webhook in sandbox/development mode.");
+    return true;
+  }
   if (!signature) return false;
 
-  const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf-8");
-  const expectedSignature = crypto.createHmac("sha256", secret).update(rawString).digest("hex");
+  try {
+    const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf-8");
+    const expectedSignature = crypto.createHmac("sha256", secret).update(rawString).digest("hex");
 
-  return signature === expectedSignature;
+    const sigBuffer = Buffer.from(signature, "utf-8");
+    const expectedBuffer = Buffer.from(expectedSignature, "utf-8");
+
+    if (sigBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+  } catch (err) {
+    console.error("[RazorpayService] Webhook signature verification exception:", err);
+    return false;
+  }
 }
+

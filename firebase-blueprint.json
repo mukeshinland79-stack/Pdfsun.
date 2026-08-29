@@ -42,6 +42,143 @@
         "userEmail": { "type": "string", "description": "User email address" }
       },
       "required": ["toolId", "rating", "comment", "timestamp"]
+    },
+    "payments": {
+      "title": "Verified Razorpay Payments",
+      "description": "Verified payments reconciled from Razorpay webhooks and checkout instances.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "description": "Razorpay Payment ID" },
+        "orderId": { "type": "string", "description": "Razorpay Order ID" },
+        "subscriptionId": { "type": "string", "description": "Razorpay Subscription ID" },
+        "userEmail": { "type": "string", "description": "User account email" },
+        "amountPaise": { "type": "number", "description": "Amount in Paise" },
+        "amountINR": { "type": "number", "description": "Amount in INR" },
+        "currency": { "type": "string", "description": "Payment currency (INR)" },
+        "status": { "type": "string", "description": "Payment status (COMPLETED, REFUNDED)" },
+        "planId": { "type": "string", "description": "Purchased Plan Identifier" },
+        "planName": { "type": "string", "description": "Plan Name" },
+        "signatureVerified": { "type": "boolean", "description": "Whether webhook HMAC signature was verified" },
+        "reconciledAt": { "type": "string", "format": "date-time", "description": "Reconciliation timestamp" }
+      },
+      "required": ["paymentId", "userEmail", "amountPaise", "currency", "status", "planId", "reconciledAt"]
+    },
+    "user_subscriptions": {
+      "title": "User Subscriptions",
+      "description": "Active subscriptions and entitlements.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User email or UID" },
+        "planId": { "type": "string", "description": "Active plan ID" },
+        "planName": { "type": "string", "description": "Active plan name" },
+        "status": { "type": "string", "description": "Subscription status: active, expired, cancelled" },
+        "activatedAt": { "type": "string", "format": "date-time", "description": "Activation timestamp" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Expiry timestamp" },
+        "paymentId": { "type": "string", "description": "Last verified payment ID" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["userId", "planId", "status", "activatedAt", "expiresAt"]
+    },
+    "user_credits": {
+      "title": "User Credits",
+      "description": "Credit balance for one-time flexi packs and tool usage.",
+      "type": "object",
+      "properties": {
+        "userEmail": { "type": "string", "description": "User email address" },
+        "balance": { "type": "number", "description": "Available credits" },
+        "lifetimeGranted": { "type": "number", "description": "Total credits ever purchased" },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["userEmail", "balance", "lastUpdated"]
+    },
+    "payment_reconciliations": {
+      "title": "Payment Reconciliation Audit Logs",
+      "description": "Audit trail of verified payment reconciliation events.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Reconciliation audit ID" },
+        "paymentId": { "type": "string", "description": "Payment ID" },
+        "userEmail": { "type": "string", "description": "User email" },
+        "eventType": { "type": "string", "description": "Razorpay event type" },
+        "verifiedAmountINR": { "type": "number", "description": "Verified amount in INR" },
+        "entitlementGranted": { "type": "string", "description": "Granted entitlement (SUBSCRIPTION / CREDITS)" },
+        "reconciledAt": { "type": "string", "format": "date-time", "description": "Reconciliation timestamp" }
+      },
+      "required": ["id", "paymentId", "userEmail", "verifiedAmountINR", "reconciledAt"]
+    },
+    "orders": {
+      "title": "Internal Payment Orders",
+      "description": "Internal order records created before payment checkout.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique Order ID" },
+        "userEmail": { "type": "string", "description": "User email address" },
+        "planId": { "type": "string", "description": "Product plan ID" },
+        "amountPaise": { "type": "number", "description": "Expected amount in paise" },
+        "amountINR": { "type": "number", "description": "Expected amount in INR" },
+        "currency": { "type": "string", "description": "Order currency" },
+        "status": { "type": "string", "description": "Order status (created, paid, failed)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Order creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Order update timestamp" }
+      },
+      "required": ["orderId", "userEmail", "planId", "amountPaise", "currency", "status", "createdAt"]
+    },
+    "transactions": {
+      "title": "Payment Transactions",
+      "description": "Idempotent financial transactions record keyed by payment ID.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "description": "Razorpay Payment ID" },
+        "orderId": { "type": "string", "description": "Razorpay Order ID" },
+        "userEmail": { "type": "string", "description": "User email" },
+        "amount": { "type": "number", "description": "Amount in INR" },
+        "amountPaise": { "type": "number", "description": "Amount in Paise" },
+        "currency": { "type": "string", "description": "Currency code" },
+        "status": { "type": "string", "description": "Transaction status: captured, completed, refunded" },
+        "planId": { "type": "string", "description": "Plan identifier" },
+        "planName": { "type": "string", "description": "Plan name" },
+        "entitlementGranted": { "type": "string", "description": "Entitlement status description" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["paymentId", "userEmail", "amountPaise", "status", "planId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/feedback_comments/{commentId}": {
+      "schema": "feedback_comments",
+      "description": "User reviews and ratings"
+    },
+    "/quick_feedback/{toolId}": {
+      "schema": "quick_feedback",
+      "description": "Aggregated tool votes"
+    },
+    "/tool_feedback/{feedbackId}": {
+      "schema": "tool_feedback",
+      "description": "Tool feedback logs"
+    },
+    "/payments/{paymentId}": {
+      "schema": "payments",
+      "description": "Verified payments store"
+    },
+    "/transactions/{paymentId}": {
+      "schema": "transactions",
+      "description": "Idempotent payment transactions store"
+    },
+    "/user_subscriptions/{userId}": {
+      "schema": "user_subscriptions",
+      "description": "Active user subscription records"
+    },
+    "/user_credits/{userEmail}": {
+      "schema": "user_credits",
+      "description": "User credit balances"
+    },
+    "/payment_reconciliations/{reconciliationId}": {
+      "schema": "payment_reconciliations",
+      "description": "Reconciliation audit records"
+    },
+    "/orders/{orderId}": {
+      "schema": "orders",
+      "description": "Internal payment order records"
     }
   }
 }

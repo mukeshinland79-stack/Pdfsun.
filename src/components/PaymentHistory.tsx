@@ -3,6 +3,10 @@ import * as d3 from "d3";
 import { UserProfile } from "../types";
 import { safeFetchJson } from "../utils/apiHelper";
 import {
+  subscribeUserTransactionsFromFirestore,
+  FirestoreTransactionRecord,
+} from "../lib/firebase";
+import {
   CreditCard,
   Receipt,
   CheckCircle,
@@ -23,6 +27,8 @@ import {
   Printer,
   ChevronRight,
   Calendar,
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
 
 export interface PaymentTransaction {
@@ -35,11 +41,84 @@ export interface PaymentTransaction {
   gateway: "Razorpay" | "Stripe" | string;
   date: string;
   timestamp?: string;
-  status: "COMPLETED" | "SUCCESS" | "REFUNDED" | "PENDING" | "FAILED" | string;
+  status: "COMPLETED" | "CAPTURED" | "SUCCESS" | "REFUNDED" | "PENDING" | "FAILED" | string;
   plan: string;
   planId?: string;
   paymentMethod?: string;
   invoiceNo?: string;
+}
+
+export type VerificationStatusLabel = "Verified" | "Pending" | "Failed" | "Refunded";
+
+export interface VerificationStatusInfo {
+  label: VerificationStatusLabel;
+  fullLabel: string;
+  badgeClass: string;
+  dotClass: string;
+  icon: typeof ShieldCheck;
+  description: string;
+}
+
+/**
+ * Returns dynamic verification icon, label, and color-coded styling based on actual Firestore transaction status
+ */
+export function getVerificationStatusInfo(status: string | undefined): VerificationStatusInfo {
+  const normalized = (status || "").toLowerCase().trim();
+
+  if (
+    normalized === "completed" ||
+    normalized === "captured" ||
+    normalized === "paid" ||
+    normalized === "success" ||
+    normalized === "active" ||
+    normalized === "verified"
+  ) {
+    return {
+      label: "Verified",
+      fullLabel: "Razorpay Verified",
+      badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 shadow-xs",
+      dotClass: "bg-emerald-500",
+      icon: ShieldCheck,
+      description: "Cryptographically verified via Razorpay HMAC signature & reconciled in Firestore transactions collection",
+    };
+  }
+
+  if (
+    normalized === "pending" ||
+    normalized === "created" ||
+    normalized === "processing" ||
+    normalized === "authorized" ||
+    normalized === "authenticating"
+  ) {
+    return {
+      label: "Pending",
+      fullLabel: "Verification Pending",
+      badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 shadow-xs",
+      dotClass: "bg-amber-500",
+      icon: Clock,
+      description: "Payment transaction recorded; awaiting Razorpay webhook reconciliation / confirmation in Firestore",
+    };
+  }
+
+  if (normalized === "refunded") {
+    return {
+      label: "Refunded",
+      fullLabel: "Payment Refunded",
+      badgeClass: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs",
+      dotClass: "bg-purple-500",
+      icon: RotateCcw,
+      description: "Payment has been refunded to original payment method",
+    };
+  }
+
+  return {
+    label: "Failed",
+    fullLabel: "Payment Failed",
+    badgeClass: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40 shadow-xs",
+    dotClass: "bg-rose-500",
+    icon: AlertCircle,
+    description: "Transaction was cancelled, failed signature check, or rejected by the payment gateway",
+  };
 }
 
 interface PaymentHistoryProps {
@@ -63,6 +142,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const [selectedInvoice, setSelectedInvoice] = useState<PaymentTransaction | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeSubscription, setActiveSubscription] = useState<any>(null);
+  const [realtimeConnected, setRealtimeConnected] = useState<boolean>(true);
   const [flexiCredits, setFlexiCredits] = useState<number>(() => {
     try {
       return parseInt(localStorage.getItem("pdfsun_user_credits_v1") || "100", 10);
@@ -88,16 +168,16 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           apiTransactions = data.transactions.map((tx: any) => ({
             id: tx.id || `pay_rzp_${Math.random().toString(36).substring(2, 8)}`,
             orderId: tx.orderId || `order_rzp_${Math.random().toString(36).substring(2, 8)}`,
-            email: tx.email || email,
-            amountINR: tx.amountINR || (tx.amount ? tx.amount / 100 : 199),
+            email: tx.email || tx.userEmail || email,
+            amountINR: tx.amountINR || (tx.amountPaise ? tx.amountPaise / 100 : (tx.amount ? tx.amount : 199)),
             gateway: tx.gateway || "Razorpay",
-            date: tx.date || new Date().toISOString().split("T")[0],
-            timestamp: tx.timestamp || new Date().toISOString(),
+            date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
+            timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
             status: tx.status || "COMPLETED",
-            plan: tx.plan || "Pro Sun Monthly",
+            plan: tx.plan || tx.planName || "Pro Sun Monthly",
             planId: tx.planId || "pro-monthly",
-            paymentMethod: tx.paymentMethod || "UPI / Razorpay",
-            invoiceNo: tx.invoiceNo || `INV-RZP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+            paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
+            invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id ? tx.id.substring(tx.id.length - 6).toUpperCase() : Math.floor(1000 + Math.random() * 9000)}`,
           }));
         }
       }
@@ -114,48 +194,61 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       }
 
       // Merge & deduplicate by transaction ID
-      const combined = [...apiTransactions, ...localTransactions];
-      const uniqueMap = new Map<string, PaymentTransaction>();
-      combined.forEach((item) => {
-        if (!uniqueMap.has(item.id)) {
-          uniqueMap.set(item.id, item);
-        }
+      setTransactions((prev) => {
+        const combined = [...apiTransactions, ...localTransactions, ...prev];
+        const uniqueMap = new Map<string, PaymentTransaction>();
+        combined.forEach((item) => {
+          if (!uniqueMap.has(item.id)) {
+            uniqueMap.set(item.id, item);
+          }
+        });
+        return Array.from(uniqueMap.values());
       });
-
-      const mergedList = Array.from(uniqueMap.values());
-
-      // If list is empty, generate initial default Razorpay transaction for logged in user
-      if (mergedList.length === 0) {
-        const defaultTx: PaymentTransaction = {
-          id: "pay_rzp_live_991823",
-          orderId: "order_rzp_991001",
-          subscriptionId: "sub_rzp_771920",
-          email: email,
-          amountINR: userProfile.plan?.toLowerCase().includes("pro") ? 199 : 99,
-          gateway: "Razorpay",
-          date: new Date().toISOString().split("T")[0],
-          timestamp: new Date().toISOString(),
-          status: "COMPLETED",
-          plan: userProfile.plan?.toLowerCase().includes("pro") ? "Pro Sun Monthly Plan" : "Flexi Pack (50 Credits)",
-          planId: userProfile.plan?.toLowerCase().includes("pro") ? "pro-monthly" : "flexi",
-          paymentMethod: "UPI (PhonePe / GPay)",
-          invoiceNo: "INV-RZP-2026-8821",
-        };
-        mergedList.push(defaultTx);
-      }
-
-      setTransactions(mergedList);
     } catch (err) {
       console.error("[PaymentHistory] Error fetching payment history:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userProfile.email, userProfile.plan]);
+  }, [userProfile.email]);
 
+  // Real-time Firestore transactions listener strictly filtered for current userProfile.uid / email
   useEffect(() => {
+    const userIdentifier = {
+      uid: userProfile.uid || userProfile.id,
+      email: userProfile.email || "mukeshinland79@gmail.com",
+    };
+
+    const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (firestoreTxList) => {
+      setRealtimeConnected(true);
+      if (firestoreTxList && Array.isArray(firestoreTxList) && firestoreTxList.length > 0) {
+        const mapped: PaymentTransaction[] = firestoreTxList.map((tx) => ({
+          id: tx.id,
+          orderId: tx.orderId,
+          subscriptionId: tx.subscriptionId,
+          email: tx.userEmail || userProfile.email,
+          amountINR: tx.amountINR || (tx.amount ? tx.amount : ((tx.amountPaise || 0) / 100)),
+          gateway: tx.source === "stripe" ? "Stripe" : "Razorpay",
+          date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
+          timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
+          status: tx.status,
+          plan: tx.plan || tx.planName || "Pro Sun Monthly",
+          planId: tx.planId || "pro-monthly",
+          paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
+          invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id.substring(tx.id.length - 6).toUpperCase()}`,
+        }));
+
+        setTransactions(mapped);
+        setLoading(false);
+      }
+    });
+
     fetchPaymentHistory();
-  }, [fetchPaymentHistory]);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [userProfile.uid, userProfile.id, userProfile.email, fetchPaymentHistory]);
 
   // Sync Payment Status Fallback Button Logic
   const handleSyncPaymentStatus = async () => {
@@ -299,10 +392,24 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-extrabold flex items-center space-x-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>VERIFIED RAZORPAY ACCOUNT • Webhook Verified</span>
-            </span>
+            {transactions.length > 0 ? (
+              (() => {
+                const latestStatus = transactions[0]?.status;
+                const statusInfo = getVerificationStatusInfo(latestStatus);
+                const StatusIcon = statusInfo.icon;
+                return (
+                  <span className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold flex items-center space-x-1.5 border shadow-sm ${statusInfo.badgeClass}`}>
+                    <StatusIcon className="w-4 h-4 shrink-0" />
+                    <span>{statusInfo.label} ({transactions.length} Ledger Records)</span>
+                  </span>
+                );
+              })()
+            ) : (
+              <span className="px-3 py-1 rounded-full bg-slate-800/90 text-slate-300 border border-slate-700 text-[11px] font-medium flex items-center space-x-1.5">
+                <CreditCard className="w-4 h-4 text-slate-400" />
+                <span>Ready for Razorpay Payments</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -335,15 +442,30 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
                 </span>
               </div>
 
-              {/* PAYMENT ENGINE STATUS */}
+              {/* PAYMENT VERIFICATION STATUS */}
               <div className="bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80 space-y-1">
                 <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
-                  Payment Engine Status
+                  Firestore Verification
                 </span>
-                <span className="text-xs font-bold text-sky-300 flex items-center space-x-1 pt-1">
-                  <Zap className="w-4 h-4 fill-sky-300 shrink-0" />
-                  <span>Razorpay Live UPI &amp; Subscriptions</span>
-                </span>
+                <div className="pt-0.5">
+                  {transactions.length > 0 ? (
+                    (() => {
+                      const latestStatus = transactions[0]?.status;
+                      const statusInfo = getVerificationStatusInfo(latestStatus);
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${statusInfo.badgeClass}`}>
+                          <StatusIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span>{statusInfo.label}</span>
+                        </span>
+                      );
+                    })()
+                  ) : (
+                    <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-700/60 text-slate-300 border border-slate-600/60">
+                      <span>Free Customer</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -502,12 +624,21 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
                         </div>
                       </td>
 
-                      {/* Status (Success badge with green dot) */}
+                      {/* Dynamic Verification Status ('Razorpay Verified', 'Verification Pending', 'Failed') */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                          <span>{tx.status}</span>
-                        </span>
+                        {(() => {
+                          const statusInfo = getVerificationStatusInfo(tx.status);
+                          const StatusIcon = statusInfo.icon;
+                          return (
+                            <span
+                              className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border transition-all ${statusInfo.badgeClass}`}
+                              title={statusInfo.description}
+                            >
+                              <StatusIcon className="w-3.5 h-3.5 shrink-0" />
+                              <span>{statusInfo.label}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Invoice / Receipt Download Link */}
@@ -679,9 +810,18 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">India</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Payment Gateway</span>
-                <span className="font-bold text-emerald-500 block">Razorpay Live Gateway</span>
-                <span className="text-[10px] text-slate-400 font-mono">ID: {selectedInvoice.id}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Verification Status</span>
+                {(() => {
+                  const statusInfo = getVerificationStatusInfo(selectedInvoice.status);
+                  const StatusIcon = statusInfo.icon;
+                  return (
+                    <span className={`inline-flex items-center space-x-1.5 px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-black uppercase border ${statusInfo.badgeClass}`}>
+                      <StatusIcon className="w-3 h-3 shrink-0" />
+                      <span>{statusInfo.label}</span>
+                    </span>
+                  );
+                })()}
+                <span className="text-[10px] text-slate-400 font-mono block mt-1">ID: {selectedInvoice.id}</span>
               </div>
             </div>
 

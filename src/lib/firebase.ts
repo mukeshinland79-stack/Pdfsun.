@@ -13,6 +13,8 @@ import {
   updateDoc,
   increment,
   deleteDoc,
+  onSnapshot,
+  Unsubscribe,
   Firestore
 } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
@@ -233,6 +235,197 @@ export async function approveToolFeedbackInFirestore(id: string): Promise<boolea
     return false;
   }
 }
+
+/**
+ * Delete a tool feedback document from Firestore
+ */
+export interface FirestoreTransactionRecord {
+  id: string;
+  paymentId?: string;
+  orderId?: string;
+  subscriptionId?: string;
+  userId?: string;
+  uid?: string;
+  userEmail: string;
+  amount?: number;
+  amountINR?: number;
+  amountPaise?: number;
+  currency?: string;
+  status: string; // e.g. "COMPLETED", "CAPTURED", "captured", "paid", "PENDING", "pending", "FAILED", "failed"
+  planId?: string;
+  planName?: string;
+  plan?: string;
+  entitlementGranted?: string;
+  signatureVerified?: boolean;
+  source?: string;
+  paymentMethod?: string;
+  invoiceNo?: string;
+  reconciledAt?: string;
+  createdAt?: string;
+  timestamp?: string;
+  date?: string;
+}
+
+export type UserTransactionQueryParam =
+  | string
+  | { uid?: string; id?: string; email?: string };
+
+/**
+ * Helper to normalize and extract uid/email from parameter
+ */
+function resolveUserIdentities(param: UserTransactionQueryParam): {
+  uid: string;
+  email: string;
+} {
+  if (typeof param === "string") {
+    const trimmed = param.trim();
+    if (trimmed.includes("@")) {
+      return { uid: "", email: trimmed.toLowerCase() };
+    }
+    return { uid: trimmed, email: "" };
+  }
+  const uid = (param.uid || param.id || "").trim();
+  const email = (param.email || "").trim().toLowerCase();
+  return { uid, email };
+}
+
+/**
+ * Fetch transactions for a user from Firestore transactions collection, matching uid or email
+ */
+export async function fetchUserTransactionsFromFirestore(
+  userParam: UserTransactionQueryParam
+): Promise<FirestoreTransactionRecord[]> {
+  try {
+    const { uid, email } = resolveUserIdentities(userParam);
+    if (!uid && !email) return [];
+
+    const firestore = getFirestoreDb();
+    const colRef = collection(firestore, "transactions");
+
+    // Fetch snapshot
+    const snap = await getDocs(colRef);
+    const results: FirestoreTransactionRecord[] = [];
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const docUid = (data.userId || data.uid || "").trim();
+      const docEmail = (data.userEmail || "").trim().toLowerCase();
+
+      // Ensure transaction strictly belongs to current user uid or email
+      const matchesUid = uid && docUid && docUid === uid;
+      const matchesEmail = email && docEmail && docEmail === email;
+      const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
+
+      if (matchesUid || matchesEmail || matchesFallback) {
+        results.push({
+          id: docSnap.id,
+          paymentId: data.paymentId || docSnap.id,
+          orderId: data.orderId || "",
+          subscriptionId: data.subscriptionId || "",
+          userId: docUid || uid,
+          uid: docUid || uid,
+          userEmail: docEmail || email,
+          amount: typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100)),
+          amountINR: typeof data.amountINR === "number" ? data.amountINR : (typeof data.amount === "number" ? data.amount : ((data.amountPaise || 0) / 100)),
+          amountPaise: data.amountPaise || (data.amountINR ? data.amountINR * 100 : 0),
+          currency: data.currency || "INR",
+          status: (data.status || "COMPLETED").toString(),
+          planId: data.planId || "pro-monthly",
+          planName: data.planName || data.plan || "Pro Monthly",
+          plan: data.plan || data.planName || "Pro Monthly",
+          entitlementGranted: data.entitlementGranted || "",
+          signatureVerified: Boolean(data.signatureVerified),
+          source: data.source || "razorpay",
+          paymentMethod: data.paymentMethod || "Razorpay Live Gateway",
+          invoiceNo: data.invoiceNo || `INV-RZP-${docSnap.id.substring(docSnap.id.length - 6).toUpperCase()}`,
+          reconciledAt: data.reconciledAt || data.createdAt || new Date().toISOString(),
+          createdAt: data.createdAt || data.reconciledAt || new Date().toISOString(),
+          timestamp: data.createdAt || data.reconciledAt || new Date().toISOString(),
+          date: data.createdAt ? data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+        });
+      }
+    });
+
+    return results.sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  } catch (err) {
+    console.error("[Firestore] Error fetching transactions:", err);
+    return [];
+  }
+}
+
+/**
+ * Real-time listener for user transactions in Firestore transactions collection
+ * filtered strictly to transactions belonging to the current user's uid / email.
+ */
+export function subscribeUserTransactionsFromFirestore(
+  userParam: UserTransactionQueryParam,
+  onUpdate: (transactions: FirestoreTransactionRecord[]) => void
+): Unsubscribe {
+  const { uid, email } = resolveUserIdentities(userParam);
+  if (!uid && !email) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  const firestore = getFirestoreDb();
+  const colRef = collection(firestore, "transactions");
+
+  return onSnapshot(
+    colRef,
+    (snap) => {
+      const results: FirestoreTransactionRecord[] = [];
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const docUid = (data.userId || data.uid || "").trim();
+        const docEmail = (data.userEmail || "").trim().toLowerCase();
+
+        const matchesUid = uid && docUid && docUid === uid;
+        const matchesEmail = email && docEmail && docEmail === email;
+        const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
+
+        if (matchesUid || matchesEmail || matchesFallback) {
+          results.push({
+            id: docSnap.id,
+            paymentId: data.paymentId || docSnap.id,
+            orderId: data.orderId || "",
+            subscriptionId: data.subscriptionId || "",
+            userId: docUid || uid,
+            uid: docUid || uid,
+            userEmail: docEmail || email,
+            amount: typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100)),
+            amountINR: typeof data.amountINR === "number" ? data.amountINR : (typeof data.amount === "number" ? data.amount : ((data.amountPaise || 0) / 100)),
+            amountPaise: data.amountPaise || (data.amountINR ? data.amountINR * 100 : 0),
+            currency: data.currency || "INR",
+            status: (data.status || "COMPLETED").toString(),
+            planId: data.planId || "pro-monthly",
+            planName: data.planName || data.plan || "Pro Monthly",
+            plan: data.plan || data.planName || "Pro Monthly",
+            entitlementGranted: data.entitlementGranted || "",
+            signatureVerified: Boolean(data.signatureVerified),
+            source: data.source || "razorpay",
+            paymentMethod: data.paymentMethod || "Razorpay Live Gateway",
+            invoiceNo: data.invoiceNo || `INV-RZP-${docSnap.id.substring(docSnap.id.length - 6).toUpperCase()}`,
+            reconciledAt: data.reconciledAt || data.createdAt || new Date().toISOString(),
+            createdAt: data.createdAt || data.reconciledAt || new Date().toISOString(),
+            timestamp: data.createdAt || data.reconciledAt || new Date().toISOString(),
+            date: data.createdAt ? data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+          });
+        }
+      });
+
+      results.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      onUpdate(results);
+    },
+    (err) => {
+      console.warn("[Firestore] subscribeUserTransactions error:", err);
+    }
+  );
+}
+
 
 /**
  * Delete a tool feedback document from Firestore

@@ -1,23 +1,30 @@
 {
-  "short_name": "PDF Sun",
-  "name": "PDF Sun - Free Online PDF Tools & Converter",
-  "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at pdfsun.in.",
+  "name": "PDFSun Mobile App",
+  "short_name": "PDFSun",
+  "description": "PDFSun Mobile App - Fast, secure, client-side PDF tools & document converter. Merge, Compress, Edit, Convert, and AI Chat with PDFs anywhere.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
-  "categories": ["utilities", "productivity", "office"],
+  "categories": ["utilities", "productivity", "office", "business"],
   "icons": [
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.svg",
+      "type": "image/svg+xml",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
-      "type": "image/png",
+      "src": "/icon-512.svg",
+      "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any maskable"
     }

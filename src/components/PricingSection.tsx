@@ -29,6 +29,8 @@ import { UserProfile } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { ALL_SUPPORTED_IDPS } from "./EnterpriseIdpCarousel";
 import { PricingCompareTable } from "./PricingCompareTable";
+import { DynamicPaymentQR } from "./DynamicPaymentQR";
+import { PDFSUN_PAYMENT_PRODUCTS, PaymentProduct } from "../config/paymentProducts";
 
 interface PricingSectionProps {
   isOpen?: boolean;
@@ -276,6 +278,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [activeGatewayModal, setActiveGatewayModal] = useState<"razorpay" | "stripe" | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<PaymentProduct | null>(null);
   const [selectedPlanName, setSelectedPlanName] = useState<string>("");
   const [selectedPlanAmount, setSelectedPlanAmount] = useState<number>(0);
   const [selectedPlanRazorpayLink, setSelectedPlanRazorpayLink] = useState<string>("");
@@ -579,6 +582,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     setIsProcessing(true);
     const isYearly = billingCycle === "yearly";
 
+    // Resolve accurate central product config
+    const matchedProduct = PDFSUN_PAYMENT_PRODUCTS[plan.id] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    setSelectedProduct(matchedProduct);
+
     let amount = 0;
     if (currency === "INR") {
       if (plan.billingType === "one-time") {
@@ -600,18 +607,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
     setSelectedPlanName(plan.name);
     setSelectedPlanAmount(amount);
-    setSelectedPlanRazorpayLink(plan.razorpayLink || "");
+    setSelectedPlanRazorpayLink(matchedProduct.razorpayPaymentLink || plan.razorpayLink || "");
 
-    // 1. Open official Razorpay hosted link in a new tab for seamless dynamic amount QR detection
-    if (plan.razorpayLink) {
-      try {
-        window.open(plan.razorpayLink, "_blank", "noopener,noreferrer");
-      } catch (e) {
-        console.warn("Popup blocked or not permitted:", e);
-      }
-    }
-
-    // 2. Open PDFSUN Checkout Transition Modal
+    // Open Real Dynamic QR Checkout Modal
     setActiveGatewayModal("razorpay");
     setIsProcessing(false);
   };
@@ -1760,105 +1758,38 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         </div>
       )}
 
-      {/* Simulated Payment Gateway Modal */}
+      {/* Dynamic Payment QR & Real-Time Checkout Modal */}
       {activeGatewayModal && (
-        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#0f172a] border border-amber-400/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-white space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                  ⚡
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">Razorpay Payment Gateway</h3>
-                  <p className="text-[11px] text-slate-400">Secure Order Verification</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveGatewayModal(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <div className="space-y-3 p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Selected Plan:</span>
-                <span className="font-bold text-white">{selectedPlanName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Total Payable:</span>
-                <span className="font-bold text-amber-400 font-mono text-sm">
-                  {currency === "INR" ? "₹" : "$"}{selectedPlanAmount.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Payment Modes:</span>
-                <span className="font-bold text-emerald-400">
-                  Dynamic UPI QR / PhonePe / GPay / Cards / Netbanking
-                </span>
-              </div>
-              <div className="flex justify-between text-[11px] pt-2 border-t border-slate-800 text-slate-400">
-                <span>Security &amp; Encryption:</span>
-                <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 inline text-emerald-400" />
-                  256-Bit SSL Encrypted
-                </span>
-              </div>
-            </div>
-
-            {/* Razorpay Standard Dynamic Auto-Amount Detection Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900 to-indigo-500/10 border border-amber-500/30 text-center space-y-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-                <Zap className="w-5 h-5 fill-amber-400" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-black text-white uppercase tracking-wider">
-                  Razorpay Standard Dynamic Checkout
-                </p>
-                <p className="text-[11px] text-slate-300">
-                  Auto-detects payable amount ({currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`}) when scanning QR on Mobile or Laptop.
-                </p>
-              </div>
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
-                  PhonePe / GPay
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
-                  Paytm / BHIM
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700">
-                  Cards / Netbanking
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {activeGatewayModal === "razorpay" && selectedPlanRazorpayLink && (
-                <a
-                  href={selectedPlanRazorpayLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in overflow-y-auto">
+          <div className="my-auto w-full max-w-lg">
+            {selectedProduct ? (
+              <DynamicPaymentQR
+                product={selectedProduct}
+                currency={currency}
+                userEmail={currentUserId}
+                onPaymentVerified={(data) => {
+                  setActiveGatewayModal(null);
+                  setActivePaymentDetails({
+                    planName: data.planName || selectedProduct.productName,
+                    paymentId: data.paymentId || `pay_rzp_${Date.now()}`,
+                    amountStr: currency === "INR" ? `₹${selectedProduct.displayPriceINR}` : `$${selectedProduct.displayPriceUSD}`,
+                    planId: selectedProduct.internalProductId,
+                  });
+                  setBlinkingModalOpen(true);
+                }}
+                onCancel={() => setActiveGatewayModal(null)}
+              />
+            ) : (
+              <div className="bg-[#0f172a] border border-amber-400/50 rounded-3xl p-6 text-white text-center space-y-4">
+                <p>Initializing secure checkout...</p>
+                <button
+                  onClick={() => setActiveGatewayModal(null)}
+                  className="px-4 py-2 bg-slate-800 rounded-xl text-xs font-bold"
                 >
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>Proceed to Official Razorpay Checkout ({currency === "INR" ? `₹${selectedPlanAmount}` : `$${selectedPlanAmount}`}) →</span>
-                </a>
-              )}
-
-              <button
-                type="button"
-                onClick={completePaymentSimulation}
-                className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 hover:border-slate-600 transition flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <span>I Have Completed Payment (Auto-Activate Account)</span>
-              </button>
-              <p className="text-[10px] text-slate-400 text-center">
-                Secure real-time payment verification handled directly by Razorpay Webhook Infrastructure.
-              </p>
-            </div>
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

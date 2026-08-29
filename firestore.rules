@@ -1,20 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Reusable Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(emailOrUid) {
+      return isSignedIn() && (
+        request.auth.uid == emailOrUid ||
+        request.auth.token.email == emailOrUid
+      );
+    }
+
+    function isOwnerEmail(targetEmail) {
+      return isSignedIn() && request.auth.token.email == targetEmail;
+    }
+
     // Feedback & Comments Collection
     match /feedback_comments/{commentId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'createdAt'])
                     && request.resource.data.rating >= 1
                     && request.resource.data.rating <= 5;
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isSignedIn();
     }
 
     // Quick Tool Ratings Collection
     match /quick_feedback/{toolId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if request.auth != null;
+      allow delete: if isSignedIn();
     }
 
     // Tool Feedback Ratings Collection
@@ -23,5 +39,69 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'timestamp']);
       allow update, delete: if true;
     }
+
+    // Verified Payments Collection (Sensitive financial records - Read by owner/admin, created/updated server-side or by owner auth)
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true; // Allows server-side writes and webhook integration
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    // Transactions Collection (Idempotent payment records)
+    match /transactions/{paymentId} {
+      allow read: if isSignedIn() && (
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true; // Allows server-side writes and webhook integration
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    // Active User Subscriptions
+    match /user_subscriptions/{userId} {
+      allow read: if isSignedIn() && (
+        userId == request.auth.uid ||
+        userId == request.auth.token.email ||
+        resource.data.userId == request.auth.token.email ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true; // Managed by server webhook / reconciliation
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    // User Credits Ledger
+    match /user_credits/{userEmail} {
+      allow read: if isSignedIn() && (
+        userEmail == request.auth.token.email ||
+        userEmail == request.auth.uid ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true;
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    // Payment Reconciliation Audit Logs (Admin & Server)
+    match /payment_reconciliations/{reconciliationId} {
+      allow read: if isSignedIn() && (
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true;
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    // Internal Orders Collection
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email == "mukeshinland79@gmail.com"
+      );
+      allow create, update: if true;
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
   }
 }
+

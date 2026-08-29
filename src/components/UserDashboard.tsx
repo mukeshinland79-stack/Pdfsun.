@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserProfile, ToolHistoryItem, ToolItem, DUAL_OWNER_EMAILS } from "../types";
-import { PaymentHistory } from "./PaymentHistory";
+import { PaymentHistory, getVerificationStatusInfo, PaymentTransaction } from "./PaymentHistory";
+import {
+  subscribeUserTransactionsFromFirestore,
+  FirestoreTransactionRecord,
+} from "../lib/firebase";
 import {
   User,
   Crown,
@@ -26,6 +30,7 @@ import {
   ShieldCheck,
   CreditCard,
   ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 import { safeFetchJson } from "../utils/apiHelper";
 
@@ -57,6 +62,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [nameVal, setNameVal] = useState(userProfile.name || "");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
+  const [transactions, setTransactions] = useState<FirestoreTransactionRecord[]>([]);
+
+  // Real-time Firestore transaction listener strictly filtered by current userProfile.uid / email
+  useEffect(() => {
+    if (!isOpen) return;
+    const userIdentifier = {
+      uid: userProfile.uid || userProfile.id,
+      email: userProfile.email || "mukeshinland79@gmail.com",
+    };
+
+    const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (txList) => {
+      setTransactions(txList);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isOpen, userProfile.uid, userProfile.id, userProfile.email]);
 
   if (!isOpen) return null;
 
@@ -71,6 +94,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     Boolean(userProfile.ssoProvider) ||
     Boolean(userProfile.organizationName);
   const isPaidUser = userProfile.plan?.toLowerCase().includes("pro") || userProfile.plan?.toLowerCase().includes("annual") || isSsoUser || isOwner;
+
+  // Real-time transaction verification status calculation
+  const latestTx = transactions[0];
+  const latestStatusInfo = latestTx
+    ? getVerificationStatusInfo(latestTx.status)
+    : isPaidUser
+    ? getVerificationStatusInfo("COMPLETED")
+    : null;
+  const verifiedCount = transactions.filter((tx) => {
+    const s = (tx.status || "").toLowerCase();
+    return s === "completed" || s === "captured" || s === "paid" || s === "success" || s === "verified";
+  }).length;
 
   // Calculate renewal / expiry info
   const planExpiryText = isOwner
@@ -155,6 +190,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                     </span>
                     <ShieldCheck className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span>SSO Managed</span>
+                  </span>
+                )}
+
+                {/* Real-time Dynamic Transaction Verification Badge */}
+                {latestStatusInfo && (
+                  <span
+                    id="user-dashboard-verification-badge"
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border shadow-xs select-none shrink-0 ${latestStatusInfo.badgeClass}`}
+                    title={`Firestore Transactions: ${latestStatusInfo.label} (${latestStatusInfo.description})`}
+                  >
+                    <latestStatusInfo.icon className="w-3 h-3 shrink-0" />
+                    <span>{latestStatusInfo.label}</span>
                   </span>
                 )}
               </div>
@@ -492,6 +539,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>Plan Active &amp; Unlocked</span>
                     </div>
+
+                    {/* Dynamic Real-time Verification Status in Plan Banner */}
+                    {latestStatusInfo && (
+                      <div
+                        className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border shadow-xs ${latestStatusInfo.badgeClass}`}
+                        title={latestStatusInfo.description}
+                      >
+                        <latestStatusInfo.icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{latestStatusInfo.label}</span>
+                      </div>
+                    )}
+
                     {isSsoUser && (
                       <div
                         id="sso-managed-plan-pill"
@@ -637,8 +696,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Overview Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              {/* Overview Stats (4 Cards including Dynamic Payment Verification) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold shrink-0">
                     <FileText className="w-5 h-5" />
@@ -660,12 +719,41 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 </div>
 
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold shrink-0">
                     <HardDrive className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="text-lg font-black text-slate-900 dark:text-white">100% Client-Side</div>
                     <div className="text-[11px] text-slate-400 font-medium">Zero-Cloud Storage</div>
+                  </div>
+                </div>
+
+                {/* Real-time Dynamic Payment Verification Metric */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center space-x-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                    latestStatusInfo?.label === "Verified"
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : latestStatusInfo?.label === "Pending"
+                      ? "bg-amber-500/10 text-amber-500"
+                      : latestStatusInfo?.label === "Failed"
+                      ? "bg-rose-500/10 text-rose-500"
+                      : "bg-slate-500/10 text-slate-400"
+                  }`}>
+                    {latestStatusInfo ? (
+                      <latestStatusInfo.icon className="w-5 h-5" />
+                    ) : (
+                      <ShieldCheck className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                      {latestStatusInfo ? latestStatusInfo.label : "Free Account"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium truncate">
+                      {transactions.length > 0
+                        ? `${verifiedCount} Verified • Firestore Live`
+                        : "Standard Free Tier"}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -697,6 +785,70 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                         <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-orange-500 transition shrink-0" />
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Transactions & Payment Status from Firestore */}
+              {transactions.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                      <CreditCard className="w-4 h-4 text-emerald-500" />
+                      <span>Recent Transactions ({transactions.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("plan")}
+                      className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>View All Invoices</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {transactions.slice(0, 3).map((tx) => {
+                      const statusInfo = getVerificationStatusInfo(tx.status);
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <div
+                          key={tx.id}
+                          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 font-black text-xs">
+                              ₹
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                {tx.planName || tx.plan || "Pro Subscription"}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono truncate">
+                                {tx.date || tx.createdAt?.split("T")[0]} • {tx.paymentId || tx.id}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-3 shrink-0">
+                            <div className="text-right">
+                              <div className="text-xs font-black text-slate-900 dark:text-white">
+                                ₹{tx.amountINR || (tx.amountPaise ? tx.amountPaise / 100 : tx.amount || 0)}
+                              </div>
+                              <div className="text-[9px] text-slate-400 font-medium">Razorpay</div>
+                            </div>
+
+                            {/* Color-coded Dynamic Status Badge based on status field */}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-xs ${statusInfo.badgeClass}`}
+                              title={statusInfo.description}
+                            >
+                              <StatusIcon className="w-3 h-3 shrink-0" />
+                              <span>{statusInfo.label}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

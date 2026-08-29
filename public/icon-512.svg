@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#091428" />
+      <stop offset="50%" stop-color="#0b3d91" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="sunGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff566" />
+      <stop offset="45%" stop-color="#ffc107" />
+      <stop offset="90%" stop-color="#ff7a00" />
+      <stop offset="100%" stop-color="#e65100" />
+    </linearGradient>
+    <linearGradient id="pdfGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="60%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#0f2b6e" />
+    </linearGradient>
+    <linearGradient id="foldGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <filter id="glow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#ff7a00" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Background Frame with Squircle (iOS / Android adaptive) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)" />
+  <rect width="508" height="508" x="2" y="2" rx="110" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4" />
+
+  <!-- Rising Sun Behind PDF Document -->
+  <g transform="translate(48, 36)">
+    <circle cx="320" cy="130" r="80" fill="url(#sunGrad512)" opacity="0.3" filter="url(#glow512)" />
+    <circle cx="320" cy="130" r="54" fill="url(#sunGrad512)" filter="url(#glow512)" />
+    <!-- Rays -->
+    <line x1="320" y1="50" x2="320" y2="24" stroke="#ffc107" stroke-width="8" stroke-linecap="round" />
+    <line x1="386" y1="66" x2="405" y2="47" stroke="#ff7a00" stroke-width="8" stroke-linecap="round" />
+    <line x1="400" y1="130" x2="426" y2="130" stroke="#ff7a00" stroke-width="8" stroke-linecap="round" />
+    <line x1="386" y1="194" x2="405" y2="213" stroke="#ffc107" stroke-width="8" stroke-linecap="round" />
+
+    <!-- Main Folded PDF Document -->
+    <path d="M 85 54 C 69 54, 58 65, 58 81 L 58 350 C 58 366, 69 377, 85 377 L 295 377 C 311 377, 322 366, 322 350 L 322 156 L 220 54 Z" fill="url(#pdfGrad512)" stroke="rgba(255,255,255,0.12)" stroke-width="3" />
+    <!-- Fold Corner -->
+    <path d="M 220 54 L 322 156 L 242 156 C 228 156, 220 148, 220 134 Z" fill="url(#foldGrad512)" />
+
+    <!-- Document Lines -->
+    <rect x="102" y="190" width="148" height="18" rx="9" fill="#ffffff" opacity="0.95" />
+    <rect x="102" y="232" width="180" height="18" rx="9" fill="#93c5fd" opacity="0.9" />
+    <rect x="102" y="274" width="120" height="18" rx="9" fill="#ffc107" opacity="0.95" />
+
+    <!-- AI Sparkle Star -->
+    <path d="M 134 98 C 134 114, 150 130, 166 130 C 150 130, 134 146, 134 162 C 134 146, 118 130, 102 130 C 118 130, 134 114, 134 98 Z" fill="#ffffff" />
+    <circle cx="134" cy="130" r="6" fill="#38bdf8" />
+  </g>
+</svg>

@@ -74,6 +74,7 @@ export type UserRole = "public" | "user" | "owner";
 
 export interface UserProfile {
   id: string;
+  uid?: string;
   name: string;
   email: string;
   role: UserRole;

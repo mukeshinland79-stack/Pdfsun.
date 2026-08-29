@@ -36,6 +36,8 @@ import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
+import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
+import { InstallAppModal } from "./components/InstallAppModal";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -357,6 +359,7 @@ export default function App() {
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
   const [todayInHistoryOpen, setTodayInHistoryOpen] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [installAppModalOpen, setInstallAppModalOpen] = useState(false);
   const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
   const paymentHandledRef = useRef(false);
@@ -394,6 +397,19 @@ export default function App() {
 
       if (isPricingUrl) {
         setPricingModalOpen(true);
+      }
+
+      const isInstallUrl =
+        currentPath === "/install" ||
+        currentPath === "/app" ||
+        window.location.hash === "#install" ||
+        params.has("install") ||
+        params.has("pwa") ||
+        params.get("view") === "install" ||
+        params.get("action") === "install";
+
+      if (isInstallUrl) {
+        setInstallAppModalOpen(true);
       }
 
       const isHistoryUrl =
@@ -728,6 +744,7 @@ export default function App() {
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
         onOpenPricing={handleOpenPricing}
+        onOpenInstallApp={() => setInstallAppModalOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
@@ -760,16 +777,19 @@ export default function App() {
           <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
         )}
 
-        {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
-        <TodayInHistoryBanner
-          geoResult={geoResult}
-          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-        />
+        {/* Dedicated PDFSun Mobile App Promotion Card & QR Code */}
+        <MobileAppPromotionCard />
 
         {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
         <DualAiFeatureBanner
           onSelectTool={handleSelectTool}
           onOpenContactModal={() => setContactModalOpen(true)}
+        />
+
+        {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
+        <TodayInHistoryBanner
+          geoResult={geoResult}
+          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
         />
 
         {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
@@ -804,6 +824,8 @@ export default function App() {
         onOpenBlogModal={() => setBlogModalOpen(true)}
         onOpenContactModal={() => setContactModalOpen(true)}
         onOpenPricing={handleOpenPricing}
+        onOpenInstallApp={() => setInstallAppModalOpen(true)}
+        onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
       />
 
       {/* Interactive Active Tool Workspace Modals */}
@@ -1045,6 +1067,12 @@ export default function App() {
       <SharePdfSunModal
         isOpen={sharePdfSunModalOpen}
         onClose={() => setSharePdfSunModalOpen(false)}
+      />
+
+      {/* Customer-Facing Install PDFSun App Modal & Multi-Platform Guide */}
+      <InstallAppModal
+        isOpen={installAppModalOpen}
+        onClose={() => setInstallAppModalOpen(false)}
       />
 
       {/* Owner Dynamic CMS & Translations Editor Modal */}

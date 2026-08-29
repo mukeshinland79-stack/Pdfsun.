@@ -207,40 +207,59 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts)
+    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts/ads)
+    const lowerUrl = urlStr.toLowerCase();
     const isTelemetryEndpoint =
-      urlStr.includes("/api/telemetry") ||
-      urlStr.includes("/api/health") ||
-      urlStr.includes("/api/ping") ||
-      urlStr.includes("/api/history") ||
-      urlStr.includes("/api/system") ||
-      urlStr.includes("/api/admin/system-stats") ||
-      urlStr.includes("/api/admin/users") ||
-      urlStr.includes("/api/auth/verify-session") ||
-      urlStr.includes("/api/user/payment-history") ||
-      urlStr.includes("/api/user/subscription") ||
-      urlStr.includes("/api/user/session") ||
-      urlStr.includes("/api/user/me") ||
-      urlStr.includes("/api/user/check");
+      lowerUrl.includes("/api/telemetry") ||
+      lowerUrl.includes("/api/health") ||
+      lowerUrl.includes("/api/ping") ||
+      lowerUrl.includes("/api/history") ||
+      lowerUrl.includes("/api/system") ||
+      lowerUrl.includes("/api/admin/system-stats") ||
+      lowerUrl.includes("/api/admin/users") ||
+      lowerUrl.includes("/api/auth/verify-session") ||
+      lowerUrl.includes("/api/user/payment-history") ||
+      lowerUrl.includes("/api/user/subscription") ||
+      lowerUrl.includes("/api/user/session") ||
+      lowerUrl.includes("/api/user/me") ||
+      lowerUrl.includes("/api/user/check");
     const isViteHmrNoise =
-      urlStr.includes("ws:") ||
-      urlStr.includes("wss:") ||
-      urlStr.includes("__vite") ||
-      urlStr.includes("@vite") ||
-      urlStr.includes("/src/") ||
-      urlStr.includes("/.vite/") ||
-      urlStr.includes("node_modules");
-    const isStaticTranslation = urlStr.includes("/locales/");
-    const isExternalFontOrAnalytics =
-      urlStr.includes("fonts.gstatic.com") ||
-      urlStr.includes("fonts.googleapis.com") ||
-      urlStr.includes("google-analytics.com") ||
-      urlStr.includes("googletagmanager.com") ||
-      urlStr.includes("pagead2.googlesyndication.com") ||
-      urlStr.includes("razorpay.com") ||
-      urlStr.includes("cdn.razorpay.com") ||
-      urlStr.includes("checkout.js") ||
-      urlStr.includes("bundle.js");
+      lowerUrl.includes("ws:") ||
+      lowerUrl.includes("wss:") ||
+      lowerUrl.includes("__vite") ||
+      lowerUrl.includes("@vite") ||
+      lowerUrl.includes("/src/") ||
+      lowerUrl.includes("/.vite/") ||
+      lowerUrl.includes("node_modules");
+    const isStaticTranslation = lowerUrl.includes("/locales/");
+    const isExternalFontOrAnalyticsOrAds =
+      lowerUrl.includes("adtrafficquality.google") ||
+      lowerUrl.includes("sodar") ||
+      lowerUrl.includes("pagead2.googlesyndication.com") ||
+      lowerUrl.includes("googlesyndication.com") ||
+      lowerUrl.includes("googleadservices.com") ||
+      lowerUrl.includes("googleads") ||
+      lowerUrl.includes("doubleclick.net") ||
+      lowerUrl.includes("adservice.google") ||
+      lowerUrl.includes("adsafeprotected.com") ||
+      lowerUrl.includes("amazon-adsystem.com") ||
+      lowerUrl.includes("criteo.com") ||
+      lowerUrl.includes("pubmatic.com") ||
+      lowerUrl.includes("rubiconproject.com") ||
+      lowerUrl.includes("adnxs.com") ||
+      lowerUrl.includes("securepubads") ||
+      lowerUrl.includes("fundingchoicesmessages.google.com") ||
+      lowerUrl.includes("fonts.gstatic.com") ||
+      lowerUrl.includes("fonts.googleapis.com") ||
+      lowerUrl.includes("google-analytics.com") ||
+      lowerUrl.includes("googletagmanager.com") ||
+      lowerUrl.includes("clarity.ms") ||
+      lowerUrl.includes("razorpay.com") ||
+      lowerUrl.includes("cdn.razorpay.com") ||
+      lowerUrl.includes("checkout.js") ||
+      lowerUrl.includes("bundle.js");
+
+    const isIgnoredNoise = isTelemetryEndpoint || isViteHmrNoise || isExternalFontOrAnalyticsOrAds;
 
     // Check if request is a background/read-only GET request (which shouldn't disrupt the user with scary popups)
     const isBackgroundGet = (method === "GET" && !urlStr.includes("/api/process")) || isTelemetryEndpoint;
@@ -271,7 +290,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       const durationMs = Math.round(performance.now() - startTime);
 
       // Intercept 4xx and 5xx HTTP response statuses
-      if (!response.ok && !isTelemetryEndpoint && !isViteHmrNoise && !isExternalFontOrAnalytics) {
+      if (!response.ok && !isIgnoredNoise) {
         parseResponseBodyForErrorMsg(response).then((customDetail) => {
           logError(`[Fetch HTTP ${response.status}] ${method} ${pathName}`, "warn", {
             status: response.status,
@@ -308,7 +327,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
         (err?.message && err.message.toLowerCase().includes("timeout"));
       const isBrowserOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (!isTelemetryEndpoint && !isViteHmrNoise && !isExternalFontOrAnalytics) {
+      if (!isIgnoredNoise) {
         if (isTimeoutError) {
           const timeoutMsg = `Request to ${pathName || urlStr} timed out after ${Math.round(
             DEFAULT_TIMEOUT_MS / 1000

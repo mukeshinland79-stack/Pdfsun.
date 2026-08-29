@@ -78,14 +78,28 @@ class ErrorReporter {
     const message = typeof error === "string" ? error : error.message || "Unknown error";
     const stack = typeof error === "object" && error.stack ? error.stack : undefined;
 
-    // Filter out benign HMR/WebSocket closed noise, background checks, and offline/aborted fallbacks
+    // Filter out benign HMR/WebSocket closed noise, background checks, ads/analytics block noise, and offline/aborted fallbacks
+    const lowerMessage = message.toLowerCase();
+    const contextUrl = String(context?.url || "").toLowerCase();
     if (
-      message.includes("WebSocket closed without opened") ||
-      message.includes("failed to connect to websocket") ||
-      message.includes("Transition was aborted") ||
-      message.includes("The user aborted a request") ||
-      message.includes("AbortError") ||
-      (message.includes("[Fetch Offline]") && (message.includes("verify-session") || message.includes("payment-history") || message.includes("telemetry") || message.includes("health") || message.includes("history")))
+      lowerMessage.includes("websocket closed without opened") ||
+      lowerMessage.includes("failed to connect to websocket") ||
+      lowerMessage.includes("transition was aborted") ||
+      lowerMessage.includes("the user aborted a request") ||
+      lowerMessage.includes("aborterror") ||
+      lowerMessage.includes("sodar") ||
+      lowerMessage.includes("adtrafficquality") ||
+      lowerMessage.includes("googlesyndication") ||
+      lowerMessage.includes("doubleclick") ||
+      lowerMessage.includes("googleadservices") ||
+      lowerMessage.includes("adservice") ||
+      contextUrl.includes("sodar") ||
+      contextUrl.includes("adtrafficquality") ||
+      contextUrl.includes("googlesyndication") ||
+      contextUrl.includes("doubleclick") ||
+      contextUrl.includes("googleadservices") ||
+      contextUrl.includes("adservice") ||
+      (lowerMessage.includes("[fetch offline]") && (lowerMessage.includes("verify-session") || lowerMessage.includes("payment-history") || lowerMessage.includes("telemetry") || lowerMessage.includes("health") || lowerMessage.includes("history")))
     ) {
       return;
     }

@@ -32,13 +32,14 @@ import {
   Zap,
   Briefcase,
   FileCheck,
+  Smartphone,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { SearchModal } from "./SearchModal";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { PDFSunLogo } from "./PDFSunLogo";
+import { PDFSunLogo, PDFSunLogoIcon } from "./PDFSunLogo";
 import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { checkAdminRole } from "../hooks/useAuth";
 
@@ -68,6 +69,7 @@ interface HeaderProps {
   onOpenTodayInHistory?: () => void;
   onOpenShareModal?: () => void;
   onOpenPricing?: () => void;
+  onOpenInstallApp?: () => void;
   selectedCategory?: CategoryId;
   onSelectCategory?: (cat: CategoryId) => void;
 }
@@ -98,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTodayInHistory,
   onOpenShareModal,
   onOpenPricing,
+  onOpenInstallApp,
 }) => {
   const { t } = useLanguage();
 
@@ -243,6 +246,23 @@ export const Header: React.FC<HeaderProps> = ({
           {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Pricing, Language, Theme & Auth/Profile) */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
             
+            {/* Install App Direct Button (Customer-Facing PWA Install) */}
+            <button
+              type="button"
+              id="header-install-app-btn"
+              onClick={() => {
+                if (onOpenInstallApp) onOpenInstallApp();
+              }}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              title="Install PDFSun App on your device"
+              aria-label="Install PDFSun Mobile App"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="whitespace-nowrap">
+                Install App
+              </span>
+            </button>
+
             {/* Pricing Plans Menu Item (Directly before Language Selector) */}
             <button
               type="button"
@@ -659,6 +679,43 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-auto">Ctrl+K</kbd>
           </button>
+
+          {/* Customer-Facing Mobile App Install Banner inside Mobile Menu */}
+          <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white space-y-2 shadow-md">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-1 bg-white/15 rounded-xl backdrop-blur-xs shrink-0">
+                <PDFSunLogoIcon variant="app-icon" size={28} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-black text-white leading-tight truncate">PDFSun Mobile App</h4>
+                <p className="text-[10px] text-blue-100/90 font-medium truncate">Your PDF tools, wherever you go.</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 pt-0.5">
+              <button
+                type="button"
+                id="mobile-drawer-install-btn"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenInstallApp) onOpenInstallApp();
+                }}
+                className="flex-1 py-1.5 px-3 rounded-xl bg-white text-blue-700 font-extrabold text-xs shadow-xs hover:bg-blue-50 transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                <span>Install PDFSun App</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenInstallApp) onOpenInstallApp();
+                }}
+                className="py-1.5 px-2.5 rounded-xl bg-white/20 text-white font-bold text-xs hover:bg-white/30 transition cursor-pointer"
+              >
+                Guide
+              </button>
+            </div>
+          </div>
 
           {/* Mobile Essential Navigation Links */}
           <div className="w-full space-y-1">

@@ -333,6 +333,98 @@ export function usePWAStatus() {
   const [isOfflineReady, setIsOfflineReady] = useState<boolean>(false);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
   const [cachedAssetsCount, setCachedAssetsCount] = useState<number>(0);
+  
+  // Platform & Installed states
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://');
+    const localFlag = localStorage.getItem('pdfsun_pwa_installed') === 'true';
+    return isStandalone || localFlag;
+  });
+
+  const [platform, setPlatform] = useState<{
+    isIOS: boolean;
+    isAndroid: boolean;
+    isMobile: boolean;
+    isMac: boolean;
+    isWindows: boolean;
+    isSafari: boolean;
+    isChrome: boolean;
+  }>({
+    isIOS: false,
+    isAndroid: false,
+    isMobile: false,
+    isMac: false,
+    isWindows: false,
+    isSafari: false,
+    isChrome: false,
+  });
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/i.test(ua);
+      const isMobile = isIOS || isAndroid || /Mobi|Tablet|iPad|iPhone/i.test(ua);
+      const isMac = /Macintosh|MacIntel/i.test(ua) && !isIOS;
+      const isWindows = /Windows/i.test(ua);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg/i.test(ua);
+
+      setPlatform({
+        isIOS,
+        isAndroid,
+        isMobile,
+        isMac,
+        isWindows,
+        isSafari,
+        isChrome,
+      });
+    }
+
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://');
+      if (isStandalone) {
+        setIsInstalled(true);
+        localStorage.setItem('pdfsun_pwa_installed', 'true');
+      }
+    };
+
+    checkInstalled();
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true);
+        setIsInstallable(false);
+        localStorage.setItem('pdfsun_pwa_installed', 'true');
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleDisplayModeChange);
+    }
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      localStorage.setItem('pdfsun_pwa_installed', 'true');
+      console.log('[PDFSun PWA] App installed successfully');
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      }
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -342,6 +434,7 @@ export function usePWAStatus() {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
+      console.log('[PDFSun PWA] Captured beforeinstallprompt event');
     };
 
     const handleOfflineReady = () => setIsOfflineReady(true);
@@ -368,19 +461,31 @@ export function usePWAStatus() {
     };
   }, []);
 
-  const installPWA = useCallback(async () => {
-    if (!deferredPrompt) return;
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstallable(false);
-        setDeferredPrompt(null);
-      }
-    } catch (err) {
-      console.error('[PDFSun PWA] Error installing PWA:', err);
+  const installPWA = useCallback(async (): Promise<'accepted' | 'dismissed' | 'manual-guide' | 'already-installed'> => {
+    if (isInstalled) {
+      return 'already-installed';
     }
-  }, [deferredPrompt]);
+
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setIsInstallable(false);
+          setDeferredPrompt(null);
+          setIsInstalled(true);
+          localStorage.setItem('pdfsun_pwa_installed', 'true');
+          return 'accepted';
+        }
+        return 'dismissed';
+      } catch (err) {
+        console.error('[PDFSun PWA] Error triggering native install prompt:', err);
+        return 'manual-guide';
+      }
+    }
+
+    return 'manual-guide';
+  }, [deferredPrompt, isInstalled]);
 
   const triggerPrecache = useCallback(async (customUrls?: string[]) => {
     const success = await precacheToolAssets(customUrls);
@@ -394,7 +499,10 @@ export function usePWAStatus() {
 
   return {
     isOffline,
-    isInstallable,
+    isInstallable: isInstallable || !isInstalled,
+    hasNativePrompt: Boolean(deferredPrompt),
+    isInstalled,
+    platform,
     isOfflineReady,
     isUpdateAvailable,
     cachedAssetsCount,

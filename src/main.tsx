@@ -14,18 +14,28 @@ setupGlobalFetchInterceptor();
 // Register Service Worker for PWA Offline Capability
 registerServiceWorker();
 
-// Silence benign Vite HMR WebSocket connection warnings in sandboxed preview
+// Silence benign Vite HMR WebSocket connection warnings & third-party ad/sodar fetch noise in sandboxed preview
 if (typeof window !== 'undefined') {
+  const isBenignNoise = (str: string): boolean => {
+    const s = str.toLowerCase();
+    return (
+      s.includes('websocket closed without opened') ||
+      s.includes('failed to connect to websocket') ||
+      s.includes('[vite] failed to connect') ||
+      s.includes('transition was aborted') ||
+      s.includes('invalid state') ||
+      s.includes('sodar') ||
+      s.includes('adtrafficquality') ||
+      s.includes('googlesyndication') ||
+      s.includes('doubleclick') ||
+      s.includes('googleadservices')
+    );
+  };
+
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
     const msg = args.map((a) => (typeof a === 'object' ? String(a?.message || JSON.stringify(a)) : String(a))).join(' ');
-    if (
-      msg.includes('WebSocket closed without opened') ||
-      msg.includes('failed to connect to websocket') ||
-      msg.includes('[vite] failed to connect') ||
-      msg.includes('Transition was aborted') ||
-      msg.includes('invalid state')
-    ) {
+    if (isBenignNoise(msg)) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -39,16 +49,7 @@ if (typeof window !== 'undefined') {
       event.reason ||
       ''
     );
-    if (
-      reasonStr.includes('WebSocket') ||
-      reasonStr.includes('vite') ||
-      reasonStr.includes('closed without opened') ||
-      reasonStr.includes('failed to connect') ||
-      reasonStr.includes('ws://') ||
-      reasonStr.includes('wss://') ||
-      reasonStr.includes('Transition was aborted') ||
-      reasonStr.includes('invalid state')
-    ) {
+    if (isBenignNoise(reasonStr)) {
       event.preventDefault();
       if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();
@@ -58,16 +59,7 @@ if (typeof window !== 'undefined') {
 
   window.addEventListener('error', (event) => {
     const errorMsg = String(event.message || event.error?.message || '');
-    if (
-      errorMsg.includes('WebSocket') ||
-      errorMsg.includes('vite') ||
-      errorMsg.includes('closed without opened') ||
-      errorMsg.includes('failed to connect') ||
-      errorMsg.includes('ws://') ||
-      errorMsg.includes('wss://') ||
-      errorMsg.includes('Transition was aborted') ||
-      errorMsg.includes('invalid state')
-    ) {
+    if (isBenignNoise(errorMsg)) {
       event.preventDefault();
       if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();

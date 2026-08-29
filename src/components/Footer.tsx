@@ -40,6 +40,7 @@ interface FooterProps {
   onOpenBlogModal: () => void;
   onOpenContactModal: () => void;
   onOpenPricing?: () => void;
+  onOpenInstallApp?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -50,6 +51,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenBlogModal,
   onOpenContactModal,
   onOpenPricing,
+  onOpenInstallApp,
 }) => {
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
   const { t } = useLanguage();
@@ -170,6 +172,20 @@ export const Footer: React.FC<FooterProps> = ({
                   </a>
                 )}
               </li>
+              {onOpenInstallApp && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenInstallApp}
+                    className="hover:text-blue-400 transition flex items-center space-x-1.5 text-blue-400 font-bold cursor-pointer"
+                  >
+                    <span>📱 Install PDFSun App</span>
+                    <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                      PWA
+                    </span>
+                  </button>
+                </li>
+              )}
               <li>
                 <button onClick={onOpenBlogModal} className="hover:text-amber-400 transition cursor-pointer">
                   {t("footer.blogArticles", "Blog & Articles")}
