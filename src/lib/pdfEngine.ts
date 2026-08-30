@@ -1917,8 +1917,32 @@ export function validateOutputBlob(
 // Global lock to prevent accidental duplicate downloads from rapid double-clicks
 let _lastDownloadTimestamp = 0;
 let _lastDownloadFilename = "";
+let _isDownloadLockActive = false;
 
-// Rebuilt Download Engine Helper
+// Active object URL pool for safe garbage collection without interrupting mobile download streams
+const _activeBlobUrls = new Set<string>();
+
+/**
+ * Cleanly registers a Blob URL and schedules deferred revocation (60s)
+ * preventing premature memory release while Android/iOS download engines are actively streaming.
+ */
+function allocateSafeBlobUrl(blob: Blob): string {
+  const url = URL.createObjectURL(blob);
+  _activeBlobUrls.add(url);
+
+  setTimeout(() => {
+    try {
+      if (_activeBlobUrls.has(url)) {
+        URL.revokeObjectURL(url);
+        _activeBlobUrls.delete(url);
+      }
+    } catch {}
+  }, 60000); // 60-second window gives mobile OS download managers plenty of time
+
+  return url;
+}
+
+// Rebuilt Robust Cross-Device Download Engine Helper
 export function downloadFile(
   data: Uint8Array | Blob | string,
   fileName: string,
@@ -1927,13 +1951,19 @@ export function downloadFile(
   const { blob, bytesCount } = validateOutputBlob(data, mimeType);
   const finalFileName = ensureValidFilename(fileName, mimeType);
 
-  // Debounce rapid duplicate trigger within 800ms
+  // Strict atomic debounce and execution lock (1200ms) to eliminate duplicate triggers
   const now = Date.now();
-  if (finalFileName === _lastDownloadFilename && now - _lastDownloadTimestamp < 800) {
+  if (_isDownloadLockActive || (finalFileName === _lastDownloadFilename && now - _lastDownloadTimestamp < 1200)) {
     return { success: true, finalFileName, bytesCount };
   }
+
+  _isDownloadLockActive = true;
   _lastDownloadTimestamp = now;
   _lastDownloadFilename = finalFileName;
+
+  setTimeout(() => {
+    _isDownloadLockActive = false;
+  }, 1200);
 
   try {
     trackGADownloadStart(finalFileName, finalFileName, bytesCount);
@@ -1941,32 +1971,47 @@ export function downloadFile(
     console.warn("Analytics download_start tracking error:", err);
   }
 
-  const url = URL.createObjectURL(blob);
+  // Allocate safe, non-prematurely-revoked Object URL
+  const url = allocateSafeBlobUrl(blob);
+
+  // Direct DOM anchor execution with strict attachment headers emulation
   const a = document.createElement("a");
   a.href = url;
   a.download = finalFileName;
   a.rel = "noopener noreferrer";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
+  a.style.position = "fixed";
+  a.style.top = "-9999px";
+  a.style.left = "-9999px";
+  a.style.opacity = "0";
+  a.style.pointerEvents = "none";
   
-  // Detach immediately from DOM
-  if (document.body.contains(a)) {
-    document.body.removeChild(a);
+  document.body.appendChild(a);
+  
+  // Standard synthetic click
+  try {
+    a.click();
+  } catch (clickErr) {
+    console.warn("Direct anchor click error, trying MouseEvent dispatch:", clickErr);
+    const event = new MouseEvent("click", {
+      view: window,
+      bubbles: false,
+      cancelable: true,
+    });
+    a.dispatchEvent(event);
   }
+
+  // Remove anchor immediately
+  requestAnimationFrame(() => {
+    if (document.body.contains(a)) {
+      document.body.removeChild(a);
+    }
+  });
 
   try {
     trackGADownloadSuccess(finalFileName, finalFileName, bytesCount);
   } catch (err) {
     console.warn("Analytics download_success tracking error:", err);
   }
-  
-  // Revoke object URL after browser initiates download stream
-  setTimeout(() => {
-    try {
-      URL.revokeObjectURL(url);
-    } catch {}
-  }, 2000);
 
   return { success: true, finalFileName, bytesCount };
 }

@@ -277,15 +277,18 @@ function getGeminiClient() {
 }
 
 // Secure PDF & File Download Delivery Route with Standard Browser Headers
-app.post("/api/download/file", (req, res) => {
+app.all(["/api/download/file", "/api/download/stream"], (req, res) => {
   try {
-    const { fileBase64, fileName = "PDFSun_Processed_Document.pdf", mimeType = "application/pdf" } = req.body || {};
+    const fileBase64 = req.body?.fileBase64 || req.query?.fileBase64;
+    const fileName = (req.body?.fileName || req.query?.fileName || "PDFSun_Processed_Document.pdf").toString();
+    const mimeType = (req.body?.mimeType || req.query?.mimeType || "application/pdf").toString();
+
     if (!fileBase64) {
-      return res.status(400).json({ error: "Missing file payload in request body." });
+      return res.status(400).json({ error: "Missing file payload in request body or query parameter." });
     }
 
-    const cleanFilename = (fileName || "PDFSun_Document.pdf").replace(/[/\\?%*:|"<>]/g, "_").trim();
-    const buffer = Buffer.from(fileBase64, "base64");
+    const cleanFilename = fileName.replace(/[/\\?%*:|"<>]/g, "_").trim();
+    const buffer = Buffer.from(fileBase64.toString(), "base64");
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("Content-Disposition", `attachment; filename="${cleanFilename}"`);
