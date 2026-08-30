@@ -1914,6 +1914,10 @@ export function validateOutputBlob(
   return { blob, bytesCount };
 }
 
+// Global lock to prevent accidental duplicate downloads from rapid double-clicks
+let _lastDownloadTimestamp = 0;
+let _lastDownloadFilename = "";
+
 // Rebuilt Download Engine Helper
 export function downloadFile(
   data: Uint8Array | Blob | string,
@@ -1922,6 +1926,14 @@ export function downloadFile(
 ): { success: boolean; finalFileName: string; bytesCount: number } {
   const { blob, bytesCount } = validateOutputBlob(data, mimeType);
   const finalFileName = ensureValidFilename(fileName, mimeType);
+
+  // Debounce rapid duplicate trigger within 800ms
+  const now = Date.now();
+  if (finalFileName === _lastDownloadFilename && now - _lastDownloadTimestamp < 800) {
+    return { success: true, finalFileName, bytesCount };
+  }
+  _lastDownloadTimestamp = now;
+  _lastDownloadFilename = finalFileName;
 
   try {
     trackGADownloadStart(finalFileName, finalFileName, bytesCount);
@@ -1933,10 +1945,15 @@ export function downloadFile(
   const a = document.createElement("a");
   a.href = url;
   a.download = finalFileName;
+  a.rel = "noopener noreferrer";
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  
+  // Detach immediately from DOM
+  if (document.body.contains(a)) {
+    document.body.removeChild(a);
+  }
 
   try {
     trackGADownloadSuccess(finalFileName, finalFileName, bytesCount);
@@ -1944,11 +1961,12 @@ export function downloadFile(
     console.warn("Analytics download_success tracking error:", err);
   }
   
+  // Revoke object URL after browser initiates download stream
   setTimeout(() => {
     try {
       URL.revokeObjectURL(url);
     } catch {}
-  }, 10000);
+  }, 2000);
 
   return { success: true, finalFileName, bytesCount };
 }

@@ -207,7 +207,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts/ads)
+    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts/ads/cdn/pwa)
     const lowerUrl = urlStr.toLowerCase();
     const isTelemetryEndpoint =
       lowerUrl.includes("/api/telemetry") ||
@@ -215,7 +215,9 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("/api/ping") ||
       lowerUrl.includes("/api/history") ||
       lowerUrl.includes("/api/system") ||
+      lowerUrl.includes("/api/analytics") ||
       lowerUrl.includes("/api/admin/system-stats") ||
+      lowerUrl.includes("/api/admin/system-config") ||
       lowerUrl.includes("/api/admin/users") ||
       lowerUrl.includes("/api/auth/verify-session") ||
       lowerUrl.includes("/api/user/payment-history") ||
@@ -231,8 +233,8 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("/src/") ||
       lowerUrl.includes("/.vite/") ||
       lowerUrl.includes("node_modules");
-    const isStaticTranslation = lowerUrl.includes("/locales/");
-    const isExternalFontOrAnalyticsOrAds =
+    const isStaticTranslation = lowerUrl.includes("/locales/") || lowerUrl.includes("lang.json");
+    const isExternalFontOrAnalyticsOrAdsOrCdn =
       lowerUrl.includes("adtrafficquality.google") ||
       lowerUrl.includes("sodar") ||
       lowerUrl.includes("pagead2.googlesyndication.com") ||
@@ -251,6 +253,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("fundingchoicesmessages.google.com") ||
       lowerUrl.includes("fonts.gstatic.com") ||
       lowerUrl.includes("fonts.googleapis.com") ||
+      lowerUrl.includes("cdnjs.cloudflare.com") ||
       lowerUrl.includes("google-analytics.com") ||
       lowerUrl.includes("googletagmanager.com") ||
       lowerUrl.includes("clarity.ms") ||
@@ -258,12 +261,15 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("razorpay.com") ||
       lowerUrl.includes("cdn.razorpay.com") ||
       lowerUrl.includes("checkout.js") ||
-      lowerUrl.includes("bundle.js");
+      lowerUrl.includes("bundle.js") ||
+      lowerUrl.includes("manifest.json") ||
+      lowerUrl.includes("favicon.ico") ||
+      lowerUrl.includes("/sw.js");
 
-    const isIgnoredNoise = isTelemetryEndpoint || isViteHmrNoise || isExternalFontOrAnalyticsOrAds;
+    const isIgnoredNoise = isTelemetryEndpoint || isViteHmrNoise || isExternalFontOrAnalyticsOrAdsOrCdn || isStaticTranslation;
 
     // Check if request is a background/read-only GET request (which shouldn't disrupt the user with scary popups)
-    const isBackgroundGet = (method === "GET" && !urlStr.includes("/api/process")) || isTelemetryEndpoint;
+    const isBackgroundGet = method === "GET" || isTelemetryEndpoint || isIgnoredNoise;
 
     // Manage request timeout signal if caller did not provide their own AbortSignal
     let timeoutController: AbortController | null = null;
@@ -291,7 +297,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       const durationMs = Math.round(performance.now() - startTime);
 
       // Intercept 4xx and 5xx HTTP response statuses
-      if (!response.ok && !isIgnoredNoise) {
+      if (!response.ok && !isIgnoredNoise && !isBackgroundGet) {
         parseResponseBodyForErrorMsg(response).then((customDetail) => {
           logError(`[Fetch HTTP ${response.status}] ${method} ${pathName}`, "warn", {
             status: response.status,
@@ -328,7 +334,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
         (err?.message && err.message.toLowerCase().includes("timeout"));
       const isBrowserOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (!isIgnoredNoise) {
+      if (!isIgnoredNoise && !isBackgroundGet) {
         if (isTimeoutError) {
           const timeoutMsg = `Request to ${pathName || urlStr} timed out after ${Math.round(
             DEFAULT_TIMEOUT_MS / 1000
@@ -342,16 +348,14 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
             { type: "upload" }
           );
         } else if (isBrowserOffline) {
-          if (!isBackgroundGet) {
-            logError(`[Fetch Offline] ${method} ${pathName}`, "warn", { url: urlStr, method });
-            networkMonitor.reportError(urlStr, method, "Client is offline", 0);
+          logError(`[Fetch Offline] ${method} ${pathName}`, "warn", { url: urlStr, method });
+          networkMonitor.reportError(urlStr, method, "Client is offline", 0);
 
-            triggerDebouncedToast(
-              "Network Connection Lost",
-              "You appear to be offline. Please check your internet connection.",
-              { type: "generic" }
-            );
-          }
+          triggerDebouncedToast(
+            "Network Connection Lost",
+            "You appear to be offline. Please check your internet connection.",
+            { type: "generic" }
+          );
         } else {
           const errorMessage = err?.message || "Failed to fetch";
           logError(`[Network Connection Error] ${method} ${pathName}: ${errorMessage}`, "error", {
@@ -361,13 +365,11 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
           });
           networkMonitor.reportError(urlStr, method, errorMessage, 0);
 
-          if (!isBackgroundGet) {
-            triggerDebouncedToast(
-              "Network Request Error",
-              `Unable to connect to server (${errorMessage}). Please verify your network connection.`,
-              { type: "upload" }
-            );
-          }
+          triggerDebouncedToast(
+            "Network Request Error",
+            `Unable to connect to server (${errorMessage}). Please verify your network connection.`,
+            { type: "upload" }
+          );
         }
       }
 

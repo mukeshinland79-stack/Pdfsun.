@@ -113,7 +113,7 @@ export async function precacheAppFontsAndIcons(): Promise<boolean> {
         try {
           const match = await cache.match(url);
           if (!match) {
-            const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' });
+            const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' }).catch(() => null);
             if (res && res.ok) await cache.put(url, res);
           }
         } catch {
@@ -140,7 +140,7 @@ export async function precacheToolAssets(urls: string[] = CORE_PWA_ASSETS): Prom
     const cache = await caches.open(CACHE_NAME);
     const fetchPromises = urls.map(async (url) => {
       try {
-        const response = await fetch(url, { cache: 'no-cache', mode: url.startsWith('http') ? 'cors' : 'same-origin' });
+        const response = await fetch(url, { cache: 'no-cache', mode: url.startsWith('http') ? 'cors' : 'same-origin' }).catch(() => null);
         if (response && response.ok) {
           await cache.put(url, response.clone());
         }
@@ -195,7 +195,7 @@ export async function precacheLoadedAppShell(): Promise<number> {
         try {
           const match = await cache.match(url);
           if (!match) {
-            const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' });
+            const res = await fetch(url, { mode: url.startsWith('http') ? 'cors' : 'same-origin' }).catch(() => null);
             if (res && res.ok) {
               await cache.put(url, res.clone());
               cachedCount++;

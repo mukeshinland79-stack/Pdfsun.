@@ -77,6 +77,8 @@ import {
   PdfMetadataResult,
   createBatchZip,
   downloadFile,
+  validateOutputBlob,
+  ensureValidFilename,
   fileToText,
   createSamplePdfFile,
   fileToBase64,
@@ -199,6 +201,42 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     mimeType: string;
   } | null>(null);
   const [toolSwapOpen, setToolSwapOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccessBadge, setDownloadSuccessBadge] = useState(false);
+
+  // Dedicated explicit user-triggered download handler
+  const handleTriggerDownload = useCallback(
+    (customBytes?: Uint8Array | Blob | string, customName?: string, customMime?: string) => {
+      if (!downloadReady && !customBytes) return;
+      setIsDownloading(true);
+      try {
+        const dataToDownload = customBytes || downloadReady!.data;
+        const nameToDownload = customName || downloadReady!.fileName;
+        const mimeToDownload = customMime || downloadReady!.mimeType;
+        downloadFile(dataToDownload, nameToDownload, mimeToDownload);
+        setDownloadSuccessBadge(true);
+        setTimeout(() => setDownloadSuccessBadge(false), 4000);
+      } catch (err: any) {
+        console.error("Download error:", err);
+        triggerErrorToast("Download Failed", err?.message || "Could not save file to disk.");
+      } finally {
+        setTimeout(() => {
+          setIsDownloading(false);
+        }, 800);
+      }
+    },
+    [downloadReady]
+  );
+
+  // Clean up memory and file references on unmount
+  useEffect(() => {
+    return () => {
+      setDownloadReady(null);
+      setFiles([]);
+      setFileStates([]);
+      setLiveTableMatrix([]);
+    };
+  }, []);
 
   // 1-Click Pipeline helper: passes processed output directly into another tool
   const handlePipelineToTool = useCallback((targetToolId: string) => {
@@ -1209,12 +1247,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         const outSize = outputBytes instanceof Uint8Array ? outputBytes.byteLength : (typeof outputBytes === "string" ? outputBytes.length : 0);
         trackGAProcessingSuccess(tool.id, latencyMs, outSize);
 
-        // Validate output blob integrity and sanitize filename extension
-        const downloadResult = downloadFile(outputBytes, outputName, mimeType);
+        // Validate output blob integrity and sanitize filename without auto-triggering download
+        const { bytesCount } = validateOutputBlob(outputBytes, mimeType);
+        const finalFileName = ensureValidFilename(outputName, mimeType);
 
         setDownloadReady({
           data: outputBytes,
-          fileName: downloadResult.finalFileName,
+          fileName: finalFileName,
           mimeType,
         });
 
@@ -1239,7 +1278,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           fileName: files[0]?.name || "Document",
           timestamp: Date.now(),
           status: "completed",
-          outputFileName: downloadResult.finalFileName,
+          outputFileName: finalFileName,
           snippet: ocrSnippetText,
         });
       } else {
@@ -3347,6 +3386,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <div className="inline-flex rounded-xl shadow-md overflow-hidden border border-emerald-600">
                       <button
                         type="button"
+                        disabled={isDownloading}
                         onClick={() => {
                           if (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) {
                             const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Data";
@@ -3364,16 +3404,28 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 : postProcessFormatChoice === "xls"
                                 ? "application/vnd.ms-excel"
                                 : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                            downloadFile(res.bytes, res.fileName, mime);
+                            handleTriggerDownload(res.bytes, res.fileName, mime);
                           } else {
-                            downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                            handleTriggerDownload();
                           }
                         }}
-                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black transition flex items-center space-x-1.5"
+                        className={`px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black transition flex items-center space-x-1.5 ${
+                          isDownloading ? "opacity-75 cursor-wait" : ""
+                        }`}
                       >
-                        <Download className="w-4 h-4" />
+                        {isDownloading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : downloadSuccessBadge ? (
+                          <Check className="w-4 h-4 text-emerald-200" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
                         <span>
-                          {tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0
+                          {isDownloading
+                            ? "Preparing..."
+                            : downloadSuccessBadge
+                            ? "Downloaded!"
+                            : tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0
                             ? `Download .${postProcessFormatChoice.toUpperCase()}`
                             : "Download File"}
                         </span>
@@ -3485,6 +3537,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   {/* Direct Download Button */}
                   <button
                     type="button"
+                    disabled={isDownloading}
                     onClick={() => {
                       if (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) {
                         const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Data";
@@ -3502,15 +3555,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             : postProcessFormatChoice === "xls"
                             ? "application/vnd.ms-excel"
                             : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                        downloadFile(res.bytes, res.fileName, mime);
+                        handleTriggerDownload(res.bytes, res.fileName, mime);
                       } else {
-                        downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                        handleTriggerDownload();
                       }
                     }}
-                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center space-x-1.5"
+                    className={`px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center space-x-1.5 ${
+                      isDownloading ? "opacity-75 cursor-wait" : ""
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
+                    {isDownloading ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : downloadSuccessBadge ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-200" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isDownloading ? "Saving..." : downloadSuccessBadge ? "Downloaded!" : "Download"}</span>
                   </button>
 
                   {/* Mobile Transfer QR Code Button */}
@@ -3553,7 +3614,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+                            handleTriggerDownload();
                             setExportMenuOpen(false);
                           }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 transition"
@@ -4107,7 +4168,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           onClose={() => setShowShareModal(false)}
           onDownloadDirect={() => {
             if (downloadReady) {
-              downloadFile(downloadReady.data, downloadReady.fileName, downloadReady.mimeType);
+              handleTriggerDownload();
             }
           }}
         />

@@ -35,6 +35,7 @@ import {
   removeWatermarkFromPdf,
   RemoveWatermarkOptions,
   hexToRgb,
+  downloadFile,
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
@@ -476,15 +477,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   // Trigger Local Direct Download
   const handleDownload = () => {
     if (!downloadReady) return;
-    const blob = new Blob([downloadReady.data], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = downloadReady.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadFile(downloadReady.data, downloadReady.fileName, "application/pdf");
   };
 
   return (

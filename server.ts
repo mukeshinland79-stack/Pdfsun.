@@ -276,6 +276,32 @@ function getGeminiClient() {
   });
 }
 
+// Secure PDF & File Download Delivery Route with Standard Browser Headers
+app.post("/api/download/file", (req, res) => {
+  try {
+    const { fileBase64, fileName = "PDFSun_Processed_Document.pdf", mimeType = "application/pdf" } = req.body || {};
+    if (!fileBase64) {
+      return res.status(400).json({ error: "Missing file payload in request body." });
+    }
+
+    const cleanFilename = (fileName || "PDFSun_Document.pdf").replace(/[/\\?%*:|"<>]/g, "_").trim();
+    const buffer = Buffer.from(fileBase64, "base64");
+
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Disposition", `attachment; filename="${cleanFilename}"`);
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, Content-Length");
+
+    return res.end(buffer);
+  } catch (err: any) {
+    console.error("Download streaming error:", err);
+    return res.status(500).json({ error: "Failed to generate downloadable stream." });
+  }
+});
+
 // AI API Endpoints (Fully accessible without throttling blocks)
 app.post("/api/ai/chat", async (req, res) => {
   try {
@@ -1039,9 +1065,13 @@ app.all(
 );
 
 // ==========================================
-// REAL-TIME LIVE ANALYTICS SYSTEM ENGINE
+// REAL-TIME LIVE ANALYTICS & TELEMETRY ENGINE
 // ==========================================
 app.use("/api/analytics", analyticsRouter);
+
+app.post(["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"], (req, res) => {
+  res.json({ success: true, timestamp: new Date().toISOString() });
+});
 
 // ==========================================
 // TODAY IN HISTORY MULTILINGUAL API ENGINE

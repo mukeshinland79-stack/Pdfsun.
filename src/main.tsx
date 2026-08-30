@@ -28,7 +28,12 @@ if (typeof window !== 'undefined') {
       s.includes('adtrafficquality') ||
       s.includes('googlesyndication') ||
       s.includes('doubleclick') ||
-      s.includes('googleadservices')
+      s.includes('googleadservices') ||
+      s.includes('clarity.ms') ||
+      s.includes('pagead2') ||
+      s.includes('failed to fetch') ||
+      s.includes('load failed') ||
+      s.includes('networkerror when attempting to fetch resource')
     );
   };
 
