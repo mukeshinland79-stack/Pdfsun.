@@ -51,10 +51,12 @@ import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
 import { trackGAPricingView, trackGAPaymentSuccess } from "./utils/analytics";
+import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
 export default function App() {
+  const { currentLanguage, setLanguage } = useLanguage();
   // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
   // Ref to track theme initialization status
@@ -390,8 +392,39 @@ export default function App() {
         const params = new URLSearchParams(window.location.search);
         const currentPath = window.location.pathname;
 
+        // 1. Language sub-path / query parameter detection and dynamic synchronization
+        const pathParts = currentPath.split("/").filter(Boolean);
+        let detectedLang: string | null = null;
+        let effectivePath = currentPath;
+
+        if (pathParts.length > 0) {
+          const firstSegment = pathParts[0].toLowerCase();
+          const matchedLang = SUPPORTED_LANGUAGES.find(
+            (l) => l.code.toLowerCase() === firstSegment || l.code.toLowerCase() === firstSegment.split("-")[0]
+          );
+          if (matchedLang) {
+            detectedLang = matchedLang.code;
+            effectivePath = "/" + pathParts.slice(1).join("/");
+          }
+        }
+
+        const queryLang = params.get("lang") || params.get("lng");
+        if (queryLang) {
+          const cleanQuery = queryLang.toLowerCase().split("-")[0];
+          const matchedLang = SUPPORTED_LANGUAGES.find(
+            (l) => l.code.toLowerCase() === queryLang.toLowerCase() || l.code.toLowerCase() === cleanQuery
+          );
+          if (matchedLang) {
+            detectedLang = matchedLang.code;
+          }
+        }
+
+        if (detectedLang && detectedLang !== currentLanguage) {
+          setLanguage(detectedLang);
+        }
+
         const isPricingUrl =
-          currentPath === "/pricing" ||
+          effectivePath === "/pricing" ||
           window.location.hash === "#pricing" ||
           params.get("view") === "pricing" ||
           params.has("pricing") ||
@@ -402,8 +435,8 @@ export default function App() {
         }
 
         const isInstallUrl =
-          currentPath === "/install" ||
-          currentPath === "/app" ||
+          effectivePath === "/install" ||
+          effectivePath === "/app" ||
           window.location.hash === "#install" ||
           params.has("install") ||
           params.has("pwa") ||
@@ -415,7 +448,7 @@ export default function App() {
         }
 
         const isHistoryUrl =
-          currentPath === "/today-in-history" ||
+          effectivePath === "/today-in-history" ||
           window.location.hash === "#today-in-history" ||
           params.get("view") === "history" ||
           params.has("today-in-history");
@@ -426,7 +459,7 @@ export default function App() {
         }
 
         // Check for Programmatic SEO (pSEO) targeted landing pages
-        const matchedPseo = matchPSEORoute(currentPath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
+        const matchedPseo = matchPSEORoute(effectivePath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
         if (matchedPseo) {
           setActivePseoPage(matchedPseo);
           const targetTool = ALL_TOOLS.find(
@@ -441,8 +474,8 @@ export default function App() {
         // Check for standard direct tool route (e.g. /merge-pdf or /tool/merge-pdf or ?tool=merge-pdf)
         const toolParam = params.get("tool") || params.get("toolId");
         let matchedSlug = toolParam;
-        if (!matchedSlug && currentPath && currentPath !== "/") {
-          const cleanSlug = currentPath.replace(/^\/(tool\/)?/, "").replace(/\/$/, "");
+        if (!matchedSlug && effectivePath && effectivePath !== "/") {
+          const cleanSlug = effectivePath.replace(/^\/(tool\/)?/, "").replace(/\/$/, "");
           matchedSlug = cleanSlug;
         }
 
@@ -453,7 +486,7 @@ export default function App() {
           if (targetTool) {
             setActiveTool(targetTool);
           }
-        } else if (currentPath === "/") {
+        } else if (effectivePath === "/" || effectivePath === "") {
           setActiveTool(null);
           setActivePseoPage(null);
         }
@@ -586,23 +619,25 @@ export default function App() {
     setActiveTool(null);
     setActivePseoPage(null);
     if (typeof window !== "undefined" && window.location.pathname !== "/" && !window.location.pathname.startsWith("/pricing") && !window.location.pathname.startsWith("/admin")) {
-      window.history.pushState({}, "", "/");
+      const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
+      window.history.pushState({}, "", `/${langQuery}`);
     }
-  }, []);
+  }, [currentLanguage]);
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
     trackToolUsage(tool.id);
     setActiveTool(tool);
+    const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
     if (customPseoPage !== undefined) {
       setActivePseoPage(customPseoPage);
       if (customPseoPage && typeof window !== "undefined") {
-        window.history.pushState({}, "", `/${customPseoPage.slug}`);
+        window.history.pushState({}, "", `/${customPseoPage.slug}${langQuery}`);
       }
     } else if (activePseoPage && (activePseoPage.targetToolId !== tool.id && activePseoPage.targetToolId !== tool.slug)) {
       setActivePseoPage(null);
     } else {
       if (typeof window !== "undefined" && window.location.pathname !== `/${tool.slug}`) {
-        window.history.pushState({}, "", `/${tool.slug}`);
+        window.history.pushState({}, "", `/${tool.slug}${langQuery}`);
       }
     }
     if (initialFiles) setActiveToolFiles(initialFiles);

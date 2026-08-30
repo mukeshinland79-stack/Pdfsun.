@@ -170,13 +170,34 @@ export const resetAllCmsOverrides = () => {
 export const getInitialLanguage = (): string => {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
   try {
-    // 1. Check persisted user selection from localStorage first
+    // 1. Check URL query parameters (?lang=... or ?lng=...) first for direct links & SEO
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlLang = searchParams.get("lang") || searchParams.get("lng");
+    if (urlLang) {
+      const clean = urlLang.toLowerCase().split("-")[0];
+      const match = SUPPORTED_LANGUAGES.find(
+        (l) => l.code.toLowerCase() === urlLang.toLowerCase() || l.code.toLowerCase() === clean
+      );
+      if (match) return match.code;
+    }
+
+    // 2. Check URL path prefix (e.g. /hi/, /es/, /de/, /ar/, /hi/pricing, /es/merge-pdf)
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      const potentialLang = pathParts[0].toLowerCase();
+      const match = SUPPORTED_LANGUAGES.find(
+        (l) => l.code.toLowerCase() === potentialLang || l.code.toLowerCase() === potentialLang.split("-")[0]
+      );
+      if (match) return match.code;
+    }
+
+    // 3. Check persisted user selection from localStorage
     const persisted = getPersistedLanguage();
     if (persisted) {
       return persisted;
     }
 
-    // 2. Fall back to browser navigator language preference
+    // 4. Fall back to browser navigator language preference
     const nav = typeof navigator !== "undefined" ? navigator : null;
     if (nav) {
       const preferredLangs = Array.isArray(nav.languages) && nav.languages.length > 0
@@ -1605,6 +1626,37 @@ export const KEY_ALIASES: Record<string, string[]> = {
   "categories.optimize": ["categories.optimize"],
   "categories.advanced": ["categories.advanced"],
 
+  // Pricing & SSO Plans
+  "pricing.badge": ["pricing.badge"],
+  "pricing.title": ["pricing.title"],
+  "pricing.titleHighlight": ["pricing.titleHighlight", "pricing"],
+  "pricing.subtitle": ["pricing.subtitle"],
+  "pricing.monthly": ["pricing.monthly"],
+  "pricing.yearly": ["pricing.yearly"],
+  "pricing.savePercent": ["pricing.savePercent"],
+  "pricing.guarantee": ["pricing.guarantee"],
+  "pricing.termsTitle": ["pricing.termsTitle"],
+  "pricing.termsText": ["pricing.termsText"],
+  "pricing.activePlan": ["pricing.activePlan"],
+  "pricing.planActivated": ["pricing.planActivated"],
+  "pricing.backToTools": ["pricing.backToTools", "nav.allTools"],
+
+  // Footer, Trust Badges & Compliance
+  "footer.brandGuidelines": ["footer.brandGuidelines", "nav.brandKit"],
+  "footer.securityEncrypted": ["footer.securityEncrypted", "badges.privacyTitle"],
+  "footer.isoGdprCompliant": ["footer.isoGdprCompliant", "footer.complianceFull"],
+  "footer.paymentPartner": ["footer.paymentPartner"],
+  "footer.instantDelivery": ["footer.instantDelivery", "badges.ultraFast"],
+  "footer.complianceFull": ["footer.complianceFull"],
+  "footer.quickLinks": ["footer.quickLinks", "nav.allTools"],
+  "footer.allPdfTools": ["footer.allPdfTools", "nav.allTools"],
+  "footer.aiToolsSuite": ["footer.aiToolsSuite", "nav.aiSuite"],
+  "footer.pricingPlans": ["footer.pricingPlans", "pricing.titleHighlight"],
+  "footer.policies": ["footer.policies"],
+  "footer.resources": ["footer.resources"],
+  "footer.supportContact": ["footer.supportContact"],
+  "footer.social": ["footer.social"],
+
   // Footer & Legal
   privacyPolicy: ["footer.privacyPolicy", "policies.privacy", "footer.policies"],
   termsOfService: ["footer.termsOfService", "policies.terms", "footer.policies"],
@@ -1766,6 +1818,19 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       document.cookie = `pdfsun_lang=${encodeURIComponent(validLang)}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = validLang;
       document.documentElement.dir = isRtlLanguage(validLang) ? "rtl" : "ltr";
+
+      // Dynamically update URL query parameter to keep language state persistent & shareable
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        if (validLang === DEFAULT_LANGUAGE) {
+          url.searchParams.delete("lang");
+          url.searchParams.delete("lng");
+        } else {
+          url.searchParams.set("lang", validLang);
+        }
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      }
+
       window.dispatchEvent(new CustomEvent("pdfsun_language_changed", { detail: { lang: validLang } }));
     } catch {
       // Ignore storage access error

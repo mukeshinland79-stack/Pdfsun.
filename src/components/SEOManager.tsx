@@ -34,7 +34,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   isPricingActive = false,
   pseoPage = null,
 }) => {
-  const { t, currentLanguage, getToolName, getToolDescription } = useLanguage();
+  const { t, currentLanguage, isRtl, getToolName, getToolDescription } = useLanguage();
 
   // 1. Base WebSite & SearchAction Schema
   const websiteSchema = {
@@ -444,15 +444,23 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     };
   }
 
-  const defaultTitle = "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
-  const defaultDesc = "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.";
+  const defaultTitle = `PDFSun - ${t("hero.title", "Enterprise PDF Tools & Document Engine")} | ${t("hero.statsPrivate", "100% In-Browser Privacy")}`;
+  const defaultDesc = `${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")} ${t("badges.privacyTitle", "100% In-Browser Privacy")}.`;
 
-  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? "PDFSun Pricing & Plans - Free, Pro & Enterprise SSO PDF Tools | pdfsun.in" : (activeTool ? `${activeTool.name} - Free Online PDF Tool | PDFSun` : defaultTitle));
-  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? "Flexible, transparent pricing for students, professionals, and enterprises. 100% private in-browser WebAssembly PDF processing, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO." : (activeTool ? `${activeTool.description} Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.` : defaultDesc));
+  const localizedToolName = activeTool ? getToolName(activeTool) : "";
+  const localizedToolDesc = activeTool ? getToolDescription(activeTool) : "";
+
+  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in` : (activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle));
+  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}` : (activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc));
   const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 
   return (
-    <Helmet>
+    <Helmet
+      htmlAttributes={{
+        lang: currentLanguage,
+        dir: isRtl ? "rtl" : "ltr",
+      }}
+    >
       <title>{helmetTitle}</title>
       <meta name="description" content={helmetDesc} />
       <link rel="canonical" href={canonicalUrl} />

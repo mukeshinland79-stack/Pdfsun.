@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { downloadFile } from "../lib/pdfEngine";
+import { useLanguage } from "../lib/i18n";
 
 // Set PDF.js worker
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
@@ -175,6 +176,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
   onClose,
   onSaveComplete,
 }) => {
+  const { t } = useLanguage();
   // Document State
   const [pdfDocProxy, setPdfDocProxy] = useState<any>(null);
   const [pagesMeta, setPagesMeta] = useState<PageMeta[]>([]);
@@ -1237,17 +1239,17 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
           <button
             onClick={handleSaveAndExport}
             disabled={isExporting}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-md transition disabled:opacity-50"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
           >
             {isExporting ? (
               <>
                 <RotateCw className="w-4 h-4 animate-spin" />
-                <span>Exporting ({exportProgress}%)...</span>
+                <span>{t("editor.exporting", `Exporting (${exportProgress}%)...`)}</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>Save & Export PDF</span>
+                <span>{t("editor.saveExport", "Save & Export PDF")}</span>
               </>
             )}
           </button>
@@ -1268,122 +1270,122 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
           <button
             onClick={() => setActiveTool("select")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "select"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <MousePointer className="w-4 h-4" />
-            <span className="hidden sm:inline">Select</span>
+            <span className="hidden sm:inline">{t("editor.select", "Select")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("pen")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "pen"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Pen className="w-4 h-4" />
-            <span>Draw</span>
+            <span>{t("editor.draw", "Draw")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("highlighter")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "highlighter"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Highlighter className="w-4 h-4 text-yellow-400" />
-            <span>Highlight</span>
+            <span>{t("editor.highlight", "Highlight")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("text")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "text"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Type className="w-4 h-4" />
-            <span>Add Text</span>
+            <span>{t("editor.addText", "Add Text")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("rect")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "rect"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Square className="w-4 h-4" />
-            <span className="hidden md:inline">Rectangle</span>
+            <span className="hidden md:inline">{t("editor.rect", "Rectangle")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("circle")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "circle"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Circle className="w-4 h-4" />
-            <span className="hidden md:inline">Circle</span>
+            <span className="hidden md:inline">{t("editor.circle", "Circle")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("arrow")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "arrow"
                 ? "bg-amber-500 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <ArrowRight className="w-4 h-4" />
-            <span className="hidden md:inline">Arrow</span>
+            <span className="hidden md:inline">{t("editor.arrow", "Arrow")}</span>
           </button>
 
           <button
             onClick={() => setActiveTool("redact")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "redact"
                 ? "bg-rose-600 text-white shadow"
                 : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
             }`}
           >
             <Lock className="w-4 h-4 text-rose-400" />
-            <span>Redact</span>
+            <span>{t("editor.redact", "Redact")}</span>
           </button>
 
           <button
             onClick={() => setShowStampModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
           >
             <Stamp className="w-4 h-4 text-amber-400" />
-            <span>Stamp</span>
+            <span>{t("editor.stamp", "Stamp")}</span>
           </button>
 
           <button
             onClick={() => setShowSignatureModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
           >
             <Pen className="w-4 h-4 text-sky-400" />
-            <span>Sign</span>
+            <span>{t("editor.sign", "Sign")}</span>
           </button>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
           >
             <ImageIcon className="w-4 h-4 text-emerald-400" />
-            <span>Insert Image</span>
+            <span>{t("editor.insertImage", "Insert Image")}</span>
           </button>
           <input
             ref={fileInputRef}

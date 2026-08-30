@@ -58,6 +58,7 @@ import { TableGridPreviewModal } from "./TableGridPreviewModal";
 import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
 import { getToolFAQs } from "./SEOManager";
 import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
+import { useLanguage } from "../lib/i18n";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -191,6 +192,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   onAddHistory,
   usageTracker,
 }) => {
+  const { t } = useLanguage();
+  const translatedToolName = t(`tools.${tool.id}.name`, tool.name);
+  const translatedToolDesc = t(`tools.${tool.id}.desc`, tool.description);
   const effectiveInitialFiles = activeToolFiles && activeToolFiles.length > 0 ? activeToolFiles : initialFiles;
   const [files, setFiles] = useState<File[]>(effectiveInitialFiles);
   const [fileStates, setFileStates] = useState<ExtendedFileState[]>([]);
@@ -1394,7 +1398,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
-                <span>{tool.name}</span>
+                <span>{translatedToolName}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500 text-white font-extrabold uppercase">
                   PDFSun Engine
                 </span>
@@ -1411,7 +1415,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">(128)</span>
                 </button>
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{tool.description}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{translatedToolDesc}</p>
             </div>
           </div>
 
@@ -1425,29 +1429,29 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   title="Switch to another tool keeping current files"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
-                  <span className="hidden sm:inline">Swap Tool</span>
+                  <span className="hidden sm:inline">{t("workspace.swapTool", "Swap Tool")}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
 
                 {toolSwapOpen && (
                   <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 max-h-72 overflow-y-auto">
                     <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
-                      Switch Active Tool
+                      {t("workspace.switchActiveTool", "Switch Active Tool")}
                     </div>
-                    {ALL_TOOLS.filter((t) => t.id !== tool.id).slice(0, 10).map((t) => (
+                    {ALL_TOOLS.filter((t) => t.id !== tool.id).slice(0, 10).map((tItem) => (
                       <button
-                        key={t.id}
+                        key={tItem.id}
                         type="button"
                         onClick={() => {
                           setToolSwapOpen(false);
                           if (onSelectTool) {
-                            onSelectTool(t, files);
+                            onSelectTool(tItem, files);
                           }
                         }}
                         className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-200 hover:text-orange-600 transition flex items-center justify-between"
                       >
-                        <span className="truncate">{t.name}</span>
-                        {t.isAi && <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold uppercase">AI</span>}
+                        <span className="truncate">{t(`tools.${tItem.id}.name`, tItem.name)}</span>
+                        {tItem.isAi && <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold uppercase">AI</span>}
                       </button>
                     ))}
                   </div>
@@ -1490,12 +1494,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
               {isDragActive
                 ? isDragReject
-                  ? "Some files may not be supported"
-                  : "Release files to add to workspace"
-                : "Click or Drag & Drop Files Here"}
+                  ? t("workspace.dropzoneReject", "Some files may not be supported")
+                  : t("workspace.dropzoneRelease", "Release files to add to workspace")
+                : t("workspace.dropzoneTitle", "Click or Drag & Drop Files Here")}
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Supports {tool.supportedInput.join(", ")} • Up to 100MB per file • Real-time header validation
+              {t("workspace.supportsFormat", `Supports ${tool.supportedInput.join(", ")} • Up to 100MB per file • Real-time header validation`)}
             </p>
           </div>
 
@@ -2006,7 +2010,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-slate-800/60 border border-amber-500/20 space-y-4">
             <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               <Settings className="w-4 h-4" />
-              <span>{tool.name} Parameters & Settings</span>
+              <span>{translatedToolName} {t("workspace.parametersSettings", "Parameters & Settings")}</span>
             </div>
 
             {/* Category 1 & Tool Specific Option Schema */}
@@ -4145,24 +4149,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               title="Share this tool"
             >
               <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-              <span className="hidden xs:inline">Share</span>
+              <span className="hidden xs:inline">{t("nav.share", "Share")}</span>
             </button>
           </div>
 
           <button
             onClick={executeProcess}
             disabled={isProcessing || isLocked || isValidating}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/20 hover:opacity-95 disabled:opacity-50 transition flex items-center space-x-2"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/20 hover:opacity-95 disabled:opacity-50 transition flex items-center space-x-2 cursor-pointer"
           >
             {isProcessing || isLocked ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Streaming & Processing...</span>
+                <span>{t("workspace.processing", "Streaming & Processing...")}</span>
               </>
             ) : (
               <>
                 <Play className="w-4 h-4 fill-white" />
-                <span>Run {tool.name}</span>
+                <span>{t("workspace.runTool", `Run ${translatedToolName}`, { toolName: translatedToolName })}</span>
               </>
             )}
           </button>
