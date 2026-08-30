@@ -57,6 +57,7 @@ import { triggerErrorToast } from "./GlobalErrorToast";
 import { TableGridPreviewModal } from "./TableGridPreviewModal";
 import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
 import { getToolFAQs } from "./SEOManager";
+import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -79,6 +80,8 @@ import {
   downloadFile,
   validateOutputBlob,
   ensureValidFilename,
+  generateDocumentThumbnail,
+  DocumentThumbnailSummary,
   fileToText,
   createSamplePdfFile,
   fileToBase64,
@@ -163,6 +166,7 @@ export interface ExtendedFileState extends FileValidationResult {
 interface ActiveToolWorkspaceProps {
   tool: ToolItem;
   initialFiles?: File[];
+  activeToolFiles?: File[];
   onClose: () => void;
   onSelectTool?: (tool: ToolItem, initialFiles?: File[]) => void;
   onAddHistory: (item: ToolHistoryItem) => void;
@@ -181,12 +185,14 @@ interface ActiveToolWorkspaceProps {
 export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   tool,
   initialFiles = [],
+  activeToolFiles,
   onClose,
   onSelectTool,
   onAddHistory,
   usageTracker,
 }) => {
-  const [files, setFiles] = useState<File[]>(initialFiles);
+  const effectiveInitialFiles = activeToolFiles && activeToolFiles.length > 0 ? activeToolFiles : initialFiles;
+  const [files, setFiles] = useState<File[]>(effectiveInitialFiles);
   const [fileStates, setFileStates] = useState<ExtendedFileState[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -203,6 +209,45 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [toolSwapOpen, setToolSwapOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessBadge, setDownloadSuccessBadge] = useState(false);
+  const [docThumbnails, setDocThumbnails] = useState<Record<string, DocumentThumbnailSummary>>({});
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Record<string, boolean>>({});
+
+  // Dynamically update files if activeToolFiles or initialFiles changes from parent
+  useEffect(() => {
+    if (activeToolFiles && activeToolFiles.length > 0) {
+      setFiles(activeToolFiles);
+    } else if (initialFiles && initialFiles.length > 0) {
+      setFiles(initialFiles);
+    }
+  }, [activeToolFiles, initialFiles]);
+
+  // Asynchronously extract high-fidelity PDF / Image thumbnails & metadata upon upload
+  useEffect(() => {
+    if (!files || files.length === 0) {
+      setDocThumbnails({});
+      setLoadingThumbnails({});
+      return;
+    }
+
+    files.forEach((file) => {
+      const fileKey = `${file.name}_${file.size}_${file.lastModified}`;
+      if (!docThumbnails[fileKey] && !loadingThumbnails[fileKey]) {
+        setLoadingThumbnails((prev) => ({ ...prev, [fileKey]: true }));
+        generateDocumentThumbnail(file)
+          .then((summary) => {
+            if (summary) {
+              setDocThumbnails((prev) => ({ ...prev, [fileKey]: summary }));
+            }
+          })
+          .catch((err) => {
+            console.warn("Document thumbnail rendering notice:", err);
+          })
+          .finally(() => {
+            setLoadingThumbnails((prev) => ({ ...prev, [fileKey]: false }));
+          });
+      }
+    });
+  }, [files]);
 
   // Dedicated explicit user-triggered download handler
   const handleTriggerDownload = useCallback(
@@ -1484,7 +1529,163 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
           {/* Uploaded & Validated File List with Thumbnail Preview Grid */}
           {files.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Document Confirmation & Metadata Summary Banner */}
+              {(() => {
+                const firstFile = files[0];
+                const firstState = fileStates[0];
+                const firstKey = firstFile ? `${firstFile.name}_${firstFile.size}_${firstFile.lastModified}` : "";
+                const firstThumb = docThumbnails[firstKey];
+                const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+                const formattedTotalSize = totalBytes > 1024 * 1024 ? `${(totalBytes / (1024 * 1024)).toFixed(2)} MB` : `${Math.round(totalBytes / 1024)} KB`;
+                const totalEstimatedPages = Object.values(docThumbnails).reduce((acc, t) => acc + (t.pageCount || 1), 0);
+
+                if (files.length === 1 && firstState) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-slate-900/60 border border-emerald-500/30 dark:border-emerald-500/20 shadow-xs animate-in fade-in space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start sm:items-center space-x-3">
+                          {/* Mini Interactive Document Thumbnail Canvas */}
+                          <div className="relative w-14 h-18 sm:w-16 sm:h-20 shrink-0">
+                            <PdfPreviewCanvas
+                              file={firstFile}
+                              interactive={true}
+                              showControls={false}
+                              showMetadata={false}
+                              maxDimension={200}
+                              className="w-full h-full rounded-xl border-emerald-500/30 shadow-xs"
+                              onPreviewClick={() => setPreviewModalFile({ file: firstFile, index: 0, state: firstState })}
+                            />
+                          </div>
+
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] flex items-center space-x-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>Verified Document</span>
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {firstState.sizeFormatted}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white truncate max-w-sm sm:max-w-md" title={firstFile.name}>
+                              {firstFile.name}
+                            </h4>
+                            {firstThumb?.title && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs sm:max-w-md">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">Title:</span> {firstThumb.title}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick Action Button */}
+                        <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewModalFile({ file: firstFile, index: 0, state: firstState })}
+                            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs transition flex items-center space-x-1.5"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Quick Preview</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(0)}
+                            className="p-1.5 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-500 transition"
+                            title="Remove file and choose another"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Document Metadata Badges Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-500/20 dark:border-emerald-500/10 text-[11px]">
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                          <FileText className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-[10px] text-slate-400 font-medium">Page Count</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                              {firstThumb?.pageCount ? `${firstThumb.pageCount} Page${firstThumb.pageCount > 1 ? "s" : ""}` : "1 Page"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-[10px] text-slate-400 font-medium">Paper Format</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                              {firstThumb?.pageSizeName || firstState.detectedType}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                          <HardDrive className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-[10px] text-slate-400 font-medium">Exact Size</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                              {firstState.sizeFormatted}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-[10px] text-slate-400 font-medium">Security</div>
+                            <div className="font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                              Client-Side Safe
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (files.length > 1) {
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-slate-50 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-slate-900/60 border border-orange-500/30 dark:border-orange-500/20 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                            <span>{files.length} Documents Uploaded</span>
+                            <span className="px-2 py-0.5 rounded-md bg-orange-500 text-white font-extrabold text-[10px]">
+                              Batch Ready
+                            </span>
+                          </div>
+                          <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            Combined {formattedTotalSize} • ~{totalEstimatedPages} total pages • Ready for {tool.name}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFiles([]);
+                            setFileStates([]);
+                            setDocThumbnails({});
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[11px] font-bold transition"
+                        >
+                          Clear All Files
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <div className="flex items-center space-x-2">
                   <span className="text-slate-800 dark:text-slate-200 font-extrabold normal-case">
@@ -1548,6 +1749,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     const hasWarning = fs.status === "warning";
                     const isImage = fs.file.type.startsWith("image/");
                     const isPdf = fs.file.type.includes("pdf") || fs.file.name.endsWith(".pdf");
+                    const fileKey = `${fs.file.name}_${fs.file.size}_${fs.file.lastModified}`;
+                    const thumb = docThumbnails[fileKey];
+                    const isThumbLoading = loadingThumbnails[fileKey];
 
                     return (
                       <div
@@ -1566,72 +1770,22 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           <span className="opacity-80 font-normal">in order</span>
                         </div>
 
-                        {/* PDF Page Canvas Preview Frame */}
-                        <div className="relative w-full aspect-[1/1.3] bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs flex flex-col justify-between p-2.5 my-1 transition group-hover:scale-[1.01]">
-                          {/* Simulated document layout inside canvas */}
-                          <div
-                            className="w-full h-full flex flex-col justify-between transition-transform duration-300"
-                            style={{
-                              transform: `rotate(${(fileRotations[idx] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}deg)`,
+                        {/* PDF Page Canvas Preview Frame with Real Rendered Thumbnail */}
+                        <div className="relative w-full aspect-[1/1.3] my-1">
+                          <PdfPreviewCanvas
+                            file={fs.file}
+                            rotation={(fileRotations[idx] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
+                            interactive={true}
+                            showControls={true}
+                            showMetadata={false}
+                            showPageNavigation={false}
+                            maxDimension={280}
+                            className="w-full h-full"
+                            onRotate={(newRot) => {
+                              setFileRotations((prev) => ({ ...prev, [idx]: newRot }));
                             }}
-                          >
-                            <div className="space-y-1.5">
-                              {/* Header document line */}
-                              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
-                                <div className="flex items-center space-x-1">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
-                                  <span className="text-[9px] font-bold text-slate-400 font-mono">PDF Page 1</span>
-                                </div>
-                                <span className="text-[8px] text-slate-300 font-mono uppercase">{fs.detectedType}</span>
-                              </div>
-
-                              {/* Simulated Text Paragraph Lines */}
-                              <div className="space-y-1 pt-1">
-                                <div className="h-1.5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-full" />
-                                <div className="h-1 w-full bg-slate-150 dark:bg-slate-850 rounded-full bg-slate-200/60 dark:bg-slate-800/60" />
-                                <div className="h-1 w-5/6 bg-slate-200/60 dark:bg-slate-800/60 rounded-full" />
-                                <div className="h-1 w-2/3 bg-slate-200/60 dark:bg-slate-800/60 rounded-full" />
-                              </div>
-                            </div>
-
-                            {/* Center Preview Emblem */}
-                            <div className="flex flex-col items-center justify-center my-auto py-2">
-                              {isPdf ? (
-                                <div className="w-9 h-9 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center font-bold">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                              ) : isImage ? (
-                                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 flex items-center justify-center font-bold">
-                                  <UploadCloud className="w-5 h-5" />
-                                </div>
-                              ) : (
-                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold">
-                                  <FileCheck className="w-5 h-5" />
-                                </div>
-                              )}
-                              <span className="text-[9px] font-extrabold text-slate-600 dark:text-slate-300 mt-1 truncate max-w-[90px]">
-                                {fs.file.name.replace(/\.[^/.]+$/, "")}
-                              </span>
-                            </div>
-
-                            {/* Footer page number indicator */}
-                            <div className="flex items-center justify-between text-[8px] text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1 font-mono">
-                              <span>A4 Format</span>
-                              <span>PDFSun Engine</span>
-                            </div>
-                          </div>
-
-                          {/* Hover Zoom Overlay Button */}
-                          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
-                              className="px-2.5 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl text-[11px] font-bold shadow-lg flex items-center space-x-1 hover:scale-105 transition"
-                            >
-                              <ZoomIn className="w-3.5 h-3.5 text-orange-500" />
-                              <span>Preview</span>
-                            </button>
-                          </div>
+                            onPreviewClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
+                          />
                         </div>
 
                         {/* File Details & Action Bar */}
@@ -1694,17 +1848,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   })}
                 </div>
               ) : (
-                /* View Mode 2: Compact List View */
+                /* View Mode 2: Compact List View with Mini Thumbnails */
                 <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                   {fileStates.map((fs, idx) => {
                     const isInvalid = !fs.isValid;
                     const hasWarning = fs.status === "warning";
                     const isDone = fs.progress === 100;
+                    const fileKey = `${fs.file.name}_${fs.file.size}_${fs.file.lastModified}`;
+                    const thumb = docThumbnails[fileKey];
 
                     return (
                       <div
                         key={fs.id || idx}
-                        className={`p-3.5 rounded-2xl border transition text-xs font-medium ${
+                        className={`p-3 rounded-2xl border transition text-xs font-medium ${
                           isInvalid
                             ? "bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900"
                             : hasWarning
@@ -1717,6 +1873,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-orange-500 text-white">
                               #{idx + 1}
                             </span>
+
+                            {/* Mini rendered thumbnail in list row */}
+                            <div className="w-7 h-9 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                              {thumb?.thumbnailUrl ? (
+                                <img src={thumb.thumbnailUrl} alt="" className="w-full h-full object-contain" />
+                              ) : (
+                                <FileText className="w-4 h-4 text-orange-500" />
+                              )}
+                            </div>
+
                             {isInvalid ? (
                               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                             ) : hasWarning ? (
@@ -1727,9 +1893,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                               <FileText className="w-4 h-4 text-orange-500 shrink-0" />
                             )}
 
-                            <span className="truncate max-w-xs font-bold text-slate-800 dark:text-slate-100">
-                              {fs.file.name}
-                            </span>
+                            <div className="truncate max-w-xs">
+                              <span className="font-bold text-slate-800 dark:text-slate-100">
+                                {fs.file.name}
+                              </span>
+                              {thumb?.pageSizeName && (
+                                <span className="text-[10px] text-slate-400 ml-2 font-mono">
+                                  ({thumb.pageSizeName})
+                                </span>
+                              )}
+                            </div>
 
                             <span className="text-[10px] text-slate-400 font-mono shrink-0">
                               {fs.sizeFormatted}
@@ -1748,12 +1921,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
-                                {fs.detectedType} ✓
+                                {thumb?.pageCount ? `${thumb.pageCount} pgs` : `${fs.detectedType} ✓`}
                               </span>
                             )}
 
                             {/* Preview Eye Button */}
                             <button
+                              type="button"
                               onClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
                               className="p-1 rounded text-slate-400 hover:text-orange-500"
                               title="Preview document details"
@@ -1764,6 +1938,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             {/* Reorder Buttons */}
                             <div className="flex items-center">
                               <button
+                                type="button"
                                 onClick={() => moveFile(idx, "up")}
                                 disabled={idx === 0}
                                 className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-30"
@@ -1771,6 +1946,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 <ArrowUp className="w-3.5 h-3.5" />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => moveFile(idx, "down")}
                                 disabled={idx === files.length - 1}
                                 className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-30"
@@ -1781,6 +1957,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                             {/* Delete Button */}
                             <button
+                              type="button"
                               onClick={() => removeFile(idx)}
                               className="p-1 rounded text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-950 transition"
                               title="Remove file"
@@ -4027,45 +4204,72 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </button>
             </div>
 
-            {/* Simulated Enlarged Document Page Preview Canvas */}
-            <div className="w-full aspect-[1/1.3] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-inner relative overflow-hidden">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5 text-rose-500" />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Page 1 of {previewModalFile.file.name.length % 5 + 1}
-                    </span>
+            {/* High-Resolution Document Page Preview Canvas & Metadata */}
+            <div className="space-y-4">
+              <div className="w-full max-h-96 aspect-[1/1.3] mx-auto">
+                <PdfPreviewCanvas
+                  file={previewModalFile.file}
+                  rotation={(fileRotations[previewModalFile.index] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
+                  interactive={true}
+                  showControls={true}
+                  showMetadata={true}
+                  showPageNavigation={true}
+                  maxDimension={600}
+                  className="w-full h-full shadow-inner"
+                  onRotate={(newRot) => {
+                    setFileRotations((prev) => ({ ...prev, [previewModalFile.index]: newRot }));
+                  }}
+                />
+              </div>
+
+              {/* Document Metadata Summary Sheet */}
+              {(() => {
+                const fileKey = `${previewModalFile.file.name}_${previewModalFile.file.size}_${previewModalFile.file.lastModified}`;
+                const thumb = docThumbnails[fileKey];
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-medium">Pages</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">
+                        {thumb?.pageCount ? `${thumb.pageCount} Pages` : "1 Page"}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-medium">Paper Format</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 truncate block">
+                        {thumb?.pageSizeName || "Standard"}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-medium">File Size</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 font-mono">
+                        {previewModalFile.state.sizeFormatted}
+                      </span>
+                    </div>
+
+                    {thumb?.width && thumb?.height && (
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 col-span-2 sm:col-span-1">
+                        <span className="text-[10px] text-slate-400 block font-medium">Dimensions</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-100 font-mono">
+                          {Math.round(thumb.width)} × {Math.round(thumb.height)} pt
+                        </span>
+                      </div>
+                    )}
+
+                    {thumb?.title && (
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 col-span-2">
+                        <span className="text-[10px] text-slate-400 block font-medium">Document Title</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-100 truncate block">
+                          {thumb.title}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
-                    {previewModalFile.state.detectedType} Validated
-                  </span>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <div className="h-3 w-4/5 bg-slate-300 dark:bg-slate-700 rounded-full" />
-                  <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full" />
-                  <div className="h-2 w-11/12 bg-slate-200 dark:bg-slate-800 rounded-full" />
-                  <div className="h-2 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-full" />
-                </div>
-              </div>
-
-              <div className="text-center py-6 my-auto">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold mb-2">
-                  <FileCheck className="w-8 h-8" />
-                </div>
-                <div className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
-                  {previewModalFile.file.name}
-                </div>
-                <div className="text-xs text-slate-400 font-mono mt-0.5">
-                  {previewModalFile.state.sizeFormatted} • Verified Sequence #{previewModalFile.index + 1}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2 font-mono">
-                <span>PDFSun Validation Engine</span>
-                <span>Page Order Verified</span>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Modal Controls */}

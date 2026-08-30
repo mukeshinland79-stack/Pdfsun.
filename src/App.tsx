@@ -913,6 +913,7 @@ export default function App() {
               <ActiveToolWorkspace
                 tool={activeTool}
                 initialFiles={activeToolFiles}
+                activeToolFiles={activeToolFiles}
                 onClose={handleCloseTool}
                 onSelectTool={handleSelectTool}
                 onAddHistory={addHistory}

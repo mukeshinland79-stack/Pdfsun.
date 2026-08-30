@@ -2010,6 +2010,150 @@ export async function getPdfMetadata(file: File): Promise<PdfMetadataInfo> {
   };
 }
 
+export interface DocumentThumbnailSummary {
+  thumbnailUrl: string;
+  pageCount: number;
+  width: number;
+  height: number;
+  pageSizeName?: string;
+  title?: string;
+  author?: string;
+  creator?: string;
+  producer?: string;
+  isEncrypted?: boolean;
+  version?: string;
+}
+
+export async function generateDocumentThumbnail(file: File, maxDim = 320): Promise<DocumentThumbnailSummary | null> {
+  if (typeof window === "undefined") return null;
+
+  // Handle Image uploads (JPG, PNG, WebP, etc.)
+  if (file.type.startsWith("image/")) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          URL.revokeObjectURL(url);
+          resolve({
+            thumbnailUrl: dataUrl,
+            pageCount: 1,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            pageSizeName: `${img.naturalWidth}×${img.naturalHeight}px`,
+          });
+        } else {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    });
+  }
+
+  // Handle PDF uploads
+  if (file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf")) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+      const pdf = await loadingTask.promise;
+      const pageCount = pdf.numPages;
+
+      let title = "";
+      let author = "";
+      let creator = "";
+      let producer = "";
+      let version = "1.7";
+      try {
+        const meta = await pdf.getMetadata();
+        if (meta?.info) {
+          const info = meta.info as any;
+          title = info.Title || "";
+          author = info.Author || "";
+          creator = info.Creator || "";
+          producer = info.Producer || "";
+          if (info.PDFFormatVersion) version = info.PDFFormatVersion;
+        }
+      } catch {
+        // ignore metadata reading errors
+      }
+
+      const page = await pdf.getPage(1);
+      const originalViewport = page.getViewport({ scale: 1.0 });
+      const ptWidth = Math.round(originalViewport.width);
+      const ptHeight = Math.round(originalViewport.height);
+
+      // Determine standard paper size name
+      let pageSizeName = `${ptWidth}×${ptHeight} pt`;
+      if (
+        (ptWidth >= 590 && ptWidth <= 600 && ptHeight >= 835 && ptHeight <= 845) ||
+        (ptHeight >= 590 && ptHeight <= 600 && ptWidth >= 835 && ptWidth <= 845)
+      ) {
+        pageSizeName = "A4 (210×297 mm)";
+      } else if (
+        (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 785 && ptHeight <= 800) ||
+        (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 785 && ptWidth <= 800)
+      ) {
+        pageSizeName = "US Letter (8.5×11 in)";
+      } else if (
+        (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 1000 && ptHeight <= 1015) ||
+        (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 1000 && ptWidth <= 1015)
+      ) {
+        pageSizeName = "US Legal (8.5×14 in)";
+      }
+
+      const scale = Math.min(maxDim / originalViewport.width, maxDim / originalViewport.height, 1.2);
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(viewport.width));
+      canvas.height = Math.max(1, Math.round(viewport.height));
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await page.render({
+          canvasContext: ctx,
+          viewport,
+          canvas,
+        }).promise;
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+        return {
+          thumbnailUrl: dataUrl,
+          pageCount,
+          width: ptWidth,
+          height: ptHeight,
+          pageSizeName,
+          title: title || undefined,
+          author: author || undefined,
+          creator: creator || undefined,
+          producer: producer || undefined,
+          isEncrypted: false,
+          version,
+        };
+      }
+    } catch (err) {
+      console.warn("Failed to generate PDF thumbnail preview:", err);
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export async function updatePdfMetadata(
   file: File,
   newMetadata: Partial<PdfMetadataInfo>,
