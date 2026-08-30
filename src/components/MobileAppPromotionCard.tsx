@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Smartphone,
   QrCode,
@@ -13,11 +13,13 @@ import {
   WifiOff,
   Compass,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { PDFSunLogoIcon } from "./PDFSunLogo";
 import { usePWAStatus } from "../pwaRegister";
 import { InstallAppModal } from "./InstallAppModal";
 import { useLanguage } from "../lib/i18n";
+import { getQrCodeDataUrl } from "../lib/qrGenerator";
 
 interface MobileAppPromotionCardProps {
   className?: string;
@@ -32,11 +34,27 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
   const [modalTab, setModalTab] = useState<"install" | "ios" | "android" | "desktop" | "qr">("install");
   const [copiedLink, setCopiedLink] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   const websiteUrl = "https://www.pdfsun.in/";
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-    websiteUrl
-  )}&ecc=H&margin=6&color=0f172a&bgcolor=ffffff`;
+
+  useEffect(() => {
+    let isMounted = true;
+    getQrCodeDataUrl(websiteUrl, {
+      size: 200,
+      margin: 2,
+      darkColor: "#0f172a",
+      lightColor: "#ffffff",
+      errorCorrectionLevel: "H",
+    }).then((url) => {
+      if (isMounted) {
+        setQrDataUrl(url);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [websiteUrl]);
 
   const handleInstall = async () => {
     if (isInstalled) {
@@ -224,14 +242,20 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
               </div>
 
               {/* QR Code Container with Center Logo Badge */}
-              <div className="relative inline-block bg-white p-1.5 rounded-xl border border-slate-100 shadow-inner">
-                <img
-                  src={qrApiUrl}
-                  alt="Scan to open PDFSun Mobile App"
-                  width={150}
-                  height={150}
-                  className="rounded-md mx-auto"
-                />
+              <div className="relative inline-block bg-white p-1.5 rounded-xl border border-slate-100 shadow-inner min-w-[150px] min-h-[150px] flex items-center justify-center">
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="Scan to open PDFSun Mobile App"
+                    width={150}
+                    height={150}
+                    className="rounded-md mx-auto"
+                  />
+                ) : (
+                  <div className="w-[150px] h-[150px] flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                )}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200">
                     <PDFSunLogoIcon variant="app-icon" size={20} />

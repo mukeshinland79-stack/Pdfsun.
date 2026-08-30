@@ -60,10 +60,9 @@ export const useUsageAnalytics = (topLimit: number = 50): UsageAnalyticsHook => 
     }
   }, [usageCounts]);
 
-  // Track tool usage by incrementing count & sending GA4 event
+  // Track tool usage by incrementing count
   const trackToolUsage = useCallback((toolId: string) => {
     if (!toolId) return;
-    trackGAEvent("use_tool", { tool_id: toolId });
     setUsageCounts((prev) => {
       const current = prev[toolId] || 0;
       return {

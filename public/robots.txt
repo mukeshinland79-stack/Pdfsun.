@@ -2,6 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /api/admin/
 
-Sitemap: https://pdfsun.in/sitemap.xml
-Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
-Sitemap: https://pdfsun.in/sitemap-pseo.xml
+Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://www.pdfsun.in/sitemap-pseo.xml

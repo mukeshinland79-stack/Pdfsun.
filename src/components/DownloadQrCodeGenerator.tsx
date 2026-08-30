@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   QrCode,
   Copy,
@@ -13,6 +13,7 @@ import {
   Share2,
 } from "lucide-react";
 import { getPublicShareUrl, getPublicSiteUrl } from "../utils/siteConfig";
+import { getQrCodeDataUrl } from "../lib/qrGenerator";
 
 export interface DownloadQrCodeGeneratorProps {
   fileName: string;
@@ -31,6 +32,7 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
 }) => {
   const [copied, setCopied] = useState(false);
   const [qrSize, setQrSize] = useState<250 | 300 | 180>(250);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [qrLoaded, setQrLoaded] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
 
@@ -41,10 +43,26 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
       ? getPublicShareUrl(shareSlug)
       : `${getPublicSiteUrl()}/#download=${encodeURIComponent(fileName)}`);
 
-  // High-Contrast, High-Error-Correction (ECC=H) QR Code API URL
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(
-    targetUrl
-  )}&ecc=H&margin=10&color=0f172a&bgcolor=ffffff`;
+  // Generate QR Code locally via QRCode engine with zero external network dependencies
+  useEffect(() => {
+    let isMounted = true;
+    setQrLoaded(false);
+    getQrCodeDataUrl(targetUrl, {
+      size: qrSize,
+      margin: 2,
+      darkColor: "#0f172a",
+      lightColor: "#ffffff",
+      errorCorrectionLevel: "H",
+    }).then((url) => {
+      if (isMounted) {
+        setQrDataUrl(url);
+        setQrLoaded(true);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [targetUrl, qrSize]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(targetUrl);
@@ -52,27 +70,23 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadQrPng = async () => {
+  const handleDownloadQrPng = () => {
+    if (!qrDataUrl) return;
     try {
       setDownloadingQr(true);
-      const res = await fetch(qrApiUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = blobUrl;
+      a.href = qrDataUrl;
       a.download = `pdfsun-qr-${fileName.replace(/\.[^/.]+$/, "")}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.warn("Failed to download QR image:", err);
-      // Fallback: open in new tab
-      window.open(qrApiUrl, "_blank");
     } finally {
       setDownloadingQr(false);
     }
   };
+
 
   const content = (
     <div className="w-full space-y-4">
@@ -117,21 +131,21 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
         </div>
 
         {/* High-Contrast, High-Error-Correction QR Code Image Frame */}
-        <div className="relative inline-block my-1 bg-white p-2 rounded-2xl border border-slate-100 shadow-inner">
-          <img
-            src={qrApiUrl}
-            alt={`PDFSun QR Code for ${fileName}`}
-            onLoad={() => setQrLoaded(true)}
-            style={{
-              width: `${Math.min(qrSize, 240)}px`,
-              height: `${Math.min(qrSize, 240)}px`,
-              display: "block",
-              margin: "0 auto",
-            }}
-            className="rounded-lg transition-transform hover:scale-[1.02]"
-          />
-          {!qrLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-xl">
+        <div className="relative inline-block my-1 bg-white p-2 rounded-2xl border border-slate-100 shadow-inner min-w-[180px] min-h-[180px] flex items-center justify-center">
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt={`PDFSun QR Code for ${fileName}`}
+              style={{
+                width: `${Math.min(qrSize, 240)}px`,
+                height: `${Math.min(qrSize, 240)}px`,
+                display: "block",
+                margin: "0 auto",
+              }}
+              className="rounded-lg transition-transform hover:scale-[1.02]"
+            />
+          ) : (
+            <div className="w-[180px] h-[180px] flex items-center justify-center">
               <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
             </div>
           )}

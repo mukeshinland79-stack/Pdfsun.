@@ -50,6 +50,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
+import { trackGAPricingView, trackGAPaymentSuccess } from "./utils/analytics";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
@@ -366,6 +367,7 @@ export default function App() {
 
   const handleOpenPricing = useCallback(() => {
     if (activeTool) setActiveTool(null);
+    trackGAPricingView("pricing_modal");
     setPricingModalOpen(true);
     if (typeof window !== "undefined" && window.location.pathname !== "/pricing") {
       window.history.pushState({}, "", "/pricing");
@@ -383,76 +385,85 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links & Dedicated Pricing Page
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const currentPath = window.location.pathname;
+      // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links & Dedicated Pricing Page
+      const syncRouteWithLocation = () => {
+        const params = new URLSearchParams(window.location.search);
+        const currentPath = window.location.pathname;
 
-      const isPricingUrl =
-        currentPath === "/pricing" ||
-        window.location.hash === "#pricing" ||
-        params.get("view") === "pricing" ||
-        params.has("pricing") ||
-        params.get("page") === "pricing";
+        const isPricingUrl =
+          currentPath === "/pricing" ||
+          window.location.hash === "#pricing" ||
+          params.get("view") === "pricing" ||
+          params.has("pricing") ||
+          params.get("page") === "pricing";
 
-      if (isPricingUrl) {
-        setPricingModalOpen(true);
-      }
-
-      const isInstallUrl =
-        currentPath === "/install" ||
-        currentPath === "/app" ||
-        window.location.hash === "#install" ||
-        params.has("install") ||
-        params.has("pwa") ||
-        params.get("view") === "install" ||
-        params.get("action") === "install";
-
-      if (isInstallUrl) {
-        setInstallAppModalOpen(true);
-      }
-
-      const isHistoryUrl =
-        currentPath === "/today-in-history" ||
-        window.location.hash === "#today-in-history" ||
-        params.get("view") === "history" ||
-        params.has("today-in-history");
-
-      if (isHistoryUrl) {
-        setTodayInHistoryOpen(true);
-        return;
-      }
-
-      // Check for Programmatic SEO (pSEO) targeted landing pages
-      const matchedPseo = matchPSEORoute(currentPath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
-      if (matchedPseo) {
-        setActivePseoPage(matchedPseo);
-        const targetTool = ALL_TOOLS.find(
-          (t) => t.id === matchedPseo.targetToolId || t.slug === matchedPseo.targetToolId
-        );
-        if (targetTool) {
-          setActiveTool(targetTool);
+        if (isPricingUrl) {
+          setPricingModalOpen(true);
         }
-        return;
-      }
 
-      // Check for standard direct tool route (e.g. /merge-pdf or /tool/merge-pdf or ?tool=merge-pdf)
-      const toolParam = params.get("tool") || params.get("toolId");
-      let matchedSlug = toolParam;
-      if (!matchedSlug && currentPath && currentPath !== "/") {
-        const cleanSlug = currentPath.replace(/^\/(tool\/)?/, "").replace(/\/$/, "");
-        matchedSlug = cleanSlug;
-      }
+        const isInstallUrl =
+          currentPath === "/install" ||
+          currentPath === "/app" ||
+          window.location.hash === "#install" ||
+          params.has("install") ||
+          params.has("pwa") ||
+          params.get("view") === "install" ||
+          params.get("action") === "install";
 
-      if (matchedSlug) {
-        const targetTool = ALL_TOOLS.find(
-          (t) => t.slug === matchedSlug || t.id === matchedSlug
-        );
-        if (targetTool) {
-          setActiveTool(targetTool);
+        if (isInstallUrl) {
+          setInstallAppModalOpen(true);
         }
-      }
-    }
+
+        const isHistoryUrl =
+          currentPath === "/today-in-history" ||
+          window.location.hash === "#today-in-history" ||
+          params.get("view") === "history" ||
+          params.has("today-in-history");
+
+        if (isHistoryUrl) {
+          setTodayInHistoryOpen(true);
+          return;
+        }
+
+        // Check for Programmatic SEO (pSEO) targeted landing pages
+        const matchedPseo = matchPSEORoute(currentPath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
+        if (matchedPseo) {
+          setActivePseoPage(matchedPseo);
+          const targetTool = ALL_TOOLS.find(
+            (t) => t.id === matchedPseo.targetToolId || t.slug === matchedPseo.targetToolId
+          );
+          if (targetTool) {
+            setActiveTool(targetTool);
+          }
+          return;
+        }
+
+        // Check for standard direct tool route (e.g. /merge-pdf or /tool/merge-pdf or ?tool=merge-pdf)
+        const toolParam = params.get("tool") || params.get("toolId");
+        let matchedSlug = toolParam;
+        if (!matchedSlug && currentPath && currentPath !== "/") {
+          const cleanSlug = currentPath.replace(/^\/(tool\/)?/, "").replace(/\/$/, "");
+          matchedSlug = cleanSlug;
+        }
+
+        if (matchedSlug) {
+          const targetTool = ALL_TOOLS.find(
+            (t) => t.slug === matchedSlug || t.id === matchedSlug
+          );
+          if (targetTool) {
+            setActiveTool(targetTool);
+          }
+        } else if (currentPath === "/") {
+          setActiveTool(null);
+          setActivePseoPage(null);
+        }
+      };
+
+      syncRouteWithLocation();
+      window.addEventListener("popstate", syncRouteWithLocation);
+      return () => {
+        window.removeEventListener("popstate", syncRouteWithLocation);
+      };
   }, []);
 
   useEffect(() => {
@@ -507,6 +518,8 @@ export default function App() {
       if (isPaymentPath || isPaymentQuery) {
         paymentHandledRef.current = true;
         setPaymentSuccessModalOpen(true);
+        const paymentId = params.get("razorpay_payment_id") || params.get("payment_id") || "tx_verified";
+        trackGAPaymentSuccess("pro_lifetime", paymentId, 499, "INR");
 
         // Clean query parameters & pathname from URL to prevent infinite refresh loops
         try {
@@ -569,16 +582,28 @@ export default function App() {
   // Usage Analytics hook
   const { trackToolUsage } = useUsageAnalytics();
 
+  const handleCloseTool = useCallback(() => {
+    setActiveTool(null);
+    setActivePseoPage(null);
+    if (typeof window !== "undefined" && window.location.pathname !== "/" && !window.location.pathname.startsWith("/pricing") && !window.location.pathname.startsWith("/admin")) {
+      window.history.pushState({}, "", "/");
+    }
+  }, []);
+
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
     trackToolUsage(tool.id);
     setActiveTool(tool);
     if (customPseoPage !== undefined) {
       setActivePseoPage(customPseoPage);
-      if (customPseoPage) {
+      if (customPseoPage && typeof window !== "undefined") {
         window.history.pushState({}, "", `/${customPseoPage.slug}`);
       }
     } else if (activePseoPage && (activePseoPage.targetToolId !== tool.id && activePseoPage.targetToolId !== tool.slug)) {
       setActivePseoPage(null);
+    } else {
+      if (typeof window !== "undefined" && window.location.pathname !== `/${tool.slug}`) {
+        window.history.pushState({}, "", `/${tool.slug}`);
+      }
     }
     if (initialFiles) setActiveToolFiles(initialFiles);
     else setActiveToolFiles([]);
@@ -845,74 +870,50 @@ export default function App() {
             {activeTool.id === "remove-watermark" ? (
               <RemoveWatermarkTool
                 initialFile={activeToolFiles[0] || null}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : activeTool.id === "watermark-pdf" ? (
               <WatermarkPdfTool
                 initialFile={activeToolFiles[0] || null}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
               <ViewPdfMetadataTool
                 initialFile={activeToolFiles[0] || null}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
               <EditPdfMetadataTool
                 initialFile={activeToolFiles[0] || null}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : activeTool.id === "share-pdfsun" ? (
               <SharePdfSunModal
                 isOpen={true}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
               />
             ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
               <ProtectPdfTool
                 initialFile={activeToolFiles[0] || null}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : activeTool.isAi ? (
               <AIChatWorkspace
                 tool={activeTool}
                 initialFiles={activeToolFiles}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onAddHistory={addHistory}
               />
             ) : (
               <ActiveToolWorkspace
                 tool={activeTool}
                 initialFiles={activeToolFiles}
-                onClose={() => {
-                  setActiveTool(null);
-                  setActivePseoPage(null);
-                }}
+                onClose={handleCloseTool}
                 onSelectTool={handleSelectTool}
                 onAddHistory={addHistory}
               />

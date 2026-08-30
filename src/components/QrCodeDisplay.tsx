@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { QrCode, Copy, Check, Download, ExternalLink, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { QrCode, Copy, Check, Download, ExternalLink, ShieldCheck, RefreshCw } from "lucide-react";
+import { getQrCodeDataUrl } from "../lib/qrGenerator";
 
 export interface QrCodeDisplayProps {
   url: string;
@@ -20,11 +21,25 @@ export const QrCodeDisplay: React.FC<QrCodeDisplayProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
-  // High-Contrast QR Code via api.qrserver.com
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(
-    url
-  )}&ecc=H&margin=10&color=0f172a&bgcolor=ffffff`;
+  useEffect(() => {
+    let isMounted = true;
+    getQrCodeDataUrl(url, {
+      size,
+      margin: 2,
+      darkColor: "#0f172a",
+      lightColor: "#ffffff",
+      errorCorrectionLevel: "H",
+    }).then((dataUrl) => {
+      if (isMounted) {
+        setQrDataUrl(dataUrl);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [url, size]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
@@ -32,22 +47,18 @@ export const QrCodeDisplay: React.FC<QrCodeDisplayProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
+    if (!qrDataUrl) return;
     try {
       setDownloading(true);
-      const res = await fetch(qrApiUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = blobUrl;
+      a.href = qrDataUrl;
       a.download = `pdfsun-qr-code.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.warn("Failed to download QR code image:", err);
-      window.open(qrApiUrl, "_blank");
     } finally {
       setDownloading(false);
     }
@@ -83,18 +94,24 @@ export const QrCodeDisplay: React.FC<QrCodeDisplayProps> = ({
       </div>
 
       {/* QR Code Frame */}
-      <div className="relative inline-block bg-white p-2 rounded-2xl border border-slate-100 shadow-inner">
-        <img
-          src={qrApiUrl}
-          alt="PDFSun QR Code"
-          style={{
-            width: `${Math.min(size, 240)}px`,
-            height: `${Math.min(size, 240)}px`,
-            display: "block",
-            margin: "0 auto",
-          }}
-          className="rounded-lg transition-transform hover:scale-[1.02]"
-        />
+      <div className="relative inline-block bg-white p-2 rounded-2xl border border-slate-100 shadow-inner min-w-[180px] min-h-[180px] flex items-center justify-center">
+        {qrDataUrl ? (
+          <img
+            src={qrDataUrl}
+            alt="PDFSun QR Code"
+            style={{
+              width: `${Math.min(size, 240)}px`,
+              height: `${Math.min(size, 240)}px`,
+              display: "block",
+              margin: "0 auto",
+            }}
+            className="rounded-lg transition-transform hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="w-[180px] h-[180px] flex items-center justify-center">
+            <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
+          </div>
+        )}
       </div>
 
       {/* Description text */}

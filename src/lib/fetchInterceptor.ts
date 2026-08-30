@@ -254,6 +254,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("google-analytics.com") ||
       lowerUrl.includes("googletagmanager.com") ||
       lowerUrl.includes("clarity.ms") ||
+      lowerUrl.includes("qrserver.com") ||
       lowerUrl.includes("razorpay.com") ||
       lowerUrl.includes("cdn.razorpay.com") ||
       lowerUrl.includes("checkout.js") ||

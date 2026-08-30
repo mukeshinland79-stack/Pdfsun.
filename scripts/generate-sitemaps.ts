@@ -65,6 +65,7 @@ ${pseoUrls}
 // 4. Generate master sitemap.xml
 const staticPages = [
   { loc: `${BASE_URL}/`, priority: "1.0", changefreq: "daily" },
+  { loc: `${BASE_URL}/pricing`, priority: "0.9", changefreq: "weekly" },
   { loc: `${BASE_URL}/privacy-policy`, priority: "0.5", changefreq: "monthly" },
   { loc: `${BASE_URL}/terms-of-service`, priority: "0.5", changefreq: "monthly" },
   { loc: `${BASE_URL}/about-us`, priority: "0.6", changefreq: "monthly" },
@@ -73,13 +74,13 @@ const staticPages = [
 ];
 
 const toolPages = ALL_TOOLS.map((t) => ({
-  loc: `${BASE_URL}/?tool=${t.slug}`,
+  loc: `${BASE_URL}/${t.slug}`,
   priority: t.isPopular || t.isAi ? "0.9" : "0.8",
   changefreq: t.isPopular ? "daily" : "weekly",
 }));
 
 const blogPages = BLOG_POSTS.map((b) => ({
-  loc: `${BASE_URL}/?blog=${b.slug}`,
+  loc: `${BASE_URL}/blog/${b.slug}`,
   priority: "0.7",
   changefreq: "monthly",
 }));

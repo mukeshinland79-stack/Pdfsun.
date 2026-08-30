@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -17,9 +17,12 @@ import {
   Sparkles,
   ArrowRight,
   Info,
+  Loader2,
+  RotateCw,
 } from "lucide-react";
 import { PDFSunLogoIcon } from "./PDFSunLogo";
-import { usePWAStatus } from "../pwaRegister";
+import { usePWAStatus, BeforeInstallPromptEvent, getGlobalDeferredPrompt } from "../pwaRegister";
+import { getQrCodeDataUrl } from "../lib/qrGenerator";
 
 interface InstallAppModalProps {
   isOpen: boolean;
@@ -33,11 +36,61 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   initialTab,
 }) => {
   const {
-    isInstalled,
-    hasNativePrompt,
+    isInstalled: hookInstalled,
+    hasNativePrompt: hookHasPrompt,
     platform,
     installPWA,
   } = usePWAStatus();
+
+  // Local state for beforeinstallprompt event
+  const [nativePromptEvent, setNativePromptEvent] = useState<BeforeInstallPromptEvent | null>(() => {
+    return getGlobalDeferredPrompt() || (typeof window !== "undefined" ? (window as any).deferredPrompt || null : null);
+  });
+  const [isInstalledLocal, setIsInstalledLocal] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      hookInstalled ||
+      localStorage.getItem("pdfsun_pwa_installed") === "true" ||
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true
+    );
+  });
+
+  // Listen directly to beforeinstallprompt and appinstalled events
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      const promptEvt = e as BeforeInstallPromptEvent;
+      setNativePromptEvent(promptEvt);
+      (window as any).deferredPrompt = promptEvt;
+      console.log("[InstallAppModal] Captured beforeinstallprompt event inside modal");
+    };
+
+    const handleAppInstalled = () => {
+      setNativePromptEvent(null);
+      (window as any).deferredPrompt = null;
+      setIsInstalledLocal(true);
+      setInstallStatus("success");
+      localStorage.setItem("pdfsun_pwa_installed", "true");
+      console.log("[InstallAppModal] App installation confirmed via appinstalled event");
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    // Sync if prompt is already present globally
+    const existing = getGlobalDeferredPrompt() || (window as any).deferredPrompt;
+    if (existing && !nativePromptEvent) {
+      setNativePromptEvent(existing);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, [nativePromptEvent]);
 
   // Auto-select tab based on device detection or prop
   const getInitialTab = () => {
@@ -49,22 +102,71 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   };
 
   const [activeTab, setActiveTab] = useState<"install" | "ios" | "android" | "desktop" | "qr">(getInitialTab);
-  const [installStatus, setInstallStatus] = useState<"idle" | "installing" | "success" | "guide">("idle");
+  const [installStatus, setInstallStatus] = useState<"idle" | "installing" | "success" | "dismissed" | "guide">("idle");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   const websiteUrl = "https://www.pdfsun.in/";
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    websiteUrl
-  )}&ecc=H&margin=10&color=0f172a&bgcolor=ffffff`;
+
+  useEffect(() => {
+    let isMounted = true;
+    getQrCodeDataUrl(websiteUrl, {
+      size: 260,
+      margin: 2,
+      darkColor: "#0f172a",
+      lightColor: "#ffffff",
+      errorCorrectionLevel: "H",
+    }).then((url) => {
+      if (isMounted) {
+        setQrDataUrl(url);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [websiteUrl]);
+
+  const isActuallyInstalled = isInstalledLocal || hookInstalled;
+  const hasPromptAvailable = Boolean(nativePromptEvent || hookHasPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt));
 
   const handleTriggerInstall = async () => {
+    const promptToUse = nativePromptEvent || getGlobalDeferredPrompt() || (typeof window !== "undefined" ? (window as any).deferredPrompt : null);
+
+    if (promptToUse && typeof promptToUse.prompt === "function") {
+      setInstallStatus("installing");
+      try {
+        console.log("[InstallAppModal] Triggering native browser install prompt dialog");
+        await promptToUse.prompt();
+        const choice = await promptToUse.userChoice;
+        console.log("[InstallAppModal] User install choice outcome:", choice.outcome);
+
+        if (choice.outcome === "accepted") {
+          setInstallStatus("success");
+          setNativePromptEvent(null);
+          (window as any).deferredPrompt = null;
+          setIsInstalledLocal(true);
+          localStorage.setItem("pdfsun_pwa_installed", "true");
+          setTimeout(() => {
+            onClose();
+          }, 2400);
+        } else {
+          setInstallStatus("dismissed");
+        }
+        return;
+      } catch (err) {
+        console.error("[InstallAppModal] Failed to trigger native install prompt:", err);
+      }
+    }
+
+    // Fallback if beforeinstallprompt is not available on this browser/platform (e.g. iOS Safari)
     setInstallStatus("installing");
     const result = await installPWA();
     if (result === "accepted" || result === "already-installed") {
       setInstallStatus("success");
+      setIsInstalledLocal(true);
       setTimeout(() => {
         onClose();
-      }, 2000);
+      }, 2400);
     } else if (result === "manual-guide") {
       setInstallStatus("guide");
       if (platform.isIOS) {
@@ -115,20 +217,25 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center space-x-2">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
-                    Official App
+                    Official PWA
                   </span>
-                  {isInstalled && (
+                  {isActuallyInstalled ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 flex items-center space-x-1">
                       <CheckCircle2 className="w-3 h-3" />
                       <span>Installed</span>
                     </span>
-                  )}
+                  ) : hasPromptAvailable ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-400/20 text-sky-200 border border-sky-400/30 flex items-center space-x-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Instant 1-Click Ready</span>
+                    </span>
+                  ) : null}
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white mt-1">
-                  PDFSun Mobile App
+                  PDFSun Mobile &amp; Desktop App
                 </h2>
                 <p className="text-xs sm:text-sm text-blue-100/90 font-medium truncate">
-                  Your PDF tools, wherever you go.
+                  High-speed PDF suite installed directly to your device.
                 </p>
               </div>
             </div>
@@ -141,11 +248,11 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
               </div>
               <div className="flex items-center justify-center space-x-1 bg-white/10 py-1.5 px-2 rounded-xl">
                 <ShieldCheck className="w-3 h-3 text-emerald-300 shrink-0" />
-                <span>Privacy-Focused</span>
+                <span>100% Private</span>
               </div>
               <div className="flex items-center justify-center space-x-1 bg-white/10 py-1.5 px-2 rounded-xl">
                 <Sparkles className="w-3 h-3 text-sky-300 shrink-0" />
-                <span>Offline-Ready Tools*</span>
+                <span>Offline-Ready</span>
               </div>
             </div>
           </div>
@@ -225,44 +332,79 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                   <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
                     <strong className="text-slate-900 dark:text-white font-bold block mb-1">
-                      Web Progressive App — Zero Storage Waste
+                      Native Progressive Web App — Zero Storage Waste
                     </strong>
-                    Install PDFSun directly to your home screen or desktop. No Google Play or App Store download needed.
+                    Install PDFSun directly to your home screen or desktop launcher without needing Google Play or Apple App Store.
                   </div>
                 </div>
 
-                {isInstalled ? (
-                  <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-center space-y-2">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                {isActuallyInstalled ? (
+                  <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-center space-y-2">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto" />
                     <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200">
-                      PDFSun App is already installed!
+                      PDFSun App is installed on this device!
                     </h3>
                     <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                      You can launch it anytime from your home screen or applications menu.
+                      You can launch it anytime from your home screen, app drawer, or desktop menu.
+                    </p>
+                  </div>
+                ) : installStatus === "success" ? (
+                  <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-center space-y-2">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto animate-bounce" />
+                    <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200">
+                      🎉 Installation Accepted!
+                    </h3>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                      PDFSun has been added to your device. Closing in a moment...
                     </p>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleTriggerInstall}
-                    disabled={installStatus === "installing"}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2.5 cursor-pointer active:scale-98 disabled:opacity-75"
-                  >
-                    <Download className="w-5 h-5" />
-                    <span>
-                      {installStatus === "installing"
-                        ? "Installing App..."
-                        : "Install PDFSun App"}
-                    </span>
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleTriggerInstall}
+                      disabled={installStatus === "installing"}
+                      className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2.5 cursor-pointer active:scale-98 disabled:opacity-75"
+                    >
+                      {installStatus === "installing" ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Triggering Browser Install Dialog...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5" />
+                          <span>
+                            {hasPromptAvailable
+                              ? "Install PDFSun App (Native Prompt)"
+                              : "Install PDFSun App"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    {installStatus === "dismissed" && (
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between">
+                        <span>Installation prompt was cancelled. You can try again anytime.</span>
+                        <button
+                          type="button"
+                          onClick={handleTriggerInstall}
+                          className="px-2.5 py-1 rounded-lg bg-amber-600 text-white font-bold text-[11px] hover:bg-amber-700 flex items-center space-x-1 cursor-pointer"
+                        >
+                          <RotateCw className="w-3 h-3" />
+                          <span>Retry</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
-                {/* Quick device shortcut guides if native prompt isn't supported */}
+                {/* Quick device shortcut guides */}
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setActiveTab("ios")}
-                    className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition text-left flex items-center justify-between"
+                    className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition text-left flex items-center justify-between cursor-pointer"
                   >
                     <span>iPhone / iPad Setup</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
@@ -270,7 +412,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab("qr")}
-                    className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition text-left flex items-center justify-between"
+                    className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition text-left flex items-center justify-between cursor-pointer"
                   >
                     <span>Scan Phone QR</span>
                     <QrCode className="w-3.5 h-3.5 text-slate-400" />
@@ -287,7 +429,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                     Add PDFSun to iPhone &amp; iPad Home Screen
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Follow these 3 simple steps in Safari:
+                    Apple requires adding PWAs via Safari in 3 easy steps:
                   </p>
                 </div>
 
@@ -352,17 +494,35 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleTriggerInstall}
+                  disabled={installStatus === "installing"}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer active:scale-98"
+                >
+                  {installStatus === "installing" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span>
+                    {hasPromptAvailable
+                      ? "Show Native Android Install Prompt"
+                      : "Tap Here to Install PDFSun on Android"}
+                  </span>
+                </button>
+
+                <div className="space-y-3 pt-2">
                   <div className="flex items-start space-x-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
                     <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shrink-0">
                       1
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        Tap &quot;Install App&quot; Button
+                        Click &quot;Install App&quot; Button Above
                       </h4>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
-                        Click the button below or tap the 3 dots (⋮) in Chrome and choose &quot;Install app&quot; or &quot;Add to Home screen&quot;.
+                        Or tap the 3 dots (⋮) in Chrome menu and choose &quot;Install app&quot; or &quot;Add to Home screen&quot;.
                       </p>
                     </div>
                   </div>
@@ -381,15 +541,6 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                     </div>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleTriggerInstall}
-                  className="w-full py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Tap Here to Trigger Android Install</span>
-                </button>
               </div>
             )}
 
@@ -405,14 +556,20 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   </p>
                 </div>
 
-                <div className="relative inline-block bg-white p-3 rounded-2xl border border-slate-200 shadow-md">
-                  <img
-                    src={qrApiUrl}
-                    alt="PDFSun App Installation QR Code"
-                    width={200}
-                    height={200}
-                    className="mx-auto rounded-lg"
-                  />
+                <div className="relative inline-block bg-white p-3 rounded-2xl border border-slate-200 shadow-md min-w-[200px] min-h-[200px] flex items-center justify-center">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="PDFSun App Installation QR Code"
+                      width={200}
+                      height={200}
+                      className="mx-auto rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-[200px] h-[200px] flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="bg-white p-1.5 rounded-xl shadow-md border border-slate-200">
                       <PDFSunLogoIcon variant="app-icon" size={28} />
@@ -426,7 +583,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                     onClick={handleCopyLink}
                     className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer"
                   >
-                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                     <span>{copiedLink ? "Link Copied" : "Copy Website URL"}</span>
                   </button>
 
@@ -455,7 +612,25 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleTriggerInstall}
+                  disabled={installStatus === "installing"}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer active:scale-98"
+                >
+                  {installStatus === "installing" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span>
+                    {hasPromptAvailable
+                      ? "Show Native Desktop Install Dialog"
+                      : "Trigger Desktop Install Prompt"}
+                  </span>
+                </button>
+
+                <div className="space-y-3 pt-2">
                   <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
                     <strong className="font-bold text-slate-900 dark:text-white block">
                       Google Chrome &amp; Microsoft Edge:
@@ -474,15 +649,6 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                     </p>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleTriggerInstall}
-                  className="w-full py-3 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Trigger Desktop Install Prompt</span>
-                </button>
               </div>
             )}
           </div>
@@ -491,3 +657,4 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
     </AnimatePresence>
   );
 };
+

@@ -8,6 +8,7 @@ import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTabl
 import PptxGenJS from "pptxgenjs";
 import * as pdfjsLib from "pdfjs-dist";
 import { readLargeFileChunked } from "./fileValidationService";
+import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
@@ -1922,6 +1923,12 @@ export function downloadFile(
   const { blob, bytesCount } = validateOutputBlob(data, mimeType);
   const finalFileName = ensureValidFilename(fileName, mimeType);
 
+  try {
+    trackGADownloadStart(finalFileName, finalFileName, bytesCount);
+  } catch (err) {
+    console.warn("Analytics download_start tracking error:", err);
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1930,6 +1937,12 @@ export function downloadFile(
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+
+  try {
+    trackGADownloadSuccess(finalFileName, finalFileName, bytesCount);
+  } catch (err) {
+    console.warn("Analytics download_success tracking error:", err);
+  }
   
   setTimeout(() => {
     try {

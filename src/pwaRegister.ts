@@ -1,6 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // Custom Type Definitions for PWA & Service Worker Lifecycle
+export interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
+// Global variable to capture prompt immediately when module is loaded, so it's never lost if fired before React hooks mount
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+const promptListeners = new Set<(prompt: BeforeInstallPromptEvent | null) => void>();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    globalDeferredPrompt = e as BeforeInstallPromptEvent;
+    (window as any).deferredPrompt = e;
+    promptListeners.forEach((listener) => listener(e as BeforeInstallPromptEvent));
+    console.log('[PDFSun PWA] Captured beforeinstallprompt globally');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    globalDeferredPrompt = null;
+    (window as any).deferredPrompt = null;
+    promptListeners.forEach((listener) => listener(null));
+    localStorage.setItem('pdfsun_pwa_installed', 'true');
+    console.log('[PDFSun PWA] App installed globally');
+  });
+}
+
+export function getGlobalDeferredPrompt(): BeforeInstallPromptEvent | null {
+  return globalDeferredPrompt || (typeof window !== 'undefined' ? (window as any).deferredPrompt || null : null);
+}
+
 export interface PWAState {
   isOffline: boolean;
   isInstallable: boolean;
@@ -328,8 +363,8 @@ export async function clearPWACache(): Promise<boolean> {
  */
 export function usePWAStatus() {
   const [isOffline, setIsOffline] = useState<boolean>(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false));
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState<boolean>(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => getGlobalDeferredPrompt());
+  const [isInstallable, setIsInstallable] = useState<boolean>(() => Boolean(getGlobalDeferredPrompt()));
   const [isOfflineReady, setIsOfflineReady] = useState<boolean>(false);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
   const [cachedAssetsCount, setCachedAssetsCount] = useState<number>(0);
@@ -432,9 +467,10 @@ export function usePWAStatus() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      const promptEvt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvt);
       setIsInstallable(true);
-      console.log('[PDFSun PWA] Captured beforeinstallprompt event');
+      console.log('[PDFSun PWA] Captured beforeinstallprompt event in hook');
     };
 
     const handleOfflineReady = () => setIsOfflineReady(true);

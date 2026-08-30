@@ -24,6 +24,7 @@ import {
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { sanitizeAuthError } from "../hooks/useAuth";
+import { trackGASignup } from "../utils/analytics";
 import {
   mockLoginHandler,
   mockRegisterHandler,
@@ -294,6 +295,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         profile = res.user;
         token = res.token;
         roleToSet = res.role;
+        trackGASignup("email", roleToSet);
       } else {
         const res = await mockLoginHandler({
           email,

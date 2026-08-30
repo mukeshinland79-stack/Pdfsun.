@@ -2,613 +2,661 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.pdfsun.in/</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://www.pdfsun.in/pricing</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://www.pdfsun.in/privacy-policy</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/terms-of-service</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/about-us</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/contact-us</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/today-in-history</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=share-pdfsun</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/share-pdfsun</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=merge-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/merge-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=split-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/split-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=compress-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/compress-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-to-word</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/pdf-to-word</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=word-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/word-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=excel-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/excel-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-to-excel</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/pdf-to-excel</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=powerpoint-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/powerpoint-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-to-powerpoint</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/pdf-to-powerpoint</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=jpg-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/image-to-excel</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-to-jpg</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/image-to-word</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=png-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-to-png</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=html-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-chat-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/image-to-notepad</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=ai-pdf-summary</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/image-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=ai-translate-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-resume-builder</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-flashcards</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-notes-generator</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-ocr</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-grammar</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ai-explain-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=organize-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/pdf-to-image</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=rotate-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=crop-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=remove-pages</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=extract-pages</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=edit-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/jpg-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=annotate-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/pdf-to-jpg</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=sign-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/png-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/pdf-to-png</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/html-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/ai-chat-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=watermark-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-pdf-summary</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=remove-watermark</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-translate-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=page-numbers</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-resume-builder</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=header-footer</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-flashcards</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=background-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-notes-generator</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=protect-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/ai-ocr</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/ai-grammar</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/ai-explain-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/organize-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=unlock-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/rotate-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/crop-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/remove-pages</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/extract-pages</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/pdf-editor</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=redact-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=repair-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=flatten-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=compare-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=ocr-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/image-editor</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=ocr-image-to-text</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=batch-pdf-tools</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=scan-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=extract-images</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=extract-text</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.pdfsun.in/?tool=view-edit-pdf-metadata</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/edit-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=read-pdf-metadata</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/annotate-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-metadata</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/sign-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/watermark-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/remove-watermark</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=pdf-a-converter</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/page-numbers</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=epub-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/header-footer</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=rtf-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/background-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=txt-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/protect-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/unlock-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/redact-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?tool=xml-to-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/repair-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?blog=how-to-merge-pdfs-free</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/flatten-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/compare-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/ocr-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/ocr-image-to-text</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/batch-pdf-tools</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/scan-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/extract-images</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/extract-text</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/view-edit-pdf-metadata</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/read-pdf-metadata</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/pdf-metadata</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/pdf-a-converter</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/epub-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/rtf-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/txt-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/xml-to-pdf</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.pdfsun.in/blog/how-to-merge-pdfs-free</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?blog=gemini-ai-pdf-summarizer-guide</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/blog/gemini-ai-pdf-summarizer-guide</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.pdfsun.in/?blog=local-browser-pdf-processing-privacy</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.pdfsun.in/blog/local-browser-pdf-processing-privacy</loc>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-50kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-100kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-150kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-200kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-250kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-300kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-400kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-500kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-600kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-750kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-800kb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-1mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-2mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-3mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-5mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-10mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-20mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-25mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-50mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/compress-pdf-to-100mb</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/sign-pdf-online-free</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/edit-pdf-text-free</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/convert-pdf-to-word-editable</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/hipaa-compliant-pdf-merge</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/redact-pdf-online-free</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/combine-pdf-files-mac</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/de/pdf-verkleinern</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/es/unir-pdf-gratis</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/fr/compresser-pdf</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/it/convertitore-pdf-word</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/gdpr-compliant-pdf-compressor</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/nl/pdf-bewerken-online</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/aadhaar-pdf-unlock</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/unlock-pdf-password-online</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/jpg-to-pdf-converter-online</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.pdfsun.in/merge-pdf-file-free</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>

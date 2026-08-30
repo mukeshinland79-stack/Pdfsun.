@@ -38,6 +38,7 @@ import {
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
+import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
@@ -1122,18 +1123,13 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     </button>
                   </div>
 
-                  {/* QR Code Card */}
+                  {/* QR Code Modal */}
                   {showQrCodeModal && (
-                    <div className="p-3 bg-white rounded-xl border border-emerald-200 text-center space-y-1.5 animate-in zoom-in-95">
-                      <div className="text-[11px] font-bold text-slate-800">Scan QR Code on Mobile</div>
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
-                          window.location.origin + "/#download=" + downloadReady.fileName
-                        )}`}
-                        alt="Mobile QR Code"
-                        className="w-28 h-28 mx-auto"
-                      />
-                    </div>
+                    <DownloadQrCodeGenerator
+                      fileName={downloadReady.fileName}
+                      isModal={true}
+                      onClose={() => setShowQrCodeModal(false)}
+                    />
                   )}
 
                   {/* Instant Security Memory Purge */}

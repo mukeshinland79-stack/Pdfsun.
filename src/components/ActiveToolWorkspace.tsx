@@ -129,6 +129,8 @@ import {
 import { parseHumanFriendlyError, DetailedErrorInfo } from "../lib/errorNotificationService";
 import { ErrorNotificationOverlay } from "./ErrorNotificationOverlay";
 import { AnnotatePdfWorkspace } from "./AnnotatePdfWorkspace";
+import { PDFEditorWorkspace } from "./PDFEditorWorkspace";
+import { ImageEditorWorkspace } from "./ImageEditorWorkspace";
 import { QuickShareModal } from "./QuickShareModal";
 import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { QrCodeDisplay } from "./QrCodeDisplay";
@@ -136,6 +138,19 @@ import { getPublicSiteUrl } from "../utils/siteConfig";
 import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
+import {
+  trackGAToolView,
+  trackGAUploadStart,
+  trackGAUploadSuccess,
+  trackGAUploadFailed,
+  trackGAProcessingStart,
+  trackGAProcessingSuccess,
+  trackGAProcessingFailed,
+  trackGADownloadStart,
+  trackGADownloadSuccess,
+  trackGAToolSwitch,
+  trackGAAiToolUsed,
+} from "../utils/analytics";
 
 export interface ExtendedFileState extends FileValidationResult {
   progress: number;
@@ -214,11 +229,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     }
 
     if (onSelectTool) {
+      trackGAToolSwitch(tool.id, targetTool.id, "workspace_pipeline");
       onSelectTool(targetTool, files);
     } else {
       onClose();
     }
-  }, [downloadReady, files, onClose, onSelectTool]);
+  }, [downloadReady, files, onClose, onSelectTool, tool.id]);
+
+  // Track Tool View in GA4 on mount & tool change
+  useEffect(() => {
+    trackGAToolView(tool.id, tool.name, tool.category);
+  }, [tool.id, tool.name, tool.category]);
 
   // Tool specific options
   const [splitRange, setSplitRange] = useState("1, 2-3");
@@ -240,6 +261,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [extractedMetadata, setExtractedMetadata] = useState<PdfMetadataResult | null>(null);
   const [copyMetadataSuccess, setCopyMetadataSuccess] = useState(false);
   const [showAnnotatorModal, setShowAnnotatorModal] = useState(false);
+  const [showImageEditorModal, setShowImageEditorModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
@@ -464,6 +486,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     if (firstInvalid && firstInvalid.error) {
       const parsedErr = parseHumanFriendlyError(firstInvalid.error, firstInvalid.file.name);
       setErrorOverlay(parsedErr);
+      trackGAUploadFailed(tool.id, firstInvalid.error, firstInvalid.file.size);
       triggerErrorToast(
         parsedErr.title || "File Not Accepted",
         parsedErr.message || firstInvalid.error,
@@ -472,6 +495,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           fileName: firstInvalid.file.name,
         }
       );
+    } else if (validatedStates.length > 0) {
+      const totalBytes = validatedStates.reduce((acc, curr) => acc + curr.file.size, 0);
+      trackGAUploadSuccess(tool.id, validatedStates.length, totalBytes);
     }
   }, [tool.category, tool.id, tool.supportedInput]);
 
@@ -481,6 +507,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
+      const totalBytes = acceptedFiles.reduce((acc, f) => acc + f.size, 0);
+      trackGAUploadStart(tool.id, acceptedFiles.length, acceptedFiles[0]?.type, totalBytes);
       setFiles((prev) => [...prev, ...acceptedFiles]);
       setDownloadReady(null);
       setErrorMessage("");
@@ -632,9 +660,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       }
     }
 
-    if (["annotate-pdf", "edit-pdf"].includes(tool.id)) {
+    if (["annotate-pdf", "edit-pdf", "pdf-editor"].includes(tool.id)) {
       if (files.length > 0) {
         setShowAnnotatorModal(true);
+        return;
+      }
+    }
+
+    if (["image-editor"].includes(tool.id)) {
+      if (files.length > 0) {
+        setShowImageEditorModal(true);
         return;
       }
     }
@@ -642,7 +677,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const signal = abortController.signal;
+    const startTime = performance.now();
 
+    trackGAProcessingStart(tool.id, files.length);
     setIsProcessing(true);
     setProgress(5);
     setErrorMessage("");
@@ -1168,6 +1205,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       setIsProcessing(false);
 
       if (outputBytes) {
+        const latencyMs = performance.now() - startTime;
+        const outSize = outputBytes instanceof Uint8Array ? outputBytes.byteLength : (typeof outputBytes === "string" ? outputBytes.length : 0);
+        trackGAProcessingSuccess(tool.id, latencyMs, outSize);
+
         // Validate output blob integrity and sanitize filename extension
         const downloadResult = downloadFile(outputBytes, outputName, mimeType);
 
@@ -1181,7 +1222,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         fetch("/api/analytics/record-conversion", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latencyMs: 15, success: true }),
+          body: JSON.stringify({ latencyMs: Math.round(latencyMs), success: true }),
         }).catch(() => {});
 
         try {
@@ -1212,9 +1253,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         return;
       }
       console.error("Execution error:", err);
+      const latencyMs = performance.now() - startTime;
       const errInfo = parseHumanFriendlyError(err, files[0]?.name);
       setErrorOverlay(errInfo);
       setErrorMessage(errInfo.message);
+      trackGAProcessingFailed(tool.id, errInfo.message || err?.message || "Processing failed", latencyMs);
       triggerErrorToast(
         errInfo.title || "Tool Processing Error",
         errInfo.message || "An unexpected error occurred while processing the file.",
@@ -2802,14 +2845,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
-            {["annotate-pdf", "edit-pdf"].includes(tool.id) && (
+            {["annotate-pdf", "edit-pdf", "pdf-editor"].includes(tool.id) && (
               <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-500/20 text-xs space-y-3">
                 <div className="font-extrabold text-amber-600 dark:text-amber-400 flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Interactive PDF.js Canvas Annotator</span>
+                  <span>Advanced PDF.js Interactive Editor Studio</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Draw freehand, highlight sentences, attach sticky note comments, and write custom text directly on your PDF pages. Fast, secure, and processed completely in your browser.
+                  Add text boxes, highlight content, draw freehand, insert shapes, sticky note comments, image stamps, electronic signatures, watermarks, and reorder pages in real time.
                 </p>
                 <button
                   onClick={() => {
@@ -2819,10 +2862,35 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       alert("Please upload or select a PDF file first.");
                     }
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs shadow-md hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-white font-bold text-xs shadow-md hover:from-amber-600 hover:to-rose-600 transition flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Open Interactive PDF Annotator Studio</span>
+                  <span>Open Full PDF Editor Suite</span>
+                </button>
+              </div>
+            )}
+
+            {["image-editor"].includes(tool.id) && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/20 text-xs space-y-3">
+                <div className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-emerald-500" />
+                  <span>Interactive HD Image Editor Studio</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Crop with aspect ratios, resize dimensions, rotate 90°/free-angle, flip, adjust brightness, contrast, saturation, exposure, blur, apply B&W/sepia filters, annotate, and export high-res JPG, PNG, or WEBP.
+                </p>
+                <button
+                  onClick={() => {
+                    if (files.length > 0) {
+                      setShowImageEditorModal(true);
+                    } else {
+                      alert("Please upload or select an image file first.");
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xs shadow-md hover:from-emerald-600 hover:to-teal-600 transition flex items-center justify-center space-x-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Open Full Image Editor Studio</span>
                 </button>
               </div>
             )}
@@ -3979,7 +4047,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
       {/* Interactive PDF Annotator Studio Modal */}
       {showAnnotatorModal && files[0] && (
-        <AnnotatePdfWorkspace
+        <PDFEditorWorkspace
           file={files[0]}
           onClose={() => setShowAnnotatorModal(false)}
           onSaveComplete={(outputBytes, outName) => {
@@ -3994,6 +4062,36 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               toolId: tool.id,
               toolName: tool.name,
               fileName: files[0]?.name || "Document",
+              timestamp: Date.now(),
+              status: "completed",
+              outputFileName: outName,
+            });
+          }}
+        />
+      )}
+
+      {/* Interactive Image Editor Studio Modal */}
+      {showImageEditorModal && files[0] && (
+        <ImageEditorWorkspace
+          file={files[0]}
+          onClose={() => setShowImageEditorModal(false)}
+          onSaveComplete={(outputBytes, outName) => {
+            setShowImageEditorModal(false);
+            const mime = outName.endsWith(".png")
+              ? "image/png"
+              : outName.endsWith(".webp")
+              ? "image/webp"
+              : "image/jpeg";
+            setDownloadReady({
+              data: outputBytes,
+              fileName: outName,
+              mimeType: mime,
+            });
+            onAddHistory({
+              id: Date.now().toString(),
+              toolId: tool.id,
+              toolName: tool.name,
+              fileName: files[0]?.name || "Image",
               timestamp: Date.now(),
               status: "completed",
               outputFileName: outName,
