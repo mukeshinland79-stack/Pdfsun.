@@ -55,7 +55,7 @@ import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
-export default function App() {
+function AppContent() {
   const { currentLanguage, setLanguage } = useLanguage();
   // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
@@ -1144,4 +1144,8 @@ export default function App() {
       <GlobalErrorToast />
     </div>
   );
+}
+
+export default function App() {
+  return <AppContent />;
 }

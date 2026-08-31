@@ -112,7 +112,7 @@ export const Footer: React.FC<FooterProps> = ({
               </div>
               <div className="flex items-center space-x-2 text-emerald-400">
                 <Lock className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>100% Private & In-Browser Processing</span>
+                <span>{t("footer.privateProcessing", "100% Private & In-Browser Processing")}</span>
               </div>
             </div>
           </div>
@@ -150,7 +150,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onClick={onOpenTodayInHistory}
                     className="hover:text-amber-400 transition flex items-center space-x-1.5 text-amber-400/90 font-medium cursor-pointer"
                   >
-                    <span>Today in History (30 Lang)</span>
+                    <span>{t("footer.todayInHistory", "Today in History (30 Lang)")}</span>
                     <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-mono font-bold">
                       NEW
                     </span>
@@ -179,7 +179,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onClick={onOpenInstallApp}
                     className="hover:text-blue-400 transition flex items-center space-x-1.5 text-blue-400 font-bold cursor-pointer"
                   >
-                    <span>📱 Install PDFSun App</span>
+                    <span>📱 {t("footer.installApp", "Install PDFSun App")}</span>
                     <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold">
                       PWA
                     </span>
@@ -345,11 +345,11 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
             <span className="text-sm">🇮🇳</span>
-            <span className="font-semibold text-slate-200">Proudly Made in India</span>
+            <span className="font-semibold text-slate-200">{t("footer.madeInIndia", "Proudly Made in India")}</span>
             <span className="text-slate-600">•</span>
-            <span>© 2026 <strong className="text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
+            <span>© 2026 <strong className="text-slate-200 font-bold">PDFSun</strong>. {t("footer.rights", "All rights reserved.")}</span>
             <span className="text-slate-600">•</span>
-            <span className="text-slate-400">Designed &amp; Engineered by <span className="text-slate-300 font-medium">Mukesh Kalonia</span></span>
+            <span className="text-slate-400">{t("footer.designedBy", "Designed & Engineered by")} <span className="text-slate-300 font-medium">Mukesh Kalonia</span></span>
           </div>
 
           <div className="flex items-center space-x-2 text-slate-400 text-xs shrink-0 bg-slate-900/40 border border-slate-800/60 rounded-full px-3.5 py-1.5">

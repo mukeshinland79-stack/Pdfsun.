@@ -44,6 +44,7 @@ import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
 
 interface TodayInHistoryModalProps {
   isOpen: boolean;
@@ -60,10 +61,14 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   initialCountryCode = "IN",
   onSelectTool,
 }) => {
+  const { currentLanguage, setLanguage: setGlobalLanguage } = useLanguage();
+
   // 1. Reactive State Variables for Date, Country, Language, and Filtering
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(() => {
     if (initialLanguage) return initialLanguage;
+    const globalMatch = TOP_30_LANGUAGES.find((l) => l.code === currentLanguage);
+    if (globalMatch) return globalMatch;
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("pdfsun_history_lang");
@@ -102,12 +107,17 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   });
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Sync initialLanguage changes if props update
+  // Sync initialLanguage or currentLanguage changes
   useEffect(() => {
     if (initialLanguage) {
       setSelectedLang(initialLanguage);
+    } else if (currentLanguage) {
+      const match = TOP_30_LANGUAGES.find((l) => l.code === currentLanguage);
+      if (match) {
+        setSelectedLang(match);
+      }
     }
-  }, [initialLanguage]);
+  }, [initialLanguage, currentLanguage]);
 
   // Sync initialCountryCode
   useEffect(() => {
