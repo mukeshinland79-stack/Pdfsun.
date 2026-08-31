@@ -14,6 +14,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { PlanTier } from "./PricingSection";
+import { useLanguage } from "../lib/i18n";
 
 interface PricingCompareTableProps {
   currency: "INR" | "USD";
@@ -50,188 +51,189 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
   enterprisePlan,
   freePlan,
 }) => {
+  const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
   const comparisonCategories: FeatureCategory[] = [
     {
-      category: "Document Processing & AI Capabilities",
+      category: t("pricing.matrix.cat1", "Document Processing & AI Capabilities"),
       icon: Sparkles,
       features: [
         {
-          name: "Daily PDF Operations",
-          tooltip: "Number of PDF documents you can convert, merge, compress, or edit per day",
-          free: "3 Tasks / Day",
-          proYearly: "Unlimited",
-          business: "Unlimited",
-          enterprise: "Unlimited",
+          name: t("pricing.matrix.feat_daily", "Daily PDF Operations"),
+          tooltip: t("pricing.matrix.feat_daily_tip", "Number of PDF documents you can convert, merge, compress, or edit per day"),
+          free: t("pricing.matrix.free_daily", "3 Tasks / Day"),
+          proYearly: t("pricing.matrix.unlimited", "Unlimited"),
+          business: t("pricing.matrix.unlimited", "Unlimited"),
+          enterprise: t("pricing.matrix.unlimited", "Unlimited"),
         },
         {
-          name: "Maximum Single File Size",
-          tooltip: "Max individual PDF file upload or in-browser memory buffer limit",
+          name: t("pricing.matrix.feat_size", "Maximum Single File Size"),
+          tooltip: t("pricing.matrix.feat_size_tip", "Max individual PDF file upload or in-browser memory buffer limit"),
           free: "15 MB",
           proYearly: "2 GB",
           business: "5 GB",
-          enterprise: "Unlimited / Custom",
+          enterprise: t("pricing.matrix.enterprise_size", "Unlimited / Custom"),
         },
         {
-          name: "Batch Processing Queue",
-          tooltip: "Process multiple PDFs simultaneously in a single click",
+          name: t("pricing.matrix.feat_batch", "Batch Processing Queue"),
+          tooltip: t("pricing.matrix.feat_batch_tip", "Process multiple PDFs simultaneously in a single click"),
           free: false,
-          proYearly: "Up to 50 files",
-          business: "Up to 250 files",
-          enterprise: "Unlimited Queue",
+          proYearly: t("pricing.matrix.up_to_50", "Up to 50 files"),
+          business: t("pricing.matrix.up_to_250", "Up to 250 files"),
+          enterprise: t("pricing.matrix.unlimited_queue", "Unlimited Queue"),
         },
         {
-          name: "Multilingual OCR Engine",
-          tooltip: "Extract editable text from scanned PDFs in 100+ languages",
-          free: "Basic Standard",
-          proYearly: "High-Speed AI OCR",
-          business: "High-Speed AI OCR",
-          enterprise: "Dedicated OCR Engine",
+          name: t("pricing.matrix.feat_ocr", "Multilingual OCR Engine"),
+          tooltip: t("pricing.matrix.feat_ocr_tip", "Extract editable text from scanned PDFs in 100+ languages"),
+          free: t("pricing.matrix.basic_std", "Basic Standard"),
+          proYearly: t("pricing.matrix.ai_ocr", "High-Speed AI OCR"),
+          business: t("pricing.matrix.ai_ocr", "High-Speed AI OCR"),
+          enterprise: t("pricing.matrix.dedicated_ocr", "Dedicated OCR Engine"),
         },
         {
-          name: "Gemini 3.6 Flash AI Document Chat",
-          tooltip: "Ask questions, extract data tables, and summarize multi-page contracts",
-          free: "5 queries / day",
-          proYearly: "Unlimited Priority",
-          business: "Unlimited Priority",
-          enterprise: "Dedicated High-Throughput",
+          name: t("pricing.matrix.feat_gemini", "Gemini 3.6 Flash AI Document Chat"),
+          tooltip: t("pricing.matrix.feat_gemini_tip", "Ask questions, extract data tables, and summarize multi-page contracts"),
+          free: t("pricing.matrix.queries_5", "5 queries / day"),
+          proYearly: t("pricing.matrix.unlimited_prio", "Unlimited Priority"),
+          business: t("pricing.matrix.unlimited_prio", "Unlimited Priority"),
+          enterprise: t("pricing.matrix.dedicated_thru", "Dedicated High-Throughput"),
           highlight: true,
         },
         {
-          name: "In-Browser Privacy & Zero Server Logs",
-          tooltip: "Files never leave your browser for standard WebAssembly operations",
+          name: t("pricing.matrix.feat_privacy", "In-Browser Privacy & Zero Server Logs"),
+          tooltip: t("pricing.matrix.feat_privacy_tip", "Files never leave your browser for standard WebAssembly operations"),
           free: true,
           proYearly: true,
           business: true,
-          enterprise: "100% Privacy SLA + Audit",
+          enterprise: t("pricing.matrix.privacy_sla", "100% Privacy SLA + Audit"),
         },
       ],
     },
     {
-      category: "Single Sign-On (SSO) & Enterprise Identity",
+      category: t("pricing.matrix.cat2", "Single Sign-On (SSO) & Enterprise Identity"),
       icon: Lock,
       features: [
         {
-          name: "Google Workspace & Microsoft 365 OAuth",
-          tooltip: "Fast 1-click team sign in via Google or Microsoft corporate accounts",
+          name: t("pricing.matrix.feat_google_ms", "Google Workspace & Microsoft 365 OAuth"),
+          tooltip: t("pricing.matrix.feat_google_ms_tip", "Fast 1-click team sign in via Google or Microsoft corporate accounts"),
           free: false,
           proYearly: true,
           business: true,
           enterprise: true,
         },
         {
-          name: "SAML 2.0 Enterprise SSO",
-          tooltip: "Enterprise SSO support including Okta, Azure AD, PingIdentity, and Auth0",
+          name: t("pricing.matrix.feat_saml", "SAML 2.0 Enterprise SSO"),
+          tooltip: t("pricing.matrix.feat_saml_tip", "Enterprise SSO support including Okta, Azure AD, PingIdentity, and Auth0"),
           free: false,
           proYearly: false,
           business: false,
-          enterprise: "Full SAML 2.0 Suite",
+          enterprise: t("pricing.matrix.full_saml", "Full SAML 2.0 Suite"),
           highlight: true,
         },
         {
-          name: "Custom Corporate Domain Auto-Join",
-          tooltip: "Automatically enroll team members with @yourcompany.com emails into your organization",
+          name: t("pricing.matrix.feat_autojoin", "Custom Corporate Domain Auto-Join"),
+          tooltip: t("pricing.matrix.feat_autojoin_tip", "Automatically enroll team members with @yourcompany.com emails into your organization"),
           free: false,
           proYearly: false,
           business: false,
-          enterprise: "Enforced Auto-Join",
+          enterprise: t("pricing.matrix.enforced_join", "Enforced Auto-Join"),
           highlight: true,
         },
         {
-          name: "SCIM Automated User Provisioning",
-          tooltip: "Automate employee onboarding & offboarding directly from your IdP directory",
+          name: t("pricing.matrix.feat_scim", "SCIM Automated User Provisioning"),
+          tooltip: t("pricing.matrix.feat_scim_tip", "Automate employee onboarding & offboarding directly from your IdP directory"),
           free: false,
           proYearly: false,
           business: false,
-          enterprise: "Full SCIM 2.0 Sync",
+          enterprise: t("pricing.matrix.full_scim", "Full SCIM 2.0 Sync"),
           highlight: true,
         },
       ],
     },
     {
-      category: "Team Administration & Governance",
+      category: t("pricing.matrix.cat3", "Team Administration & Governance"),
       icon: Users,
       features: [
         {
-          name: "Included User Seats",
-          tooltip: "Number of active member accounts included under the subscription",
-          free: "1 User (Individual)",
-          proYearly: "1 User (Individual)",
-          business: "5 Seats Included",
-          enterprise: "Flat 20 Seats (Bulk Avail.)",
+          name: t("pricing.matrix.feat_seats", "Included User Seats"),
+          tooltip: t("pricing.matrix.feat_seats_tip", "Number of active member accounts included under the subscription"),
+          free: t("pricing.matrix.seat_1", "1 User (Individual)"),
+          proYearly: t("pricing.matrix.seat_1", "1 User (Individual)"),
+          business: t("pricing.matrix.seats_5", "5 Seats Included"),
+          enterprise: t("pricing.matrix.seats_20", "Flat 20 Seats (Bulk Avail.)"),
           highlight: true,
         },
         {
-          name: "Centralized Admin Console",
-          tooltip: "Manage license seats, assign team roles, and view organization usage",
+          name: t("pricing.matrix.feat_admin", "Centralized Admin Console"),
+          tooltip: t("pricing.matrix.feat_admin_tip", "Manage license seats, assign team roles, and view organization usage"),
           free: false,
           proYearly: false,
           business: true,
           enterprise: true,
         },
         {
-          name: "Granular Role-Based Access (RBAC)",
-          tooltip: "Configure Admin, Manager, Editor, and Viewer permissions per workspace",
+          name: t("pricing.matrix.feat_rbac", "Granular Role-Based Access (RBAC)"),
+          tooltip: t("pricing.matrix.feat_rbac_tip", "Configure Admin, Manager, Editor, and Viewer permissions per workspace"),
           free: false,
           proYearly: false,
-          business: "Standard Roles",
-          enterprise: "Custom RBAC & Policies",
+          business: t("pricing.matrix.std_roles", "Standard Roles"),
+          enterprise: t("pricing.matrix.custom_rbac", "Custom RBAC & Policies"),
         },
         {
-          name: "Shared Compliance & Audit Logs",
-          tooltip: "Download tamper-evident security audit logs with timestamps and IP records",
+          name: t("pricing.matrix.feat_audit", "Shared Compliance & Audit Logs"),
+          tooltip: t("pricing.matrix.feat_audit_tip", "Download tamper-evident security audit logs with timestamps and IP records"),
           free: false,
           proYearly: false,
-          business: "30-Day Logs",
-          enterprise: "1-Year Immutable Ledger",
+          business: t("pricing.matrix.logs_30d", "30-Day Logs"),
+          enterprise: t("pricing.matrix.logs_1yr", "1-Year Immutable Ledger"),
         },
       ],
     },
     {
-      category: "Billing, Invoicing & SLA Support",
+      category: t("pricing.matrix.cat4", "Billing, Invoicing & SLA Support"),
       icon: Shield,
       features: [
         {
-          name: "Billing Term",
-          tooltip: "Annual upfront discount schedule",
-          free: "Forever Free",
-          proYearly: "Yearly (Save 40%)",
-          business: "Yearly (Save 50%)",
-          enterprise: "Yearly (Flat 20 Seats)",
+          name: t("pricing.matrix.feat_billing_term", "Billing Term"),
+          tooltip: t("pricing.matrix.feat_billing_term_tip", "Annual upfront discount schedule"),
+          free: t("pricing.matrix.term_free", "Forever Free"),
+          proYearly: t("pricing.matrix.term_pro", "Yearly (Save 40%)"),
+          business: t("pricing.matrix.term_biz", "Yearly (Save 50%)"),
+          enterprise: t("pricing.matrix.term_ent", "Yearly (Flat 20 Seats)"),
         },
         {
-          name: "GST Compliant Tax Invoicing",
-          tooltip: "Automated business tax invoices with GSTIN validation for input tax credits",
+          name: t("pricing.matrix.feat_gst", "GST Compliant Tax Invoicing"),
+          tooltip: t("pricing.matrix.feat_gst_tip", "Automated business tax invoices with GSTIN validation for input tax credits"),
           free: false,
           proYearly: true,
           business: true,
           enterprise: true,
         },
         {
-          name: "Customer Support Level",
-          tooltip: "Support channel and guaranteed response time SLA",
-          free: "Community",
-          proYearly: "Priority Email (24h)",
-          business: "Priority Desk (8h SLA)",
-          enterprise: "2-Hour Dedicated SLA",
+          name: t("pricing.matrix.feat_support", "Customer Support Level"),
+          tooltip: t("pricing.matrix.feat_support_tip", "Support channel and guaranteed response time SLA"),
+          free: t("pricing.matrix.supp_comm", "Community"),
+          proYearly: t("pricing.matrix.supp_email", "Priority Email (24h)"),
+          business: t("pricing.matrix.supp_desk", "Priority Desk (8h SLA)"),
+          enterprise: t("pricing.matrix.supp_sla", "2-Hour Dedicated SLA"),
           highlight: true,
         },
         {
-          name: "Dedicated Account Manager",
-          tooltip: "Direct relationship manager for onboarding, security questionnaires, and custom SLAs",
+          name: t("pricing.matrix.feat_mgr", "Dedicated Account Manager"),
+          tooltip: t("pricing.matrix.feat_mgr_tip", "Direct relationship manager for onboarding, security questionnaires, and custom SLAs"),
           free: false,
           proYearly: false,
           business: false,
-          enterprise: "Assigned Manager",
+          enterprise: t("pricing.matrix.assigned_mgr", "Assigned Manager"),
         },
         {
-          name: "Money-Back Guarantee",
-          tooltip: "100% refund policy if not completely satisfied",
+          name: t("pricing.matrix.feat_refund", "Money-Back Guarantee"),
+          tooltip: t("pricing.matrix.feat_refund_tip", "100% refund policy if not completely satisfied"),
           free: "N/A",
-          proYearly: "7-Day Guarantee",
-          business: "7-Day Guarantee",
-          enterprise: "7-Day Guarantee",
+          proYearly: t("pricing.matrix.guarantee_7d", "7-Day Guarantee"),
+          business: t("pricing.matrix.guarantee_7d", "7-Day Guarantee"),
+          enterprise: t("pricing.matrix.guarantee_7d", "7-Day Guarantee"),
         },
       ],
     },
@@ -276,14 +278,13 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
       <div className="text-center max-w-3xl mx-auto space-y-3 mb-8">
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-xs font-bold uppercase tracking-wider">
           <Zap className="w-3.5 h-3.5 text-indigo-500 fill-indigo-500" />
-          <span>Detailed Feature Matrix</span>
+          <span>{t("pricing.matrix.badge", "Detailed Feature Matrix")}</span>
         </div>
         <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          Compare All Plans & Enterprise Benefits
+          {t("pricing.matrix.title", "Compare All Plans & Enterprise Benefits")}
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Transparent feature comparison across individual, team, and high-security enterprise tiers.
-          Pick the right plan with zero hidden fees.
+          {t("pricing.matrix.subtitle", "Transparent feature comparison across individual, team, and high-security enterprise tiers. Pick the right plan with zero hidden fees.")}
         </p>
 
         {/* Toggle Collapse Button for Mobile / Clean View */}
@@ -293,7 +294,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
             onClick={() => setIsExpanded(!isExpanded)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
           >
-            <span>{isExpanded ? "Collapse Comparison Table" : "Expand Full Comparison Table"}</span>
+            <span>{isExpanded ? t("pricing.matrix.collapse", "Collapse Comparison Table") : t("pricing.matrix.expand", "Expand Full Comparison Table")}</span>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
@@ -308,7 +309,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 backdrop-blur-xs">
                   <th className="p-4 sm:p-5 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 w-2/6 min-w-[220px]">
-                    Plan Features & Limits
+                    {t("pricing.matrix.headerFeatures", "Plan Features & Limits")}
                   </th>
 
                   {/* Free Column */}
@@ -320,7 +321,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                       <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                         {currency === "INR" ? "₹0" : "$0"}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-medium">Free Forever</div>
+                      <div className="text-[10px] text-slate-500 font-medium">{t("pricing.matrix.freeForever", "Free Forever")}</div>
                     </div>
                   </th>
 
@@ -328,14 +329,14 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                   <th className="p-4 sm:p-5 text-center w-1/6 min-w-[140px] border-l border-slate-200 dark:border-slate-800/60 bg-amber-500/5 dark:bg-amber-500/10">
                     <div className="space-y-1">
                       <div className="inline-block px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wide">
-                        Save 40%
+                        {t("pricing.savePercent", "Save 40%")}
                       </div>
                       <div className="text-xs font-bold text-slate-900 dark:text-white">
                         {proYearlyPlan.name}
                       </div>
                       <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
                         {currency === "INR" ? "₹1,499" : "$24.99"}
-                        <span className="text-[10px] font-normal text-slate-500">/yr</span>
+                        <span className="text-[10px] font-normal text-slate-500">{t("pricing.matrix.perYear", "/yr")}</span>
                       </div>
                       <button
                         type="button"
@@ -343,7 +344,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                         disabled={isProcessing}
                         className="mt-2 w-full py-1.5 px-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
                       >
-                        <span>Choose</span>
+                        <span>{t("pricing.matrix.choose", "Choose")}</span>
                         <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -353,14 +354,14 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                   <th className="p-4 sm:p-5 text-center w-1/6 min-w-[140px] border-l border-slate-200 dark:border-slate-800/60 bg-indigo-500/5 dark:bg-indigo-500/10">
                     <div className="space-y-1">
                       <div className="inline-block px-2 py-0.5 rounded-md bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wide">
-                        5 Seats
+                        {t("pricing.matrix.seats5", "5 Seats")}
                       </div>
                       <div className="text-xs font-bold text-slate-900 dark:text-white">
                         {businessPlan.name}
                       </div>
                       <div className="text-base sm:text-lg font-black text-indigo-600 dark:text-indigo-400">
                         {currency === "INR" ? "₹3,999" : "$59"}
-                        <span className="text-[10px] font-normal text-slate-500">/yr</span>
+                        <span className="text-[10px] font-normal text-slate-500">{t("pricing.matrix.perYear", "/yr")}</span>
                       </div>
                       <button
                         type="button"
@@ -368,7 +369,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                         disabled={isProcessing}
                         className="mt-2 w-full py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
                       >
-                        <span>Choose</span>
+                        <span>{t("pricing.matrix.choose", "Choose")}</span>
                         <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -377,16 +378,16 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                   {/* Enterprise SSO Unlimited Column */}
                   <th className="p-4 sm:p-5 text-center w-1/6 min-w-[160px] border-l border-indigo-500/30 bg-slate-950 text-white relative">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-md">
-                      20 Seats Included
+                      {t("pricing.matrix.seats20Inc", "20 Seats Included")}
                     </div>
                     <div className="space-y-1 mt-1">
                       <div className="text-xs font-black text-emerald-400 flex items-center justify-center gap-1">
                         <Building2 className="w-3.5 h-3.5" />
-                        <span>Enterprise SSO</span>
+                        <span>{t("pricing.matrix.entSSO", "Enterprise SSO")}</span>
                       </div>
                       <div className="text-base sm:text-lg font-black text-white">
                         {currency === "INR" ? "₹9,999" : "$149"}
-                        <span className="text-[10px] font-normal text-slate-400">/yr</span>
+                        <span className="text-[10px] font-normal text-slate-400">{t("pricing.matrix.perYear", "/yr")}</span>
                       </div>
                       <button
                         type="button"
@@ -394,7 +395,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                         disabled={isProcessing}
                         className="mt-2 w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-[11px] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer"
                       >
-                        <span>Get Access</span>
+                        <span>{t("pricing.matrix.getAccess", "Get Access")}</span>
                         <ArrowRight className="w-3 h-3 stroke-[3]" />
                       </button>
                     </div>
@@ -476,10 +477,10 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
               <tfoot>
                 <tr className="border-t-2 border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/90">
                   <td className="p-4 sm:p-5 text-xs font-bold text-slate-600 dark:text-slate-400">
-                    Ready to scale your organization?
+                    {t("pricing.matrix.readyToScale", "Ready to scale your organization?")}
                   </td>
                   <td className="p-4 sm:p-5 text-center border-l border-slate-200 dark:border-slate-800/60">
-                    <span className="text-[11px] font-bold text-slate-500">Free Tier Active</span>
+                    <span className="text-[11px] font-bold text-slate-500">{t("pricing.matrix.freeTierActive", "Free Tier Active")}</span>
                   </td>
                   <td className="p-4 sm:p-5 text-center border-l border-slate-200 dark:border-slate-800/60 bg-amber-500/5">
                     <button
@@ -488,7 +489,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                       disabled={isProcessing}
                       className="w-full py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-xs transition cursor-pointer"
                     >
-                      Get Pro Annual
+                      {t("pricing.matrix.getProAnnual", "Get Pro Annual")}
                     </button>
                   </td>
                   <td className="p-4 sm:p-5 text-center border-l border-slate-200 dark:border-slate-800/60 bg-indigo-500/5">
@@ -498,7 +499,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                       disabled={isProcessing}
                       className="w-full py-2 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                     >
-                      Get Business Team
+                      {t("pricing.matrix.getBusinessTeam", "Get Business Team")}
                     </button>
                   </td>
                   <td className="p-4 sm:p-5 text-center border-l border-indigo-500/30 bg-slate-950">
@@ -508,7 +509,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                       disabled={isProcessing}
                       className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md transition cursor-pointer"
                     >
-                      Get Enterprise SSO
+                      {t("pricing.matrix.getEnterpriseSSO", "Get Enterprise SSO")}
                     </button>
                   </td>
                 </tr>
