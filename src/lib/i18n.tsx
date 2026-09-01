@@ -10,6 +10,9 @@ import React, {
 } from "react";
 import i18n from "i18next";
 import HttpBackend from "i18next-http-backend";
+import { INDIAN_LANGUAGES_TRANSLATIONS } from "./translations/indianLanguages";
+import { GLOBAL_LANGUAGES_TRANSLATIONS } from "./translations/globalLanguages";
+import { TOOL_TRANSLATIONS } from "./translations/toolTranslations";
 
 export interface LanguageOption {
   code: string;
@@ -43,7 +46,6 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "zh-CN", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
   { code: "zh-TW", name: "Chinese Traditional", nativeName: "繁體中文", flag: "🇹🇼" },
   { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", isRtl: true },
-  { code: "he", name: "Hebrew", nativeName: "עברית", flag: "🇮🇱", isRtl: true },
   { code: "tr", name: "Turkish", nativeName: "Türkçe", flag: "🇹🇷" },
   { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱" },
   { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱" },
@@ -1440,49 +1442,6 @@ export const IN_MEMORY_TRANSLATIONS: Record<string, Record<string, any>> = {
       q5: "ما هي صيغ الملفات المدعومة؟",
       a5: "يدعم PDFSun ملفات PDF، وأوفيس، والصور (JPG, PNG, WEBP)، وملفات النصوص والويب.",
     },
-    theme: {
-      displayTheme: "مظهر العرض",
-      systemAuto: "تلقائي (حسب النظام)",
-      matchesOs: "يطابق إعدادات نظام التشغيل",
-      lightMode: "الوضع الفاتح",
-      crispDaylight: "مظهر نهاري ناصع",
-      darkMode: "الوضع الداكن",
-      oledMidnight: "مظهر داكن مريح للعين",
-      eyeCare: "حماية العين",
-      warmSepia: "فلتر دافئ مريح",
-      auroraGlass: "أورورا زجاجي",
-      frostedGlass: "تأثير زجاجي حديث",
-      auto: "تلقائي",
-      light: "فاتح",
-      dark: "داكن",
-      aurora: "أورورا",
-    },
-    admin: {
-      ownerAdmin: "إدارة المالك",
-      adminSuite: "لوحة الإدارة",
-      barActive: "الشريط مفعّل",
-      cmsEditor: "محرر المحتوى المباشر (CMS)",
-      controlBar: "شريط تحكم المشرف",
-      analytics: "التحليلات",
-      finance: "المالية",
-      usersRbac: "المستخدمون والصلاحيات",
-      settings: "الإعدادات",
-    },
-    roles: {
-      owner: "المالك",
-      admin: "مشرف",
-      founderOwner: "المؤسس والمالك",
-      adminAccess: "صلاحيات الإدارة",
-      proCustomer: "عميل PRO",
-      freeCustomer: "عميل مجاني",
-      pro: "PRO",
-      free: "مجاني",
-    },
-    mobileApp: {
-      title: "تطبيق PDFSun للهاتف",
-      subtitle: "أدوات PDF معك في كل مكان.",
-      guide: "دليل التثبيت",
-    },
     workspace: {
       dropOrSelect: "أفلت الملفات هنا أو انقر للاختيار من الجهاز",
       processFile: "معالجة المستند",
@@ -1503,386 +1462,36 @@ export const IN_MEMORY_TRANSLATIONS: Record<string, Record<string, any>> = {
       allTools: "جميع أدوات PDF",
       aiSuite: "أدوات الذكاء الاصطناعي",
       pricing: "خطط الأسعار",
-      pricingPlans: "خطط الأسعار",
       blog: "المدونة والمقالات",
-      blogArticles: "مقالات ودلائل",
       support: "الدعم والتواصل",
-      supportContact: "الدعم والمساعدة",
       privacyPolicy: "سياسة الخصوصية",
       termsOfService: "شروط الخدمة",
       aboutUs: "من نحن",
       helpCenter: "مركز المساعدة",
       sitemap: "خريطة الموقع",
       rights: "جميع الحقوق محفوظة.",
-      installApp: "تثبيت تطبيق PDFSun",
       developedBy: "تصميم وتطوير بواسطة",
       leadDev: "كبير مطوري الويب",
     },
   },
-  he: {
-    nav: {
-      home: "בית",
-      allTools: "כל כלי ה-PDF",
-      aiSuite: "חבילת כלי AI",
-      pricing: "תוכניות ומחירים",
-      pricingPlans: "תוכניות ומחירים",
-      loginRegister: "התחברות / הרשמה",
-      login: "התחברות / הרשמה",
-      brandKit: "ערכת מיתוג",
-      searchBtn: "חיפוש ב-57+ כלים",
-      history: "היסטוריה אחרונה",
-      favorites: "מועדפים",
-      theme: "ערכת נושא",
-      language: "שפה",
-      adminPanel: "פאנל ניהול",
-      userPortal: "לוח בקרה למשתמש",
-      logout: "התנתקות",
-      commandPalette: "לוח פקודות",
-      openSearchAria: "פתח חיפוש כלים",
-      currentTheme: "ערכת נושא נוכחית",
-      clickToSwitch: "לחץ להחלפה",
-      changeTheme: "שנה ערכת נושא",
-      openAdminMenu: "פתח תפריט מנהל",
-      openUserMenu: "פתח תפריט משתמש",
-      shareQr: "שתף וסרוק קוד QR",
-      toggleMenu: "החלף תפריט ניווט",
-    },
-    hero: {
-      title: "כלי PDF מתקדמים ומנוע מסמכים ארגוני",
-      subtitle: "עיבוד 100% בצד הלקוח באמצעות WebAssembly. פרטי, מהיר ומאובטח.",
-      chooseFiles: "בחר קבצים מהמכשיר",
-      dropzoneTitle: "גרור קובצי PDF לכאן או לחץ לעיון",
-      dropzoneSub: "הקבצים נשארים לחלוטין במכשיר שלך. מהיר, בטוח ופרטי.",
-      dropzoneActiveTitle: "שחרר קבצים להפעלת סביבת העבודה",
-      dropzoneActiveSub: "שחרר כעת כדי להתחיל עיבוד מיידי",
-      or: "או",
-      searchPlaceholder: "חיפוש ב-57+ כלי PDF (Cmd+K)...",
-      statsFiles: "500K+ קבצים עובדו",
-      statsPrivate: "100% פרטיות בדפדפן",
-    },
-    quick_actions: {
-      title: "פעולות מהירות פופולריות",
-      merge: "מיזוג PDF",
-      split: "פיצול PDF",
-      compress: "דחיסת PDF",
-      pdfToWord: "PDF ל-Word",
-      chatWithPdf: "צ'אט AI עם PDF",
-      aiSummary: "סיכום AI",
-    },
-    badges: {
-      privacyTitle: "100% פרטיות בדפדפן",
-      privacySub: "עיבוד מקומי באמצעות WebAssembly",
-      utilitiesTitle: "57+ כלי PDF מקצועיים",
-      utilitiesSub: "חבילת PDF מלאה",
-      ultraFast: "מהירות אולטרה-מהירה",
-      ultraFastDesc: "מנוע האצה מקומי בדפדפן.",
-      noStorage: "ללא שמירת קבצים",
-      noStorageDesc: "הבטחה לאפס שמירה של קבצים לצמיתות.",
-      geminiAi: "Gemini 3.6 AI",
-      geminiAiDesc: "צ'אט חכם, סיכום ותרגום.",
-      tools50: "57+ כלים פעילים",
-      tools50Desc: "חבילת המרת ועריכת PDF מלאה.",
-      mostPopular: "הכלי הפופולרי ביותר",
-      pro: "PRO",
-      ai: "AI",
-      student: "חיוני לסטודנטים",
-      proTooltip: "תכונת Pro - עיבוד PDF ארגוני",
-      proSso: "PRO ו-SSO",
-      ats: "ATS",
-    },
-    categories: {
-      all: "כל הכלים",
-      student: "חיוני לסטודנטים",
-      ai: "כלי AI ל-PDF",
-      popular: "כלים פופולריים",
-      convert: "המרת PDF",
-      edit: "עריכה והערות",
-      organize: "ארגון ועמודים",
-      security: "אבטחה והגנה",
-      optimize: "דחיסה ותיקון",
-      advanced: "מתקדם",
-    },
-    formats: {
-      badge: "ממיר מסמכים אוניברסלי",
-      title: "פורמטים נתמכים ב-PDFSun",
-      subtitle: "המר, עבד ובצע אופטימיזציה של מסמכים בכל הפורמטים המובילים.",
-    },
-    pricing: {
-      badge: "עיבוד PDF בלתי מוגבל ומיידי",
-      title: "תוכניות תמחור",
-      titleHighlight: "פשוטות ושקופות",
-      subtitle: "עבד קובצי PDF ללא הגבלה במהירות WebAssembly פרטית לחלוטין. ללא עמלות נסתרות. 100% החזר כספי ב-7 הימים הראשונים.",
-      currencyInr: "🇮🇳 INR (₹) Razorpay",
-      currencyUsd: "🌎 USD ($) Razorpay",
-      monthly: "חיוב חודשי",
-      yearly: "חיוב שנתי",
-      savePercent: "חסוך 40%",
-      guarantee: "100% החזר כספי ב-7 הימים הראשונים",
-      termsTitle: "תנאי החזר ואחריות",
-      termsText: "החזר כספי תוך 7 ימים ברכישה ראשונה אם נעשה שימוש בפחות מ-30% מהמכסה. ביטול בכל עת.",
-      activePlan: "תוכנית פעילה כעת",
-      planActivated: "התוכנית הופעלה",
-      buyCredits: "קנה 100 קרדיטים — ₹99",
-      subscribeMonthly: "מנוי חודשי",
-      getAnnual: "קבל גישה שנתית — חסוך 40%",
-      getTeam: "קבל גישה לצוות",
-    },
-    testimonials: {
-      badge: "אהוב על ידי 500,000+ משתמשים",
-      title: "מוערך על ידי סטודנטים, עורכי דין וחוקרים",
-      subtitle: "גלה מה אומרים המשתמשים על היעילות, הפרטיות ויכולות ה-AI של PDFSun.",
-    },
-    tools: {
-      openTool: "פתח כלי",
-      summary: "סיכום",
-      translate: "תרגום",
-      resumeReady: "מוכן לקורות חיים",
-      aiChat: "צ'אט AI עם PDF",
-      "share-pdfsun": {
-        name: "שתף את PDFSun",
-        desc: "שתף את PDFSun עם חברים ועמיתים באמצעות קישורים ישירים, קודי QR וערוצים חברתיים.",
-      },
-      "merge-pdf": {
-        name: "מיזוג PDF",
-        desc: "שלב מספר מסמכי PDF לקובץ יחיד ומאורגן במהירות וביעילות.",
-      },
-      "split-pdf": {
-        name: "פיצול PDF",
-        desc: "חלץ טווחי עמודים ספציפיים או פצל כל עמוד לקובץ נפרד מיידית.",
-      },
-      "compress-pdf": {
-        name: "דחיסת PDF",
-        desc: "הקטן את גודל קובץ ה-PDF תוך שמירה על איכות מקסימלית וטקסט חד.",
-      },
-      "pdf-to-word": {
-        name: "PDF ל-Word",
-        desc: "המר מסמכי PDF לקובצי Microsoft Word (.docx) הניתנים לעריכה מלאה.",
-      },
-      "word-to-pdf": {
-        name: "Word ל-PDF",
-        desc: "המר קובצי Microsoft Word למסמכי PDF מקצועיים ונקיים.",
-      },
-      "ai-chat-pdf": {
-        name: "צ'אט AI עם PDF",
-        desc: "שאל שאלות, קבל תובנות וחקור את תוכן המסמכים שלך באמצעות מנוע Gemini 3.6.",
-      },
-      "ai-pdf-summary": {
-        name: "סיכום מסמכים ב-AI",
-        desc: "צור סיכומים מנהלים ונקודות מפתח מקובצי PDF ארוכים בשניות.",
-      },
-    },
-    faq: {
-      sectionBadge: "שאלות נפוצות על אבטחה ופרטיות",
-      toolFaqBadge: "שאלות נפוצות על הכלי",
-      title: "שאלות נפוצות",
-      toolTitle: "שאלות נפוצות על {{toolName}}",
-      subtitle: "כל מה שצריך לדעת על הפרטיות, האבטחה והעיבוד המקומי של PDFSun.",
-      toolSubtitle: "כל מה שצריך לדעת לשימוש בטוח ויעיל ב-{{toolName}}.",
-      q1: "האם הקבצים שלי בטוחים ב-PDFSun?",
-      a1: "בהחלט! הפרטיות היא בעדיפות עליונה. רוב העיבודים מתבצעים 100% מקומית בדפדפן שלך באמצעות WebAssembly.",
-      q2: "כיצד פועל מנוע ה-AI ב-PDFSun?",
-      a2: "PDFSun משלב את בינת Google Gemini 3.6 לניתוח וסיכום מסמכים במהירות שיא ופרטיות מלאה.",
-      q3: "האם PDFSun חינמי לשימוש?",
-      a3: "כן! PDFSun מציע גישה חינמית נדיבה לכל 57+ הכלים ללא צורך בהרשמה.",
-      q4: "האם אפשר להשתמש ב-PDFSun במצב לא מקוון?",
-      a4: "כן! PDFSun פועל כאפליקציית רשת מתקדמת (PWA) הניתנת להתקנה בנייד ובמחשב.",
-      q5: "אילו פורמטים נתמכים?",
-      a5: "PDFSun תומך בקובצי PDF, Office, תמונות (JPG, PNG, WEBP), מסמכי טקסט ואינטרנט.",
-    },
-    theme: {
-      displayTheme: "ערכת נושא לתצוגה",
-      systemAuto: "אוטומטי (מערכת)",
-      matchesOs: "תואם להגדרות מערכת ההפעלה",
-      lightMode: "מצב בהיר",
-      crispDaylight: "ממשק יום נקי",
-      darkMode: "מצב כהה",
-      oledMidnight: "ערכת חצות OLED",
-      eyeCare: "הגנת עיניים",
-      warmSepia: "מסנן ספיה חמים",
-      auroraGlass: "אורורה גלאס",
-      frostedGlass: "זכוכית חלבית מרהיבה",
-      auto: "אוטומטי",
-      light: "בהיר",
-      dark: "כהה",
-      aurora: "אורורה",
-    },
-    admin: {
-      ownerAdmin: "ניהול בעלים",
-      adminSuite: "חבילת ניהול",
-      barActive: "סרגל פעיל",
-      cmsEditor: "עורך תוכן חי (CMS)",
-      controlBar: "סרגל בקרת מנהל",
-      analytics: "אנליטיקה",
-      finance: "כספים",
-      usersRbac: "משתמשים והרשאות",
-      settings: "הגדרות",
-    },
-    roles: {
-      owner: "בעלים",
-      admin: "מנהל",
-      founderOwner: "מייסד ובעלים",
-      adminAccess: "גישת מנהל",
-      proCustomer: "לקוח PRO",
-      freeCustomer: "לקוח חינמי",
-      pro: "PRO",
-      free: "חינם",
-    },
-    mobileApp: {
-      title: "אפליקציית PDFSun לנייד",
-      subtitle: "כלי ה-PDF שלך, בכל מקום שתלך.",
-      guide: "מדריך התקנה",
-    },
-    workspace: {
-      dropOrSelect: "גרור לכאן קבצים או בחר מהמכשיר",
-      processFile: "עבד מסמך",
-      processing: "מעבד מסמך...",
-      downloadReady: "המסמך שלך מוכן להורדה!",
-      downloadBtn: "הורד PDF",
-      resetBtn: "עבד קובץ נוסף",
-      openInNew: "פתח כלי",
-    },
-    footer: {
-      tagline: "PDFSun (pdfsun.in) — הפתרון החכם שלך לניהול והמרת מסמכי PDF עם פרטיות מוחלטת בדפדפן.",
-      brandKit: "ערכת מיתוג",
-      quickLinks: "קישורים מהירים",
-      policies: "מדיניות",
-      resources: "משאבים",
-      social: "רשתות חברתיות",
-      home: "בית",
-      allTools: "כל כלי ה-PDF",
-      aiSuite: "חבילת כלי AI",
-      pricing: "תוכניות ומחירים",
-      pricingPlans: "תוכניות מחיר",
-      blog: "בלוג ומאמרים",
-      blogArticles: "מאמרים ומדריכים",
-      support: "תמיכה ויצירת קשר",
-      supportContact: "תמיכה ויצירת קשר",
-      privacyPolicy: "מדיניות פרטיות",
-      termsOfService: "תנאי שימוש",
-      aboutUs: "אודותינו",
-      helpCenter: "מרכז עזרה",
-      sitemap: "מפת אתר",
-      rights: "כל הזכויות שמורות.",
-      installApp: "התקן את אפליקציית PDFSun",
-      developedBy: "עוצב ופותח על ידי",
-      leadDev: "מפתח אתרים ראשי",
-    },
-  },
 };
 
-// Tool Translations dynamic cache
-export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; desc?: string }>> = {};
+// Merge Indian regional and Global translations into in-memory store
+Object.assign(IN_MEMORY_TRANSLATIONS, INDIAN_LANGUAGES_TRANSLATIONS, GLOBAL_LANGUAGES_TRANSLATIONS);
 
-// Track dynamically loaded languages in memory
-const loadedLanguagesSet = new Set<string>(["en", "hi", "ar", "he", "ur"]);
+// Alias zh to zh-CN for backward compatibility
+if (IN_MEMORY_TRANSLATIONS["zh-CN"]) {
+  IN_MEMORY_TRANSLATIONS["zh"] = IN_MEMORY_TRANSLATIONS["zh-CN"];
+}
 
-// Dynamic dictionary loaders for 30+ regional and global languages
-export const loadLanguageDictionary = async (langCode: string): Promise<Record<string, any> | null> => {
-  if (!langCode) return null;
-  const cleanCode = langCode.toLowerCase().split("-")[0];
-
-  // If already loaded in full in-memory store, return immediately
-  if (loadedLanguagesSet.has(langCode) && IN_MEMORY_TRANSLATIONS[langCode]) {
-    return IN_MEMORY_TRANSLATIONS[langCode];
-  }
-
-  try {
-    let dict: Record<string, any> | undefined;
-
-    // Load Indian regional translations dynamically if target is an Indian language
-    const indianLangs = ["bn", "mr", "te", "ta", "gu", "pa", "kn", "ml"];
-    if (indianLangs.includes(cleanCode)) {
-      const indianModule = await import("./translations/indianLanguages");
-      if (indianModule.INDIAN_LANGUAGES_TRANSLATIONS) {
-        Object.assign(IN_MEMORY_TRANSLATIONS, indianModule.INDIAN_LANGUAGES_TRANSLATIONS);
-        indianLangs.forEach((l) => loadedLanguagesSet.add(l));
-        dict = IN_MEMORY_TRANSLATIONS[langCode] || IN_MEMORY_TRANSLATIONS[cleanCode];
-      }
-    }
-
-    // Load Global translations dynamically if target is a global language
-    const globalLangs = [
-      "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "zh-CN", "zh-TW",
-      "tr", "nl", "pl", "vi", "th", "id", "uk", "fa", "ms", "sv", "el"
-    ];
-    if (globalLangs.includes(cleanCode) || globalLangs.includes(langCode)) {
-      const globalModule = await import("./translations/globalLanguages");
-      if (globalModule.GLOBAL_LANGUAGES_TRANSLATIONS) {
-        Object.assign(IN_MEMORY_TRANSLATIONS, globalModule.GLOBAL_LANGUAGES_TRANSLATIONS);
-        if (IN_MEMORY_TRANSLATIONS["zh-CN"]) {
-          IN_MEMORY_TRANSLATIONS["zh"] = IN_MEMORY_TRANSLATIONS["zh-CN"];
-        }
-        globalLangs.forEach((l) => loadedLanguagesSet.add(l));
-        dict = IN_MEMORY_TRANSLATIONS[langCode] || IN_MEMORY_TRANSLATIONS[cleanCode];
-      }
-    }
-
-    // Also load tool translations dynamically
-    try {
-      const toolModule = await import("./translations/toolTranslations");
-      if (toolModule.TOOL_TRANSLATIONS) {
-        Object.assign(TOOL_TRANSLATIONS, toolModule.TOOL_TRANSLATIONS);
-      }
-    } catch {}
-
-    loadedLanguagesSet.add(langCode);
-    if (cleanCode !== langCode) loadedLanguagesSet.add(cleanCode);
-
-    // If i18next is active, register bundle with i18next as well
-    if (dict && i18n.isInitialized) {
-      i18n.addResourceBundle(langCode, "translation", dict, true, true);
-    }
-
-    return dict || IN_MEMORY_TRANSLATIONS[langCode] || null;
-  } catch (error) {
-    console.warn(`[i18n] Failed to dynamically load translations for '${langCode}':`, error);
-    return null;
-  }
-};
-
-/**
- * Crucial auto-detection and DOM synchronization for document.dir (LTR/RTL) and document.lang
- */
-export const applyLocaleToDocument = (langCode: string): { dir: "rtl" | "ltr"; isRtl: boolean } => {
-  const isRtl = isRtlLanguage(langCode);
-  const dir: "rtl" | "ltr" = isRtl ? "rtl" : "ltr";
-
-  if (typeof document !== "undefined") {
-    // 1. Synchronize document.documentElement
-    document.documentElement.lang = langCode;
-    document.documentElement.dir = dir;
-    document.documentElement.setAttribute("dir", dir);
-
-    // 2. Synchronize document.body
-    if (document.body) {
-      document.body.dir = dir;
-      document.body.setAttribute("dir", dir);
-      if (isRtl) {
-        document.body.classList.add("rtl");
-      } else {
-        document.body.classList.remove("rtl");
-      }
-    }
-
-    // 3. Toggle CSS class for styling selectors (.rtl)
-    if (isRtl) {
-      document.documentElement.classList.add("rtl");
-    } else {
-      document.documentElement.classList.remove("rtl");
-    }
-  }
-
-  return { dir, isRtl };
-};
-
-// Auto-populate initial fallbacks for core supported languages
+// Auto-populate fallbacks for other supported languages so that translation switching NEVER breaks
 for (const lang of SUPPORTED_LANGUAGES) {
   if (!IN_MEMORY_TRANSLATIONS[lang.code]) {
     IN_MEMORY_TRANSLATIONS[lang.code] = IN_MEMORY_TRANSLATIONS["en"];
   }
 }
 
-// Synchronously configure i18next with core initial resources
+// Synchronously configure i18next
 if (!i18n.isInitialized) {
   const initialResources: Record<string, { translation: Record<string, any> }> = {};
   for (const [code, dict] of Object.entries(IN_MEMORY_TRANSLATIONS)) {
@@ -1922,13 +1531,10 @@ if (!i18n.isInitialized) {
 
 export interface LanguageContextType {
   currentLanguage: string;
-  language: string;
-  locale: string;
   setLanguage: (lang: string) => void;
   changeLanguage: (lang: string) => void;
   languageOption: LanguageOption;
   isRtl: boolean;
-  dir: "rtl" | "ltr";
   t: (
     key: string,
     fallbackOrParams?: string | Record<string, any>,
@@ -1940,34 +1546,21 @@ export interface LanguageContextType {
   cmsOverrides: Record<string, Record<string, string>>;
   saveCmsText: (key: string, value: string, lang?: string) => void;
   resetCmsText: () => void;
-  supportedLanguages: ReadonlyArray<LanguageOption>;
-  isLoadingDictionary: boolean;
-  loadLanguage: (lang: string) => Promise<void>;
 }
 
 const defaultContextValue: LanguageContextType = {
   currentLanguage: DEFAULT_LANGUAGE,
-  language: DEFAULT_LANGUAGE,
-  locale: DEFAULT_LANGUAGE,
   setLanguage: () => {},
   changeLanguage: () => {},
   languageOption: SUPPORTED_LANGUAGES[0],
   isRtl: false,
-  dir: "ltr",
-  t: (key: string, fallback?: string | Record<string, any>, params?: Record<string, any> | string) => {
-    if (typeof fallback === "string") return fallback;
-    if (typeof params === "string") return params;
-    return key;
-  },
+  t: (key: string, fallback?: string | Record<string, any>) => (typeof fallback === "string" ? fallback : key),
   getToolName: (tool) => tool.name,
   getToolDescription: (tool) => tool.description || "",
   getCategoryName: (key) => key,
   cmsOverrides: {},
   saveCmsText: () => {},
   resetCmsText: () => {},
-  supportedLanguages: SUPPORTED_LANGUAGES,
-  isLoadingDictionary: false,
-  loadLanguage: async () => {},
 };
 
 export const KEY_ALIASES: Record<string, string[]> = {
@@ -1985,10 +1578,10 @@ export const KEY_ALIASES: Record<string, string[]> = {
   history: ["nav.history"],
   favorites: ["nav.favorites"],
   "favorites.title": ["nav.favorites", "favorites"],
-  theme: ["nav.theme", "theme.displayTheme"],
-  themeMode: ["nav.theme", "theme.displayTheme"],
+  theme: ["nav.theme"],
+  themeMode: ["nav.theme"],
   language: ["nav.language"],
-  adminPanel: ["nav.adminPanel", "admin.adminSuite"],
+  adminPanel: ["nav.adminPanel"],
   dashboard: ["nav.userPortal"],
   userPortal: ["nav.userPortal"],
   logout: ["nav.logout"],
@@ -2015,11 +1608,13 @@ export const KEY_ALIASES: Record<string, string[]> = {
   chatWithPdf: ["quick_actions.chatWithPdf", "tools.ai-chat-pdf.name"],
   aiSummary: ["quick_actions.aiSummary", "tools.ai-pdf-summary.name"],
 
-  // Toolkit & Categories
+  // Toolkit
   "toolkit.title": ["categories.all", "badges.tools50"],
   "toolkit.subtitle": ["hero.subtitle", "badges.tools50Desc"],
   "toolkit.filterPlaceholder": ["hero.searchPlaceholder", "nav.searchBtn"],
   "toolkit.toolsCount": ["badges.tools50", "nav.allTools"],
+
+  // Categories
   "categories.all": ["categories.all"],
   "categories.student": ["categories.student"],
   "categories.ai": ["categories.ai"],
@@ -2059,7 +1654,7 @@ export const KEY_ALIASES: Record<string, string[]> = {
   "footer.pricingPlans": ["footer.pricingPlans", "pricing.titleHighlight"],
   "footer.policies": ["footer.policies"],
   "footer.resources": ["footer.resources"],
-  "footer.supportContact": ["footer.supportContact", "footer.support"],
+  "footer.supportContact": ["footer.supportContact"],
   "footer.social": ["footer.social"],
 
   // Footer & Legal
@@ -2078,21 +1673,7 @@ export const LanguageContext = createContext<LanguageContextType>(defaultContext
 export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [currentLanguage, setCurrentLanguageState] = useState<string>(getInitialLanguage);
   const [revision, setRevision] = useState<number>(0);
-  const [isLoadingDictionary, setIsLoadingDictionary] = useState<boolean>(false);
   const [cmsOverrides, setCmsOverrides] = useState<Record<string, Record<string, string>>>(getCmsOverrides);
-
-  const isRtl = useMemo(() => isRtlLanguage(currentLanguage), [currentLanguage]);
-  const dir: "rtl" | "ltr" = isRtl ? "rtl" : "ltr";
-
-  const loadLanguage = useCallback(async (targetLang: string) => {
-    setIsLoadingDictionary(true);
-    try {
-      await loadLanguageDictionary(targetLang);
-      setRevision((r) => r + 1);
-    } finally {
-      setIsLoadingDictionary(false);
-    }
-  }, []);
 
   // App mount & synchronization effect: Reads 'i18nextLng' or 'pdfsun_lang' from localStorage,
   // updates the i18next configuration, and listens for language changes to update localStorage accordingly.
@@ -2122,15 +1703,11 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
           if (i18n.language !== targetLang) {
             i18n.changeLanguage(targetLang).catch(() => {});
           }
-          applyLocaleToDocument(targetLang);
-          loadLanguage(targetLang);
+          document.documentElement.lang = targetLang;
+          document.documentElement.dir = isRtlLanguage(targetLang) ? "rtl" : "ltr";
         }
-      } else {
-        if (i18n.language !== currentLanguage) {
-          i18n.changeLanguage(currentLanguage).catch(() => {});
-        }
-        applyLocaleToDocument(currentLanguage);
-        loadLanguage(currentLanguage);
+      } else if (i18n.language !== currentLanguage) {
+        i18n.changeLanguage(currentLanguage).catch(() => {});
       }
     } catch (err) {
       console.warn("LanguageProvider: error initializing language from localStorage:", err);
@@ -2147,15 +1724,15 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
         : null;
 
       if (validLng) {
-        applyLocaleToDocument(validLng);
         try {
           localStorage.setItem("pdfsun_lang", validLng);
           localStorage.setItem(STORAGE_KEY, validLng);
           localStorage.setItem("i18nextLng", validLng);
+          document.documentElement.lang = validLng;
+          document.documentElement.dir = isRtlLanguage(validLng) ? "rtl" : "ltr";
         } catch {}
 
         setCurrentLanguageState((prev) => (prev !== validLng ? validLng : prev));
-        loadLanguage(validLng);
         setRevision((r) => r + 1);
       }
     };
@@ -2171,8 +1748,8 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
           if (i18n.language !== updatedLang) {
             i18n.changeLanguage(updatedLang).catch(() => {});
           }
-          applyLocaleToDocument(updatedLang);
-          loadLanguage(updatedLang);
+          document.documentElement.lang = updatedLang;
+          document.documentElement.dir = isRtlLanguage(updatedLang) ? "rtl" : "ltr";
           setRevision((r) => r + 1);
         }
       }
@@ -2186,8 +1763,6 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
         if (i18n.language !== detail.lang) {
           i18n.changeLanguage(detail.lang).catch(() => {});
         }
-        applyLocaleToDocument(detail.lang);
-        loadLanguage(detail.lang);
         setRevision((r) => r + 1);
       }
     };
@@ -2200,7 +1775,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       window.removeEventListener("storage", handleStorageSync);
       window.removeEventListener("pdfsun_language_changed", handleLanguageEvent);
     };
-  }, [currentLanguage, loadLanguage]);
+  }, []);
 
   // Synchronize with custom CMS update events
   useEffect(() => {
@@ -2225,19 +1800,24 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
     );
   }, [currentLanguage]);
 
+  const isRtl = useMemo(() => {
+    return isRtlLanguage(currentLanguage);
+  }, [currentLanguage]);
+
   const setLanguage = useCallback((newLang: string) => {
     const validLang = SUPPORTED_LANGUAGES.some((l) => l.code === newLang)
       ? newLang
       : DEFAULT_LANGUAGE;
 
     setCurrentLanguageState(validLang);
-    applyLocaleToDocument(validLang);
 
     try {
       localStorage.setItem(STORAGE_KEY, validLang);
       localStorage.setItem("pdfsun_lang", validLang);
       localStorage.setItem("i18nextLng", validLang);
       document.cookie = `pdfsun_lang=${encodeURIComponent(validLang)}; path=/; max-age=31536000; SameSite=Lax`;
+      document.documentElement.lang = validLang;
+      document.documentElement.dir = isRtlLanguage(validLang) ? "rtl" : "ltr";
 
       // Dynamically update URL query parameter to keep language state persistent & shareable
       if (typeof window !== "undefined") {
@@ -2260,13 +1840,15 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       i18n.changeLanguage(validLang).catch(() => {});
     }
 
-    loadLanguage(validLang);
     setRevision((r) => r + 1);
-  }, [loadLanguage]);
+  }, []);
 
   useEffect(() => {
-    applyLocaleToDocument(currentLanguage);
-  }, [currentLanguage]);
+    try {
+      document.documentElement.lang = currentLanguage;
+      document.documentElement.dir = isRtl ? "rtl" : "ltr";
+    } catch {}
+  }, [currentLanguage, isRtl]);
 
   const saveCmsText = useCallback((key: string, value: string, lang?: string) => {
     const targetLang = lang || currentLanguage;
@@ -2300,20 +1882,17 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
           ? possibleParamsOrFallback
           : undefined;
 
-      const interpolate = (str: string) => {
-        if (!params) return str;
-        let result = str;
-        for (const [pk, pv] of Object.entries(params)) {
-          result = result.replace(new RegExp(`{{${pk}}}|{${pk}}`, "g"), String(pv));
-        }
-        return result;
-      };
-
       // 1. Check CMS Overrides First for instantaneous live owner edits
       const currentCms = getCmsOverrides();
       const directOverride = currentCms[currentLanguage]?.[key] || currentCms["all"]?.[key] || currentCms["en"]?.[key];
       if (typeof directOverride === "string" && directOverride.trim() !== "") {
-        return interpolate(directOverride);
+        let val = directOverride;
+        if (params) {
+          for (const [pk, pv] of Object.entries(params)) {
+            val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
+          }
+        }
+        return val;
       }
 
       // 2. Check Tool Translations directly if key targets tool name/description
@@ -2324,7 +1903,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
           const field = parts[2] as "name" | "desc";
           const localized = TOOL_TRANSLATIONS[currentLanguage]?.[toolId]?.[field];
           if (typeof localized === "string" && localized.trim() !== "") {
-            return interpolate(localized);
+            return localized;
           }
         }
       }
@@ -2338,7 +1917,7 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       const resolveBundle = (bundle: any, rawKey: string): string | undefined => {
         if (!bundle) return undefined;
 
-        // 3a. Direct nested match (e.g. 'nav.home', 'hero.statsFiles')
+        // 3a. Direct nested match
         const direct = getNested(bundle, rawKey);
         if (typeof direct === "string" && direct.trim() !== "") return direct;
 
@@ -2364,10 +1943,6 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
             "workspace",
             "faq",
             "testimonials",
-            "theme",
-            "admin",
-            "roles",
-            "mobileApp",
           ];
           for (const sec of sections) {
             if (bundle[sec] && typeof bundle[sec][rawKey] === "string" && bundle[sec][rawKey].trim() !== "") {
@@ -2383,14 +1958,26 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       const langBundle = IN_MEMORY_TRANSLATIONS[currentLanguage];
       const match = resolveBundle(langBundle, key);
       if (match) {
-        return interpolate(match);
+        let val = match;
+        if (params) {
+          for (const [pk, pv] of Object.entries(params)) {
+            val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
+          }
+        }
+        return val;
       }
 
       // Fallback to English in-memory dictionary
       const enBundle = IN_MEMORY_TRANSLATIONS["en"];
       const enMatch = resolveBundle(enBundle, key);
       if (enMatch) {
-        return interpolate(enMatch);
+        let val = enMatch;
+        if (params) {
+          for (const [pk, pv] of Object.entries(params)) {
+            val = val.replace(new RegExp(`{{${pk}}}`, "g"), String(pv));
+          }
+        }
+        return val;
       }
 
       const isValidString = (val: unknown): val is string => {
@@ -2405,13 +1992,13 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
         const res = i18n.t(key, params as Record<string, unknown>);
         if (isValidString(res)) return res;
         if (typeof res === "number" || typeof res === "boolean") return String(res);
-        return fallbackText ? interpolate(fallbackText) : key;
+        return fallbackText || key;
       }
 
       const res = i18n.t(key, { ...params, defaultValue: fallbackText || key });
       if (isValidString(res)) return res;
       if (typeof res === "number" || typeof res === "boolean") return String(res);
-      return fallbackText ? interpolate(fallbackText) : key;
+      return fallbackText || key;
     },
     [currentLanguage, revision]
   );
@@ -2444,13 +2031,10 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const contextValue = useMemo(
     () => ({
       currentLanguage,
-      language: currentLanguage,
-      locale: currentLanguage,
       setLanguage,
       changeLanguage: setLanguage,
       languageOption,
       isRtl,
-      dir,
       t,
       getToolName,
       getToolDescription,
@@ -2458,27 +2042,8 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       cmsOverrides,
       saveCmsText,
       resetCmsText,
-      supportedLanguages: SUPPORTED_LANGUAGES,
-      isLoadingDictionary,
-      loadLanguage,
     }),
-    [
-      currentLanguage,
-      setLanguage,
-      languageOption,
-      isRtl,
-      dir,
-      t,
-      getToolName,
-      getToolDescription,
-      getCategoryName,
-      cmsOverrides,
-      saveCmsText,
-      resetCmsText,
-      isLoadingDictionary,
-      loadLanguage,
-      revision,
-    ]
+    [currentLanguage, setLanguage, languageOption, isRtl, t, getToolName, getToolDescription, getCategoryName, cmsOverrides, saveCmsText, resetCmsText, revision]
   );
 
   return (
@@ -2488,13 +2053,9 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-export const useI18n = (): LanguageContextType => {
+export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
   return context || defaultContextValue;
-};
-
-export const useLanguage = (): LanguageContextType => {
-  return useI18n();
 };
 
 /**
@@ -2502,7 +2063,7 @@ export const useLanguage = (): LanguageContextType => {
  * updates i18next on app load, and provides convenient helpers to switch and persist language.
  */
 export const usePersistedLanguage = () => {
-  const context = useI18n();
+  const context = useLanguage();
 
   useEffect(() => {
     // Ensures i18next reflects the persisted language
@@ -2514,13 +2075,10 @@ export const usePersistedLanguage = () => {
 
   return {
     currentLanguage: context.currentLanguage,
-    language: context.language,
-    locale: context.locale,
     setLanguage: context.setLanguage,
     changeLanguage: context.changeLanguage,
     languageOption: context.languageOption,
     isRtl: context.isRtl,
-    dir: context.dir,
     t: context.t,
     getPersistedLanguage,
   };

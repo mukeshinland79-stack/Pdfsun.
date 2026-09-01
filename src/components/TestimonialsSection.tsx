@@ -31,6 +31,14 @@ export const TestimonialsSection: React.FC = () => {
               itemType="https://schema.org/Review"
               className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-4"
             >
+              {/* Required Schema.org itemReviewed property for Google Search Console / Rich Results */}
+              <div itemProp="itemReviewed" itemScope itemType="https://schema.org/SoftwareApplication" className="hidden">
+                <meta itemProp="name" content="PDFSun - Online PDF Tools" />
+                <meta itemProp="applicationCategory" content="UtilitiesApplication" />
+                <meta itemProp="operatingSystem" content="All" />
+                <meta itemProp="url" content="https://pdfsun.in" />
+              </div>
+
               <div className="space-y-3">
                 <div className="flex items-center space-x-1 text-amber-400" itemProp="reviewRating" itemScope itemType="https://schema.org/Rating">
                   <meta itemProp="ratingValue" content={item.rating.toString()} />

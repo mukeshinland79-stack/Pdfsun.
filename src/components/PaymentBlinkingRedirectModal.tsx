@@ -15,11 +15,21 @@ export const PaymentBlinkingRedirectModal: React.FC<PaymentBlinkingRedirectModal
   onComplete,
   planName,
   paymentId,
-  userId = "user@pdfsun.in",
+  userId,
   amountStr = "₹199",
 }) => {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  // Safe user account display
+  const displayUser = React.useMemo(() => {
+    if (!userId || userId.includes("mukesh") || !userId.includes("@")) {
+      return "Pdfsun.in Account";
+    }
+    const [name, domain] = userId.split("@");
+    const masked = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : `${name[0]}***`;
+    return `Pdfsun.in User (${masked}@${domain})`;
+  }, [userId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -79,7 +89,7 @@ export const PaymentBlinkingRedirectModal: React.FC<PaymentBlinkingRedirectModal
             Activating Your Access
           </h3>
           <p className="text-xs text-slate-400">
-            Order: <span className="font-mono text-amber-400">{paymentId}</span> • User: <span className="text-slate-300 font-semibold">{userId}</span>
+            Order: <span className="font-mono text-amber-400">{paymentId}</span> • Account: <span className="text-slate-300 font-semibold">{displayUser}</span>
           </p>
         </div>
 
@@ -183,17 +193,17 @@ export const PaymentBlinkingRedirectModal: React.FC<PaymentBlinkingRedirectModal
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-wider">Step 3: Activating Subscription</p>
-                <p className="text-[11px] opacity-80">Binding plan to User ID: {userId}</p>
+                <p className="text-[11px] opacity-80">Binding {planName} to: {displayUser}</p>
               </div>
             </div>
 
             {activeStep === 3 && !completedSteps.includes(3) && (
               <span className="flex items-center space-x-1 text-[10px] font-bold text-amber-400">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                <span>Binding...</span>
+                <span>Activating...</span>
               </span>
             )}
-            {completedSteps.includes(3) && <span className="text-xs font-black text-emerald-400">ACTIVATED 🟢</span>}
+            {completedSteps.includes(3) && <span className="text-xs font-black text-emerald-400">PLAN ACTIVATED 🟢</span>}
           </div>
         </div>
 

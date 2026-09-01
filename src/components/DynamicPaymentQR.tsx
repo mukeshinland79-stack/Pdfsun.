@@ -123,6 +123,24 @@ export const DynamicPaymentQR: React.FC<DynamicPaymentQRProps> = ({
     }
   };
 
+  // Format obfuscated / privacy-safe account display
+  const getAccountBoundDisplay = (email?: string) => {
+    if (!email || email.includes("mukesh") || !email.includes("@")) {
+      return "Pdfsun.in Account";
+    }
+    const parts = email.split("@");
+    if (parts.length === 2) {
+      const namePart = parts[0];
+      const domainPart = parts[1];
+      const maskedName =
+        namePart.length > 2
+          ? `${namePart[0]}***${namePart[namePart.length - 1]}`
+          : `${namePart[0]}***`;
+      return `Pdfsun.in User (${maskedName}@${domainPart})`;
+    }
+    return "Pdfsun.in Account";
+  };
+
   return (
     <div className="bg-[#0f172a] border border-amber-500/30 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-white space-y-5 relative">
       {/* Header */}
@@ -193,14 +211,13 @@ export const DynamicPaymentQR: React.FC<DynamicPaymentQRProps> = ({
             <span className="font-bold text-purple-300">{product.credits} Lifetime Credits</span>
           </div>
         )}
-        {userEmail && (
-          <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
-            <span className="text-slate-400">Account Bound:</span>
-            <span className="font-mono text-[11px] text-slate-300 truncate max-w-[200px]">
-              {userEmail}
-            </span>
-          </div>
-        )}
+        <div className="flex justify-between items-center pt-1 border-t border-slate-800/80">
+          <span className="text-slate-400">Account Bound:</span>
+          <span className="font-semibold text-[11px] text-emerald-400 flex items-center gap-1.5 truncate max-w-[240px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+            <span>{getAccountBoundDisplay(userEmail)}</span>
+          </span>
+        </div>
       </div>
 
       {/* Tab 1: Authentic Dynamic QR Code Display */}

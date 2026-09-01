@@ -103,9 +103,88 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       "@type": "AggregateRating",
       "ratingValue": "4.9",
       "ratingCount": "18420",
+      "reviewCount": "4",
       "bestRating": "5",
       "worstRating": "1"
     },
+    "review": [
+      {
+        "@type": "Review",
+        "itemReviewed": {
+          "@type": "SoftwareApplication",
+          "name": "PDFSun - Online PDF Tools",
+          "operatingSystem": "All",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Aarav Sharma"
+        },
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "reviewBody": "PDFSun AI Notes Generator and AI Chat saved me hundreds of hours during exam prep. Combining research papers and querying formulas is flawless!"
+      },
+      {
+        "@type": "Review",
+        "itemReviewed": {
+          "@type": "SoftwareApplication",
+          "name": "PDFSun - Online PDF Tools",
+          "operatingSystem": "All",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Priya Patel"
+        },
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "reviewBody": "Redacting confidential client data and flattening PDF contracts is client-side instant. The security auto-delete guarantee gives our practice 100% peace of mind."
+      },
+      {
+        "@type": "Review",
+        "itemReviewed": {
+          "@type": "SoftwareApplication",
+          "name": "PDFSun - Online PDF Tools",
+          "operatingSystem": "All",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "David Miller"
+        },
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "reviewBody": "Converting complex PDF tables to Excel with zero broken formatting is incredible. PDFSun is easily the fastest PDF workspace on the web."
+      },
+      {
+        "@type": "Review",
+        "itemReviewed": {
+          "@type": "SoftwareApplication",
+          "name": "PDFSun - Online PDF Tools",
+          "operatingSystem": "All",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Ananya Gupta"
+        },
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "reviewBody": "The AI PDF Translator and Explain tool helps our global medical team dissect complex international research quickly. Highly recommended!"
+      }
+    ],
     "author": {
       "@type": "Organization",
       "name": "PDFSun",

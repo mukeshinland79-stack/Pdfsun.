@@ -87,7 +87,21 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   userProfile,
 }) => {
   const { t } = useLanguage();
-  const currentUserId = (userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
+  const currentUserId = userProfile?.email ? userProfile.email.toLowerCase().trim() : "";
+
+  // Privacy-safe obfuscated account label for UI display
+  const displayBoundAccount = userProfile?.email
+    ? userProfile.email.includes("mukesh") || !userProfile.email.includes("@")
+      ? "Pdfsun.in Account"
+      : (() => {
+          const [namePart, domain] = userProfile.email.split("@");
+          const maskedName =
+            namePart.length > 2
+              ? `${namePart[0]}***${namePart[namePart.length - 1]}`
+              : `${namePart[0]}***`;
+          return `Pdfsun.in User (${maskedName}@${domain})`;
+        })()
+    : "Pdfsun.in Account";
 
   // Structured Data (JSON-LD Product & Offer Schema) for Pricing Plans
   const pricingProductSchema = {
@@ -1361,7 +1375,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       </div>
 
                       <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 leading-snug">
-                        Bound to User: <span className="text-emerald-600 dark:text-emerald-400 font-black">{currentUserId}</span>
+                        Bound to Account: <span className="text-emerald-600 dark:text-emerald-400 font-black">{displayBoundAccount}</span>
                       </p>
 
                       <p className="text-[11px] text-slate-800 dark:text-slate-100 font-black">

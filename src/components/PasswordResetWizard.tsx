@@ -405,7 +405,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. mukeshinland79@gmail.com or 9991659655"
+                placeholder="e.g. yourname@domain.com or 9876543210"
                 required
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 outline-none transition pr-10"
               />

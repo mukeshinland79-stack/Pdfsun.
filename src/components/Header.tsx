@@ -217,14 +217,14 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
 
-            {/* ZONE 2: CENTER RESPONSIVE GLOBAL SEARCH BAR */}
+          {/* ZONE 2: CENTER RESPONSIVE GLOBAL SEARCH BAR */}
           <div className="flex flex-1 max-w-xs sm:max-w-md md:max-w-lg mx-2">
             <button
               type="button"
               onClick={handleOpenSearchModal}
               className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs cursor-pointer group gap-1"
-              title={`${t("nav.commandPalette", "Command Palette")} (${isMac ? "Cmd+K" : "Ctrl+K"})`}
-              aria-label={t("nav.openSearchAria", "Open Command Palette tool search modal")}
+              title={`Command Palette (${isMac ? "Cmd+K" : "Ctrl+K"})`}
+              aria-label="Open Command Palette tool search modal"
             >
               <div className="flex items-center space-x-2 min-w-0">
                 <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
@@ -254,12 +254,12 @@ export const Header: React.FC<HeaderProps> = ({
                 if (onOpenInstallApp) onOpenInstallApp();
               }}
               className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
-              title={t("nav.installAppTitle", "Install PDFSun App on your device")}
-              aria-label={t("nav.installApp", "Install App")}
+              title="Install PDFSun App on your device"
+              aria-label="Install PDFSun Mobile App"
             >
               <Smartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="whitespace-nowrap">
-                {t("nav.installApp", "Install App")}
+                Install App
               </span>
             </button>
 
@@ -269,8 +269,8 @@ export const Header: React.FC<HeaderProps> = ({
               id="header-nav-pricing-btn"
               onClick={handleOpenPricing}
               className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-amber-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
-              title={t("pricingPlansTitle", "View PDFSun Pricing & Plans")}
-              aria-label={t("pricingPlans", "Pricing Plans")}
+              title="View PDFSun Pricing & Plans"
+              aria-label="View Pricing Plans"
             >
               <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400/30 shrink-0" />
               <span className="whitespace-nowrap font-bold">
@@ -295,8 +295,8 @@ export const Header: React.FC<HeaderProps> = ({
                     ? "bg-indigo-950/80 text-sky-300 border-indigo-500/40"
                     : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200/80 dark:hover:bg-slate-700"
                 }`}
-                title={`${t("nav.currentTheme", "Current Theme")}: ${themeMode}. ${t("nav.clickToSwitch", "Click to switch.")}`}
-                aria-label={t("nav.changeTheme", "Change Display Theme")}
+                title={`Current Theme: ${themeMode}. Click to switch.`}
+                aria-label="Change Display Theme"
               >
                 {themeMode === "system" && <Laptop className="w-4 h-4 text-indigo-500" />}
                 {themeMode === "light" && <Sun className="w-4 h-4 text-amber-500 fill-amber-400/30" />}
@@ -306,14 +306,14 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <span className="hidden md:inline font-bold">
                   {themeMode === "system"
-                    ? t("theme.auto", "Auto")
+                    ? "Auto"
                     : themeMode === "light"
-                    ? t("theme.light", "Light")
+                    ? "Light"
                     : themeMode === "dark"
-                    ? t("theme.dark", "Dark")
+                    ? "Dark"
                     : themeMode === "eye-protection"
-                    ? t("theme.eyeCare", "Eye Care")
-                    : t("theme.aurora", "Aurora")}
+                    ? "Eye Care"
+                    : "Aurora"}
                 </span>
                 <ChevronDown className={`w-3 h-3 hidden md:inline transition-transform duration-200 ${themeDropdownOpen ? "rotate-180" : ""}`} />
               </button>
@@ -329,14 +329,14 @@ export const Header: React.FC<HeaderProps> = ({
                     className="absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-[9999] space-y-1"
                   >
                     <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      {t("theme.displayTheme", "Display Theme")}
+                      Display Theme
                     </div>
                     {[
-                      { id: "system", label: t("theme.systemAuto", "System Auto"), desc: t("theme.matchesOs", "Matches OS settings"), icon: Laptop, color: "text-indigo-500" },
-                      { id: "light", label: t("theme.lightMode", "Light Mode"), desc: t("theme.crispDaylight", "Crisp daylight UI"), icon: Sun, color: "text-amber-500" },
-                      { id: "dark", label: t("theme.darkMode", "Dark Mode"), desc: t("theme.oledMidnight", "OLED midnight theme"), icon: Moon, color: "text-blue-400" },
-                      { id: "eye-protection", label: t("theme.eyeCare", "Eye Care"), desc: t("theme.warmSepia", "Warm sepia filter"), icon: Eye, color: "text-amber-600" },
-                      { id: "aurora", label: t("theme.auroraGlass", "Aurora Glass"), desc: t("theme.frostedGlass", "Vibrant frosted glass"), icon: Sparkles, color: "text-sky-400" },
+                      { id: "system", label: "System Auto", desc: "Matches OS settings", icon: Laptop, color: "text-indigo-500" },
+                      { id: "light", label: "Light Mode", desc: "Crisp daylight UI", icon: Sun, color: "text-amber-500" },
+                      { id: "dark", label: "Dark Mode", desc: "OLED midnight theme", icon: Moon, color: "text-blue-400" },
+                      { id: "eye-protection", label: "Eye Care", desc: "Warm sepia filter", icon: Eye, color: "text-amber-600" },
+                      { id: "aurora", label: "Aurora Glass", desc: "Vibrant frosted glass", icon: Sparkles, color: "text-sky-400" },
                     ].map((opt) => {
                       const IconComp = opt.icon;
                       const isActive = themeMode === opt.id;
@@ -381,11 +381,11 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs hover:opacity-95 transition cursor-pointer text-xs font-bold"
-                  aria-label={t("nav.openAdminMenu", "Open Admin Menu")}
+                  aria-label="Open Admin Menu"
                 >
                   <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                   <span className="hidden sm:inline uppercase tracking-wider text-[11px] font-black">
-                    {currentRole === "owner" ? t("roles.owner", "Owner") : t("roles.admin", "Admin")}
+                    {currentRole === "owner" ? "Owner" : "Admin"}
                   </span>
                   <ChevronDown className="w-3 h-3 opacity-80 shrink-0" />
                 </button>
@@ -394,7 +394,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer text-xs font-bold"
-                  aria-label={t("nav.openUserMenu", "Open User Menu")}
+                  aria-label="Open User Menu"
                 >
                   <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
                     {(userProfile.name || "U")[0].toUpperCase()}
@@ -409,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => onOpenAuthModal("customer")}
                   className="px-3.5 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer active:scale-95"
-                  aria-label={t("login", "Login / Sign In")}
+                  aria-label="Login or Sign In"
                 >
                   <User className="w-3.5 h-3.5 shrink-0" />
                   <span>{t("login", "Login / Sign In")}</span>
@@ -424,7 +424,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="w-full p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-1 space-y-1">
                     <div className="w-full flex items-center justify-between gap-1">
                       <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                        {userProfile?.name || t("account.customerAccount", "Customer Account")}
+                        {userProfile?.name || "Customer Account"}
                       </span>
                       <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
                         currentRole === "owner"
@@ -436,12 +436,12 @@ export const Header: React.FC<HeaderProps> = ({
                           : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
                       }`}>
                         {currentRole === "owner"
-                          ? t("roles.founderOwner", "FOUNDER & OWNER")
+                          ? "FOUNDER & OWNER"
                           : userProfile?.hasAdminAccess
-                          ? t("roles.adminAccess", "ADMIN ACCESS")
+                          ? "ADMIN ACCESS"
                           : userProfile?.isPro
-                          ? t("roles.proCustomer", "PRO CUSTOMER")
-                          : t("roles.freeCustomer", "FREE CUSTOMER")}
+                          ? "PRO CUSTOMER"
+                          : "FREE CUSTOMER"}
                       </span>
                     </div>
                     <div className="w-full text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
@@ -457,10 +457,10 @@ export const Header: React.FC<HeaderProps> = ({
                   {hasAdminRights && (
                     <div className="w-full space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
                       <div className="w-full px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center justify-between gap-1">
-                        <span>{currentRole === "owner" ? t("admin.ownerAdmin", "Owner Administration") : t("admin.adminSuite", "Admin Suite")}</span>
+                        <span>{currentRole === "owner" ? "Owner Administration" : "Admin Suite"}</span>
                         {adminEditModeActive && (
                           <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
-                            {t("admin.barActive", "BAR ACTIVE")}
+                            BAR ACTIVE
                           </span>
                         )}
                       </div>
@@ -487,7 +487,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-                          <span>{t("admin.cmsEditor", "Live Site CMS Editor")}</span>
+                          <span>Live Site CMS Editor</span>
                         </button>
                       )}
 
@@ -499,7 +499,7 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                           <div className="flex items-center space-x-2">
                             <Sliders className="w-3.5 h-3.5 text-slate-500" />
-                            <span>{t("admin.controlBar", "Admin Control Bar")}</span>
+                            <span>Admin Control Bar</span>
                           </div>
                           <span
                             className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
@@ -508,7 +508,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 : "bg-slate-200 dark:bg-slate-700 text-slate-500"
                             }`}
                           >
-                            {adminEditModeActive ? t("common.on", "ON") : t("common.off", "OFF")}
+                            {adminEditModeActive ? "ON" : "OFF"}
                           </span>
                         </button>
                       )}
@@ -523,7 +523,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-full p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                         >
                           <BarChart3 className="w-3 h-3 text-blue-500 shrink-0" />
-                          <span className="truncate">{t("admin.analytics", "Analytics")}</span>
+                          <span className="truncate">Analytics</span>
                         </button>
 
                         <button
@@ -535,7 +535,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-full p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                         >
                           <Wallet className="w-3 h-3 text-emerald-500 shrink-0" />
-                          <span className="truncate">{t("admin.finance", "Finance")}</span>
+                          <span className="truncate">Finance</span>
                         </button>
 
                         <button
@@ -547,7 +547,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-full p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                         >
                           <Users className="w-3 h-3 text-cyan-500 shrink-0" />
-                          <span className="truncate">{t("admin.usersRbac", "Users & RBAC")}</span>
+                          <span className="truncate">Users & RBAC</span>
                         </button>
 
                         <button
@@ -559,7 +559,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-full p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                         >
                           <Settings className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{t("admin.settings", "Settings")}</span>
+                          <span className="truncate">Settings</span>
                         </button>
                       </div>
                     </div>
@@ -622,7 +622,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                       >
                         <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>{t("nav.shareQr", "Share & Scan QR Code")}</span>
+                        <span>Share &amp; Scan QR Code</span>
                       </button>
                     )}
                   </div>
@@ -650,7 +650,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
-              aria-label={t("nav.toggleMenu", "Toggle Navigation Menu")}
+              aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -687,8 +687,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <PDFSunLogoIcon variant="app-icon" size={28} />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-black text-white leading-tight truncate">{t("mobileApp.title", "PDFSun Mobile App")}</h4>
-                <p className="text-[10px] text-blue-100/90 font-medium truncate">{t("mobileApp.subtitle", "Your PDF tools, wherever you go.")}</p>
+                <h4 className="text-xs font-black text-white leading-tight truncate">PDFSun Mobile App</h4>
+                <p className="text-[10px] text-blue-100/90 font-medium truncate">Your PDF tools, wherever you go.</p>
               </div>
             </div>
             <div className="flex items-center space-x-2 pt-0.5">
@@ -702,7 +702,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex-1 py-1.5 px-3 rounded-xl bg-white text-blue-700 font-extrabold text-xs shadow-xs hover:bg-blue-50 transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
               >
                 <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                <span>{t("footer.installApp", "Install PDFSun App")}</span>
+                <span>Install PDFSun App</span>
               </button>
               <button
                 type="button"
@@ -712,7 +712,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 className="py-1.5 px-2.5 rounded-xl bg-white/20 text-white font-bold text-xs hover:bg-white/30 transition cursor-pointer"
               >
-                {t("mobileApp.guide", "Guide")}
+                Guide
               </button>
             </div>
           </div>
@@ -745,7 +745,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{t("pricingPlans", "Pricing Plans")}</span>
               </div>
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 uppercase tracking-wider">
-                {t("badges.proSso", "PRO & SSO")}
+                PRO &amp; SSO
               </span>
             </button>
 
@@ -753,7 +753,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-full p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
               <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-indigo-500" />
-                <span>{t("nav.aiSuite", "AI Suite Tools")}</span>
+                <span>AI Suite Tools</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {/* Summary */}
@@ -766,7 +766,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-blue-400 transition"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="truncate">{t("tools.summary", "Summary")}</span>
+                  <span className="truncate">Summary</span>
                 </button>
 
                 {/* Translate */}
@@ -779,7 +779,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-blue-400 transition"
                 >
                   <Languages className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  <span className="truncate">{t("tools.translate", "Translate")}</span>
+                  <span className="truncate">Translate</span>
                 </button>
 
                 {/* Resume Ready */}
@@ -793,10 +793,10 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <FileText className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
-                    <span>{t("tools.resumeReady", "Resume Ready")}</span>
+                    <span>Resume Ready</span>
                   </div>
                   <span className="text-[9px] px-1.5 py-0.2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded font-black uppercase">
-                    {t("badges.ats", "ATS")}
+                    ATS
                   </span>
                 </button>
 
@@ -810,7 +810,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1.5 cursor-pointer hover:border-indigo-400 transition col-span-2"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <span className="truncate">{t("tools.aiChat", "AI Chat with PDF")}</span>
+                  <span className="truncate">AI Chat with PDF</span>
                 </button>
               </div>
             </div>
@@ -857,7 +857,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className="flex items-center space-x-2">
                   <Share2 className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>{t("nav.shareQr", "Share PDFSun & QR Code")}</span>
+                  <span>Share PDFSun &amp; QR Code</span>
                 </div>
                 <QrCode className="w-4 h-4 text-slate-400 shrink-0" />
               </button>
@@ -880,9 +880,9 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <div className="w-full grid grid-cols-3 gap-1.5">
               {[
-                { id: "light", label: t("theme.light", "Light"), icon: Sun },
-                { id: "dark", label: t("theme.dark", "Dark"), icon: Moon },
-                { id: "system", label: t("theme.auto", "Auto"), icon: Laptop },
+                { id: "light", label: "Light", icon: Sun },
+                { id: "dark", label: "Dark", icon: Moon },
+                { id: "system", label: "Auto", icon: Laptop },
               ].map((m) => {
                 const IconComponent = m.icon;
                 const isActive = themeMode === m.id;
@@ -914,11 +914,11 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="w-full text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 px-1 flex items-center justify-between gap-1">
                 <span className="flex items-center space-x-1">
                   <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>{currentRole === "owner" ? t("admin.ownerAdmin", "Owner Administration") : t("admin.adminSuite", "Admin Suite")}</span>
+                  <span>Admin Suite {currentRole === "owner" ? "(Owner)" : "(Granted)"}</span>
                 </span>
                 {adminEditModeActive && (
                   <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
-                    {t("admin.barActive", "BAR ACTIVE")}
+                    BAR ACTIVE
                   </span>
                 )}
               </div>
@@ -932,7 +932,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-full p-2 rounded-xl text-left text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center space-x-2 cursor-pointer"
               >
                 <Crown className="w-3.5 h-3.5 text-amber-300" />
-                <span>{t("adminPanel", "Open Admin Dashboard")}</span>
+                <span>Open Admin Dashboard</span>
               </button>
 
               {onOpenCms && (
@@ -945,7 +945,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-2 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500/30 flex items-center space-x-2 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-                  <span>{t("admin.cmsEditor", "Live Site CMS Editor")}</span>
+                  <span>Live Site CMS Editor</span>
                 </button>
               )}
 
@@ -957,7 +957,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span className="flex items-center space-x-1.5">
                     <Sliders className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{t("admin.controlBar", "Admin Control Bar")}</span>
+                    <span>Admin Control Bar</span>
                   </span>
                   <span
                     className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
@@ -966,7 +966,7 @@ export const Header: React.FC<HeaderProps> = ({
                         : "bg-slate-200 dark:bg-slate-700 text-slate-500"
                     }`}
                   >
-                    {adminEditModeActive ? t("common.on", "ON") : t("common.off", "OFF")}
+                    {adminEditModeActive ? "ON" : "OFF"}
                   </span>
                 </button>
               )}
@@ -981,7 +981,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer flex items-center space-x-1.5"
                 >
                   <BarChart3 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  <span className="truncate">{t("admin.analytics", "Analytics")}</span>
+                  <span className="truncate">Analytics</span>
                 </button>
                 <button
                   type="button"
@@ -992,7 +992,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer flex items-center space-x-1.5"
                 >
                   <Wallet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span className="truncate">{t("admin.finance", "Finance")}</span>
+                  <span className="truncate">Finance</span>
                 </button>
                 <button
                   type="button"
@@ -1003,7 +1003,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer flex items-center space-x-1.5"
                 >
                   <Users className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
-                  <span className="truncate">{t("admin.usersRbac", "Users & RBAC")}</span>
+                  <span className="truncate">Users & RBAC</span>
                 </button>
                 <button
                   type="button"
@@ -1014,7 +1014,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer flex items-center space-x-1.5"
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{t("admin.settings", "Settings")}</span>
+                  <span className="truncate">Settings</span>
                 </button>
               </div>
             </div>
@@ -1033,7 +1033,7 @@ export const Header: React.FC<HeaderProps> = ({
                       {userProfile.name}
                     </span>
                     <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0">
-                      {currentRole === "owner" ? t("roles.owner", "OWNER") : userProfile.hasAdminAccess ? t("roles.admin", "ADMIN") : userProfile.isPro ? t("roles.pro", "PRO") : t("roles.free", "FREE")}
+                      {currentRole === "owner" ? "OWNER" : userProfile.hasAdminAccess ? "ADMIN" : userProfile.isPro ? "PRO" : "FREE"}
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-mono">
@@ -1052,7 +1052,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full p-2 rounded-xl text-left text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center space-x-1.5 transition cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <span className="truncate">{t("dashboard", "User Dashboard")}</span>
+                  <span className="truncate">Dashboard</span>
                 </button>
 
                 <button

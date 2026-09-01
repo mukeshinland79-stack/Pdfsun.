@@ -55,7 +55,7 @@ import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
-function AppContent() {
+export default function App() {
   const { currentLanguage, setLanguage } = useLanguage();
   // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
@@ -218,7 +218,42 @@ function AppContent() {
     isLoading: authLoading,
     logout: rawLogout,
     updateRole: handleSelectRole,
+    syncSubscription,
   } = useAuth();
+
+  // Instant real-time Pro unlock handler without page reload
+  const handleInstantProUnlock = useCallback((planName?: string) => {
+    const plan = planName || localStorage.getItem("pdfsun_user_plan_v1") || "Pro Sun Monthly";
+    try {
+      localStorage.setItem("pdfsun_user_plan_v1", plan);
+      localStorage.setItem("pdfsun_pro_plan", "pro");
+      localStorage.setItem("pdfsun_user_is_pro", "true");
+    } catch {}
+
+    if (userProfile) {
+      const updatedProfile: UserProfile = {
+        ...userProfile,
+        plan: plan,
+        isPro: true,
+      };
+      handleSelectRole(currentRole === "public" ? "user" : currentRole, updatedProfile);
+      if (userProfile.email) {
+        syncSubscription(userProfile.email);
+      }
+    } else {
+      const guestPro: UserProfile = {
+        id: `usr_${Date.now()}`,
+        name: "Pdfsun.in Pro Member",
+        email: "user@pdfsun.in",
+        plan: plan,
+        isPro: true,
+        role: "user",
+        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        joinedDate: new Date().toISOString(),
+      };
+      handleSelectRole("user", guestPro);
+    }
+  }, [userProfile, currentRole, handleSelectRole, syncSubscription]);
 
   // User Accounts State with persistent Admin Permission control
   const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
@@ -550,6 +585,8 @@ function AppContent() {
 
       if (isPaymentPath || isPaymentQuery) {
         paymentHandledRef.current = true;
+        const plan = params.get("plan") || "Pro Sun Monthly";
+        handleInstantProUnlock(plan);
         setPaymentSuccessModalOpen(true);
         const paymentId = params.get("razorpay_payment_id") || params.get("payment_id") || "tx_verified";
         trackGAPaymentSuccess("pro_lifetime", paymentId, 499, "INR");
@@ -1055,8 +1092,9 @@ function AppContent() {
         isOpen={paymentSuccessModalOpen}
         onClose={() => setPaymentSuccessModalOpen(false)}
         userProfile={userProfile}
-        onRefreshProfile={() => window.location.reload()}
+        onRefreshProfile={() => handleInstantProUnlock()}
         onStartProcessing={() => {
+          handleInstantProUnlock();
           setPaymentSuccessModalOpen(false);
           document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
         }}
@@ -1144,8 +1182,4 @@ function AppContent() {
       <GlobalErrorToast />
     </div>
   );
-}
-
-export default function App() {
-  return <AppContent />;
 }

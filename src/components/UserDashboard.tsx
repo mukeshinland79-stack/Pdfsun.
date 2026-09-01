@@ -69,7 +69,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     if (!isOpen) return;
     const userIdentifier = {
       uid: userProfile.uid || userProfile.id,
-      email: userProfile.email || "mukeshinland79@gmail.com",
+      email: userProfile.email || "",
     };
 
     const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (txList) => {
