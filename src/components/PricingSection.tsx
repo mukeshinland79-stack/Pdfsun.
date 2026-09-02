@@ -1510,49 +1510,91 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             </div>
           </section>
 
-          {/* 8. SECURITY & PAYMENT TRUST BADGES BAR */}
-          <section id="security-trust-bar">
-            <div className="max-w-5xl mx-auto p-4 sm:p-5 rounded-2xl bg-slate-900/95 text-white border border-amber-500/30 shadow-xl flex flex-wrap items-center justify-around gap-4 text-xs font-bold">
-              <div className="flex items-center space-x-2 text-emerald-400">
-                <Lock className="w-4 h-4 shrink-0 text-emerald-400 stroke-[2.5]" />
-                <span>🔒 256-Bit SSL Encryption</span>
-              </div>
-              <div className="flex items-center space-x-2 text-blue-400">
-                <ShieldCheck className="w-4 h-4 shrink-0 text-blue-400 stroke-[2.5]" />
-                <span>🛡️ Razorpay / Stripe Verified</span>
-              </div>
-              <div className="flex items-center space-x-2 text-amber-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
-                <span>⚡ Instant Automated License Delivery</span>
-              </div>
-              <div className="flex items-center space-x-2 text-purple-300">
-                <FileText className="w-4 h-4 shrink-0 text-purple-300 stroke-[2.5]" />
-                <span>🧾 GST Tax Compliant Invoicing</span>
+          {/* ========================================================================= */}
+          {/* MODULE A: SECURITY & TRUST BADGES STRIP (HORIZONTAL BAR)                   */}
+          {/* ========================================================================= */}
+          <section id="security-trust-bar" className="w-full pt-4">
+            <div className="max-w-5xl mx-auto p-4 sm:p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/90 backdrop-blur-md shadow-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 text-xs font-bold text-slate-800 dark:text-slate-200">
+                
+                {/* 1. 256-Bit SSL */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                    <Lock className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="text-emerald-600 dark:text-emerald-400 block font-black">256-Bit SSL Encryption</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">Bank-Grade Data Protection</span>
+                  </div>
+                </div>
+
+                {/* 2. Razorpay / Stripe Verified */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                    <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="text-blue-600 dark:text-blue-400 block font-black">Razorpay &amp; Stripe Verified</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">PCI-DSS Level 1 Gateway</span>
+                  </div>
+                </div>
+
+                {/* 3. Instant Automated License Delivery */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                    <Zap className="w-4 h-4 stroke-[2.5] text-amber-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      </span>
+                      <span className="text-amber-600 dark:text-amber-400 font-black">Instant License Delivery</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">Real-Time In-Browser Unlock</span>
+                  </div>
+                </div>
+
+                {/* 4. GST Tax Invoicing */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 border border-purple-500/20">
+                    <FileText className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="text-purple-600 dark:text-purple-300 block font-black">GST Compliant Invoicing</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">B2B Input Tax Credit</span>
+                  </div>
+                </div>
+
               </div>
             </div>
           </section>
 
-          {/* 9. DISCLAIMER & REFUND TERMS SECTION */}
-          <section id="disclaimer-refund-terms">
-            <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-center shadow-lg flex flex-col items-center justify-center space-y-4">
-              {/* Trust Badges */}
-              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                  <span>🛡️</span>
+          {/* ========================================================================= */}
+          {/* MODULE B: GUARANTEE & REFUND DISCLAIMER BOX                                */}
+          {/* ========================================================================= */}
+          <section id="disclaimer-refund-terms" className="w-full">
+            <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-slate-900/85 border border-slate-200/90 dark:border-slate-800/90 shadow-sm backdrop-blur-md text-center flex flex-col items-center justify-center space-y-4">
+              
+              {/* Top Pill Badges */}
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-bold">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 shadow-2xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
                   <span>{t("pricing.guaranteeBadge", "7-Day 100% Guarantee")}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
-                  <span>🔓</span>
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 shadow-2xs">
+                  <Lock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[2.5]" />
                   <span>{t("pricing.cancelAnytime", "Cancel Anytime")}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                  <span>⚡</span>
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20 shadow-2xs">
+                  <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.5]" />
                   <span>{t("pricing.fastRefund", "1-Click Instant Refund Portal")}</span>
                 </span>
               </div>
 
               {/* Title */}
-              <h3 className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 text-center">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 pt-1">
                 {t("pricing.termsTitle", "Disclaimer & Refund Terms")}
               </h3>
 
@@ -1567,7 +1609,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenPolicy("terms")}
-                    className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer inline"
+                    className="text-amber-600 dark:text-amber-400 hover:underline font-semibold cursor-pointer inline"
                   >
                     Terms of Service
                   </button>
@@ -1579,7 +1621,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenPolicy("refund")}
-                    className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer inline"
+                    className="text-amber-600 dark:text-amber-400 hover:underline font-semibold cursor-pointer inline"
                   >
                     Refund Policy
                   </button>
@@ -1589,11 +1631,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 .
               </p>
 
+              {/* CTA Button */}
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={() => setRefundModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold inline-flex items-center gap-2 transition hover:scale-[1.02] cursor-pointer shadow-xs"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   <span>Need a refund? Open Self-Service Refund Portal</span>
@@ -1602,70 +1645,118 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             </div>
           </section>
 
-          {/* 10. INTEGRATED PRICING FOOTER & LEGAL TRANSITION */}
+          {/* ========================================================================= */}
+          {/* MODULE C: MAIN PROFESSIONAL FOOTER & LEGAL TRANSITION                     */}
+          {/* ========================================================================= */}
           <footer className="w-full pt-10 pb-28 sm:pb-16 border-t border-slate-200/80 dark:border-slate-800/80 transition-colors">
             <div className="max-w-7xl mx-auto space-y-8">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200/60 dark:border-slate-800/60">
-                <div className="flex items-center space-x-3">
+              
+              {/* Multi-Column Main Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start pb-8 border-b border-slate-200/70 dark:border-slate-800/70">
+                
+                {/* Left Brand Col (Spans 5 cols) */}
+                <div className="md:col-span-5 space-y-3">
                   <PDFSunLogo layout="horizontal" size="md" theme="dark" showTagline />
+                  
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
+                    PDFSun.in — Your Smart Document Companion. 100% In-Browser Private &amp; WebAssembly Powered PDF Utility Suite.
+                  </p>
+
+                  <div className="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    <Globe className="w-3.5 h-3.5 text-amber-500" />
+                    <span>https://www.pdfsun.in</span>
+                  </div>
                 </div>
 
-                {/* Legal & Policy Quick Navigation */}
-                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-slate-600 dark:text-slate-400">
-                  <button
-                    type="button"
-                    onClick={() => onOpenPolicy && onOpenPolicy("privacy")}
-                    className="hover:text-amber-500 transition cursor-pointer"
-                  >
-                    Privacy Policy
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPolicy && onOpenPolicy("terms")}
-                    className="hover:text-amber-500 transition cursor-pointer"
-                  >
-                    Terms of Service
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPolicy && onOpenPolicy("refund")}
-                    className="hover:text-amber-500 transition cursor-pointer"
-                  >
-                    Refund Policy
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPolicy && onOpenPolicy("cookie")}
-                    className="hover:text-amber-500 transition cursor-pointer"
-                  >
-                    Cookie Policy
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPolicy && onOpenPolicy("about")}
-                    className="hover:text-amber-500 transition cursor-pointer"
-                  >
-                    About Us
-                  </button>
+                {/* Center Navigation Links (Spans 4 cols) */}
+                <div className="md:col-span-4 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                    Legal &amp; Policies
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                    <button
+                      type="button"
+                      onClick={() => onOpenPolicy && onOpenPolicy("privacy")}
+                      className="hover:text-amber-500 text-left transition cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPolicy && onOpenPolicy("terms")}
+                      className="hover:text-amber-500 text-left transition cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPolicy && onOpenPolicy("refund")}
+                      className="hover:text-amber-500 text-left transition cursor-pointer font-bold text-amber-600 dark:text-amber-400"
+                    >
+                      Refund Policy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPolicy && onOpenPolicy("cookie")}
+                      className="hover:text-amber-500 text-left transition cursor-pointer"
+                    >
+                      Cookie Policy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPolicy && onOpenPolicy("about")}
+                      className="hover:text-amber-500 text-left transition cursor-pointer"
+                    >
+                      About Us
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  <Mail className="w-3.5 h-3.5 text-amber-500" />
-                  <span>support@pdfsun.in</span>
+                {/* Right Support Contact Box (Spans 3 cols) */}
+                <div className="md:col-span-3 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                    Customer Support
+                  </h4>
+                  
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+                    <div className="flex items-center space-x-2 text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                        <Mail className="w-3.5 h-3.5" />
+                      </div>
+                      <a
+                        href="mailto:support@pdfsun.in"
+                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline font-mono"
+                      >
+                        support@pdfsun.in
+                      </a>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      24/7 priority email assistance for license &amp; billing inquiries.
+                    </p>
+                  </div>
                 </div>
+
               </div>
 
+              {/* Bottom Copyright & Certification Row */}
               <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-3">
-                <p>© {new Date().getFullYear()} PDFSun.in. All rights reserved. 100% In-Browser Privacy &amp; Security.</p>
-                <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Razorpay Certified Partner &amp; SSL Verified</span>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
+                  <span className="text-sm">🇮🇳</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">Proudly Made in India</span>
+                  <span className="text-slate-400 dark:text-slate-600 hidden sm:inline">•</span>
+                  <span>© {new Date().getFullYear()} <strong className="text-slate-700 dark:text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
+                  <span className="text-slate-400 dark:text-slate-600 hidden sm:inline">•</span>
+                  <span>
+                    Designed &amp; Engineered by <span className="text-slate-700 dark:text-slate-200 font-semibold">Mukesh Kalonia</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-full px-3 py-1">
+                  <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant</span>
                 </div>
               </div>
+
             </div>
           </footer>
 
