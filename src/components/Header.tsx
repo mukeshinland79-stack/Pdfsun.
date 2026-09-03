@@ -115,6 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [isMac, setIsMac] = useState(false);
 
   const themeDropdownRef = useRef<HTMLDivElement>(null);
@@ -170,13 +171,43 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  // Track window scroll for elevated header shadow
+  // Track window scroll for elevated header shadow and top horizontal reading progress bar
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 8);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollTop =
+            window.scrollY ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop ||
+            0;
+          const scrollHeight = Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight
+          );
+          const clientHeight =
+            window.innerHeight || document.documentElement.clientHeight || 1;
+          const totalScrollable = scrollHeight - clientHeight;
+          const pct =
+            totalScrollable > 0
+              ? Math.min(100, Math.max(0, (scrollTop / totalScrollable) * 100))
+              : 0;
+          setScrollProgress(pct);
+          setScrolled(scrollTop > 8);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
+
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, []);
 
   // Global Keyboard Shortcut listener for Command Palette (Cmd+K, Ctrl+K, Ctrl+/)
@@ -202,6 +233,25 @@ export const Header: React.FC<HeaderProps> = ({
         scrolled ? "shadow-md" : "shadow-xs"
       }`}
     >
+      {/* Thin, Fixed-Position Horizontal Progress Bar at the Very Top of the Page */}
+      <div
+        id="scroll-progress-bar-container"
+        className="fixed top-0 left-0 right-0 w-full h-[2.5px] bg-slate-200/30 dark:bg-slate-800/30 overflow-hidden pointer-events-none z-[60]"
+        role="progressbar"
+        aria-valuenow={Math.round(scrollProgress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Content scroll progress"
+      >
+        <div
+          id="scroll-progress-bar-fill"
+          className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 dark:from-amber-400 dark:via-orange-400 dark:to-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-150 ease-out"
+          style={{
+            width: `${scrollProgress}%`,
+          }}
+        />
+      </div>
+
       {/* ========================================================= */}
       {/* PRIMARY CLEAN TOP BAR: Brand Logo, Global Search & Controls */}
       {/* ========================================================= */}
