@@ -113,8 +113,9 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
 
   // Standalone Banner Section (Placed above Footer)
   return (
-    <section className={`w-full py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto ${className}`} id="newsletter">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-10 lg:p-12 text-left">
+    <div className="w-full bg-[#0B0F19] pt-12 pb-4 transition-colors">
+      <section className={`w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto ${className}`} id="newsletter">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-10 lg:p-12 text-left">
         {/* Decorative Background Glows */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -253,5 +254,6 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
         </div>
       </div>
     </section>
+    </div>
   );
 };

@@ -56,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({
   return (
     <footer
       id="main-footer"
-      className="w-full bg-[#0a0d14] text-slate-300 pt-12 pb-12 border-t border-slate-800/80 transition-colors"
+      className="w-full bg-[#0B0F19] text-slate-300 pt-4 pb-12 transition-colors"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         

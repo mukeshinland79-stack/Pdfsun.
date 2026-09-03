@@ -766,7 +766,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
+    <div className="main-wrapper min-h-screen bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
       {/* Dynamic SEO JSON-LD Structured Data Management for Rich Search Snippets */}
       <SEOManager
         activeTool={activeTool}
@@ -851,7 +851,7 @@ export default function App() {
       />
 
       {/* Main Hero Dropzone & Search Section */}
-      <main className="flex-1">
+      <main className="content-area flex-1">
         <HeroSection
           onSelectTool={handleSelectTool}
           onOpenSearch={() => setSearchModalOpen(true)}
