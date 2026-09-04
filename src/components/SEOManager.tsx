@@ -529,8 +529,20 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const localizedToolName = activeTool ? getToolName(activeTool) : "";
   const localizedToolDesc = activeTool ? getToolDescription(activeTool) : "";
 
-  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in` : (activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle));
-  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}` : (activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc));
+  const isMergePdfActive = activeTool?.id === "merge-pdf" || activeTool?.slug === "merge-pdf";
+
+  const helmetTitle = pseoPage?.seoTitle || (isPricingActive
+    ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in`
+    : isMergePdfActive
+    ? "Merge PDF Online Free - Combine PDF Files Instantly (100% Private) | PDFSun"
+    : (activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle));
+
+  const helmetDesc = pseoPage?.seoDescription || (isPricingActive
+    ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}`
+    : isMergePdfActive
+    ? "Merge PDF files online for free in seconds. Combine multiple PDFs into one document directly in your browser with zero file uploads, complete privacy, and no watermarks."
+    : (activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc));
+
   const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 
   return (

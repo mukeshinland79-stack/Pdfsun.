@@ -98,9 +98,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Badge 1: 100% Client-Side Privacy */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold">100% Client-Side Privacy</span>
+            <span className="font-bold">100% In-Browser</span>
             <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Files Never Leave Your Browser</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Files Never Stored</span>
+            <span className="hidden sm:inline text-emerald-300 dark:text-emerald-700 font-light">•</span>
+            <span className="hidden sm:inline text-emerald-700 dark:text-emerald-400 font-normal">Zero Server Uploads</span>
           </div>
 
           {/* Badge 2: Offline Ready */}
