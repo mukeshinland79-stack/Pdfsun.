@@ -144,8 +144,6 @@ import { getPublicSiteUrl } from "../utils/siteConfig";
 import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
-import { ToolSeoGuideSection } from "./ToolSeoGuideSection";
-import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import {
   trackGAToolView,
   trackGAUploadStart,
@@ -1370,7 +1368,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-start p-3 sm:p-6 overflow-y-auto animate-in fade-in">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in">
       {/* Individual Tool Search Engine FAQPage Schema */}
       {toolFAQs && toolFAQs.length > 0 && (
         <script
@@ -1391,7 +1389,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-auto sm:my-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Workspace Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -4174,23 +4172,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           </button>
         </div>
       </div>
-
-      {/* High-Converting 3-Sentence SEO Highlights & WebAssembly Trust Hook */}
-      <ToolSeoThreeSentenceCard
-        toolId={tool.id}
-        toolName={translatedToolName || tool.name}
-      />
-
-      {/* Comprehensive SEO Content & AdSense Integration for All PDF Tools */}
-      <ToolSeoGuideSection
-        tool={tool}
-        onSelectAnotherTool={(anotherToolId) => {
-          const targetTool = ALL_TOOLS.find((tItem) => tItem.id === anotherToolId);
-          if (targetTool && onSelectTool) {
-            onSelectTool(targetTool);
-          }
-        }}
-      />
 
       {/* Human-Friendly Error Notification Overlay */}
       {errorOverlay && (
