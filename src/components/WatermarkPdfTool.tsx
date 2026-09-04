@@ -32,7 +32,6 @@ import confetti from "canvas-confetti";
 import { watermarkPdf, downloadFile, WatermarkOptions } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
-import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 // Configure PDF.js worker
@@ -803,9 +802,6 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
           </div>
         )}
       </div>
-
-      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
-      <ToolSeoThreeSentenceCard toolId="watermark-pdf" toolName="Watermark PDF" />
 
       {/* Share Modal */}
       {showShareModal && downloadReady && (

@@ -33,7 +33,6 @@ import {
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
-import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 interface EditPdfMetadataToolProps {
@@ -609,9 +608,6 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
           </div>
         )}
       </div>
-
-      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
-      <ToolSeoThreeSentenceCard toolId="edit-pdf-metadata" toolName="Edit PDF Metadata" />
 
       {/* Quick Share Modal */}
       {showShareModal && downloadReady && (

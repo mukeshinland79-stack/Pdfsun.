@@ -43,7 +43,6 @@ import {
   PdfMetadataInfo,
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
-import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
@@ -1230,9 +1229,6 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
           </div>
         )}
       </div>
-
-      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
-      <ToolSeoThreeSentenceCard toolId="read-pdf-metadata" toolName="View PDF Metadata" />
 
       {/* Isolated Review & Feedback Modal */}
       {showReviewModal && (
