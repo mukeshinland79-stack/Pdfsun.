@@ -6,6 +6,7 @@ import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 import { PSEOLandingPage } from "../data/pSEOData";
 import { getLocalizedToolFAQs, buildFaqJsonLd, ToolFAQ } from "../lib/toolFaqHelper";
 import { useLanguage } from "../lib/i18n";
+import { getToolSeoSentences } from "../data/toolSeoSentences";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
@@ -527,7 +528,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const defaultDesc = `${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")} ${t("badges.privacyTitle", "100% In-Browser Privacy")}.`;
 
   const localizedToolName = activeTool ? getToolName(activeTool) : "";
-  const localizedToolDesc = activeTool ? getToolDescription(activeTool) : "";
+  const toolSeoData = activeTool ? getToolSeoSentences(activeTool.id, localizedToolName || activeTool.name) : null;
 
   const isMergePdfActive = activeTool?.id === "merge-pdf" || activeTool?.slug === "merge-pdf";
 
@@ -535,13 +536,13 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in`
     : isMergePdfActive
     ? "Merge PDF Online Free - Combine PDF Files Instantly (100% Private) | PDFSun"
-    : (activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle));
+    : (activeTool ? `${localizedToolName} Online Free - Fast, Secure & 100% In-Browser | PDFSun` : defaultTitle));
 
   const helmetDesc = pseoPage?.seoDescription || (isPricingActive
     ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}`
     : isMergePdfActive
     ? "Merge PDF files online for free in seconds. Combine multiple PDFs into one document directly in your browser with zero file uploads, complete privacy, and no watermarks."
-    : (activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc));
+    : (toolSeoData ? toolSeoData.metaDescription : defaultDesc));
 
   const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 

@@ -39,6 +39,7 @@ import {
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
+import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -1152,6 +1153,9 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
           </div>
         </div>
       )}
+
+      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
+      <ToolSeoThreeSentenceCard toolId="remove-watermark" toolName="Remove Watermark" />
 
       {/* Quick Share Modal */}
       {showShareModal && downloadReady && (

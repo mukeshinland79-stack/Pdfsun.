@@ -145,6 +145,7 @@ import { useExecutionLock } from "../hooks/useExecutionLock";
 import { CompressionEfficiency } from "./CompressionEfficiency";
 import { QuickTipTooltip } from "./QuickTipTooltip";
 import { ToolSeoGuideSection } from "./ToolSeoGuideSection";
+import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import {
   trackGAToolView,
   trackGAUploadStart,
@@ -4173,6 +4174,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           </button>
         </div>
       </div>
+
+      {/* High-Converting 3-Sentence SEO Highlights & WebAssembly Trust Hook */}
+      <ToolSeoThreeSentenceCard
+        toolId={tool.id}
+        toolName={translatedToolName || tool.name}
+      />
 
       {/* Comprehensive SEO Content & AdSense Integration for All PDF Tools */}
       <ToolSeoGuideSection

@@ -31,6 +31,7 @@ import confetti from "canvas-confetti";
 import { protectPdf, downloadFile } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
+import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 // Configure PDF.js worker
@@ -684,6 +685,9 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
           </div>
         )}
       </div>
+
+      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
+      <ToolSeoThreeSentenceCard toolId="protect-pdf" toolName="Protect PDF" />
 
       {/* Quick Share Modal */}
       {showShareModal && downloadReady && (

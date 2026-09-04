@@ -29,6 +29,7 @@ import { QuickShareModal } from "./QuickShareModal";
 import { useUsageTracker } from "../hooks/useUsageTracker";
 import { FreeLimitPaywallModal } from "./FreeLimitPaywallModal";
 import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
+import { ToolSeoThreeSentenceCard } from "./ToolSeoThreeSentenceCard";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -726,6 +727,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         </div>
         )}
       </div>
+
+      {/* Persistent 3-Sentence SEO Highlights & WebAssembly Trust Block */}
+      <ToolSeoThreeSentenceCard toolId={tool.id} toolName={tool.name} />
 
       {/* Quick Share Modal */}
       {showShareModal && (
