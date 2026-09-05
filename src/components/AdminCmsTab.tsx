@@ -97,7 +97,7 @@ export const AdminCmsTab: React.FC = () => {
     { key: "hero.subtitle", label: "Hero: Subheading", category: "hero", defaultValue: "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.", isMultiLine: true },
     { key: "badges.privacyTitle", label: "Hero: In-Browser Privacy Badge", category: "hero", defaultValue: "100% In-Browser Privacy" },
     { key: "badges.privacySub", label: "Hero: In-Browser Privacy Subtext", category: "hero", defaultValue: "Client-side WebAssembly processing" },
-    { key: "badges.utilitiesTitle", label: "Hero: Utilities Count Badge", category: "hero", defaultValue: "57+ Pro PDF Utilities" },
+    { key: "badges.utilitiesTitle", label: "Hero: Utilities Count Badge", category: "hero", defaultValue: "68+ Pro PDF Utilities" },
 
     // Pricing
     { key: "pricing.badge", label: "Pricing: Section Badge", category: "pricing", defaultValue: "INSTANT UNLIMITED PDF PROCESSING" },

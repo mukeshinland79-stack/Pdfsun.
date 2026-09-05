@@ -26,6 +26,7 @@ import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { ProtectedAdminWrapper } from "./components/ProtectedAdminRoute";
 import { UserDashboard } from "./components/UserDashboard";
+import { ProfileAvatarModal } from "./components/ProfileAvatarModal";
 import { BlogModal } from "./components/BlogModal";
 import { ContactSupportModal } from "./components/ContactSupportModal";
 import { SearchModal } from "./components/SearchModal";
@@ -38,6 +39,7 @@ import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
+import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -218,6 +220,7 @@ export default function App() {
     isLoading: authLoading,
     logout: rawLogout,
     updateRole: handleSelectRole,
+    updateAvatar,
     syncSubscription,
   } = useAuth();
 
@@ -392,12 +395,16 @@ export default function App() {
   const [adminPanelTab, setAdminPanelTab] = useState<string>("analytics");
   const [cmsModalOpen, setCmsModalOpen] = useState(false);
   const [userDashboardOpen, setUserDashboardOpen] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
   const [todayInHistoryOpen, setTodayInHistoryOpen] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [installAppModalOpen, setInstallAppModalOpen] = useState(false);
+  const [futureStudioOpen, setFutureStudioOpen] = useState(false);
+  const [futureStudioTab, setFutureStudioTab] = useState<FutureStudioTab>("voice-reader");
+  const [futureStudioFile, setFutureStudioFile] = useState<File | null>(null);
   const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
   const paymentHandledRef = useRef(false);
@@ -490,6 +497,25 @@ export default function App() {
 
         if (isHistoryUrl) {
           setTodayInHistoryOpen(true);
+          return;
+        }
+
+        const isFutureStudioUrl =
+          effectivePath === "/future-studio" ||
+          effectivePath === "/studio" ||
+          effectivePath === "/voice-reader" ||
+          effectivePath === "/voice-to-pdf" ||
+          effectivePath === "/preflight" ||
+          window.location.hash === "#future-studio" ||
+          params.get("view") === "future-studio" ||
+          params.has("future-studio");
+
+        if (isFutureStudioUrl) {
+          let tab: FutureStudioTab = "voice-reader";
+          if (effectivePath === "/voice-to-pdf") tab = "voice-to-pdf";
+          else if (effectivePath === "/preflight") tab = "quantum-hud";
+          setFutureStudioTab(tab);
+          setFutureStudioOpen(true);
           return;
         }
 
@@ -620,7 +646,8 @@ export default function App() {
       setShortcutsModalOpen((prev) => !prev);
     },
     onCloseActiveModalOrWorkspace: () => {
-      if (searchModalOpen) setSearchModalOpen(false);
+      if (futureStudioOpen) setFutureStudioOpen(false);
+      else if (searchModalOpen) setSearchModalOpen(false);
       else if (pricingModalOpen) handleClosePricing();
       else if (shortcutsModalOpen) setShortcutsModalOpen(false);
       else if (historyModalOpen) setHistoryModalOpen(false);
@@ -635,6 +662,7 @@ export default function App() {
     },
     onGoHome: () => {
       setActiveTool(null);
+      setFutureStudioOpen(false);
       setSearchModalOpen(false);
       setShortcutsModalOpen(false);
       setHistoryModalOpen(false);
@@ -663,6 +691,24 @@ export default function App() {
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
     trackToolUsage(tool.id);
+
+    // If futuristic studio tool is selected, launch Future AI Studio with corresponding tab
+    const futureTools = ["ai-voice-reader", "voice-to-pdf", "quantum-preflight-hud", "macro-automator"];
+    if (futureTools.includes(tool.id) || futureTools.includes(tool.slug)) {
+      let tab: FutureStudioTab = "voice-reader";
+      if (tool.id === "voice-to-pdf" || tool.slug === "voice-to-pdf") tab = "voice-to-pdf";
+      else if (tool.id === "quantum-preflight-hud" || tool.slug === "quantum-preflight-hud") tab = "quantum-hud";
+      else if (tool.id === "macro-automator" || tool.slug === "macro-automator") tab = "macro-automator";
+
+      setFutureStudioTab(tab);
+      setFutureStudioFile(initialFiles?.[0] || null);
+      setFutureStudioOpen(true);
+      if (typeof window !== "undefined") {
+        window.history.pushState({}, "", `/${tool.slug}`);
+      }
+      return;
+    }
+
     setActiveTool(tool);
     const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
     if (customPseoPage !== undefined) {
@@ -842,6 +888,7 @@ export default function App() {
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
         onOpenPricing={handleOpenPricing}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
+        onOpenAvatarModal={() => setAvatarModalOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
@@ -1066,6 +1113,22 @@ export default function App() {
             setUserDashboardOpen(false);
             handleOpenPricing();
           }}
+          onOpenAvatarModal={() => setAvatarModalOpen(true)}
+        />
+      )}
+
+      {/* User Profile Picture Upload & Cropper Modal */}
+      {userProfile && (
+        <ProfileAvatarModal
+          isOpen={avatarModalOpen}
+          onClose={() => setAvatarModalOpen(false)}
+          userEmail={userProfile.email}
+          userName={userProfile.name}
+          currentPhotoURL={userProfile.photoURL}
+          currentAvatar={userProfile.avatar}
+          onPhotoUpdated={(newPhotoURL) => {
+            updateAvatar(newPhotoURL);
+          }}
         />
       )}
 
@@ -1176,6 +1239,15 @@ export default function App() {
         initialLanguage={geoResult.detectedLanguage}
         initialCountryCode={geoResult.detectedCountryCode}
         onSelectTool={handleSelectTool}
+      />
+
+      {/* 2026 Future AI Studio: Neural Voice Reader, Live Dictation, Pre-Flight HUD & Macro Automator */}
+      <FuturePdfStudioModal
+        isOpen={futureStudioOpen}
+        onClose={() => setFutureStudioOpen(false)}
+        initialTab={futureStudioTab}
+        initialFile={futureStudioFile}
+        onAddHistory={addHistory}
       />
 
       {/* Global Toast Error Notifications */}

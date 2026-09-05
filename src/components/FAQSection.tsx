@@ -34,7 +34,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ activeTool }) => {
       q: t("faq.q3", "Is PDFSun completely free to use?"),
       a: t(
         "faq.a3",
-        "Yes! PDFSun offers generous free access to all 57+ tools with zero registration required. For heavy power users who need high-capacity batch AI analysis or multi-gigabyte processing, Pro Sun plans are available."
+        "Yes! PDFSun offers generous free access to all 68+ tools with zero registration required. For heavy power users who need high-capacity batch AI analysis or multi-gigabyte processing, Pro Sun plans are available."
       ),
     },
     {

@@ -612,6 +612,24 @@ export function useAuth() {
     }
   }, []);
 
+  const updateAvatar = useCallback((photoURL: string) => {
+    setUserProfile((prev) => {
+      if (!prev) return null;
+      const updated: UserProfile = {
+        ...prev,
+        photoURL,
+        avatar: photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
+      };
+      saveLocalStoredUser(updated);
+      if (typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(new Event("storage"));
+        } catch {}
+      }
+      return updated;
+    });
+  }, []);
+
   return {
     currentRole,
     userProfile,
@@ -630,6 +648,7 @@ export function useAuth() {
     loginWithFacebook,
     logout,
     updateRole,
+    updateAvatar,
     verifySession,
     syncSubscription,
   };

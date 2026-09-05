@@ -1,6 +1,6 @@
 {
   "name": "PDF Sun",
-  "description": "PDF Sun lets you easily convert, merge, compress, edit, and secure your PDF files online for free. Fast, easy, and secure PDF tools at www.pdfsun.in.",
-  "requestFramePermissions": [],
+  "description": "PDF Sun lets you easily convert, merge, compress, edit, voice narrate, dictate, and secure your PDF files online with 2026 Future AI tools. Fast, easy, and secure PDF tools at www.pdfsun.in.",
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

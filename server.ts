@@ -1571,6 +1571,45 @@ app.post("/api/user/activate-plan", (req, res) => {
   }
 });
 
+// Endpoint to update or remove user profile picture avatar
+app.post("/api/user/update-avatar", (req, res) => {
+  try {
+    const userEmail = (
+      req.headers["x-user-email"] ||
+      req.body?.email ||
+      req.body?.userEmail ||
+      ""
+    ).toString().toLowerCase().trim();
+
+    if (!userEmail) {
+      return res.status(400).json({ success: false, error: "User email is required to update avatar." });
+    }
+
+    const { photoURL, avatar } = req.body || {};
+    const safeUrl = typeof photoURL === "string" ? photoURL : typeof avatar === "string" ? avatar : "";
+
+    const updateRes = updateStoredUser(userEmail, {
+      photoURL: safeUrl,
+      avatar: safeUrl,
+    });
+
+    if (!updateRes.success) {
+      return res.status(400).json({ success: false, error: updateRes.error || "Failed to update user avatar in database." });
+    }
+
+    res.json({
+      success: true,
+      message: safeUrl ? "Profile picture updated successfully." : "Profile picture removed successfully.",
+      user: updateRes.user,
+      photoURL: updateRes.user?.photoURL || "",
+      avatar: updateRes.user?.avatar || "",
+    });
+  } catch (err: any) {
+    console.error("[Avatar Update API] Error:", err);
+    res.status(500).json({ success: false, error: err.message || "Internal server error." });
+  }
+});
+
 // Endpoint to retrieve user Razorpay payment history and subscription status (ZERO FAKE DATA)
 app.all("/api/user/payment-history", (req, res) => {
   try {

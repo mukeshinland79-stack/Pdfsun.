@@ -114,7 +114,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Badge 3: Pro PDF Utilities */}
           <div className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-50/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span className="font-bold">{ALL_TOOLS.length} Pro PDF Tools</span>
+            <span className="font-bold">{t("badges.tools50", "68+ Working Tools")}</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
             <span className="text-slate-500 dark:text-slate-400 font-normal">Client Sandboxed</span>
           </div>
@@ -135,7 +135,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <Search className="w-4 h-4 text-blue-600 ml-2.5 shrink-0" />
           <input
             type="text"
-            placeholder={t("searchPlaceholder", `Search ${ALL_TOOLS.length} tools (Cmd+K)...`)}
+            placeholder={t("searchPlaceholder", "Search 68+ PDF tools (Ctrl+K)...")}
             onClick={onOpenSearch}
             readOnly
             className="w-full bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
@@ -144,7 +144,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={onOpenSearch}
             className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-[11px] font-bold shadow-xs hover:opacity-90 transition flex items-center space-x-1 shrink-0"
           >
-            <span>{t("nav.searchBtn", "Search")}</span>
+            <span>{t("nav.searchBtn", "Search 68+ Tools")}</span>
             <kbd className="hidden sm:inline-block px-1 py-0.5 bg-white/20 rounded text-[9px]">⌘K</kbd>
           </button>
         </div>

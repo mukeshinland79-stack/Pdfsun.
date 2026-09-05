@@ -285,6 +285,15 @@ export const Footer: React.FC<FooterProps> = ({
                   {t("aboutUs", "About Us")}
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenPolicy("disclaimer")}
+                  className="hover:text-amber-400 transition-colors cursor-pointer text-left"
+                >
+                  {t("disclaimer", "Disclaimer")}
+                </button>
+              </li>
             </ul>
           </div>
 

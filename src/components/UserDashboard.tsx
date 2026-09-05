@@ -31,6 +31,7 @@ import {
   CreditCard,
   ExternalLink,
   AlertCircle,
+  Camera,
 } from "lucide-react";
 import { safeFetchJson } from "../utils/apiHelper";
 
@@ -44,6 +45,7 @@ interface UserDashboardProps {
   onSelectTool: (tool: ToolItem) => void;
   onOpenAdminPanel?: () => void;
   onOpenPricing?: () => void;
+  onOpenAvatarModal?: () => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -56,6 +58,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onSelectTool,
   onOpenAdminPanel,
   onOpenPricing,
+  onOpenAvatarModal,
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "profile" | "files" | "plan">("overview");
   const [editingName, setEditingName] = useState(false);
@@ -154,11 +157,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         {/* Top Header */}
         <div className="p-4 sm:p-6 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
-            <img
-              src={userProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
-              alt={userProfile.name}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ring-orange-500/30 shrink-0"
-            />
+            <div className="relative group/avatar shrink-0">
+              <img
+                src={userProfile.photoURL || userProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
+                alt={userProfile.name}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ring-orange-500/30 shrink-0"
+              />
+              {onOpenAvatarModal && (
+                <button
+                  type="button"
+                  onClick={onOpenAvatarModal}
+                  className="absolute inset-0 rounded-2xl bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                  title="Update Profile Picture"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate max-w-[160px] sm:max-w-[240px]">
@@ -310,6 +325,60 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
                     Active &amp; Verified
                   </span>
+                </div>
+
+                {/* Profile Picture & Avatar Management Section */}
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4 w-full sm:w-auto">
+                    <div className="relative group/avatar shrink-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-orange-500/30 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        {userProfile.photoURL || userProfile.avatar ? (
+                          <img
+                            src={userProfile.photoURL || userProfile.avatar}
+                            alt={userProfile.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl font-black text-orange-600 dark:text-orange-400">
+                            {(userProfile.name || "U")[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      {onOpenAvatarModal && (
+                        <button
+                          type="button"
+                          onClick={onOpenAvatarModal}
+                          className="absolute inset-0 rounded-2xl bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                          title="Change Profile Photo"
+                        >
+                          <Camera className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5 flex-wrap">
+                        <span>Profile Photo &amp; Avatar</span>
+                        {userProfile.photoURL && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20">
+                            Custom Photo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Square 1:1 auto-crop &amp; WebP compression (&lt;150KB). Safe &amp; bug-free.
+                      </p>
+                    </div>
+                  </div>
+                  {onOpenAvatarModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenAvatarModal}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-xs hover:shadow-md transition cursor-pointer shrink-0"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Upload &amp; Crop Photo</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -574,7 +643,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       <span><strong>Expiry Date:</strong> {planExpiryText}</span>
                     </span>
                     <span className="text-slate-400">•</span>
-                    <span className="text-emerald-400 font-semibold">57+ PDF Utilities Enabled</span>
+                    <span className="text-emerald-400 font-semibold">68+ PDF Utilities Enabled</span>
                   </div>
                 </div>
 

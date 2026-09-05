@@ -300,7 +300,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
           "name": "Is PDFSun completely free to use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! PDFSun offers 100% free access to all 57+ PDF tools including Merge PDF, Split PDF, Compress PDF, PDF to Word converter, and AI PDF tools with zero registration required."
+            "text": "Yes! PDFSun offers 100% free access to all 68+ PDF tools including Merge PDF, Split PDF, Compress PDF, PDF to Word converter, and AI PDF tools with zero registration required."
           }
         },
         {

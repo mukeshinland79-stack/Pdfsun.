@@ -47,7 +47,7 @@ export interface ToolHistoryItem {
   snippet?: string;
 }
 
-export type PolicyType = "privacy" | "terms" | "cookie" | "refund" | "about" | "contact";
+export type PolicyType = "privacy" | "terms" | "cookie" | "refund" | "about" | "contact" | "disclaimer";
 
 export interface Testimonial {
   id: string;
@@ -79,6 +79,7 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   avatar: string;
+  photoURL?: string;
   plan: string;
   joinedDate: string;
   hasAdminAccess?: boolean;

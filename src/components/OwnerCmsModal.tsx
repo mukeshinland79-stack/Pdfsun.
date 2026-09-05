@@ -50,7 +50,7 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "nav.pricing", label: "Nav: Pricing Plans", category: "header", defaultValue: "Pricing Plans" },
   { key: "nav.loginRegister", label: "Nav: Login / Register", category: "header", defaultValue: "Login / Register" },
   { key: "nav.brandKit", label: "Nav: Brand Kit", category: "header", defaultValue: "Brand Kit" },
-  { key: "nav.searchBtn", label: "Nav: Search Button", category: "header", defaultValue: "Search 57+ Tools" },
+  { key: "nav.searchBtn", label: "Nav: Search Button", category: "header", defaultValue: "Search 68+ Tools" },
 
   // Hero
   { key: "hero.title", label: "Hero: Main Heading", category: "hero", defaultValue: "Enterprise PDF Tools & Document Engine", isMultiLine: true },
@@ -58,12 +58,12 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "hero.chooseFiles", label: "Hero: Choose Files Button", category: "hero", defaultValue: "Choose Files from Device" },
   { key: "hero.dropzoneTitle", label: "Hero: Dropzone Title", category: "hero", defaultValue: "Drop PDF files here or click to browse" },
   { key: "hero.dropzoneSub", label: "Hero: Dropzone Subtitle", category: "hero", defaultValue: "Files stay completely on your device. Fast, safe, and private.", isMultiLine: true },
-  { key: "hero.searchPlaceholder", label: "Hero: Search Placeholder", category: "hero", defaultValue: "Search 57+ PDF tools (Cmd+K)..." },
+  { key: "hero.searchPlaceholder", label: "Hero: Search Placeholder", category: "hero", defaultValue: "Search 68+ PDF tools (Ctrl+K)..." },
 
   // Badges & Features
   { key: "badges.privacyTitle", label: "Badge: In-Browser Privacy", category: "hero", defaultValue: "100% In-Browser Privacy" },
   { key: "badges.privacySub", label: "Badge: Privacy Subtext", category: "hero", defaultValue: "Client-side WebAssembly processing" },
-  { key: "badges.utilitiesTitle", label: "Badge: Utilities Count", category: "hero", defaultValue: "57+ Pro PDF Utilities" },
+  { key: "badges.utilitiesTitle", label: "Badge: Utilities Count", category: "hero", defaultValue: "68+ Pro PDF Utilities" },
   { key: "badges.ultraFast", label: "Badge: Ultra Fast", category: "hero", defaultValue: "Ultra Fast Speed" },
   { key: "badges.noStorage", label: "Badge: No Storage", category: "hero", defaultValue: "No Storage Purge" },
   { key: "badges.geminiAi", label: "Badge: Gemini AI", category: "hero", defaultValue: "Gemini 3.6 AI" },
@@ -99,7 +99,7 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "faq.q2", label: "FAQ Q2: AI Features?", category: "faq", defaultValue: "How does PDFSun handle AI PDF Chat, Summaries, and Explanations?", isMultiLine: true },
   { key: "faq.a2", label: "FAQ A2: AI Features Answer", category: "faq", defaultValue: "PDFSun integrates Google Gemini 3.6 AI to analyze text extracted from your PDF securely and in memory.", isMultiLine: true },
   { key: "faq.q3", label: "FAQ Q3: Free to use?", category: "faq", defaultValue: "Is PDFSun completely free to use?", isMultiLine: true },
-  { key: "faq.a3", label: "FAQ A3: Free Answer", category: "faq", defaultValue: "Yes! PDFSun offers generous free access to all 57+ tools with zero registration required.", isMultiLine: true },
+  { key: "faq.a3", label: "FAQ A3: Free Answer", category: "faq", defaultValue: "Yes! PDFSun offers generous free access to all 68+ tools with zero registration required.", isMultiLine: true },
   { key: "faq.q4", label: "FAQ Q4: Offline & PWA?", category: "faq", defaultValue: "Can I use PDFSun offline or as a PWA?", isMultiLine: true },
   { key: "faq.a4", label: "FAQ A4: Offline Answer", category: "faq", defaultValue: "Yes! PDFSun is built as a Progressive Web App (PWA). All core PDF tools work even without an internet connection.", isMultiLine: true },
 

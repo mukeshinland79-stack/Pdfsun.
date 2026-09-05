@@ -28,6 +28,7 @@ export interface StoredUser {
   hasAdminAccess: boolean;
   isPro?: boolean;
   avatar?: string;
+  photoURL?: string;
   joinedDate: string;
   lastLoginAt?: string;
   createdAt: string;
@@ -1412,6 +1413,8 @@ export function updateStoredUser(
     plan: string;
     hasAdminAccess: boolean;
     isPro: boolean;
+    avatar: string;
+    photoURL: string;
   }>
 ): { success: boolean; user?: StoredUser; error?: string } {
   const targetKey = Object.keys(usersStore).find(
@@ -1430,6 +1433,8 @@ export function updateStoredUser(
   if (updates.plan !== undefined) existing.plan = updates.plan;
   if (updates.hasAdminAccess !== undefined) existing.hasAdminAccess = isOwnerEmail ? true : updates.hasAdminAccess;
   if (updates.isPro !== undefined) existing.isPro = isOwnerEmail ? true : updates.isPro;
+  if (updates.avatar !== undefined) existing.avatar = updates.avatar;
+  if (updates.photoURL !== undefined) existing.photoURL = updates.photoURL;
 
   saveUsersStore();
   return { success: true, user: existing };
