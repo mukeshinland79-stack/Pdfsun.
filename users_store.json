@@ -25,10 +25,11 @@
     "plan": "Founder & Owner - Unlimited",
     "hasAdminAccess": true,
     "isPro": true,
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
     "joinedDate": "Jan 2026",
     "createdAt": "2026-08-20T17:17:22.815Z",
-    "lastLoginAt": "2026-08-20T18:59:01.697Z"
+    "lastLoginAt": "2026-08-20T18:59:01.697Z",
+    "photoURL": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
   },
   "alex.rivera@university.edu": {
     "id": "usr-demo-01",
@@ -59,5 +60,21 @@
     "joinedDate": "Jan 2026",
     "createdAt": "2026-08-26T16:58:30.021Z",
     "lastLoginAt": "2026-08-26T16:58:30.021Z"
+  },
+  "testnewuser999@gmail.com": {
+    "id": "usr_1788691531654_tc5aj",
+    "email": "testnewuser999@gmail.com",
+    "name": "testnewuser999",
+    "passwordHash": "54a8ea5bf06a8fe6d9a55c9ca36da0a03af949656e4371141223f5f36de4175cbba1d2cc2758e73828414f64012544de57701e3b642a64a4f0720c5e8de5afed",
+    "salt": "ea2776c579a8aa6cacef5dcd9eef9eeb",
+    "role": "user",
+    "plan": "Free Plan",
+    "hasAdminAccess": false,
+    "isPro": false,
+    "avatar": "",
+    "photoURL": "",
+    "joinedDate": "Sep 2026",
+    "createdAt": "2026-09-06T10:45:31.661Z",
+    "lastLoginAt": "2026-09-06T10:45:31.661Z"
   }
 }

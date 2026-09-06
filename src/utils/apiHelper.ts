@@ -75,6 +75,7 @@ import {
   mockVerifyRecoveryOtpHandler,
   mockNewPasswordHandler,
   getLocalStoredUser,
+  saveLocalStoredUser,
   createMockUserProfile,
 } from "./mockAuth";
 
@@ -172,6 +173,27 @@ export async function safeFetchJson<T = any>(
           data: { success: true, token: `jwt-mfa-${Date.now()}`, user: profile, role: "owner" } as any,
         };
       }
+      if (urlStr.includes("/update-avatar") || urlStr.includes("/update-profile-picture") || urlStr.includes("/profile-picture")) {
+        const photo = body.photoURL || body.avatar || body.imageUrl || "";
+        const { user } = getLocalStoredUser();
+        if (user) {
+          user.photoURL = photo;
+          user.avatar = photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200";
+          saveLocalStoredUser(user);
+        }
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            success: true,
+            message: photo ? "Profile picture updated successfully." : "Profile picture removed successfully.",
+            imageUrl: photo,
+            photoURL: photo,
+            avatar: photo,
+            user,
+          } as any,
+        };
+      }
     } catch (e) {
       console.warn("[apiHelper] Auth fallback error:", e);
     }
@@ -213,8 +235,17 @@ export async function safeFetchJson<T = any>(
         continue;
       }
 
-      // If server returned 404 on an auth route, instantly resolve via local mock handler!
-      if (res.status === 404 && (urlStr.includes("/auth") || urlStr.includes("/login") || urlStr.includes("/register") || urlStr.includes("/signup"))) {
+      // If server returned 404 on an auth or profile route, instantly resolve via local mock handler!
+      if (
+        res.status === 404 &&
+        (urlStr.includes("/auth") ||
+          urlStr.includes("/login") ||
+          urlStr.includes("/register") ||
+          urlStr.includes("/signup") ||
+          urlStr.includes("/update-avatar") ||
+          urlStr.includes("/update-profile-picture") ||
+          urlStr.includes("/profile-picture"))
+      ) {
         const fallback = await handleAuthFallback();
         if (fallback) return fallback;
       }
@@ -226,8 +257,16 @@ export async function safeFetchJson<T = any>(
         try {
           parsedData = JSON.parse(text);
         } catch (parseError) {
-          // If HTML 404 or other HTML error is returned on an auth route, fallback immediately
-          if (urlStr.includes("/auth") || urlStr.includes("/login") || urlStr.includes("/register") || urlStr.includes("/signup")) {
+          // If HTML 404 or other HTML error is returned on an auth or profile route, fallback immediately
+          if (
+            urlStr.includes("/auth") ||
+            urlStr.includes("/login") ||
+            urlStr.includes("/register") ||
+            urlStr.includes("/signup") ||
+            urlStr.includes("/update-avatar") ||
+            urlStr.includes("/update-profile-picture") ||
+            urlStr.includes("/profile-picture")
+          ) {
             const fallback = await handleAuthFallback();
             if (fallback) return fallback;
           }

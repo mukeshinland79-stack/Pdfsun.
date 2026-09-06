@@ -1422,7 +1422,29 @@ export function updateStoredUser(
   );
 
   if (!targetKey) {
-    return { success: false, error: "User not found in database." };
+    const cleanId = (identifier || "").trim().toLowerCase();
+    const cleanEmail = cleanId.includes("@") ? cleanId : `${cleanId}@pdfsun.in`;
+    const isOwnerEmail = DUAL_OWNER_EMAILS.includes(cleanEmail);
+    const salt = crypto.randomBytes(16).toString("hex");
+    const newUser: StoredUser = {
+      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      email: cleanEmail,
+      name: (updates.name && updates.name.trim()) || cleanEmail.split("@")[0],
+      passwordHash: hashPassword(crypto.randomBytes(16).toString("hex"), salt),
+      salt,
+      role: isOwnerEmail ? "owner" : (updates.role || "user"),
+      plan: isOwnerEmail ? "Founder & Owner - Unlimited" : (updates.plan || "Free Plan"),
+      hasAdminAccess: isOwnerEmail || Boolean(updates.hasAdminAccess),
+      isPro: isOwnerEmail || Boolean(updates.isPro),
+      avatar: updates.avatar || updates.photoURL || "",
+      photoURL: updates.photoURL || updates.avatar || "",
+      joinedDate: new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(new Date()),
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    usersStore[cleanEmail] = newUser;
+    saveUsersStore();
+    return { success: true, user: newUser };
   }
 
   const existing = usersStore[targetKey];

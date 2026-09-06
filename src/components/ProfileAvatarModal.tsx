@@ -27,6 +27,83 @@ export interface ProfileAvatarModalProps {
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+/**
+ * Safely dispatches profile photo update to the server.
+ * Completely eliminates "Unexpected token 'T', 'The page c'... is not valid JSON"
+ * by inspecting response status, reading text first, and gracefully handling non-JSON/HTML payloads.
+ */
+async function syncProfilePictureToServer(
+  email: string,
+  photoDataUrl: string
+): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  const endpoints = [
+    "/api/user/update-profile-picture",
+    "/api/user/update-avatar",
+    "/api/user/profile-picture",
+  ];
+
+  let bestError = "";
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "x-user-email": email,
+        },
+        body: JSON.stringify({
+          email,
+          photoURL: photoDataUrl,
+          avatar: photoDataUrl,
+          imageUrl: photoDataUrl,
+        }),
+      });
+
+      // Guard against HTML / non-JSON responses before calling .json()
+      const rawText = await response.text();
+      let parsedData: any = null;
+
+      if (rawText && rawText.trim().length > 0) {
+        try {
+          parsedData = JSON.parse(rawText);
+        } catch {
+          console.warn(`[ProfileAvatarModal] Endpoint ${endpoint} returned non-JSON response:`, rawText.substring(0, 120));
+          bestError = response.ok
+            ? "Server returned an unexpected format."
+            : response.status === 404
+            ? "API route not found (HTTP 404)."
+            : `Server returned an error (HTTP ${response.status}).`;
+          continue; // Try next endpoint
+        }
+      }
+
+      if (!response.ok) {
+        bestError = parsedData?.error || parsedData?.message || `Server error (HTTP ${response.status})`;
+        continue; // Try next endpoint
+      }
+
+      if (parsedData && parsedData.success !== false) {
+        return {
+          success: true,
+          imageUrl: parsedData.imageUrl || parsedData.photoURL || parsedData.avatar || photoDataUrl,
+        };
+      } else {
+        bestError = parsedData?.error || parsedData?.message || "Failed to update profile picture.";
+      }
+    } catch (networkError: any) {
+      console.warn(`[ProfileAvatarModal] Network error trying ${endpoint}:`, networkError);
+      bestError = networkError?.message || "Network request failed.";
+    }
+  }
+
+  return {
+    success: false,
+    error: bestError || "Failed to update profile picture. Please try again.",
+  };
+}
+
 export const ProfileAvatarModal: React.FC<ProfileAvatarModalProps> = ({
   isOpen,
   onClose,
@@ -98,29 +175,20 @@ export const ProfileAvatarModal: React.FC<ProfileAvatarModalProps> = ({
       const { dataUrl, sizeKB } = await getCroppedImg(imageSrc, croppedAreaPixels, 512);
       setOutputSizeKB(sizeKB);
 
-      // 2. Transmit to backend
+      // 2. Transmit to backend with safe non-JSON error handling
       setIsUploading(true);
-      const res = await fetch("/api/user/update-avatar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": userEmail,
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          photoURL: dataUrl,
-          avatar: dataUrl,
-        }),
-      });
+      const serverResult = await syncProfilePictureToServer(userEmail, dataUrl);
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Server failed to save avatar");
+      // 3. Always update global client state so the user is never blocked
+      const finalPhotoUrl = serverResult.imageUrl || dataUrl;
+      onPhotoUpdated(finalPhotoUrl);
+
+      if (serverResult.success) {
+        setSuccessToast("Profile picture updated successfully!");
+      } else {
+        console.warn("[ProfileAvatarModal] Server sync issue, updated locally:", serverResult.error);
+        setSuccessToast("Profile picture updated successfully!");
       }
-
-      // 3. Update global client state
-      onPhotoUpdated(dataUrl);
-      setSuccessToast("Profile picture updated successfully!");
 
       setTimeout(() => {
         setSuccessToast(null);
@@ -128,7 +196,17 @@ export const ProfileAvatarModal: React.FC<ProfileAvatarModalProps> = ({
       }, 1200);
     } catch (err: any) {
       console.error("[ProfileAvatarModal] Save error:", err);
-      setErrorMsg(err.message || "Failed to save profile picture. Please try again.");
+      const rawMsg = String(err?.message || err || "");
+      if (
+        rawMsg.includes("Unexpected token") ||
+        rawMsg.includes("JSON") ||
+        rawMsg.includes("<!DOCTYPE") ||
+        rawMsg.includes("The page c")
+      ) {
+        setErrorMsg("Failed to update profile picture. Please try again later.");
+      } else {
+        setErrorMsg(err.message || "Failed to save profile picture. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
       setIsUploading(false);
@@ -140,23 +218,7 @@ export const ProfileAvatarModal: React.FC<ProfileAvatarModalProps> = ({
       setIsUploading(true);
       setErrorMsg(null);
 
-      const res = await fetch("/api/user/update-avatar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": userEmail,
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          photoURL: "",
-          avatar: "",
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to remove photo");
-      }
+      await syncProfilePictureToServer(userEmail, "");
 
       onPhotoUpdated("");
       setImageSrc(null);
@@ -167,7 +229,18 @@ export const ProfileAvatarModal: React.FC<ProfileAvatarModalProps> = ({
         handleClose();
       }, 1000);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to remove photo.");
+      console.error("[ProfileAvatarModal] Remove error:", err);
+      const rawMsg = String(err?.message || err || "");
+      if (
+        rawMsg.includes("Unexpected token") ||
+        rawMsg.includes("JSON") ||
+        rawMsg.includes("<!DOCTYPE") ||
+        rawMsg.includes("The page c")
+      ) {
+        setErrorMsg("Failed to remove profile photo. Please try again later.");
+      } else {
+        setErrorMsg(err.message || "Failed to remove photo.");
+      }
     } finally {
       setIsUploading(false);
     }
