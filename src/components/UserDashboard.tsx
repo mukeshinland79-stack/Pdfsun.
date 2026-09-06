@@ -34,6 +34,7 @@ import {
   Camera,
 } from "lucide-react";
 import { safeFetchJson } from "../utils/apiHelper";
+import { resolvePaymentProduct } from "../config/paymentProducts";
 
 interface UserDashboardProps {
   isOpen: boolean;
@@ -88,15 +89,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
   const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
   const isOwner = userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
+  const resolvedPlan = resolvePaymentProduct({
+    planId: userProfile.planId || userProfile.plan,
+  });
   const isSsoUser =
     Boolean(userProfile.isSsoManaged) ||
+    resolvedPlan.internalProductId === "enterprise-sso" ||
+    resolvedPlan.internalProductId === "enterprise" ||
     userProfile.plan?.toLowerCase().includes("enterprise") ||
     userProfile.plan?.toLowerCase().includes("sso") ||
     userProfile.plan?.toLowerCase().includes("saml") ||
     Boolean(userProfile.ssoDomain) ||
     Boolean(userProfile.ssoProvider) ||
     Boolean(userProfile.organizationName);
-  const isFlexiUser = userProfile.plan?.toLowerCase().includes("flexi");
+  const isFlexiUser = resolvedPlan.internalProductId === "flexi" || userProfile.plan?.toLowerCase().includes("flexi");
   const isPaidUser =
     userProfile.plan?.toLowerCase().includes("pro") ||
     userProfile.plan?.toLowerCase().includes("annual") ||
@@ -122,8 +128,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     : isSsoUser
     ? "Enterprise SSO Active (Managed by Organization IT)"
     : isFlexiUser
-    ? "Flexi Pack Active • 100 Lifetime Operations (Never Expires)"
-    : userProfile.plan?.toLowerCase().includes("annual")
+    ? `Flexi Pack Active • ${resolvedPlan.credits || 50} Lifetime Operations (Never Expires)`
+    : resolvedPlan.billingInterval === "yearly" || userProfile.plan?.toLowerCase().includes("annual")
     ? "Active for 1 Year (365 Days • Renewable via Razorpay)"
     : isPaidUser
     ? "Active for 30 Days (Auto-Renewable via Razorpay)"
@@ -645,7 +651,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                     )}
                   </div>
                   <h3 className="text-base sm:text-lg font-black text-white flex items-center space-x-2">
-                    <span>{isOwner ? "👑 Platform Owner Full Access" : isPaidUser ? `⭐ ${userProfile.plan || "Pro Sun"} Active` : "Free Tier (Standard Tools)"}</span>
+                    <span>{isOwner ? "👑 Platform Owner Full Access" : isPaidUser ? `⭐ ${resolvedPlan.productName} Active` : "Free Tier (Standard Tools)"}</span>
                   </h3>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
                     <span className="flex items-center space-x-1">

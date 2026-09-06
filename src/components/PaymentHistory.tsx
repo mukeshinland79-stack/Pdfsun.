@@ -6,6 +6,7 @@ import {
   subscribeUserTransactionsFromFirestore,
   FirestoreTransactionRecord,
 } from "../lib/firebase";
+import { resolvePaymentProduct } from "../config/paymentProducts";
 import {
   CreditCard,
   Receipt,
@@ -165,20 +166,35 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           setActiveSubscription(data.subscription);
         }
         if (data.success && Array.isArray(data.transactions)) {
-          apiTransactions = data.transactions.map((tx: any) => ({
-            id: tx.id || `pay_rzp_${Math.random().toString(36).substring(2, 8)}`,
-            orderId: tx.orderId || `order_rzp_${Math.random().toString(36).substring(2, 8)}`,
-            email: tx.email || tx.userEmail || email,
-            amountINR: tx.amountINR || (tx.amountPaise ? tx.amountPaise / 100 : (tx.amount ? tx.amount : 199)),
-            gateway: tx.gateway || "Razorpay",
-            date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
-            timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
-            status: tx.status || "COMPLETED",
-            plan: tx.plan || tx.planName || "Pro Sun Monthly",
-            planId: tx.planId || "pro-monthly",
-            paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
-            invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id ? tx.id.substring(tx.id.length - 6).toUpperCase() : Math.floor(1000 + Math.random() * 9000)}`,
-          }));
+          apiTransactions = data.transactions.map((tx: any) => {
+            const resolved = resolvePaymentProduct({
+              planId: tx.planId || tx.plan,
+              amountINR: tx.amountINR,
+              amountPaise: tx.amountPaise,
+              notes: tx.notes,
+            });
+            const amt = typeof tx.amountINR === "number" && tx.amountINR > 0
+              ? tx.amountINR
+              : typeof tx.amountPaise === "number" && tx.amountPaise > 0
+              ? Math.round(tx.amountPaise / 100)
+              : typeof tx.amount === "number" && tx.amount > 0
+              ? tx.amount
+              : resolved.displayPriceINR;
+            return {
+              id: tx.id || `pay_rzp_${Math.random().toString(36).substring(2, 8)}`,
+              orderId: tx.orderId || `order_rzp_${Math.random().toString(36).substring(2, 8)}`,
+              email: tx.email || tx.userEmail || email,
+              amountINR: amt,
+              gateway: tx.gateway || "Razorpay",
+              date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
+              timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
+              status: tx.status || "COMPLETED",
+              plan: tx.plan || tx.planName || resolved.productName,
+              planId: tx.planId || resolved.internalProductId,
+              paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
+              invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id ? tx.id.substring(tx.id.length - 6).toUpperCase() : Math.floor(1000 + Math.random() * 9000)}`,
+            };
+          });
         }
       }
 
@@ -222,21 +238,35 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (firestoreTxList) => {
       setRealtimeConnected(true);
       if (firestoreTxList && Array.isArray(firestoreTxList) && firestoreTxList.length > 0) {
-        const mapped: PaymentTransaction[] = firestoreTxList.map((tx) => ({
-          id: tx.id,
-          orderId: tx.orderId,
-          subscriptionId: tx.subscriptionId,
-          email: tx.userEmail || userProfile.email,
-          amountINR: tx.amountINR || (tx.amount ? tx.amount : ((tx.amountPaise || 0) / 100)),
-          gateway: tx.source === "stripe" ? "Stripe" : "Razorpay",
-          date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
-          timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
-          status: tx.status,
-          plan: tx.plan || tx.planName || "Pro Sun Monthly",
-          planId: tx.planId || "pro-monthly",
-          paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
-          invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id.substring(tx.id.length - 6).toUpperCase()}`,
-        }));
+        const mapped: PaymentTransaction[] = firestoreTxList.map((tx) => {
+          const resolved = resolvePaymentProduct({
+            planId: tx.planId || tx.plan,
+            amountINR: tx.amountINR,
+            amountPaise: tx.amountPaise,
+          });
+          const amt = typeof tx.amountINR === "number" && tx.amountINR > 0
+            ? tx.amountINR
+            : typeof tx.amountPaise === "number" && tx.amountPaise > 0
+            ? Math.round(tx.amountPaise / 100)
+            : typeof tx.amount === "number" && tx.amount > 0
+            ? tx.amount
+            : resolved.displayPriceINR;
+          return {
+            id: tx.id,
+            orderId: tx.orderId,
+            subscriptionId: tx.subscriptionId,
+            email: tx.userEmail || userProfile.email,
+            amountINR: amt,
+            gateway: tx.source === "stripe" ? "Stripe" : "Razorpay",
+            date: tx.date || (tx.createdAt ? tx.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]),
+            timestamp: tx.timestamp || tx.createdAt || new Date().toISOString(),
+            status: tx.status,
+            plan: tx.plan || tx.planName || resolved.productName,
+            planId: tx.planId || resolved.internalProductId,
+            paymentMethod: tx.paymentMethod || "UPI / Razorpay Live Gateway",
+            invoiceNo: tx.invoiceNo || `INV-RZP-${tx.id.substring(tx.id.length - 6).toUpperCase()}`,
+          };
+        });
 
         setTransactions(mapped);
         setLoading(false);
@@ -319,35 +349,29 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     userProfile.plan?.toLowerCase().includes("pro") ||
     (activeSubscription && activeSubscription.status === "active");
 
+  const resolvedActive = resolvePaymentProduct({
+    planId: activeSubscription?.plan_id || userProfile.planId || userProfile.plan,
+    amountINR: activeSubscription?.amountINR,
+  });
+
   const badgeStatus =
-    activeSubscription?.plan_id === "enterprise"
+    resolvedActive.internalProductId === "enterprise-sso"
+      ? "ENTERPRISE SSO"
+      : resolvedActive.internalProductId === "enterprise"
       ? "ENTERPRISE USER"
-      : activeSubscription?.plan_id === "flexi"
+      : resolvedActive.internalProductId === "flexi"
       ? "FLEXI PACK HOLDER"
       : hasActivePaidPlan
       ? "PRO SUN MEMBER"
       : "FREE CUSTOMER";
 
-  const activePlanName = activeSubscription?.plan_id === "pro-yearly"
-    ? "PRO SUN ANNUAL"
-    : activeSubscription?.plan_id === "enterprise"
-    ? "ENTERPRISE PLAN"
-    : activeSubscription?.plan_id === "flexi"
-    ? "FLEXI PACK"
-    : activeSubscription?.plan_id === "pro-monthly"
-    ? "PRO SUN MONTHLY"
+  const activePlanName = hasActivePaidPlan
+    ? resolvedActive.productName.toUpperCase()
     : (userProfile.plan || "FREE PLAN").toUpperCase();
 
-  const bookedPlanAmountINR =
-    activeSubscription?.plan_id === "pro-yearly"
-      ? 1499
-      : activeSubscription?.plan_id === "enterprise"
-      ? 3999
-      : activeSubscription?.plan_id === "flexi"
-      ? 99
-      : activeSubscription?.plan_id === "pro-monthly"
-      ? 199
-      : (totalSpentINR > 0 ? totalSpentINR : 199);
+  const bookedPlanAmountINR = hasActivePaidPlan
+    ? resolvedActive.displayPriceINR
+    : (totalSpentINR > 0 ? totalSpentINR : resolvedActive.displayPriceINR);
 
   return (
     <div className={`space-y-6 ${className}`}>

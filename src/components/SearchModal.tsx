@@ -24,7 +24,10 @@ import { useLanguage } from "../lib/i18n";
 import {
   requestMicrophoneStreamOnDemand,
   releaseMicrophoneStream,
+  hasGrantedMicrophoneInSession,
+  setGrantedMicrophoneInSession,
 } from "../utils/microphoneManager";
+import { MicrophonePermissionModal } from "./MicrophonePermissionModal";
 
 export interface SearchModalProps {
   isOpen: boolean;
@@ -48,6 +51,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState<boolean>(false);
+
+  // Context-aware microphone permission state
+  const [micModalOpen, setMicModalOpen] = useState<boolean>(false);
+  const [isRequestingMic, setIsRequestingMic] = useState<boolean>(false);
+  const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
 
@@ -96,20 +104,32 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     };
   }, []);
 
-  const toggleVoiceSearch = useCallback(() => {
+  const startVoiceSearchListening = useCallback(async () => {
     setSpeechError(null);
+    setIsRequestingMic(true);
+    setMicErrorMessage(null);
 
-    if (isListening) {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {
-          // Ignore
-        }
+    const micResult = await requestMicrophoneStreamOnDemand();
+
+    if (!micResult.success) {
+      setIsRequestingMic(false);
+      if (micResult.status === "denied") {
+        setSpeechError("Microphone access was denied. You can continue typing to search.");
+      } else {
+        setSpeechError(micResult.errorMessage || "Could not access microphone.");
       }
-      setIsListening(false);
+      setMicModalOpen(false);
       return;
     }
+
+    // Release direct stream since SpeechRecognition manages audio acquisition
+    if (micResult.stream) {
+      releaseMicrophoneStream(micResult.stream);
+    }
+
+    setGrantedMicrophoneInSession(true);
+    setMicModalOpen(false);
+    setIsRequestingMic(false);
 
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -145,9 +165,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       recognition.onerror = (event: any) => {
         setIsListening(false);
         if (event.error === "not-allowed" || event.error === "permission-denied") {
-          setSpeechError("Microphone access was denied. Please allow microphone permissions.");
+          setSpeechError("Microphone access was denied. You can continue typing to search.");
         } else if (event.error === "no-speech") {
-          setSpeechError("No speech was detected. Please try speaking again.");
+          setSpeechError("No speech was detected. Please try speaking again or type your search.");
         } else if (event.error === "network") {
           setSpeechError("Network error during voice recognition.");
         } else {
@@ -168,7 +188,30 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setIsListening(false);
       setSpeechError("Could not start voice recognition.");
     }
-  }, [isListening, currentLanguage]);
+  }, [currentLanguage]);
+
+  const toggleVoiceSearch = useCallback(() => {
+    setSpeechError(null);
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore
+        }
+      }
+      setIsListening(false);
+      return;
+    }
+
+    if (hasGrantedMicrophoneInSession()) {
+      startVoiceSearchListening();
+    } else {
+      setMicErrorMessage(null);
+      setMicModalOpen(true);
+    }
+  }, [isListening, startVoiceSearchListening]);
 
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
@@ -525,6 +568,20 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 sm:pt-16 px-4 sm:px-6">
+        {/* Context-aware Microphone Permission Modal */}
+        <MicrophonePermissionModal
+          isOpen={micModalOpen}
+          onClose={() => {
+            setMicModalOpen(false);
+            if (inputRef.current) inputRef.current.focus();
+          }}
+          onConfirm={startVoiceSearchListening}
+          featureName="Quick Voice Search"
+          description="PDFSun needs microphone access to transcribe your spoken search query. Processing is 100% private in your browser."
+          isRequesting={isRequestingMic}
+          errorMessage={micErrorMessage}
+        />
+
         {/* Dark Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}

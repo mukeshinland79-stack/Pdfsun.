@@ -54,7 +54,9 @@ import { triggerErrorToast } from "./GlobalErrorToast";
 import {
   requestMicrophoneStreamOnDemand,
   releaseMicrophoneStream,
+  hasGrantedMicrophoneInSession,
 } from "../utils/microphoneManager";
+import { MicrophonePermissionModal } from "./MicrophonePermissionModal";
 
 export type FutureStudioTab = "voice-reader" | "voice-to-pdf" | "quantum-hud" | "macro-automator";
 
@@ -593,6 +595,12 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
   const [docTemplate, setDocTemplate] = useState<"meeting" | "study" | "legal" | "memo">("meeting");
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
 
+  // Tool-specific Context-Aware Microphone Permission & Error States
+  const [micModalOpen, setMicModalOpen] = useState<boolean>(false);
+  const [isRequestingMic, setIsRequestingMic] = useState<boolean>(false);
+  const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
+  const [micDeniedNotice, setMicDeniedNotice] = useState<boolean>(false);
+
   const recognitionRef = useRef<any>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
@@ -611,41 +619,41 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
     };
   }, []);
 
-  const toggleRecording = async () => {
-    // 1. If currently recording, cleanly stop recognition and release hardware stream
-    if (isRecording) {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-      }
-      if (mediaStreamRef.current) {
-        releaseMicrophoneStream(mediaStreamRef.current);
-        mediaStreamRef.current = null;
-      }
-      setIsRecording(false);
-      return;
-    }
+  const startDictationStream = async () => {
+    setIsRequestingMic(true);
+    setMicErrorMessage(null);
 
-    // 2. Strictly On-Demand JIT Microphone Permission Flow (bound to click event)
     const micResult = await requestMicrophoneStreamOnDemand();
 
     if (!micResult.success) {
+      setIsRequestingMic(false);
+      setMicDeniedNotice(true);
       if (micResult.status === "denied") {
-        triggerErrorToast(
-          "Microphone Access Blocked",
+        setMicErrorMessage(
           "Microphone access is blocked in your browser settings. Please enable microphone permission in your site settings to dictate."
         );
+        triggerErrorToast(
+          "Microphone Permission Denied",
+          "Microphone access was denied. You can continue typing directly in the document editor."
+        );
       } else if (micResult.status === "unsupported") {
+        setMicErrorMessage(
+          micResult.errorMessage || "Your browser or device does not support microphone input."
+        );
         triggerErrorToast(
           "Speech Not Supported",
           micResult.errorMessage || "Your browser or device does not support microphone input. You can type directly in the editor."
         );
       } else {
+        setMicErrorMessage(micResult.errorMessage || "Could not access microphone.");
         triggerErrorToast("Microphone Error", micResult.errorMessage || "Could not access microphone.");
       }
       return;
     }
+
+    setMicModalOpen(false);
+    setIsRequestingMic(false);
+    setMicDeniedNotice(false);
 
     // Retain stream reference for instantaneous tracking and subsequent release
     mediaStreamRef.current = micResult.stream;
@@ -696,9 +704,10 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
           mediaStreamRef.current = null;
         }
         if (e.error === "not-allowed" || e.error === "permission-denied") {
+          setMicDeniedNotice(true);
           triggerErrorToast(
             "Microphone Permission Denied",
-            "Microphone permission was denied. Please allow microphone access in site settings."
+            "Microphone permission was denied. You can continue typing directly in the document editor."
           );
         } else if (e.error !== "no-speech") {
           triggerErrorToast("Dictation Paused", "Speech capture ended.");
@@ -723,6 +732,32 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
       }
       setIsRecording(false);
       triggerErrorToast("Record Error", err?.message || "Could not start microphone dictation.");
+    }
+  };
+
+  const toggleRecording = async () => {
+    // 1. If currently recording, cleanly stop recognition and release hardware stream
+    if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      if (mediaStreamRef.current) {
+        releaseMicrophoneStream(mediaStreamRef.current);
+        mediaStreamRef.current = null;
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    // 2. If already granted in this session, immediately start without reprompting
+    if (hasGrantedMicrophoneInSession()) {
+      await startDictationStream();
+    } else {
+      // Strictly context-aware on-demand permission flow
+      setMicErrorMessage(null);
+      setMicModalOpen(true);
     }
   };
 
@@ -842,6 +877,36 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
 
   return (
     <div className="space-y-6">
+      {/* Tool-specific Context-Aware Permission Modal */}
+      <MicrophonePermissionModal
+        isOpen={micModalOpen}
+        onClose={() => setMicModalOpen(false)}
+        onConfirm={startDictationStream}
+        featureName="Voice-to-PDF Dictation"
+        description="PDFSun needs microphone access to convert your spoken voice into editable document text in real time. Processing is strictly 100% private in your browser."
+        isRequesting={isRequestingMic}
+        errorMessage={micErrorMessage}
+      />
+
+      {/* Non-intrusive fallback alert if microphone is denied or blocked */}
+      {micDeniedNotice && (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2">
+            <MicOff className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Microphone access disabled:</strong> Voice dictation is unavailable in this session. You can type directly in the text editor below or enable microphone permission in your browser's site settings.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMicDeniedNotice(false)}
+            className="text-amber-900 dark:text-amber-200 font-bold underline shrink-0 cursor-pointer hover:opacity-80 text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Control Bar & Microphone Trigger */}
       <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">

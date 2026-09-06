@@ -13,6 +13,16 @@
 
 export type MicPermissionStatus = "granted" | "prompt" | "denied" | "unsupported";
 
+let sessionMicGranted = false;
+
+export function hasGrantedMicrophoneInSession(): boolean {
+  return sessionMicGranted;
+}
+
+export function setGrantedMicrophoneInSession(granted: boolean): void {
+  sessionMicGranted = granted;
+}
+
 export interface MicRequestResult {
   success: boolean;
   stream: MediaStream | null;
@@ -82,12 +92,15 @@ export async function requestMicrophoneStreamOnDemand(): Promise<MicRequestResul
       },
     });
 
+    setGrantedMicrophoneInSession(true);
+
     return {
       success: true,
       stream,
       status: "granted",
     };
   } catch (err: any) {
+    setGrantedMicrophoneInSession(false);
     const errorName = err?.name || "";
     if (
       errorName === "NotAllowedError" ||

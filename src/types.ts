@@ -81,6 +81,7 @@ export interface UserProfile {
   avatar: string;
   photoURL?: string;
   plan: string;
+  planId?: string;
   joinedDate: string;
   hasAdminAccess?: boolean;
   isPro?: boolean;
