@@ -13,7 +13,11 @@ import {
   Firestore,
 } from "firebase/firestore";
 import firebaseConfigData from "../../firebase-applet-config.json";
-import { PDFSUN_PAYMENT_PRODUCTS, PaymentProduct } from "../config/paymentProducts";
+import {
+  PDFSUN_PAYMENT_PRODUCTS,
+  PaymentProduct,
+  resolvePaymentProduct,
+} from "../config/paymentProducts";
 import { recordVerifiedTransaction } from "./paymentStore";
 
 export interface PaymentReconciliationInput {
@@ -316,15 +320,19 @@ export async function reconcilePaymentWithFirestore(
   input: PaymentReconciliationInput
 ): Promise<ReconciliationResult> {
   const normalizedEmail = (input.userEmail || "user@pdfsun.in").toLowerCase().trim();
-  const normalizedPlanId = (input.planId || "pro-monthly").toLowerCase().trim();
-  const matchedProduct: PaymentProduct =
-    PDFSUN_PAYMENT_PRODUCTS[normalizedPlanId] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
-
-  const expectedAmountPaise = matchedProduct.displayPriceINR * 100;
-  const expectedCurrency = "INR";
   const receivedAmountPaise = Number(input.amountPaise) || 0;
   const receivedCurrency = (input.currency || "INR").toUpperCase();
   const rawStatus = (input.status || "").toLowerCase();
+
+  // Dynamically resolve exact product using actual amount and plan
+  const matchedProduct: PaymentProduct = resolvePaymentProduct({
+    planId: input.planId,
+    amountPaise: receivedAmountPaise,
+    currency: receivedCurrency,
+  });
+
+  const expectedAmountPaise = matchedProduct.displayPriceINR * 100;
+  const expectedCurrency = "INR";
 
   const details: NonNullable<ReconciliationResult["details"]> = {
     expectedAmountPaise,
@@ -518,8 +526,12 @@ export async function reconcilePaymentWithFirestore(
         console.log(`[Firestore Reconcile] Credited ${creditAmount} credits to ${normalizedEmail}`);
       } else {
         // PRO Subscription Activation
-        const durationDays =
-          matchedProduct.billingInterval === "yearly" || normalizedPlanId.includes("yearly") ? 365 : 30;
+        const isYearly =
+          matchedProduct.billingInterval === "yearly" ||
+          matchedProduct.internalProductId === "pro-yearly" ||
+          matchedProduct.internalProductId === "enterprise" ||
+          matchedProduct.internalProductId === "enterprise-sso";
+        const durationDays = isYearly ? 365 : 30;
         const activatedAt = now.toISOString();
         const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
@@ -530,6 +542,7 @@ export async function reconcilePaymentWithFirestore(
           status: "active",
           activatedAt,
           expiresAt,
+          durationDays,
           paymentId: input.paymentId,
           orderId: input.orderId || "",
           subscriptionId: input.subscriptionId || "",
@@ -555,6 +568,7 @@ export async function reconcilePaymentWithFirestore(
         status: "COMPLETED",
         planId: matchedProduct.internalProductId,
         planName: matchedProduct.productName,
+        plan: matchedProduct.productName,
         signatureVerified: input.signatureVerified,
         source: input.source || "webhook",
         entitlementGranted,

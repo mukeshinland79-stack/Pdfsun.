@@ -21,6 +21,10 @@ import {
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
+import {
+  requestMicrophoneStreamOnDemand,
+  releaseMicrophoneStream,
+} from "../utils/microphoneManager";
 
 export interface SearchModalProps {
   isOpen: boolean;

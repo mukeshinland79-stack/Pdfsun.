@@ -154,3 +154,113 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
     popular: false,
   },
 };
+
+export interface ResolvePaymentProductParams {
+  planId?: string | null;
+  amountINR?: number | null;
+  amountPaise?: number | null;
+  currency?: string | null;
+  paymentLinkId?: string | null;
+  description?: string | null;
+  notes?: Record<string, any> | null;
+}
+
+/**
+ * Dynamically resolves the exact PDFSun PaymentProduct from incoming payment indicators.
+ * Matches priority:
+ * 1. Exact or normalized planId
+ * 2. Razorpay payment link identifier
+ * 3. Exact payment amount (amountINR or amountPaise)
+ * 4. Fuzzy notes/description search
+ * 5. Safe fallback to 'pro-monthly'
+ */
+export function resolvePaymentProduct(params: ResolvePaymentProductParams = {}): PaymentProduct {
+  const {
+    planId,
+    amountINR,
+    amountPaise,
+    paymentLinkId,
+    description,
+    notes,
+  } = params;
+
+  // 1. Direct key match in catalog
+  const normalizedKey = (planId || notes?.planId || notes?.plan_id || notes?.plan || "").toString().toLowerCase().trim();
+  if (normalizedKey && PDFSUN_PAYMENT_PRODUCTS[normalizedKey]) {
+    return PDFSUN_PAYMENT_PRODUCTS[normalizedKey];
+  }
+
+  // Alias maps
+  if (normalizedKey === "flexi-pack" || normalizedKey === "flexipack" || normalizedKey.includes("flexi") || normalizedKey.includes("token")) {
+    return PDFSUN_PAYMENT_PRODUCTS.flexi;
+  }
+  if (normalizedKey === "pro" || normalizedKey === "monthly" || normalizedKey === "pro-sun-monthly" || normalizedKey === "pro monthly") {
+    return PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+  }
+  if (normalizedKey === "yearly" || normalizedKey === "annual" || normalizedKey === "pro-yearly" || normalizedKey === "pro-annual" || normalizedKey.includes("annual")) {
+    return PDFSUN_PAYMENT_PRODUCTS["pro-yearly"];
+  }
+  if (normalizedKey === "enterprise-sso" || normalizedKey.includes("sso") || normalizedKey.includes("saml")) {
+    return PDFSUN_PAYMENT_PRODUCTS["enterprise-sso"];
+  }
+  if (normalizedKey.includes("enterprise") || normalizedKey.includes("team")) {
+    return PDFSUN_PAYMENT_PRODUCTS.enterprise;
+  }
+
+  // 2. Match by Payment Link ID / URL
+  const linkId = (paymentLinkId || notes?.payment_link_id || "").toString().toLowerCase().trim();
+  if (linkId) {
+    if (linkId.includes("pdfsun-flexi") || linkId.includes("flexi")) {
+      return PDFSUN_PAYMENT_PRODUCTS.flexi;
+    }
+    if (linkId.includes("pdfsun-monthly")) {
+      return PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    }
+    if (linkId.includes("pdfsun-annual")) {
+      return PDFSUN_PAYMENT_PRODUCTS["pro-yearly"];
+    }
+    if (linkId.includes("dtbivzf") || linkId.includes("enterprise-sso")) {
+      return PDFSUN_PAYMENT_PRODUCTS["enterprise-sso"];
+    }
+    if (linkId.includes("pdfsun-enterprise")) {
+      return PDFSUN_PAYMENT_PRODUCTS.enterprise;
+    }
+  }
+
+  // 3. Match by exact or rounded Amount (INR / Paise)
+  const calcAmountINR =
+    typeof amountINR === "number" && amountINR > 0
+      ? Math.round(amountINR)
+      : typeof amountPaise === "number" && amountPaise > 0
+      ? Math.round(amountPaise / 100)
+      : 0;
+
+  if (calcAmountINR > 0) {
+    if (calcAmountINR === 99) {
+      return PDFSUN_PAYMENT_PRODUCTS.flexi;
+    }
+    if (calcAmountINR === 199) {
+      return PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    }
+    if (calcAmountINR === 1499) {
+      return PDFSUN_PAYMENT_PRODUCTS["pro-yearly"];
+    }
+    if (calcAmountINR === 3999) {
+      return PDFSUN_PAYMENT_PRODUCTS.enterprise;
+    }
+    if (calcAmountINR === 9999) {
+      return PDFSUN_PAYMENT_PRODUCTS["enterprise-sso"];
+    }
+  }
+
+  // 4. Match by description / notes text
+  const desc = (description || "").toLowerCase();
+  if (desc.includes("flexi")) return PDFSUN_PAYMENT_PRODUCTS.flexi;
+  if (desc.includes("annual") || desc.includes("yearly")) return PDFSUN_PAYMENT_PRODUCTS["pro-yearly"];
+  if (desc.includes("sso")) return PDFSUN_PAYMENT_PRODUCTS["enterprise-sso"];
+  if (desc.includes("enterprise")) return PDFSUN_PAYMENT_PRODUCTS.enterprise;
+
+  // 5. Default fallback to Pro Monthly
+  return PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+}
+

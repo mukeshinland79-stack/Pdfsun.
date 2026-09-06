@@ -96,7 +96,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     Boolean(userProfile.ssoDomain) ||
     Boolean(userProfile.ssoProvider) ||
     Boolean(userProfile.organizationName);
-  const isPaidUser = userProfile.plan?.toLowerCase().includes("pro") || userProfile.plan?.toLowerCase().includes("annual") || isSsoUser || isOwner;
+  const isFlexiUser = userProfile.plan?.toLowerCase().includes("flexi");
+  const isPaidUser =
+    userProfile.plan?.toLowerCase().includes("pro") ||
+    userProfile.plan?.toLowerCase().includes("annual") ||
+    isFlexiUser ||
+    isSsoUser ||
+    isOwner;
 
   // Real-time transaction verification status calculation
   const latestTx = transactions[0];
@@ -115,6 +121,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     ? "Lifetime Super Admin Active (No Expiry)"
     : isSsoUser
     ? "Enterprise SSO Active (Managed by Organization IT)"
+    : isFlexiUser
+    ? "Flexi Pack Active • 100 Lifetime Operations (Never Expires)"
+    : userProfile.plan?.toLowerCase().includes("annual")
+    ? "Active for 1 Year (365 Days • Renewable via Razorpay)"
     : isPaidUser
     ? "Active for 30 Days (Auto-Renewable via Razorpay)"
     : "Free Tier Active (No Expiry)";

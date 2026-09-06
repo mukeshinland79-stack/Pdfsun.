@@ -9,8 +9,12 @@ import {
   Copy,
   Check,
   Crown,
+  Printer,
+  Calendar,
+  CreditCard,
 } from "lucide-react";
 import { UserProfile } from "../types";
+import { resolvePaymentProduct } from "../config/paymentProducts";
 
 interface PaymentSuccessModalProps {
   isOpen: boolean;
@@ -18,6 +22,7 @@ interface PaymentSuccessModalProps {
   userProfile?: UserProfile | null;
   onRefreshProfile?: () => void;
   onStartProcessing?: () => void;
+  onOpenInvoice?: () => void;
 }
 
 export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
@@ -26,15 +31,20 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
   userProfile,
   onRefreshProfile,
   onStartProcessing,
+  onOpenInvoice,
 }) => {
   const [copied, setCopied] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<{
     paymentId: string;
     planName: string;
+    planId: string;
     amount: string;
+    amountINR: number;
     credits: string;
-    date: string;
+    activatedDate: string;
+    expiryDate: string;
+    isSubscription: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -44,51 +54,92 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
       const pId =
         params.get("razorpay_payment_id") ||
         params.get("payment_id") ||
+        localStorage.getItem("pdfsun_last_payment_id") ||
         `pay_rzp_${Math.random().toString(36).substring(2, 10)}`;
-      const plan =
-        params.get("plan") ||
-        localStorage.getItem("pdfsun_user_plan_v1") ||
-        "Pro Sun Monthly";
-      const credits = localStorage.getItem("pdfsun_user_credits_v1") || "100";
 
-      // Instantly persist Pro state in local storage for zero-delay unlocking
+      const rawPlan =
+        params.get("plan") ||
+        params.get("planId") ||
+        params.get("plan_id") ||
+        localStorage.getItem("pdfsun_last_checkout_plan") ||
+        sessionStorage.getItem("pdfsun_last_checkout_plan") ||
+        localStorage.getItem("pdfsun_user_plan_v1") ||
+        "";
+
+      const rawAmount =
+        params.get("amount") ||
+        params.get("amountINR") ||
+        localStorage.getItem("pdfsun_last_checkout_amount") ||
+        sessionStorage.getItem("pdfsun_last_checkout_amount") ||
+        localStorage.getItem("pdfsun_last_payment_amount") ||
+        "";
+
+      const rawPaymentLinkId =
+        params.get("payment_link_id") ||
+        params.get("plink_id") ||
+        "";
+
+      // Dynamically resolve exact product
+      const product = resolvePaymentProduct({
+        planId: rawPlan,
+        amountINR: rawAmount ? Number(rawAmount.replace(/[^0-9.]/g, "")) : undefined,
+        paymentLinkId: rawPaymentLinkId,
+      });
+
+      const now = new Date();
+      let expiryText = "";
+      const isSub = product.type === "subscription" || product.type === "enterprise";
+
+      if (product.internalProductId === "flexi") {
+        expiryText = "Never Expires (Lifetime Validity)";
+      } else {
+        const days =
+          product.billingInterval === "yearly" ||
+          product.internalProductId.includes("yearly") ||
+          product.internalProductId.includes("annual") ||
+          product.internalProductId.includes("enterprise")
+            ? 365
+            : 30;
+        const expDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+        expiryText = `Active until ${expDate.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })} (${days} Days Active)`;
+      }
+
+      // Persist state in storage
       try {
-        localStorage.setItem("pdfsun_user_plan_v1", plan);
+        localStorage.setItem("pdfsun_user_plan_v1", product.productName);
         localStorage.setItem("pdfsun_pro_plan", "pro");
         localStorage.setItem("pdfsun_user_is_pro", "true");
+        localStorage.setItem("pdfsun_last_payment_amount", String(product.displayPriceINR));
+        localStorage.setItem("pdfsun_last_payment_id", pId);
+        if (product.credits) {
+          localStorage.setItem("pdfsun_user_credits_v1", String(product.credits));
+        }
       } catch {}
 
       setPaymentDetails({
         paymentId: pId,
-        planName: plan.includes("flexi")
-          ? "Flexi Pack (100 Credits)"
-          : plan.includes("annual")
-          ? "Pro Sun Annual"
-          : plan.includes("enterprise")
-          ? "Enterprise Plan"
-          : plan,
-        amount:
-          params.get("amount") ||
-          (plan.includes("flexi")
-            ? "₹99"
-            : plan.includes("annual")
-            ? "₹1,499"
-            : plan.includes("enterprise")
-            ? "₹4,999"
-            : "₹199"),
-        credits: plan.includes("flexi")
-          ? `${credits} Lifetime Credits`
-          : "UNLIMITED 100% Full Capacity",
-        date: new Date().toLocaleDateString("en-IN", {
+        planName: product.productName,
+        planId: product.internalProductId,
+        amount: `₹${product.displayPriceINR.toLocaleString("en-IN")}`,
+        amountINR: product.displayPriceINR,
+        credits: product.internalProductId === "flexi"
+          ? "100 Lifetime PDF Operations"
+          : "Unlimited Operations (Zero Restrictions)",
+        activatedDate: now.toLocaleDateString("en-IN", {
           day: "numeric",
           month: "short",
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
         }),
+        expiryDate: expiryText,
+        isSubscription: isSub,
       });
 
-      // Trigger automatic background credit/profile sync
       handleAutoSync();
     }
   }, [isOpen]);
@@ -115,11 +166,15 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
     }
   };
 
+  const handlePrintInvoice = () => {
+    window.print();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-[#0f172a] border border-emerald-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-white space-y-6 relative overflow-hidden">
+      <div className="bg-[#0f172a] border border-emerald-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-white space-y-5 relative overflow-hidden">
         {/* Top Glow Accent */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-br from-emerald-500/25 to-teal-500/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -143,7 +198,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
-            Your payment was processed securely. All PDF processing tools, high-speed compression, and premium features are now 100% unlocked on your account.
+            Your payment was processed securely via Razorpay. Your account entitlements have been dynamically synchronized.
           </p>
         </div>
 
@@ -169,17 +224,16 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div>
                 <span className="text-slate-400 block text-[11px]">Purchased Plan:</span>
-                <span className="font-bold text-white flex items-center gap-1 mt-0.5">
+                <span className="font-bold text-white flex items-center gap-1 mt-0.5 text-xs">
                   <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   {paymentDetails.planName}
                 </span>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px]">Status:</span>
-                <span className="font-black text-emerald-400 flex items-center gap-1 mt-0.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  Plan Active (Pro)
+                <span className="text-slate-400 block text-[11px]">Amount Paid:</span>
+                <span className="font-mono font-black text-emerald-400 text-sm mt-0.5 block">
+                  {paymentDetails.amount} INR
                 </span>
               </div>
 
@@ -192,24 +246,30 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px]">Amount Paid:</span>
-                <span className="font-bold text-white mt-0.5 block">{paymentDetails.amount}</span>
+                <span className="text-slate-400 block text-[11px]">Plan Expiry:</span>
+                <span className="font-medium text-slate-200 flex items-center gap-1 mt-0.5 text-[11px]">
+                  <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  {paymentDetails.expiryDate}
+                </span>
               </div>
 
-              <div className="col-span-2 pt-1 border-t border-slate-800/60">
-                <span className="text-slate-400 text-[11px]">Activated On: </span>
-                <span className="font-medium text-slate-300 text-[11px]">{paymentDetails.date}</span>
+              <div className="col-span-2 pt-1.5 border-t border-slate-800/60 flex justify-between items-center text-[11px]">
+                <span className="text-slate-400">Activated On: {paymentDetails.activatedDate}</span>
+                <span className="text-emerald-400 font-bold flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Real-time Sync Active</span>
+                </span>
               </div>
             </div>
           </div>
         )}
 
         {/* Real-Time Sync Indicator */}
-        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
+        <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span className="text-slate-300 font-medium">
-              {syncing ? "Verifying active session..." : "Account status live & verified"}
+              {syncing ? "Verifying active session..." : "Account status live & verified with Firestore"}
             </span>
           </div>
 
@@ -224,14 +284,8 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           </button>
         </div>
 
-        {/* Security & Trust Stamp */}
-        <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-400 border-t border-slate-800/80 pt-4">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Razorpay Verified • 256-Bit SSL Encrypted • 100% Privacy</span>
-        </div>
-
-        {/* Primary Action Button: Start Using PDF Tools Now */}
-        <div className="space-y-2">
+        {/* Action Buttons: Invoice & Start Using Tools */}
+        <div className="space-y-2.5">
           <button
             type="button"
             onClick={() => {
@@ -240,11 +294,26 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                 onStartProcessing();
               }
             }}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-99 transition flex items-center justify-center space-x-2 cursor-pointer"
           >
-            <span>Start Using PDF Tools Now</span>
+            <span>Start Using All PDF Tools Now</span>
             <ArrowRight className="w-4 h-4 stroke-[3]" />
           </button>
+
+          <button
+            type="button"
+            onClick={handlePrintInvoice}
+            className="w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5 text-amber-400" />
+            <span>Download / Print GST Tax Invoice</span>
+          </button>
+        </div>
+
+        {/* Security & Trust Stamp */}
+        <div className="flex items-center justify-center space-x-2 text-[10px] text-slate-400 pt-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <span>Official Razorpay Verified Gateway • 256-Bit SSL Encrypted</span>
         </div>
       </div>
     </div>

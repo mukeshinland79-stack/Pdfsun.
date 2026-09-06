@@ -59,7 +59,11 @@ import {
   verifyWebhookSignature,
   resolveRazorpayPlanId,
 } from "./src/server/razorpayService";
-import { PDFSUN_PAYMENT_PRODUCTS, PaymentProduct } from "./src/config/paymentProducts";
+import {
+  PDFSUN_PAYMENT_PRODUCTS,
+  PaymentProduct,
+  resolvePaymentProduct,
+} from "./src/config/paymentProducts";
 import {
   loadPaymentStores,
   saveTransactions,
@@ -1118,19 +1122,16 @@ async function processRazorpayAutoActivation(payload: any, eventType: string, si
     };
   }
 
-  // Match against central product catalog
-  let matchedPlanId = "pro-monthly";
-  if (planId && PDFSUN_PAYMENT_PRODUCTS[planId]) {
-    matchedPlanId = planId;
-  } else if (amountPaisa >= 800000) {
-    matchedPlanId = "enterprise-sso";
-  } else if (amountPaisa >= 300000) {
-    matchedPlanId = "enterprise";
-  } else if (amountPaisa >= 100000) {
-    matchedPlanId = "pro-yearly";
-  } else if (amountPaisa === 9900) {
-    matchedPlanId = "flexi";
-  }
+  // Dynamically resolve product based on exact amount paid, planId in notes/payload, or payment_link_id
+  const matchedProduct = resolvePaymentProduct({
+    planId,
+    amountPaise: amountPaisa,
+    currency,
+    paymentLinkId: payment.payment_link_id || order.payment_link_id || notes.payment_link_id,
+    description: payment.description,
+    notes,
+  });
+  const matchedPlanId = matchedProduct.internalProductId;
 
   const paymentId = payment.id || `pay_rzp_${Date.now()}`;
   const orderId = payment.order_id || order.id || subscription.id || notes.orderId || notes.order_id;
@@ -1141,7 +1142,7 @@ async function processRazorpayAutoActivation(payload: any, eventType: string, si
     orderId,
     subscriptionId: subscription.id,
     userEmail,
-    amountPaise: amountPaisa || (PDFSUN_PAYMENT_PRODUCTS[matchedPlanId]?.displayPriceINR || 199) * 100,
+    amountPaise: amountPaisa || matchedProduct.displayPriceINR * 100,
     currency,
     status: paymentStatus,
     planId: matchedPlanId,
@@ -1150,7 +1151,7 @@ async function processRazorpayAutoActivation(payload: any, eventType: string, si
     source: "webhook",
   });
 
-  console.log(`[Payment Auto-Activation & Firestore Reconcile] Payment ${paymentId} for ${userEmail} -> Plan: ${matchedPlanId} -> Reconciled: ${reconciliationResult.reconciled}`);
+  console.log(`[Payment Auto-Activation & Firestore Reconcile] Payment ${paymentId} for ${userEmail} -> Plan: ${matchedProduct.productName} (₹${(amountPaisa || matchedProduct.displayPriceINR * 100) / 100}) -> Reconciled: ${reconciliationResult.reconciled}`);
   return reconciliationResult;
 }
 
@@ -1268,16 +1269,21 @@ async function handlePaymentReconciliation(req: express.Request, res: express.Re
     }
 
     const signatureVerified = Boolean(signature) ? true : true;
+    const resolvedProduct = resolvePaymentProduct({
+      planId,
+      amountPaise: Number(amountPaise),
+      currency,
+    });
 
     const result = await reconcilePaymentWithFirestore({
       paymentId,
       orderId,
       subscriptionId,
       userEmail,
-      amountPaise: Number(amountPaise) || (PDFSUN_PAYMENT_PRODUCTS[planId]?.displayPriceINR || 199) * 100,
+      amountPaise: Number(amountPaise) || resolvedProduct.displayPriceINR * 100,
       currency,
       status,
-      planId,
+      planId: resolvedProduct.internalProductId,
       signatureVerified,
       source: "manual_sync",
     });
@@ -1426,8 +1432,12 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
     }
 
     const pId = razorpay_payment_id || `pay_rzp_${Date.now()}`;
-    const normalizedPlanId = (planId || "pro-monthly").toLowerCase().trim();
-    const productConfig = PDFSUN_PAYMENT_PRODUCTS[normalizedPlanId] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    const productConfig = resolvePaymentProduct({
+      planId,
+      amountPaise: Number(amountPaise),
+      currency,
+    });
+    const normalizedPlanId = productConfig.internalProductId;
     const verifiedAmountPaise = Number(amountPaise) || productConfig.displayPriceINR * 100;
 
     // Execute full Firestore database reconciliation & entitlement grant

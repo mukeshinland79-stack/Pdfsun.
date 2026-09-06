@@ -51,6 +51,10 @@ import {
 } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import {
+  requestMicrophoneStreamOnDemand,
+  releaseMicrophoneStream,
+} from "../utils/microphoneManager";
 
 export type FutureStudioTab = "voice-reader" | "voice-to-pdf" | "quantum-hud" | "macro-automator";
 
@@ -590,75 +594,135 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
 
   const recognitionRef = useRef<any>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
-  // Initialize speech recognition
+  // Clean release on unmount: ensure all audio tracks are stopped immediately
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
-
-        recognition.onresult = (event: any) => {
-          let currentInterim = "";
-          let finalBlock = "";
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalBlock += event.results[i][0].transcript + " ";
-            } else {
-              currentInterim += event.results[i][0].transcript;
-            }
-          }
-          if (finalBlock) {
-            setTranscript((prev) => prev + finalBlock);
-          }
-          setInterimTranscript(currentInterim);
-        };
-
-        recognition.onerror = (e: any) => {
-          console.warn("Speech recognition error:", e);
-          setIsRecording(false);
-          triggerErrorToast("Microphone Notice", e.error === "not-allowed" ? "Microphone permission denied" : "Speech capture ended.");
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-
     return () => {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch {}
       }
+      if (mediaStreamRef.current) {
+        releaseMicrophoneStream(mediaStreamRef.current);
+        mediaStreamRef.current = null;
+      }
     };
   }, []);
 
-  const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      triggerErrorToast("Speech Not Supported", "Your browser does not have speech recognition support. You can still type directly into the document editor below.");
+  const toggleRecording = async () => {
+    // 1. If currently recording, cleanly stop recognition and release hardware stream
+    if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      if (mediaStreamRef.current) {
+        releaseMicrophoneStream(mediaStreamRef.current);
+        mediaStreamRef.current = null;
+      }
+      setIsRecording(false);
       return;
     }
 
-    if (isRecording) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
-      setIsRecording(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch (err: any) {
-        triggerErrorToast("Record Error", err?.message || "Could not access microphone");
+    // 2. Strictly On-Demand JIT Microphone Permission Flow (bound to click event)
+    const micResult = await requestMicrophoneStreamOnDemand();
+
+    if (!micResult.success) {
+      if (micResult.status === "denied") {
+        triggerErrorToast(
+          "Microphone Access Blocked",
+          "Microphone access is blocked in your browser settings. Please enable microphone permission in your site settings to dictate."
+        );
+      } else if (micResult.status === "unsupported") {
+        triggerErrorToast(
+          "Speech Not Supported",
+          micResult.errorMessage || "Your browser or device does not support microphone input. You can type directly in the editor."
+        );
+      } else {
+        triggerErrorToast("Microphone Error", micResult.errorMessage || "Could not access microphone.");
       }
+      return;
+    }
+
+    // Retain stream reference for instantaneous tracking and subsequent release
+    mediaStreamRef.current = micResult.stream;
+
+    // 3. Initialize SpeechRecognition on-demand without latency
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      if (mediaStreamRef.current) {
+        releaseMicrophoneStream(mediaStreamRef.current);
+        mediaStreamRef.current = null;
+      }
+      triggerErrorToast(
+        "Speech API Unavailable",
+        "Speech recognition API is not available in this browser. You can still type directly in the document editor."
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: any) => {
+        let currentInterim = "";
+        let finalBlock = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalBlock += event.results[i][0].transcript + " ";
+          } else {
+            currentInterim += event.results[i][0].transcript;
+          }
+        }
+        if (finalBlock) {
+          setTranscript((prev) => prev + finalBlock);
+        }
+        setInterimTranscript(currentInterim);
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e);
+        setIsRecording(false);
+        if (mediaStreamRef.current) {
+          releaseMicrophoneStream(mediaStreamRef.current);
+          mediaStreamRef.current = null;
+        }
+        if (e.error === "not-allowed" || e.error === "permission-denied") {
+          triggerErrorToast(
+            "Microphone Permission Denied",
+            "Microphone permission was denied. Please allow microphone access in site settings."
+          );
+        } else if (e.error !== "no-speech") {
+          triggerErrorToast("Dictation Paused", "Speech capture ended.");
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        if (mediaStreamRef.current) {
+          releaseMicrophoneStream(mediaStreamRef.current);
+          mediaStreamRef.current = null;
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsRecording(true);
+    } catch (err: any) {
+      if (mediaStreamRef.current) {
+        releaseMicrophoneStream(mediaStreamRef.current);
+        mediaStreamRef.current = null;
+      }
+      setIsRecording(false);
+      triggerErrorToast("Record Error", err?.message || "Could not start microphone dictation.");
     }
   };
 

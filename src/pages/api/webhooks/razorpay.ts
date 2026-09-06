@@ -6,7 +6,10 @@ import {
   reconcilePaymentWithFirestore,
   verifyRazorpayTransactionDetails,
 } from "../../../server/firestoreReconciliation";
-import { PDFSUN_PAYMENT_PRODUCTS } from "../../../config/paymentProducts";
+import {
+  PDFSUN_PAYMENT_PRODUCTS,
+  resolvePaymentProduct,
+} from "../../../config/paymentProducts";
 
 /**
  * Secure POST handler for Razorpay Webhooks (src/pages/api/webhooks/razorpay.ts)
@@ -115,19 +118,20 @@ export default async function handleRazorpayWebhook(req: Request, res: Response)
         console.warn("[Razorpay Webhook API] Idempotency check warning:", idempErr);
       }
 
-      const rawPlanId = (notes.planId || notes.plan_id || notes.plan || "").toString().toLowerCase().trim();
-      let matchedPlanId = "pro-monthly";
-      if (rawPlanId && PDFSUN_PAYMENT_PRODUCTS[rawPlanId]) {
-        matchedPlanId = rawPlanId;
-      } else if (rawPlanId.includes("yearly") || rawPlanId.includes("annual")) {
-        matchedPlanId = "pro-yearly";
-      } else if (rawPlanId.includes("token") || rawPlanId.includes("credit") || rawPlanId.includes("flexi")) {
-        matchedPlanId = "token-pack-100";
-      }
-
       const amountPaise = Number(paymentEntity.amount || orderEntity.amount || 0);
       const currency = (paymentEntity.currency || orderEntity.currency || "INR").toString().toUpperCase();
       const status = (paymentEntity.status || orderEntity.status || subscriptionEntity.status || "captured").toString().toLowerCase();
+
+      const rawPlanId = (notes.planId || notes.plan_id || notes.plan || "").toString().toLowerCase().trim();
+      const matchedProduct = resolvePaymentProduct({
+        planId: rawPlanId,
+        amountPaise,
+        currency,
+        paymentLinkId: paymentEntity.payment_link_id || orderEntity.payment_link_id || notes.payment_link_id,
+        description: paymentEntity.description,
+        notes,
+      });
+      const matchedPlanId = matchedProduct.internalProductId;
 
       // 5. Check and confirm payment status is 'captured'
       const isCaptured =

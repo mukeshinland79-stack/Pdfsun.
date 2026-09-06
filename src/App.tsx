@@ -54,6 +54,7 @@ import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager
 import { calculateAdPlacements } from "./utils/adSenseHelper";
 import { trackGAPricingView, trackGAPaymentSuccess } from "./utils/analytics";
 import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
+import { resolvePaymentProduct } from "./config/paymentProducts";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
@@ -611,11 +612,40 @@ export default function App() {
 
       if (isPaymentPath || isPaymentQuery) {
         paymentHandledRef.current = true;
-        const plan = params.get("plan") || "Pro Sun Monthly";
-        handleInstantProUnlock(plan);
+        const rawPlan =
+          params.get("plan") ||
+          params.get("planId") ||
+          params.get("plan_id") ||
+          localStorage.getItem("pdfsun_last_checkout_plan") ||
+          sessionStorage.getItem("pdfsun_last_checkout_plan") ||
+          "";
+
+        const rawAmount =
+          params.get("amount") ||
+          params.get("amountINR") ||
+          localStorage.getItem("pdfsun_last_checkout_amount") ||
+          sessionStorage.getItem("pdfsun_last_checkout_amount") ||
+          "";
+
+        const rawPaymentLinkId =
+          params.get("payment_link_id") ||
+          params.get("plink_id") ||
+          "";
+
+        const paymentId =
+          params.get("razorpay_payment_id") ||
+          params.get("payment_id") ||
+          `pay_rzp_${Date.now()}`;
+
+        const resolvedProduct = resolvePaymentProduct({
+          planId: rawPlan,
+          amountINR: rawAmount ? Number(rawAmount.replace(/[^0-9.]/g, "")) : undefined,
+          paymentLinkId: rawPaymentLinkId,
+        });
+
+        handleInstantProUnlock(resolvedProduct.productName);
         setPaymentSuccessModalOpen(true);
-        const paymentId = params.get("razorpay_payment_id") || params.get("payment_id") || "tx_verified";
-        trackGAPaymentSuccess("pro_lifetime", paymentId, 499, "INR");
+        trackGAPaymentSuccess(resolvedProduct.internalProductId, paymentId, resolvedProduct.displayPriceINR, "INR");
 
         // Clean query parameters & pathname from URL to prevent infinite refresh loops
         try {

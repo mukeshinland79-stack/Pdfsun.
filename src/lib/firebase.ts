@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 import firebaseConfigData from "../../firebase-applet-config.json";
+import { resolvePaymentProduct } from "../config/paymentProducts";
 
 export const firebaseConfig = {
   apiKey: firebaseConfigData.apiKey || "AIzaSyAeO3-CIUwMOPKeJEpqSpAmj8jIh9jiUw4",
@@ -317,6 +318,14 @@ export async function fetchUserTransactionsFromFirestore(
       const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
 
       if (matchesUid || matchesEmail || matchesFallback) {
+        const rawAmount = typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100));
+        const rawAmountPaise = data.amountPaise || (rawAmount ? rawAmount * 100 : 0);
+        const resolvedProd = resolvePaymentProduct({
+          planId: data.planId,
+          amountINR: rawAmount,
+          amountPaise: rawAmountPaise,
+        });
+
         results.push({
           id: docSnap.id,
           paymentId: data.paymentId || docSnap.id,
@@ -325,14 +334,14 @@ export async function fetchUserTransactionsFromFirestore(
           userId: docUid || uid,
           uid: docUid || uid,
           userEmail: docEmail || email,
-          amount: typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100)),
-          amountINR: typeof data.amountINR === "number" ? data.amountINR : (typeof data.amount === "number" ? data.amount : ((data.amountPaise || 0) / 100)),
-          amountPaise: data.amountPaise || (data.amountINR ? data.amountINR * 100 : 0),
+          amount: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+          amountINR: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+          amountPaise: rawAmountPaise > 0 ? rawAmountPaise : resolvedProd.displayPriceINR * 100,
           currency: data.currency || "INR",
           status: (data.status || "COMPLETED").toString(),
-          planId: data.planId || "pro-monthly",
-          planName: data.planName || data.plan || "Pro Monthly",
-          plan: data.plan || data.planName || "Pro Monthly",
+          planId: resolvedProd.internalProductId,
+          planName: resolvedProd.productName,
+          plan: resolvedProd.productName,
           entitlementGranted: data.entitlementGranted || "",
           signatureVerified: Boolean(data.signatureVerified),
           source: data.source || "razorpay",
@@ -386,6 +395,14 @@ export function subscribeUserTransactionsFromFirestore(
         const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
 
         if (matchesUid || matchesEmail || matchesFallback) {
+          const rawAmount = typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100));
+          const rawAmountPaise = data.amountPaise || (rawAmount ? rawAmount * 100 : 0);
+          const resolvedProd = resolvePaymentProduct({
+            planId: data.planId,
+            amountINR: rawAmount,
+            amountPaise: rawAmountPaise,
+          });
+
           results.push({
             id: docSnap.id,
             paymentId: data.paymentId || docSnap.id,
@@ -394,14 +411,14 @@ export function subscribeUserTransactionsFromFirestore(
             userId: docUid || uid,
             uid: docUid || uid,
             userEmail: docEmail || email,
-            amount: typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100)),
-            amountINR: typeof data.amountINR === "number" ? data.amountINR : (typeof data.amount === "number" ? data.amount : ((data.amountPaise || 0) / 100)),
-            amountPaise: data.amountPaise || (data.amountINR ? data.amountINR * 100 : 0),
+            amount: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+            amountINR: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+            amountPaise: rawAmountPaise > 0 ? rawAmountPaise : resolvedProd.displayPriceINR * 100,
             currency: data.currency || "INR",
             status: (data.status || "COMPLETED").toString(),
-            planId: data.planId || "pro-monthly",
-            planName: data.planName || data.plan || "Pro Monthly",
-            plan: data.plan || data.planName || "Pro Monthly",
+            planId: resolvedProd.internalProductId,
+            planName: resolvedProd.productName,
+            plan: resolvedProd.productName,
             entitlementGranted: data.entitlementGranted || "",
             signatureVerified: Boolean(data.signatureVerified),
             source: data.source || "razorpay",
