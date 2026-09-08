@@ -36,6 +36,7 @@ import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
+import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
@@ -966,10 +967,10 @@ export default function App() {
           onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
         />
 
-        {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
-        {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
-          <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
-        )}
+        {/* Section Replacement: Responsive, SEO-optimized, and AdSense-compliant Article Content Section */}
+        <PdfSunArticleSection
+          showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
+        />
 
         {/* Supported File Formats */}
         <SupportedFormats />
