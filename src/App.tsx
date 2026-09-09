@@ -1290,8 +1290,8 @@ export default function App() {
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
 
-      {/* Real-Time WebAssembly Heap & Leak Telemetry Overlay */}
-      <WasmPerformanceOverlay />
+      {/* Real-Time WebAssembly Heap & Leak Telemetry Overlay (Restricted to Authorized Admins/Owners only) */}
+      {canAccessAdmin && <WasmPerformanceOverlay />}
     </div>
   );
 }

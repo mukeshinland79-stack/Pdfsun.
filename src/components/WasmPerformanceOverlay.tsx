@@ -228,19 +228,7 @@ export const WasmPerformanceOverlay: React.FC<WasmPerformanceOverlayProps> = ({
   }, [history]);
 
   if (!isVisible) {
-    // Discreet floating trigger button when overlay is hidden
-    return (
-      <button
-        id="wasm-telemetry-trigger-btn"
-        onClick={toggleVisibility}
-        title="Open WASM Performance Overlay (Ctrl+Shift+W)"
-        className="fixed bottom-4 left-4 z-40 flex items-center space-x-2 px-2.5 py-1.5 rounded-full bg-slate-900/90 text-slate-300 border border-slate-700/80 shadow-lg backdrop-blur-md hover:bg-slate-800 hover:text-white hover:border-cyan-500/50 transition-all text-xs font-mono group"
-      >
-        <div className={`w-2 h-2 rounded-full ${statusConfig.dot}`} />
-        <Cpu className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-        <span className="font-semibold text-[11px] text-slate-200">WASM Telemetry</span>
-      </button>
-    );
+    return null;
   }
 
   // MINIMIZED MODE: Compact floating telemetry pill

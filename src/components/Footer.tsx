@@ -326,19 +326,6 @@ export const Footer: React.FC<FooterProps> = ({
                   {t("footer.faqsSecurity", "FAQs & Security")}
                 </a>
               </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent("open-wasm-overlay"));
-                  }}
-                  className="hover:text-cyan-400 transition-colors cursor-pointer text-left flex items-center gap-1.5 text-cyan-400/90 font-mono text-[11px]"
-                  title="Open Real-time WebAssembly Heap & Leak Telemetry (Ctrl+Shift+W)"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  WASM Telemetry HUD
-                </button>
-              </li>
             </ul>
           </div>
 
