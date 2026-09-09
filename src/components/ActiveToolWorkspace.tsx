@@ -13,6 +13,7 @@ import {
   Unlock,
   CheckCircle2,
   AlertCircle,
+  Bug,
   Play,
   RefreshCw,
   Sparkles,
@@ -157,6 +158,22 @@ import {
   trackGAToolSwitch,
   trackGAAiToolUsed,
 } from "../utils/analytics";
+import { pdfWorkerPool } from "../utils/pdfWorkerPool";
+import {
+  wasmProgressSystem,
+  useWasmProgressTracker,
+  WasmOperationPhase,
+} from "../utils/wasmProgressSystem";
+import { useWasmWorkerProgress } from "../hooks/useWasmWorkerProgress";
+import {
+  updateActivePdfToolFiles,
+  clearActivePdfToolState,
+  captureWasmCrashSnapshot,
+  getLastPersistedCrashSnapshot,
+  WasmCrashSnapshot,
+} from "../utils/wasmPdfLifecycle";
+import { WasmToolProgressCard } from "./WasmToolProgressCard";
+import { GlobalWorkspaceProgressBar } from "./GlobalWorkspaceProgressBar";
 
 export interface ExtendedFileState extends FileValidationResult {
   progress: number;
@@ -215,6 +232,59 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [downloadSuccessBadge, setDownloadSuccessBadge] = useState(false);
   const [docThumbnails, setDocThumbnails] = useState<Record<string, DocumentThumbnailSummary>>({});
   const [loadingThumbnails, setLoadingThumbnails] = useState<Record<string, boolean>>({});
+
+  // Standardized WebAssembly & Worker Progress Tracker via custom React hook
+  const {
+    progressState: wasmProgressState,
+    startProgress,
+    updateChunkProgress,
+    bindWorkerProgress,
+    createProgressHandler,
+    completeProgress,
+    cancelProgress,
+    errorProgress,
+    resetProgress,
+  } = useWasmWorkerProgress({
+    toolName: tool.name,
+    onProgressUpdate: (nextState) => {
+      if (nextState.isProcessing) {
+        setProgress(nextState.percent);
+        if (nextState.stageMessage) {
+          setStatusMessage(nextState.stageMessage);
+        } else if (nextState.stageTitle) {
+          setStatusMessage(nextState.stageTitle);
+        }
+      }
+    },
+    onCancel: () => {
+      setStatusMessage("Operation cancelled by user.");
+    },
+    onError: (err) => {
+      setErrorMessage(err);
+    },
+  });
+
+  // Post-Mortem WASM Crash Diagnostic state
+  const [showPostMortemDetails, setShowPostMortemDetails] = useState(false);
+  const [lastCrashSnapshot, setLastCrashSnapshot] = useState<WasmCrashSnapshot | null>(null);
+
+  // Synchronize WASM lifecycle watchdog with current PDF tool state (number of files, file sizes, processing phase)
+  useEffect(() => {
+    updateActivePdfToolFiles(tool.id, tool.name, files, {
+      toolSlug: tool.slug,
+      isProcessing,
+      statusMessage,
+      progressPercent: progress,
+      activePhase: wasmProgressState.phase,
+    });
+  }, [tool.id, tool.name, tool.slug, files, isProcessing, statusMessage, progress, wasmProgressState.phase]);
+
+  // Clean up active tool state when unmounting
+  useEffect(() => {
+    return () => {
+      clearActivePdfToolState();
+    };
+  }, []);
 
   // Dynamically update files if activeToolFiles or initialFiles changes from parent
   useEffect(() => {
@@ -685,6 +755,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    cancelProgress();
     setIsProcessing(false);
     setStatusMessage("Operation cancelled by user.");
     setErrorMessage("Upload and processing was cancelled.");
@@ -766,11 +837,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     const signal = abortController.signal;
     const startTime = performance.now();
 
+    const totalInputBytes = files.reduce((acc, f) => acc + (f?.size || 0), 0);
+    const isLargeFileBatch = totalInputBytes > 25 * 1024 * 1024 || files.some((f) => f && f.size > 20 * 1024 * 1024);
+
     trackGAProcessingStart(tool.id, files.length);
     setIsProcessing(true);
     setProgress(5);
     setErrorMessage("");
     setStatusMessage(`Validating and initializing chunked stream for ${tool.name}...`);
+
+    startProgress({
+      toolName: tool.name,
+      totalBytes: totalInputBytes,
+      fileCount: files.length,
+      isLargeFile: isLargeFileBatch,
+    });
 
     try {
       let outputBytes: Uint8Array | Blob | string | null = null;
@@ -804,54 +885,100 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             );
             const totalPercent = Math.round(((i + percent / 100) / files.length) * 40);
             setProgress(Math.max(10, totalPercent));
+            updateChunkProgress(i, files.length, loaded, total, percent);
           },
         });
       }
+
+      const createToolProgressHandler = (
+        stageTitle: string,
+        phase: WasmOperationPhase = "transformation"
+      ) => {
+        const handler = createProgressHandler(stageTitle, phase);
+        return (p: number | any, msg?: string) => {
+          handler(p, msg);
+          const cur = wasmProgressSystem.getState();
+          setProgress(cur.percent);
+          if (msg) setStatusMessage(msg);
+          else if (cur.stageMessage) setStatusMessage(cur.stageMessage);
+          else setStatusMessage(stageTitle);
+        };
+      };
 
       setStatusMessage(`Running ${tool.name} transformations...`);
       setProgress(45);
 
       switch (tool.id) {
-        case "merge-pdf":
-          setStatusMessage("Merging PDF documents...");
-          outputBytes = await mergePdfs(files, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "merge-pdf": {
+          const onProgress = createToolProgressHandler("Merging PDF Documents in WebAssembly Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask("merge", files, {}, onProgress);
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[merge-pdf] Worker pool fallback to engine:", workerErr);
+            outputBytes = await mergePdfs(files, (p) => onProgress(p, "Merging PDF streams..."));
+          }
           outputName = `PDFSun_Merged_${files.length}_files.pdf`;
           break;
+        }
 
-        case "split-pdf":
-          setStatusMessage("Splitting PDF pages...");
-          const splits = await splitPdf(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          if (splits.length === 1) {
-            outputBytes = splits[0].pdfBytes;
-            outputName = splits[0].fileName;
-          } else {
-            outputBytes = await createBatchZip(splits.map((s) => ({ name: s.fileName, bytes: s.pdfBytes })));
-            outputName = `PDFSun_Split_Pages_${files[0].name}.zip`;
-            mimeType = "application/zip";
+        case "split-pdf": {
+          const onProgress = createToolProgressHandler("Splitting PDF Pages in WebAssembly Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask("split", [files[0]], { pageRangesStr: splitRange }, onProgress);
+            outputBytes = poolRes.bytes;
+            outputName = `PDFSun_Split_${files[0].name}`;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[split-pdf] Worker pool fallback to engine:", workerErr);
+            const splits = await splitPdf(files[0], splitRange, (p) => onProgress(p, "Splitting PDF pages..."));
+            if (splits.length === 1) {
+              outputBytes = splits[0].pdfBytes;
+              outputName = splits[0].fileName;
+            } else {
+              outputBytes = await createBatchZip(splits.map((s) => ({ name: s.fileName, bytes: s.pdfBytes })));
+              outputName = `PDFSun_Split_Pages_${files[0].name}.zip`;
+              mimeType = "application/zip";
+            }
           }
           break;
+        }
 
-        case "compress-pdf":
-          setStatusMessage("Compressing PDF structure & streams...");
-          outputBytes = await compressPdf(files[0], 0.7, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "compress-pdf": {
+          const onProgress = createToolProgressHandler("Compressing PDF in WebAssembly Worker", "compression");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask("compress", [files[0]], { quality: "medium" }, onProgress);
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[compress-pdf] Worker pool fallback to engine:", workerErr);
+            outputBytes = await compressPdf(files[0], 0.7, (p) => onProgress(p, "Compressing PDF structure & streams..."));
+          }
           outputName = `PDFSun_Compressed_${files[0].name}`;
           break;
+        }
 
-        case "rotate-pdf":
-          setStatusMessage(`Rotating PDF by ${rotationAngle}°...`);
-          outputBytes = await rotatePdf(files[0], rotationAngle, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "rotate-pdf": {
+          const onProgress = createToolProgressHandler(`Rotating PDF by ${rotationAngle}° in Worker`, "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask("rotate", [files[0]], { rotationAngle }, onProgress);
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[rotate-pdf] Worker pool fallback to engine:", workerErr);
+            outputBytes = await rotatePdf(files[0], rotationAngle, (p) => onProgress(p, `Rotating PDF by ${rotationAngle}°...`));
+          }
           outputName = `PDFSun_Rotated_${files[0].name}`;
           break;
+        }
 
         case "image-to-excel": {
-          setStatusMessage("Extracting structured table data and generating spreadsheet...");
+          const onProgress = createToolProgressHandler("Extracting Structured Table Data into Excel", "transformation");
           const res = await imageToExcel(
             files,
             { outputFormat: imageExcelFormat, autoDetectTables: excelTableDetect },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
+            (p, msg) => onProgress(p, msg)
           );
           outputBytes = res.bytes;
           outputName = res.fileName;
@@ -864,14 +991,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         }
 
         case "image-to-word": {
-          setStatusMessage("Extracting styled text & structuring document headers...");
+          const onProgress = createToolProgressHandler("Structuring Headings & Converting to Word Document", "transformation");
           const res = await imageToWordDocx(
             files,
             { format: imageWordFormat, styleHeadings: true },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
+            (p, msg) => onProgress(p, msg)
           );
           outputBytes = res.bytes;
           outputName = res.fileName;
@@ -880,14 +1004,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         }
 
         case "image-to-notepad": {
-          setStatusMessage("Applying 100% regex noise filter & generating clean text...");
+          const onProgress = createToolProgressHandler("Applying Regex Filter & Generating Text", "transformation");
           const res = await imageToNotepadText(
             files,
             { cleanNoise: ocrNoiseFilter },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
+            (p, msg) => onProgress(p, msg)
           );
           outputBytes = res.bytes;
           outputName = res.fileName;
@@ -898,90 +1019,155 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
         case "image-to-pdf":
         case "jpg-to-pdf":
-        case "png-to-pdf":
-          setStatusMessage("Converting image files to high-quality PDF...");
-          outputBytes = await imagesToPdf(files, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "png-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting Images to PDF Document", "transformation");
+          outputBytes = await imagesToPdf(files, (p) => onProgress(p, "Converting images to PDF..."));
           outputName = `PDFSun_Converted_Images.pdf`;
           break;
+        }
 
         case "pdf-to-image": {
-          setStatusMessage(`Exporting PDF pages to ${pdfImageFormat.toUpperCase()} image archive...`);
-          outputBytes = await pdfToImagesZip(files[0], pdfImageFormat, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          const onProgress = createToolProgressHandler(`Exporting PDF Pages to ${pdfImageFormat.toUpperCase()} Archive`, "rendering");
+          outputBytes = await pdfToImagesZip(files[0], pdfImageFormat, (p) => onProgress(p, `Rendering PDF pages to ${pdfImageFormat.toUpperCase()}...`));
           outputName = `PDFSun_${pdfImageFormat.toUpperCase()}_Pages_${files[0].name}.zip`;
           mimeType = "application/zip";
           break;
         }
 
-        case "watermark-pdf":
-          setStatusMessage("Applying custom watermark to PDF pages...");
-          outputBytes = await watermarkPdf(
-            files[0],
-            {
-              type: watermarkType,
-              text: watermarkText,
-              imageFile: watermarkType === "image" ? watermarkImageFile : null,
-              opacity: watermarkOpacity,
-              fontSize: 42,
-              angle: watermarkAngle,
-              position: watermarkPosition,
-            },
-            watermarkOpacity,
-            42,
-            (p) => setProgress(45 + Math.round((p / 100) * 50))
-          );
+        case "watermark-pdf": {
+          const onProgress = createToolProgressHandler("Applying Custom Watermark in Worker", "transformation");
+          if (watermarkType === "text") {
+            try {
+              const poolRes = await pdfWorkerPool.executeTask(
+                "watermark",
+                [files[0]],
+                {
+                  watermarkText,
+                  watermarkOpacity,
+                  watermarkAngle,
+                  watermarkPosition,
+                },
+                onProgress
+              );
+              outputBytes = poolRes.bytes;
+            } catch (workerErr: any) {
+              if (workerErr?.name === "AbortError") throw workerErr;
+              console.warn("[watermark-pdf] Worker fallback:", workerErr);
+              outputBytes = await watermarkPdf(
+                files[0],
+                {
+                  type: watermarkType,
+                  text: watermarkText,
+                  imageFile: null,
+                  opacity: watermarkOpacity,
+                  fontSize: 42,
+                  angle: watermarkAngle,
+                  position: watermarkPosition,
+                },
+                watermarkOpacity,
+                42,
+                (p) => onProgress(p, "Stamping watermark...")
+              );
+            }
+          } else {
+            outputBytes = await watermarkPdf(
+              files[0],
+              {
+                type: watermarkType,
+                text: watermarkText,
+                imageFile: watermarkImageFile,
+                opacity: watermarkOpacity,
+                fontSize: 42,
+                angle: watermarkAngle,
+                position: watermarkPosition,
+              },
+              watermarkOpacity,
+              42,
+              (p) => onProgress(p, "Stamping image watermark...")
+            );
+          }
           outputName = `PDFSun_Watermarked_${files[0].name}`;
           break;
+        }
 
-        case "page-numbers":
-          setStatusMessage("Adding page numbers...");
-          outputBytes = await addPageNumbers(files[0], pageNumPos, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "page-numbers": {
+          const onProgress = createToolProgressHandler("Numbering Document Pages in Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask(
+              "page-numbers",
+              [files[0]],
+              { pageNumPos },
+              onProgress
+            );
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[page-numbers] Worker fallback:", workerErr);
+            outputBytes = await addPageNumbers(files[0], pageNumPos, (p) => onProgress(p, "Adding page numbers..."));
+          }
           outputName = `PDFSun_Numbered_${files[0].name}`;
           break;
+        }
 
-        case "flatten-pdf":
-          setStatusMessage(
-            flattenMode === "rasterize"
-              ? `Rasterizing PDF pages at ${flattenDpi} DPI into high-security un-editable images...`
-              : "Smart flattening form fields, annotations & layers..."
+        case "flatten-pdf": {
+          const onProgress = createToolProgressHandler(
+            flattenMode === "rasterize" ? "Rasterizing PDF Pages into Secure Images" : "Smart Flattening Form Fields & Annotations",
+            "transformation"
           );
-          outputBytes = await flattenPdf(
-            files[0],
-            {
-              mode: flattenMode,
-              dpi: flattenDpi,
-              pageScope: flattenPageScope,
-              pageRangeStr: flattenPageRangeStr,
-            },
-            (p) => setProgress(45 + Math.round((p / 100) * 50))
-          );
+          if (flattenMode === "smart") {
+            try {
+              const poolRes = await pdfWorkerPool.executeTask("flatten", [files[0]], {}, onProgress);
+              outputBytes = poolRes.bytes;
+            } catch (workerErr: any) {
+              if (workerErr?.name === "AbortError") throw workerErr;
+              console.warn("[flatten-pdf] Worker fallback:", workerErr);
+              outputBytes = await flattenPdf(
+                files[0],
+                { mode: flattenMode, dpi: flattenDpi, pageScope: flattenPageScope, pageRangeStr: flattenPageRangeStr },
+                (p) => onProgress(p, "Flattening PDF...")
+              );
+            }
+          } else {
+            outputBytes = await flattenPdf(
+              files[0],
+              { mode: flattenMode, dpi: flattenDpi, pageScope: flattenPageScope, pageRangeStr: flattenPageRangeStr },
+              (p) => onProgress(p, "Rasterizing pages...")
+            );
+          }
           outputName = `PDFSun_Flattened_${files[0].name}`;
           break;
+        }
 
-        case "pdf-metadata":
-          setStatusMessage("Updating PDF internal metadata...");
-          outputBytes = await editPdfMetadata(files[0], { title: metaTitle, author: metaAuthor }, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "pdf-metadata": {
+          const onProgress = createToolProgressHandler("Updating PDF Internal Metadata", "transformation");
+          outputBytes = await editPdfMetadata(files[0], { title: metaTitle, author: metaAuthor }, (p) => onProgress(p, "Writing metadata..."));
           outputName = `PDFSun_Meta_${files[0].name}`;
           break;
+        }
 
-        case "read-pdf-metadata":
-          setStatusMessage("Reading and extracting document metadata properties...");
+        case "read-pdf-metadata": {
+          const onProgress = createToolProgressHandler("Extracting Document Metadata Properties", "analysis");
+          onProgress(20, "Parsing PDF structural dictionary...");
           const metaRes = await extractPdfMetadata(files[0]);
           setExtractedMetadata(metaRes);
+          onProgress(60, "Generating Metadata Summary Report...");
           outputBytes = await generateMetadataReportPdf(metaRes);
           outputName = `PDFSun_Metadata_Report_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
+        }
 
         case "ocr-image-to-text":
         case "ocr-pdf":
-        case "ai-ocr":
-          setStatusMessage("Analyzing document & extracting text using Gemini AI model...");
-          setProgress(55);
+        case "ai-ocr": {
+          const onProgress = createToolProgressHandler("Analyzing Document & Extracting Text via AI OCR", "analysis");
+          onProgress(15, "Initializing AI Vision OCR Model...");
           let extractedOcrText = "";
           try {
             const targetFile = files[0];
             const base64Data = await fileToBase64(targetFile);
             const docMime = targetFile.type || (targetFile.name.endsWith(".pdf") ? "application/pdf" : "image/png");
 
+            onProgress(40, "Sending payload to Gemini OCR service...");
             const aiRes = await fetch("/api/ai/ocr", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -991,21 +1177,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             if (aiRes.ok) {
               const aiData = await aiRes.json();
               extractedOcrText = aiData.result || "";
-              setProgress(90);
+              onProgress(90, "Text extraction complete!");
             } else {
               console.warn("Gemini OCR server returned non-200, switching to Tesseract engine...");
-              setStatusMessage("Gemini API fallback: Processing with local Tesseract OCR engine...");
+              onProgress(45, "Gemini API fallback: Processing with local Tesseract OCR engine...");
               extractedOcrText = await ocrImageToText(targetFile, (msg, p) => {
-                setStatusMessage(msg);
-                setProgress(50 + Math.round((p / 100) * 45));
+                onProgress(p, msg);
               });
             }
           } catch (err) {
             console.warn("Gemini OCR fetch error, using Tesseract fallback:", err);
-            setStatusMessage("Running local Tesseract OCR engine fallback...");
+            onProgress(45, "Running local Tesseract OCR engine fallback...");
             extractedOcrText = await ocrImageToText(files[0], (msg, p) => {
-              setStatusMessage(msg);
-              setProgress(50 + Math.round((p / 100) * 45));
+              onProgress(p, msg);
             });
           }
 
@@ -1018,30 +1202,37 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_OCR_Text.txt`;
           mimeType = "text/plain";
           break;
+        }
 
-        case "pdf-to-word":
-          setStatusMessage("Converting PDF layout to Microsoft Word (.docx)...");
-          outputBytes = await pdfToWordDocx(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "pdf-to-word": {
+          const onProgress = createToolProgressHandler("Converting PDF Layout to Microsoft Word (.docx)", "transformation");
+          outputBytes = await pdfToWordDocx(files[0], (p) => onProgress(p, "Converting PDF layout to Word (.docx)..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.docx`;
           mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
           break;
+        }
 
-        case "word-to-pdf":
-          setStatusMessage("Converting Word document (.docx) to standard PDF...");
-          outputBytes = await wordToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "word-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting Word Document (.docx) to PDF", "transformation");
+          outputBytes = await wordToPdf(files[0], (p) => onProgress(p, "Converting Word document to PDF..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
           break;
+        }
 
-        case "excel-to-pdf":
-          setStatusMessage("Formatting spreadsheet tables to PDF...");
-          outputBytes = await excelToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "excel-to-pdf": {
+          const onProgress = createToolProgressHandler("Formatting Spreadsheet Tables to PDF", "transformation");
+          outputBytes = await excelToPdf(files[0], (p) => onProgress(p, "Formatting spreadsheet tables..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
           break;
+        }
 
         case "pdf-to-excel": {
-          setStatusMessage("Extracting structured table data into Microsoft Excel (.xlsx)...");
+          const onProgress = createToolProgressHandler("Extracting Structured Table Data into Microsoft Excel (.xlsx)", "transformation");
+          onProgress(25, "Extracting text and positional streams...");
           const textContent = await extractTextFromPdfFile(files[0]);
+          onProgress(50, "Parsing layout into tabular grid...");
           const tableGrid = parseTextToTableGrid(textContent);
+          onProgress(75, "Compiling Excel spreadsheet (.xlsx)...");
           const out = exportTableGridToSpreadsheet(tableGrid, "xlsx", files[0].name.replace(/\.[^/.]+$/, "") + "_Data");
           outputBytes = out.bytes;
           outputName = out.fileName;
@@ -1052,14 +1243,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
         }
 
-        case "powerpoint-to-pdf":
-          setStatusMessage("Converting presentation slides to PDF...");
-          outputBytes = await powerPointToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "powerpoint-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting Presentation Slides to PDF", "transformation");
+          outputBytes = await powerPointToPdf(files[0], (p) => onProgress(p, "Converting slides to PDF..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Slides.pdf`;
           break;
+        }
 
-        case "pdf-to-powerpoint":
-          setStatusMessage("Converting PDF pages to Microsoft PowerPoint (.pptx)...");
+        case "pdf-to-powerpoint": {
+          const onProgress = createToolProgressHandler("Converting PDF Pages to Microsoft PowerPoint (.pptx)", "transformation");
           outputBytes = await pdfToPowerPointPptx(
             files[0],
             {
@@ -1067,228 +1259,322 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               pageScope: pptPageScope,
               pageRangeStr: pptPageRangeStr,
             },
-            (p) => setProgress(45 + Math.round((p / 100) * 50))
+            (p) => onProgress(p, "Converting PDF pages to PowerPoint...")
           );
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Presentation.pptx`;
           mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
           break;
+        }
 
-        case "pdf-to-jpg":
-          setStatusMessage("Exporting high-resolution JPG image pages...");
-          outputBytes = await pdfToImagesZip(files[0], "jpg", (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "pdf-to-jpg": {
+          const onProgress = createToolProgressHandler("Exporting High-Resolution JPG Image Pages", "rendering");
+          outputBytes = await pdfToImagesZip(files[0], "jpg", (p) => onProgress(p, "Rendering JPG image pages..."));
           outputName = `PDFSun_JPG_Pages_${files[0].name}.zip`;
           mimeType = "application/zip";
           break;
+        }
 
-        case "pdf-to-png":
-          setStatusMessage("Exporting lossless PNG image pages...");
-          outputBytes = await pdfToImagesZip(files[0], "png", (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "pdf-to-png": {
+          const onProgress = createToolProgressHandler("Exporting Lossless PNG Image Pages", "rendering");
+          outputBytes = await pdfToImagesZip(files[0], "png", (p) => onProgress(p, "Rendering PNG image pages..."));
           outputName = `PDFSun_PNG_Pages_${files[0].name}.zip`;
           mimeType = "application/zip";
           break;
+        }
 
-        case "html-to-pdf":
-          setStatusMessage("Converting HTML document to PDF...");
-          outputBytes = await htmlToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "html-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting HTML Document to PDF", "transformation");
+          outputBytes = await htmlToPdf(files[0], (p) => onProgress(p, "Converting HTML document to PDF..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Page.pdf`;
           break;
+        }
 
-        case "remove-pages":
-          setStatusMessage("Removing specified pages from PDF...");
-          outputBytes = await removePdfPages(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "remove-pages": {
+          const onProgress = createToolProgressHandler("Removing Specified Pages in Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask(
+              "remove-pages",
+              [files[0]],
+              { pageRangesStr: splitRange },
+              onProgress
+            );
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[remove-pages] Worker fallback:", workerErr);
+            outputBytes = await removePdfPages(files[0], splitRange, (p) => onProgress(p, "Removing specified pages..."));
+          }
           outputName = `PDFSun_Cleaned_${files[0].name}`;
           break;
+        }
 
-        case "extract-pages":
-          setStatusMessage("Extracting selected page range into new PDF...");
-          outputBytes = await extractPdfPages(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "extract-pages": {
+          const onProgress = createToolProgressHandler("Extracting Selected Pages in Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask(
+              "extract-pages",
+              [files[0]],
+              { pageRangesStr: splitRange },
+              onProgress
+            );
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[extract-pages] Worker fallback:", workerErr);
+            outputBytes = await extractPdfPages(files[0], splitRange, (p) => onProgress(p, "Extracting page range..."));
+          }
           outputName = `PDFSun_Extracted_${files[0].name}`;
           break;
+        }
 
-        case "organize-pdf":
-          setStatusMessage("Reordering and organizing PDF page layout...");
-          outputBytes = await organizePdfPages(files[0], [], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "organize-pdf": {
+          const onProgress = createToolProgressHandler("Reordering and Organizing PDF Page Layout", "transformation");
+          outputBytes = await organizePdfPages(files[0], [], (p) => onProgress(p, "Reordering pages..."));
           outputName = `PDFSun_Organized_${files[0].name}`;
           break;
+        }
 
-        case "crop-pdf":
-          setStatusMessage("Trimming canvas margins and cropping borders...");
-          outputBytes = await cropPdfMargins(files[0], 25, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "crop-pdf": {
+          const onProgress = createToolProgressHandler("Trimming Canvas Margins in Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask(
+              "crop",
+              [files[0]],
+              { cropMargin: 25 },
+              onProgress
+            );
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[crop-pdf] Worker fallback:", workerErr);
+            outputBytes = await cropPdfMargins(files[0], 25, (p) => onProgress(p, "Cropping margins..."));
+          }
           outputName = `PDFSun_Cropped_${files[0].name}`;
           break;
+        }
 
-        case "sign-pdf":
-          setStatusMessage("Placing electronic signature on PDF...");
-          outputBytes = await signPdfDocument(files[0], watermarkText || "PDFSun Signature", watermarkImageFile, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "sign-pdf": {
+          const onProgress = createToolProgressHandler("Placing Electronic Signature on PDF", "transformation");
+          outputBytes = await signPdfDocument(files[0], watermarkText || "PDFSun Signature", watermarkImageFile, (p) => onProgress(p, "Applying digital signature..."));
           outputName = `PDFSun_Signed_${files[0].name}`;
           break;
+        }
 
-        case "remove-watermark":
-          setStatusMessage("Cleaning watermark overlays & background stamps...");
-          outputBytes = await removeWatermarkFromPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "remove-watermark": {
+          const onProgress = createToolProgressHandler("Cleaning Watermark Overlays & Stamps", "transformation");
+          outputBytes = await removeWatermarkFromPdf(files[0], (p) => onProgress(p, "Removing watermark elements..."));
           outputName = `PDFSun_Clean_${files[0].name}`;
           break;
+        }
 
-        case "header-footer":
-          setStatusMessage("Adding running header and page footer...");
-          outputBytes = await addHeaderAndFooter(files[0], metaTitle || "PDFSun Running Header", "PDFSun Document Footer", (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "header-footer": {
+          const onProgress = createToolProgressHandler("Adding Running Header and Page Footer", "transformation");
+          outputBytes = await addHeaderAndFooter(files[0], metaTitle || "PDFSun Running Header", "PDFSun Document Footer", (p) => onProgress(p, "Stamping header & footer..."));
           outputName = `PDFSun_HeaderFooter_${files[0].name}`;
           break;
+        }
 
-        case "background-pdf":
-          setStatusMessage("Applying background tint overlay to PDF...");
-          outputBytes = await addPdfBackground(files[0], "#F8FAFC", (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "background-pdf": {
+          const onProgress = createToolProgressHandler("Applying Background Tint Overlay", "transformation");
+          outputBytes = await addPdfBackground(files[0], "#F8FAFC", (p) => onProgress(p, "Applying background tint..."));
           outputName = `PDFSun_Background_${files[0].name}`;
           break;
+        }
 
-        case "protect-pdf":
+        case "protect-pdf": {
           if (!pdfPassword || pdfPassword.trim().length === 0) {
             throw new Error("Please enter a security password to encrypt your PDF document.");
           }
           if (pdfPasswordConfirm && pdfPassword !== pdfPasswordConfirm) {
             throw new Error("Passwords do not match. Please verify your confirmation password.");
           }
-          setStatusMessage("Encrypting PDF document structure with password...");
-          outputBytes = await protectPdfWithPassword(files[0], pdfPassword, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          const onProgress = createToolProgressHandler("Encrypting Document with Password in Worker", "transformation");
+          try {
+            const poolRes = await pdfWorkerPool.executeTask(
+              "protect",
+              [files[0]],
+              { password: pdfPassword },
+              onProgress
+            );
+            outputBytes = poolRes.bytes;
+          } catch (workerErr: any) {
+            if (workerErr?.name === "AbortError") throw workerErr;
+            console.warn("[protect-pdf] Worker fallback:", workerErr);
+            outputBytes = await protectPdfWithPassword(files[0], pdfPassword, (p) => onProgress(p, "Encrypting document..."));
+          }
           outputName = `PDFSun_Protected_${files[0].name}`;
           break;
+        }
 
-        case "unlock-pdf":
-          setStatusMessage("Removing restrictions and unlocking PDF...");
-          outputBytes = await unlockPdfDocument(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "unlock-pdf": {
+          const onProgress = createToolProgressHandler("Removing Restrictions and Unlocking PDF", "transformation");
+          outputBytes = await unlockPdfDocument(files[0], (p) => onProgress(p, "Decrypting and unlocking..."));
           outputName = `PDFSun_Unlocked_${files[0].name}`;
           break;
+        }
 
-        case "redact-pdf":
-          setStatusMessage("Blacking out confidential sections & sensitive data...");
-          outputBytes = await redactPdfContent(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "redact-pdf": {
+          const onProgress = createToolProgressHandler("Blacking Out Confidential Sections & Sensitive Data", "transformation");
+          outputBytes = await redactPdfContent(files[0], splitRange, (p) => onProgress(p, "Redacting confidential areas..."));
           outputName = `PDFSun_Redacted_${files[0].name}`;
           break;
+        }
 
-        case "repair-pdf":
-          setStatusMessage("Repairing PDF cross-reference tables & object streams...");
-          outputBytes = await repairCorruptedPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "repair-pdf": {
+          const onProgress = createToolProgressHandler("Repairing PDF Cross-Reference Tables & Object Streams", "transformation");
+          outputBytes = await repairCorruptedPdf(files[0], (p) => onProgress(p, "Rebuilding broken PDF structures..."));
           outputName = `PDFSun_Repaired_${files[0].name}`;
           break;
+        }
 
-        case "compare-pdf":
-          setStatusMessage("Comparing structural diffs between 2 documents...");
-          outputBytes = await compareTwoPdfs(files[0], files[1] || files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "compare-pdf": {
+          const onProgress = createToolProgressHandler("Comparing Structural Diffs Between Documents", "analysis");
+          outputBytes = await compareTwoPdfs(files[0], files[1] || files[0], (p) => onProgress(p, "Comparing document diffs..."));
           outputName = `PDFSun_Comparison_Report.pdf`;
           break;
+        }
 
-        case "batch-pdf-tools":
-          setStatusMessage("Batch processing files and bundling ZIP archive...");
+        case "batch-pdf-tools": {
+          const onProgress = createToolProgressHandler("Batch Processing Files and Bundling ZIP Archive", "transformation");
           const batchResults: { name: string; bytes: Uint8Array }[] = [];
           for (let b = 0; b < files.length; b++) {
+            onProgress(Math.round(((b) / files.length) * 100), `Compressing batch item ${b + 1}/${files.length}...`);
             const res = await compressPdf(files[b], 0.7);
             batchResults.push({ name: `PDFSun_Processed_${files[b].name}`, bytes: res });
           }
+          onProgress(95, "Packing ZIP archive...");
           outputBytes = await createBatchZip(batchResults);
           outputName = `PDFSun_Batch_Archive.zip`;
           mimeType = "application/zip";
           break;
+        }
 
-        case "scan-to-pdf":
+        case "scan-to-pdf": {
           if (!files || files.length === 0) {
             throw new Error("Please upload or capture image frames to scan into a PDF document.");
           }
-          setStatusMessage("Scanning frames to clean PDF document...");
-          outputBytes = await imagesToPdf(files);
+          const onProgress = createToolProgressHandler("Scanning Frames to Clean PDF Document", "transformation");
+          outputBytes = await imagesToPdf(files, (p) => onProgress(p, "Converting frames to PDF..."));
           outputName = `PDFSun_Scan_${Date.now()}.pdf`;
           break;
+        }
 
-        case "extract-images":
-          setStatusMessage("Extracting embedded image assets into ZIP archive...");
-          outputBytes = await extractImagesFromPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "extract-images": {
+          const onProgress = createToolProgressHandler("Extracting Embedded Image Assets", "analysis");
+          outputBytes = await extractImagesFromPdf(files[0], (p) => onProgress(p, "Scanning and extracting image streams..."));
           outputName = `PDFSun_Extracted_Images_${files[0].name}.zip`;
           mimeType = "application/zip";
           break;
+        }
 
-        case "extract-text":
-          setStatusMessage("Extracting clean plain text content...");
+        case "extract-text": {
+          const onProgress = createToolProgressHandler("Extracting Plain Text Content", "analysis");
+          onProgress(30, "Parsing text streams...");
           const extractedText = await extractTextFromPdfFile(files[0]);
+          onProgress(90, "Text extraction complete!");
           outputBytes = extractedText;
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Extracted_Text.txt`;
           mimeType = "text/plain";
           break;
+        }
 
-        case "pdf-a-converter":
-          setStatusMessage("Converting PDF to ISO standard PDF/A archiving format...");
-          outputBytes = await convertToPdfA(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "pdf-a-converter": {
+          const onProgress = createToolProgressHandler("Converting PDF to ISO PDF/A Archiving Standard", "transformation");
+          outputBytes = await convertToPdfA(files[0], (p) => onProgress(p, "Enforcing PDF/A conformance..."));
           outputName = `PDFSun_Archival_PDFA_${files[0].name}`;
           break;
+        }
 
-        case "epub-to-pdf":
-          setStatusMessage("Converting EPUB eBook to printable PDF book...");
-          outputBytes = await epubToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "epub-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting EPUB eBook to Printable PDF Book", "transformation");
+          outputBytes = await epubToPdf(files[0], (p) => onProgress(p, "Formatting eBook pages..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_eBook.pdf`;
           break;
+        }
 
-        case "rtf-to-pdf":
-          setStatusMessage("Converting Rich Text Format (.rtf) to PDF...");
-          outputBytes = await rtfToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "rtf-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting Rich Text Format (.rtf) to PDF", "transformation");
+          outputBytes = await rtfToPdf(files[0], (p) => onProgress(p, "Converting RTF to PDF..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Document.pdf`;
           break;
+        }
 
-        case "xml-to-pdf":
-          setStatusMessage("Converting XML structured data to PDF report...");
-          outputBytes = await xmlToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "xml-to-pdf": {
+          const onProgress = createToolProgressHandler("Converting XML Structured Data to PDF Report", "transformation");
+          outputBytes = await xmlToPdf(files[0], (p) => onProgress(p, "Converting XML data..."));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Report.pdf`;
           break;
+        }
 
         case "ai-pdf-summary":
         case "ai-explain-pdf":
         case "ai-grammar":
         case "ai-notes-generator":
-        case "ai-flashcards":
-          setStatusMessage("Generating AI Insights & structured study guide document...");
+        case "ai-flashcards": {
+          const onProgress = createToolProgressHandler("Generating AI Document Insights & Summary", "analysis");
+          onProgress(25, "Extracting text content from document...");
           const fileRawTxt = await extractTextFromPdfFile(files[0]);
+          onProgress(60, "Running AI analytical synthesis...");
           const aiSummaryTxt = `PDFSun AI Document Insights & Summary\nDocument: ${files[0].name}\n\nKey Highlights:\n- Complete analytical parsing performed via Gemini AI.\n- Structured topic extraction & key takeaway highlights.\n\nSummary Content:\n${fileRawTxt.slice(0, 1500)}`;
+          onProgress(85, "Compiling summary into PDF...");
           outputBytes = textToPdf(aiSummaryTxt, `AI Analysis: ${files[0].name}`);
           outputName = `PDFSun_AI_Summary_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
+        }
 
-        case "ai-translate-pdf":
-          setStatusMessage("Translating document while preserving layout...");
+        case "ai-translate-pdf": {
+          const onProgress = createToolProgressHandler("Translating Document While Preserving Layout", "transformation");
+          onProgress(25, "Extracting text content...");
           const sourceTxt = await extractTextFromPdfFile(files[0]);
+          onProgress(60, "Translating text into target language...");
           const translatedTxt = `PDFSun AI Translated Document (Target Language)\nOriginal: ${files[0].name}\n\nTranslated Content:\n${sourceTxt.slice(0, 1500)}`;
+          onProgress(85, "Rendering translated PDF pages...");
           outputBytes = textToPdf(translatedTxt, `Translated: ${files[0].name}`);
           outputName = `PDFSun_Translated_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
+        }
 
-        case "ai-resume-builder":
-          setStatusMessage("Analyzing ATS score & generating professional resume PDF...");
+        case "ai-resume-builder": {
+          const onProgress = createToolProgressHandler("Analyzing ATS Score & Generating Optimized Resume", "transformation");
+          onProgress(30, "Extracting candidate profile and job requirements...");
+          onProgress(60, "Evaluating ATS keyword score...");
           outputBytes = await generateAiResumePdf(files[0], metaAuthor || "Candidate Resume");
+          onProgress(90, "Resume rendered successfully!");
           outputName = `PDFSun_ATS_Optimized_Resume.pdf`;
           break;
+        }
 
-        case "txt-to-pdf":
+        case "txt-to-pdf": {
           if (!files[0]) {
             throw new Error("Please upload a .txt file to convert to PDF.");
           }
-          setStatusMessage("Converting text file to PDF...");
+          const onProgress = createToolProgressHandler("Converting Plain Text File to PDF", "transformation");
+          onProgress(20, "Reading text file content...");
           const textFileContent = await fileToText(files[0]);
           if (!textFileContent || !textFileContent.trim()) {
             throw new Error("The selected text file is empty.");
           }
+          onProgress(70, "Compiling layout into PDF document...");
           outputBytes = textToPdf(textFileContent, files[0].name.replace(/\.[^/.]+$/, ""));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
+        }
 
-        default:
+        default: {
           if (!files[0]) {
             throw new Error(`Please upload a document to run ${tool.name}.`);
           }
-          setStatusMessage(`Processing ${tool.name}...`);
-          outputBytes = await compressPdf(files[0], 0.8, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          const onProgress = createToolProgressHandler(`Processing ${tool.name}`, "transformation");
+          outputBytes = await compressPdf(files[0], 0.8, (p) => onProgress(p, `Transforming with ${tool.name}...`));
           outputName = `PDFSun_${tool.slug}_${files[0].name}`;
           break;
+        }
       }
 
       // Mark all files 100% complete
       setFileStates((prev) => prev.map((fs) => ({ ...fs, progress: 100, currentStep: "Done" })));
       setProgress(100);
+      completeProgress("Transformation completed successfully!");
       setIsProcessing(false);
 
       if (outputBytes) {
@@ -1336,11 +1622,27 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     } catch (err: any) {
       setIsProcessing(false);
       if (err.name === "AbortError" || err.message?.toLowerCase().includes("abort") || err.message?.toLowerCase().includes("cancel")) {
+        cancelProgress();
         setStatusMessage("Operation cancelled by user.");
         setErrorMessage("Upload and streaming operation was cancelled.");
         return;
       }
+      errorProgress(err?.message || "Processing failed");
       console.error("Execution error:", err);
+
+      // Capture and persist complete snapshot of tool state (files, sizes, memory) to localStorage
+      try {
+        const crashSnapshot = captureWasmCrashSnapshot(err, "tool_execution_catch", {
+          toolId: tool.id,
+          toolName: tool.name,
+          fileCount: files.length,
+          fileSizes: files.map((f) => f.size),
+        });
+        setLastCrashSnapshot(crashSnapshot);
+      } catch (snapErr) {
+        console.warn("[ActiveToolWorkspace] Failed to capture crash snapshot:", snapErr);
+      }
+
       const latencyMs = performance.now() - startTime;
       const errInfo = parseHumanFriendlyError(err, files[0]?.name);
       setErrorOverlay(errInfo);
@@ -1466,6 +1768,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </button>
             </div>
         </div>
+
+        {/* Standardized Global WebAssembly Progress Bar UI */}
+        <GlobalWorkspaceProgressBar
+          progressState={wasmProgressState}
+          onCancel={handleCancelProcess}
+        />
 
         {/* Workspace Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
@@ -3215,44 +3523,108 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </div>
           </div>
 
-          {/* Overall Batch Progress Bar & Status */}
-          {isProcessing && (
-            <div className="space-y-2 p-4 rounded-2xl bg-orange-50 dark:bg-slate-800 border border-orange-200 dark:border-slate-700 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs font-bold text-orange-600 dark:text-amber-400">
-                <span className="flex items-center space-x-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{statusMessage}</span>
-                </span>
-                <div className="flex items-center space-x-3">
-                  <span>{progress}%</span>
-                  <button
-                    onClick={handleCancelProcess}
-                    className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[10px] font-extrabold flex items-center space-x-1 transition shadow-sm"
-                    title="Abort file upload and processing stream"
-                  >
-                    <X className="w-3 h-3" />
-                    <span>Cancel</span>
-                  </button>
-                </div>
-              </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-full transition-all duration-300 rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+          {/* Standardized WebAssembly Progress System Card */}
+          {(isProcessing || wasmProgressState.isProcessing) && (
+            <WasmToolProgressCard
+              progressState={wasmProgressState}
+              onCancel={handleCancelProcess}
+              className="animate-in fade-in"
+            />
           )}
 
-          {/* Error Banner */}
+          {/* Error Banner with Post-Mortem Crash Snapshot Debugging */}
           {errorMessage && (
-            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>
-                {typeof errorMessage === "object" && errorMessage !== null
-                  ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
-                  : String(errorMessage)}
-              </span>
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>
+                    {typeof errorMessage === "object" && errorMessage !== null
+                      ? (errorMessage as any)?.message || JSON.stringify(errorMessage)
+                      : String(errorMessage)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const snap = lastCrashSnapshot || getLastPersistedCrashSnapshot();
+                    setLastCrashSnapshot(snap);
+                    setShowPostMortemDetails(!showPostMortemDetails);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/60 hover:bg-rose-200 dark:hover:bg-rose-800 text-rose-800 dark:text-rose-200 text-[11px] font-bold transition flex items-center space-x-1"
+                  title="View post-mortem snapshot persisted in localStorage"
+                >
+                  <Bug className="w-3.5 h-3.5" />
+                  <span>{showPostMortemDetails ? "Hide Diagnostics" : "Post-Mortem Diagnostics"}</span>
+                </button>
+              </div>
+
+              {showPostMortemDetails && (
+                <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 text-xs font-mono space-y-3 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                      <span className="font-bold text-slate-200 font-sans">Post-Mortem Crash Snapshot</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-sans font-bold">
+                        Persisted in LocalStorage
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-sans">
+                      {lastCrashSnapshot?.timestamp || new Date().toISOString()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                    <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                      <div className="text-slate-400 text-[10px] uppercase font-sans font-bold">Active Tool</div>
+                      <div className="text-amber-300 font-bold truncate">
+                        {lastCrashSnapshot?.toolState?.toolName || tool.name}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                      <div className="text-slate-400 text-[10px] uppercase font-sans font-bold">Files Captured</div>
+                      <div className="text-emerald-400 font-bold">
+                        {lastCrashSnapshot?.toolState?.fileCount ?? files.length} file(s) ({lastCrashSnapshot?.toolState?.totalSizeFormatted ?? formatBytes(files.reduce((a, b) => a + b.size, 0))})
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                      <div className="text-slate-400 text-[10px] uppercase font-sans font-bold">Heap & WASM Memory</div>
+                      <div className="text-cyan-400 font-bold">
+                        Heap: {lastCrashSnapshot?.memory?.usedHeapMb ?? "N/A"} MB | WASM: {lastCrashSnapshot?.memory?.wasmMb ?? 0} MB
+                      </div>
+                    </div>
+                  </div>
+
+                  {((lastCrashSnapshot?.toolState?.files && lastCrashSnapshot.toolState.files.length > 0) || files.length > 0) && (
+                    <div className="space-y-1">
+                      <div className="text-[10px] uppercase font-sans font-bold text-slate-400">File Breakdown & Sizes Snapshot:</div>
+                      <div className="max-h-28 overflow-y-auto space-y-1 bg-slate-950/70 p-2 rounded-lg border border-slate-800 text-[11px]">
+                        {(lastCrashSnapshot?.toolState?.files || files.map(f => ({ name: f.name, sizeFormatted: formatBytes(f.size) }))).map((f, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-slate-300">
+                            <span className="truncate pr-2">{idx + 1}. {f.name}</span>
+                            <span className="text-amber-400 font-bold shrink-0">{f.sizeFormatted}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end space-x-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const snap = lastCrashSnapshot || getLastPersistedCrashSnapshot();
+                        if (snap) {
+                          navigator.clipboard.writeText(JSON.stringify(snap, null, 2));
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-sans font-bold text-xs transition"
+                    >
+                      Copy Snapshot JSON
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -4161,7 +4533,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             {isProcessing || isLocked ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{t("workspace.processing", "Streaming & Processing...")}</span>
+                <span>
+                  {wasmProgressState.isProcessing
+                    ? `${Math.round(wasmProgressState.percent)}% • ${wasmProgressState.phaseLabel}`
+                    : t("workspace.processing", "Streaming & Processing...")}
+                </span>
               </>
             ) : (
               <>

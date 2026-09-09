@@ -7,9 +7,13 @@ import { LanguageProvider } from './lib/i18n';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { registerServiceWorker } from './pwaRegister';
 import { setupGlobalFetchInterceptor } from './lib/fetchInterceptor';
+import { initWasmLifecycleWatchdog, isBenignWasmLifecycleError } from './utils/wasmPdfLifecycle';
 
 // Initialize global network fetch interceptor to handle errors, 4xx/5xx responses, and timeouts
 setupGlobalFetchInterceptor();
+
+// Initialize WebAssembly & PDF.js lifecycle error watchdog
+initWasmLifecycleWatchdog();
 
 // Register Service Worker for PWA Offline Capability
 registerServiceWorker();
@@ -33,14 +37,21 @@ if (typeof window !== 'undefined') {
       s.includes('pagead2') ||
       s.includes('failed to fetch') ||
       s.includes('load failed') ||
-      s.includes('networkerror when attempting to fetch resource')
+      s.includes('networkerror when attempting to fetch resource') ||
+      s.includes('renderingcancelledexception') ||
+      s.includes('rendering cancelled') ||
+      s.includes('an operation that depends on the canvas being clean is already in progress') ||
+      s.includes('cannot draw on canvas while a render is active') ||
+      s.includes('abortexception') ||
+      s.includes('abort error') ||
+      s.includes('worker task cancelled')
     );
   };
 
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
     const msg = args.map((a) => (typeof a === 'object' ? String(a?.message || JSON.stringify(a)) : String(a))).join(' ');
-    if (isBenignNoise(msg)) {
+    if (isBenignNoise(msg) || isBenignWasmLifecycleError(args[0])) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -54,7 +65,7 @@ if (typeof window !== 'undefined') {
       event.reason ||
       ''
     );
-    if (isBenignNoise(reasonStr)) {
+    if (isBenignNoise(reasonStr) || isBenignWasmLifecycleError(event.reason)) {
       event.preventDefault();
       if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();

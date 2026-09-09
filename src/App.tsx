@@ -42,6 +42,7 @@ import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
+import { WasmPerformanceOverlay } from "./components/WasmPerformanceOverlay";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -1288,6 +1289,9 @@ export default function App() {
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
+
+      {/* Real-Time WebAssembly Heap & Leak Telemetry Overlay */}
+      <WasmPerformanceOverlay />
     </div>
   );
 }

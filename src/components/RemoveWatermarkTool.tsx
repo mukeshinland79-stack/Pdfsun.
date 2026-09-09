@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
+import { PDFJS_ASSETS } from "../utils/wasmPdfLifecycle";
 import {
   Wand2,
   Pipette,
@@ -43,9 +44,11 @@ import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerSrc;
+  } catch {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerFallbackSrc;
+  }
 }
 
 interface RemoveWatermarkToolProps {
@@ -141,6 +144,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   const cleanedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+  const renderTaskRef = useRef<any>(null);
 
   // Drag & Drop File Loader
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -173,14 +177,28 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
       try {
         setIsRenderingPage(true);
         const arrayBuffer = await file.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          cMapUrl: PDFJS_ASSETS.cMapUrl,
+          cMapPacked: PDFJS_ASSETS.cMapPacked,
+          standardFontDataUrl: PDFJS_ASSETS.standardFontDataUrl,
+        });
         const loadedPdf = await loadingTask.promise;
 
         if (isMounted) {
+          if (pdfDocRef.current) {
+            try {
+              pdfDocRef.current.cleanup?.();
+              (pdfDocRef.current as any).destroy?.();
+            } catch {}
+          }
           pdfDocRef.current = loadedPdf;
           setPdfPageCount(loadedPdf.numPages);
           setCurrentPage(1);
           setIsRenderingPage(false);
+        } else {
+          loadedPdf.cleanup?.();
+          (loadedPdf as any).destroy?.();
         }
       } catch (err: any) {
         console.error("Error loading PDF document:", err);
@@ -193,6 +211,18 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
     return () => {
       isMounted = false;
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {}
+      }
+      if (pdfDocRef.current) {
+        try {
+          pdfDocRef.current.cleanup?.();
+          (pdfDocRef.current as any).destroy?.();
+        } catch {}
+        pdfDocRef.current = null;
+      }
     };
   }, [file]);
 
@@ -200,23 +230,44 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   const renderPdfPage = useCallback(async () => {
     if (!pdfDocRef.current || !canvasRef.current || pdfPageCount === 0) return;
 
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch {}
+      renderTaskRef.current = null;
+    }
+
+    let page: any = null;
     try {
       setIsRenderingPage(true);
-      const page = await pdfDocRef.current.getPage(currentPage);
+      page = await pdfDocRef.current.getPage(currentPage);
       const viewport = page.getViewport({ scale: zoomScale });
 
       const canvas = canvasRef.current;
+      if (!canvas) return;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
 
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      const renderTask = page.render({ canvasContext: ctx, viewport, canvas } as any);
+      renderTaskRef.current = renderTask;
+      await renderTask.promise;
+      renderTaskRef.current = null;
       setIsRenderingPage(false);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "RenderingCancelledException") {
+        return;
+      }
       console.error("Page render error:", err);
       setIsRenderingPage(false);
+    } finally {
+      if (page) {
+        try {
+          page.cleanup?.();
+        } catch {}
+      }
     }
   }, [currentPage, zoomScale, pdfPageCount]);
 

@@ -5,15 +5,51 @@
  */
 
 import { registerBlobUrl } from "./pdfWorkerManager";
+import { captureWasmCrashSnapshot } from "./wasmPdfLifecycle";
 
-export type PdfWorkerAction = "merge" | "compress" | "rotate" | "split" | "watermark" | "ocr" | "convert";
+export type PdfWorkerAction =
+  | "merge"
+  | "compress"
+  | "rotate"
+  | "split"
+  | "watermark"
+  | "ocr"
+  | "convert"
+  | "page-numbers"
+  | "remove-pages"
+  | "extract-pages"
+  | "flatten"
+  | "crop"
+  | "protect";
 
 export interface PoolTaskOptions {
   rotationAngle?: number;
   watermarkText?: string;
   quality?: "low" | "medium" | "high";
   language?: string;
+  pageRangesStr?: string;
+  opacity?: number;
+  fontSize?: number;
+  angle?: number;
+  position?: string;
+  margin?: number;
+  password?: string;
+  mode?: string;
+  dpi?: number;
   [key: string]: any;
+}
+
+export interface PoolTaskProgress {
+  taskId?: string;
+  percent: number;
+  stage?: string;
+  detail?: string;
+  currentPage?: number;
+  totalPages?: number;
+  processedBytes?: number;
+  totalBytes?: number;
+  workerId?: string;
+  memoryMb?: number;
 }
 
 export interface PoolTaskResult {
@@ -30,11 +66,23 @@ export interface WorkerPoolStatus {
   queuedTasks: number;
 }
 
+export interface WorkerHeartbeatInfo {
+  workerId: string;
+  taskId: string;
+  status: "healthy" | "delayed" | "unresponsive" | "reloaded";
+  latencyMs: number;
+  memoryMb?: number;
+  timestamp: number;
+  reloadCount: number;
+}
+
 interface WorkerInstance {
   id: string;
   worker: Worker | null;
   isBusy: boolean;
   currentTaskId: string | null;
+  reloadCount: number;
+  lastHeartbeatTime: number;
 }
 
 interface QueuedTask {
@@ -42,7 +90,7 @@ interface QueuedTask {
   action: PdfWorkerAction;
   files: File[];
   options: PoolTaskOptions;
-  onProgress?: (percent: number) => void;
+  onProgress?: (progress: number | PoolTaskProgress) => void;
   resolve: (result: PoolTaskResult) => void;
   reject: (reason: any) => void;
   startTime: number;
@@ -53,6 +101,38 @@ class PDFWorkerPool {
   private taskQueue: QueuedTask[] = [];
   private maxWorkers: number;
   private initialized = false;
+  private progressListeners: Set<(progress: PoolTaskProgress) => void> = new Set();
+  private heartbeatListeners: Set<(info: WorkerHeartbeatInfo) => void> = new Set();
+
+  /**
+   * Subscribe to global WebAssembly worker progress updates across any active tasks
+   */
+  public onProgress(listener: (progress: PoolTaskProgress) => void): () => void {
+    this.progressListeners.add(listener);
+    return () => {
+      this.progressListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Subscribe to WebAssembly worker heartbeat health events and force-reload alerts
+   */
+  public onHeartbeat(listener: (info: WorkerHeartbeatInfo) => void): () => void {
+    this.heartbeatListeners.add(listener);
+    return () => {
+      this.heartbeatListeners.delete(listener);
+    };
+  }
+
+  private emitHeartbeat(info: WorkerHeartbeatInfo): void {
+    this.heartbeatListeners.forEach((l) => {
+      try {
+        l(info);
+      } catch (err) {
+        console.warn("[PDFWorkerPool] Heartbeat listener error:", err);
+      }
+    });
+  }
 
   constructor(maxWorkers?: number) {
     if (typeof window !== "undefined") {
@@ -87,6 +167,8 @@ class PDFWorkerPool {
         worker: workerInstance,
         isBusy: false,
         currentTaskId: null,
+        reloadCount: 0,
+        lastHeartbeatTime: Date.now(),
       });
     }
 
@@ -114,7 +196,7 @@ class PDFWorkerPool {
     action: PdfWorkerAction,
     files: File[],
     options: PoolTaskOptions = {},
-    onProgress?: (percent: number) => void
+    onProgress?: (progress: number | PoolTaskProgress) => void
   ): Promise<PoolTaskResult> {
     this.initializePool();
 
@@ -135,6 +217,36 @@ class PDFWorkerPool {
       this.taskQueue.push(queuedTask);
       this.processNextTask();
     });
+  }
+
+  /**
+   * Immediately abort an active or queued worker task and free worker resources
+   */
+  public abortTask(taskId: string): boolean {
+    const queueIdx = this.taskQueue.findIndex((t) => t.taskId === taskId);
+    if (queueIdx !== -1) {
+      const task = this.taskQueue.splice(queueIdx, 1)[0];
+      task.reject(new DOMException("Task aborted by user", "AbortError"));
+      return true;
+    }
+
+    const busyWorker = this.workers.find((w) => w.currentTaskId === taskId);
+    if (busyWorker) {
+      try {
+        if (busyWorker.worker) {
+          busyWorker.worker.terminate();
+        }
+      } catch {}
+      // Respawn clean worker in this slot
+      try {
+        if (typeof window !== "undefined" && window.Worker) {
+          busyWorker.worker = new Worker(new URL("./pdfWorker.ts", import.meta.url), { type: "module" });
+        }
+      } catch {}
+      this.releaseWorker(busyWorker);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -177,11 +289,63 @@ class PDFWorkerPool {
       const worker = availableWorker.worker!;
 
       const handleMessage = (e: MessageEvent) => {
-        const { taskId: resId, type, percent, resultBuffer, error } = e.data;
+        const {
+          taskId: resId,
+          type,
+          percent,
+          resultBuffer,
+          error,
+          stage,
+          detail,
+          currentPage,
+          totalPages,
+          processedBytes,
+          totalBytes,
+          memoryMb,
+        } = e.data;
         if (resId !== task.taskId) return;
 
+        if (type === "heartbeat_ack") {
+          availableWorker.lastHeartbeatTime = Date.now();
+          const latencyMs = Math.max(0, Date.now() - (e.data.timestamp || Date.now()));
+          this.emitHeartbeat({
+            workerId: availableWorker.id,
+            taskId: task.taskId,
+            status: "healthy",
+            latencyMs,
+            memoryMb: e.data.memoryMb,
+            timestamp: Date.now(),
+            reloadCount: availableWorker.reloadCount || 0,
+          });
+          return;
+        }
+
         if (type === "progress") {
-          if (task.onProgress) task.onProgress(percent);
+          const progressPayload: PoolTaskProgress = {
+            taskId: resId,
+            percent: typeof percent === "number" ? percent : 0,
+            stage,
+            detail,
+            currentPage,
+            totalPages,
+            processedBytes,
+            totalBytes,
+            workerId: availableWorker.id,
+            memoryMb,
+          };
+
+          if (task.onProgress) {
+            task.onProgress(progressPayload);
+          }
+
+          // Broadcast to any subscribed React hooks or telemetry listeners
+          this.progressListeners.forEach((listener) => {
+            try {
+              listener(progressPayload);
+            } catch (listenerErr) {
+              console.warn("[PDFWorkerPool] Progress listener error:", listenerErr);
+            }
+          });
         } else if (type === "complete") {
           cleanup();
           const durationMs = Math.round(performance.now() - task.startTime);
@@ -194,38 +358,155 @@ class PDFWorkerPool {
         } else if (type === "error") {
           cleanup();
           this.releaseWorker(availableWorker);
-          task.reject(new Error(error || "Worker task execution failed"));
+          const taskError = new Error(error || "Worker task execution failed");
+          captureWasmCrashSnapshot(taskError, "wasm_worker_task_error", {
+            taskId: task.taskId,
+            action: task.action,
+          });
+          task.reject(taskError);
         }
       };
 
       const handleError = (err: ErrorEvent) => {
         cleanup();
         this.releaseWorker(availableWorker);
+        captureWasmCrashSnapshot(err?.error || err?.message || err, "wasm_worker_error_event", {
+          taskId: task.taskId,
+          action: task.action,
+        });
         task.reject(err);
       };
 
+      let taskTimeoutTimer: any = null;
+      let heartbeatTimer: any = null;
+
       const cleanup = () => {
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+        if (taskTimeoutTimer) {
+          clearTimeout(taskTimeoutTimer);
+          taskTimeoutTimer = null;
+        }
         worker.removeEventListener("message", handleMessage);
         worker.removeEventListener("error", handleError);
       };
+
+      // Heartbeat Health Check Mechanism
+      // Probes WASM binary responsiveness every 2 seconds, force-reloads if no heartbeat detected
+      const HEARTBEAT_INTERVAL_MS = 2000;
+      const HEARTBEAT_TIMEOUT_MS = 4000; // 2 consecutive missed heartbeats triggers force-reload
+      availableWorker.lastHeartbeatTime = Date.now();
+
+      const performForceReload = (timeSinceHeartbeat: number) => {
+        console.warn(
+          `[PDFWorkerPool] HEARTBEAT FAILURE: No heartbeat detected from ${availableWorker.id} for ${timeSinceHeartbeat}ms during ${task.action} (${task.taskId}). Force-reloading worker.`
+        );
+
+        cleanup();
+
+        try {
+          worker.terminate();
+        } catch (termErr) {
+          console.warn(`[PDFWorkerPool] Terminate unresponsive worker error:`, termErr);
+        }
+
+        availableWorker.reloadCount = (availableWorker.reloadCount || 0) + 1;
+        try {
+          if (typeof window !== "undefined" && window.Worker) {
+            availableWorker.worker = new Worker(new URL("./pdfWorker.ts", import.meta.url), { type: "module" });
+          }
+        } catch (recreateErr) {
+          console.error(`[PDFWorkerPool] Failed to instantiate fresh worker for ${availableWorker.id}:`, recreateErr);
+          availableWorker.worker = null;
+        }
+
+        this.emitHeartbeat({
+          workerId: availableWorker.id,
+          taskId: task.taskId,
+          status: "reloaded",
+          latencyMs: timeSinceHeartbeat,
+          timestamp: Date.now(),
+          reloadCount: availableWorker.reloadCount,
+        });
+
+        const reloadError = new Error(
+          `WebAssembly binary execution became unresponsive during conversion (no heartbeat detected every 2s). The worker has been force-reloaded. Please retry the operation.`
+        );
+
+        captureWasmCrashSnapshot(reloadError, "wasm_heartbeat_timeout_reload", {
+          taskId: task.taskId,
+          action: task.action,
+          workerId: availableWorker.id,
+          reloadCount: availableWorker.reloadCount,
+          timeSinceHeartbeatMs: timeSinceHeartbeat,
+        });
+
+        this.releaseWorker(availableWorker);
+        task.reject(reloadError);
+      };
+
+      heartbeatTimer = setInterval(() => {
+        const timeSinceHeartbeat = Date.now() - availableWorker.lastHeartbeatTime;
+
+        // Force-reload the worker if no heartbeat is detected during the conversion task
+        if (timeSinceHeartbeat >= HEARTBEAT_TIMEOUT_MS) {
+          performForceReload(timeSinceHeartbeat);
+          return;
+        }
+
+        // Send 2-second heartbeat ping to worker
+        try {
+          worker.postMessage({
+            type: "heartbeat_ping",
+            taskId: task.taskId,
+            timestamp: Date.now(),
+          });
+        } catch (pingErr) {
+          console.warn(`[PDFWorkerPool] Failed to send heartbeat ping to worker:`, pingErr);
+        }
+      }, HEARTBEAT_INTERVAL_MS);
+
+      // 120-second timeout watchdog for ultra-large files to prevent infinite lockup
+      taskTimeoutTimer = setTimeout(() => {
+        cleanup();
+        console.warn(`[PDFWorkerPool] Task ${task.taskId} timed out after 120s. Restarting worker.`);
+        try {
+          worker.terminate();
+        } catch {}
+        availableWorker.worker = null;
+        this.releaseWorker(availableWorker);
+        const timeoutError = new Error("PDF conversion timed out. Try reducing file size or page count.");
+        captureWasmCrashSnapshot(timeoutError, "wasm_worker_timeout_watchdog", {
+          taskId: task.taskId,
+          action: task.action,
+        });
+        task.reject(timeoutError);
+      }, 120000);
 
       worker.addEventListener("message", handleMessage);
       worker.addEventListener("error", handleError);
 
       const transferList = task.action === "merge" ? buffers : [buffers[0]];
 
-      worker.postMessage(
-        {
-          taskId: task.taskId,
-          action: task.action,
-          payload: {
-            filesBuffers: buffers,
-            fileBuffer: buffers[0],
-            ...task.options,
-          },
+      const messagePayload = {
+        taskId: task.taskId,
+        action: task.action,
+        payload: {
+          filesBuffers: buffers,
+          fileBuffer: buffers[0],
+          ...task.options,
         },
-        transferList
-      );
+      };
+
+      try {
+        worker.postMessage(messagePayload, transferList);
+      } catch (postErr) {
+        // Fallback without transfer list in case of detached or restricted buffer cloning
+        console.warn("[PDFWorkerPool] Transfer failed, falling back to structured copy:", postErr);
+        worker.postMessage(messagePayload);
+      }
     } catch (err) {
       this.releaseWorker(availableWorker);
       task.reject(err);

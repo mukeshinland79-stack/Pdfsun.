@@ -1,6 +1,11 @@
 import React, { ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Copy, Check, Trash2, Bug } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Copy, Check, Trash2, Bug, FileText } from 'lucide-react';
 import { logError } from '../services/errorReporter';
+import {
+  captureWasmCrashSnapshot,
+  getLastPersistedCrashSnapshot,
+  WasmCrashSnapshot,
+} from '../utils/wasmPdfLifecycle';
 
 interface Props {
   children: ReactNode;
@@ -14,6 +19,7 @@ interface State {
   copied: boolean;
   showDetails: boolean;
   clearedStorage: boolean;
+  postMortemSnapshot: WasmCrashSnapshot | null;
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
@@ -24,6 +30,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     copied: false,
     showDetails: false,
     clearedStorage: false,
+    postMortemSnapshot: null,
   };
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
@@ -35,6 +42,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error(`[${timestamp}] Unhandled runtime exception caught by ErrorBoundary:`, error);
     if (errorInfo?.componentStack) {
       console.error('Component Stack:', errorInfo.componentStack);
+    }
+
+    // Capture WASM / Tool State crash snapshot for post-mortem debugging
+    let snapshot: WasmCrashSnapshot | null = null;
+    try {
+      snapshot = captureWasmCrashSnapshot(error, "react_error_boundary_unhandled", {
+        componentStack: errorInfo?.componentStack,
+      });
+    } catch {
+      snapshot = getLastPersistedCrashSnapshot();
     }
     
     // Log exception to telemetry monitoring queue
@@ -51,7 +68,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
     });
 
-    this.setState({ errorInfo });
+    this.setState({ errorInfo, postMortemSnapshot: snapshot });
 
     // Dispatch event for telemetry or global error listeners if registered
     if (typeof window !== 'undefined') {
@@ -218,21 +235,73 @@ export class ErrorBoundary extends React.Component<Props, State> {
               </button>
 
               {this.state.showDetails && (
-                <div className="mt-3 p-3 bg-zinc-900 text-zinc-200 rounded-lg text-xs font-mono overflow-x-auto max-h-48 space-y-2">
-                  <div>
-                    <span className="text-amber-400 font-bold">Stack Trace:</span>
-                    <pre className="mt-1 whitespace-pre-wrap text-[11px] text-zinc-400">
-                      {this.state.error?.stack || 'No stack trace available'}
-                    </pre>
-                  </div>
-                  {this.state.errorInfo?.componentStack && (
-                    <div className="pt-2 border-t border-zinc-800">
-                      <span className="text-amber-400 font-bold">Component Tree:</span>
-                      <pre className="mt-1 whitespace-pre-wrap text-[11px] text-zinc-400">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
+                <div className="mt-3 space-y-3">
+                  {/* Post-Mortem Snapshot Section */}
+                  {this.state.postMortemSnapshot && (
+                    <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg text-xs font-mono space-y-2 text-zinc-300">
+                      <div className="flex items-center justify-between text-amber-400 font-bold border-b border-zinc-800 pb-1.5 font-sans">
+                        <span className="flex items-center gap-1.5">
+                          <Bug className="w-3.5 h-3.5 text-amber-500" />
+                          Post-Mortem Snapshot (Persisted in LocalStorage)
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          {this.state.postMortemSnapshot.timestamp}
+                        </span>
+                      </div>
+
+                      {this.state.postMortemSnapshot.toolState && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                          <div className="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <span className="text-zinc-500 block text-[10px] uppercase font-sans font-bold">Active PDF Tool</span>
+                            <span className="text-amber-300 font-bold">{this.state.postMortemSnapshot.toolState.toolName} ({this.state.postMortemSnapshot.toolState.toolId})</span>
+                          </div>
+                          <div className="bg-zinc-900/90 p-2 rounded border border-zinc-800">
+                            <span className="text-zinc-500 block text-[10px] uppercase font-sans font-bold">Files in Workspace</span>
+                            <span className="text-emerald-400 font-bold">
+                              {this.state.postMortemSnapshot.toolState.fileCount} file(s) — Total: {this.state.postMortemSnapshot.toolState.totalSizeFormatted}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {this.state.postMortemSnapshot.toolState?.files && this.state.postMortemSnapshot.toolState.files.length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <span className="text-zinc-500 text-[10px] uppercase font-sans font-bold block">File Sizes & Metadata</span>
+                          <div className="max-h-24 overflow-y-auto space-y-1 bg-zinc-900 p-2 rounded border border-zinc-800 text-[11px]">
+                            {this.state.postMortemSnapshot.toolState.files.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-zinc-300">
+                                <span className="truncate pr-2">{idx + 1}. {file.name}</span>
+                                <span className="text-amber-400 font-bold shrink-0">{file.sizeFormatted}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {this.state.postMortemSnapshot.memory && (
+                        <div className="text-[11px] text-cyan-400/90 bg-zinc-900/80 p-2 rounded border border-zinc-800">
+                          Heap: {this.state.postMortemSnapshot.memory.usedHeapMb ?? "N/A"} MB / {this.state.postMortemSnapshot.memory.totalHeapMb ?? "N/A"} MB | WASM: {this.state.postMortemSnapshot.memory.wasmMb ?? 0} MB
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  <div className="p-3 bg-zinc-900 text-zinc-200 rounded-lg text-xs font-mono overflow-x-auto max-h-48 space-y-2">
+                    <div>
+                      <span className="text-amber-400 font-bold">Stack Trace:</span>
+                      <pre className="mt-1 whitespace-pre-wrap text-[11px] text-zinc-400">
+                        {this.state.error?.stack || 'No stack trace available'}
+                      </pre>
+                    </div>
+                    {this.state.errorInfo?.componentStack && (
+                      <div className="pt-2 border-t border-zinc-800">
+                        <span className="text-amber-400 font-bold">Component Tree:</span>
+                        <pre className="mt-1 whitespace-pre-wrap text-[11px] text-zinc-400">
+                          {this.state.errorInfo.componentStack}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
