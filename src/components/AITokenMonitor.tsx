@@ -41,8 +41,8 @@ export interface AITokenMonitorProps {
 
 const initialModelUsage: ModelUsageData[] = [
   {
-    modelName: "gemini-2.5-flash",
-    alias: "Gemini 2.5 Flash",
+    modelName: "gemini-3.8-flash",
+    alias: "Gemini 3.8 Flash",
     promptTokens: 1420000,
     outputTokens: 680000,
     totalTokens: 2100000,
@@ -51,8 +51,8 @@ const initialModelUsage: ModelUsageData[] = [
     avgLatencyMs: 320,
   },
   {
-    modelName: "gemini-2.5-pro",
-    alias: "Gemini 2.5 Pro",
+    modelName: "gemini-3.1-pro-preview",
+    alias: "Gemini 3.1 Pro",
     promptTokens: 480000,
     outputTokens: 290000,
     totalTokens: 770000,
@@ -61,8 +61,8 @@ const initialModelUsage: ModelUsageData[] = [
     avgLatencyMs: 840,
   },
   {
-    modelName: "gemini-1.5-flash",
-    alias: "Gemini 1.5 Flash",
+    modelName: "gemini-3.1-flash-lite",
+    alias: "Gemini Flash Lite",
     promptTokens: 920000,
     outputTokens: 410000,
     totalTokens: 1330000,
@@ -71,8 +71,8 @@ const initialModelUsage: ModelUsageData[] = [
     avgLatencyMs: 290,
   },
   {
-    modelName: "gemini-flash-lite",
-    alias: "Gemini Flash Lite",
+    modelName: "gemini-flash-latest",
+    alias: "Gemini Flash Latest",
     promptTokens: 1850000,
     outputTokens: 790000,
     totalTokens: 2640000,

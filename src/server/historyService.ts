@@ -77,21 +77,32 @@ Return ONLY valid JSON matching this schema:
   "quoteOfTheDay": {"quote": "...", "author": "...", "context": "..."}
 }`;
 
-        const generatePromise = ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
-          },
-        });
+        const generateWithFallback = async () => {
+          const candidateModels = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
+          for (const m of candidateModels) {
+            try {
+              const res = await ai.models.generateContent({
+                model: m,
+                contents: prompt,
+                config: {
+                  responseMimeType: "application/json",
+                  temperature: 0.2,
+                },
+              });
+              if (res) return res;
+            } catch (err: any) {
+              console.log(`[HistoryService] Model ${m} unavailable or busy, trying next option:`, err?.message || err);
+            }
+          }
+          return null;
+        };
 
-        // 2500ms timeout race to prevent any network hangs or 503 delays
+        // 5500ms timeout race to prevent any network hangs
         const timeoutPromise = new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error("Gemini AI request timeout")), 2500)
+          setTimeout(() => reject(new Error("Gemini AI request timeout")), 5500)
         );
 
-        const response: any = await Promise.race([generatePromise, timeoutPromise]);
+        const response: any = await Promise.race([generateWithFallback(), timeoutPromise]);
 
         if (response && response.text) {
           const parsed = JSON.parse(response.text);

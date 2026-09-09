@@ -36,6 +36,7 @@ import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
+import { TodayInHistoryHub } from "./components/TodayInHistoryHub";
 import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
@@ -962,9 +963,13 @@ export default function App() {
         />
 
         {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
-        <TodayInHistoryBanner
+        <TodayInHistoryHub
           geoResult={geoResult}
           onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+          onOpenAiWorkspace={() => {
+            const aiTool = ALL_TOOLS.find((t) => t.id === "ai-chat" || t.id === "ai-summarize");
+            if (aiTool) handleSelectTool(aiTool);
+          }}
         />
 
         {/* Section Replacement: Responsive, SEO-optimized, and AdSense-compliant Article Content Section */}

@@ -12,6 +12,7 @@ import { ALL_TOOLS } from "./src/data/toolsData";
 import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
+import { knowledgeHubRouter, getDailyKnowledgeHandler } from "./src/server/knowledgeHubController";
 import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
 import {
   getCommentsHandler,
@@ -1084,6 +1085,9 @@ app.post(["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"], 
 // TODAY IN HISTORY MULTILINGUAL API ENGINE
 // ==========================================
 app.use("/api/history", historyRouter);
+app.use("/api/knowledge-hub", knowledgeHubRouter);
+app.post("/api/get-daily-knowledge-hub", getDailyKnowledgeHandler);
+app.get("/api/get-daily-knowledge-hub", getDailyKnowledgeHandler);
 
 // ==========================================
 // DUAL PAYMENT GATEWAY & SUBSCRIPTION ENGINE
