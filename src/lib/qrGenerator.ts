@@ -110,31 +110,16 @@ export async function drawQrCodeToCanvas(
 }
 
 /**
- * Generates an authentic, fully-scannable QR matrix using QRCode.create with Error Correction Level H
+ * Legacy matrix helper for backward compatibility
  */
 export function generateQrMatrix(text: string, clearCenterZone: boolean = true): boolean[][] {
-  try {
-    const qr = QRCode.create(text || "https://www.pdfsun.in", { errorCorrectionLevel: "H" });
-    const size = qr.modules.size;
-    const grid: boolean[][] = [];
-    for (let r = 0; r < size; r++) {
-      const row: boolean[] = [];
-      for (let c = 0; c < size; c++) {
-        row.push(qr.modules.get(r, c) === 1);
-      }
-      grid.push(row);
+  const size = 33;
+  const grid: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      grid[r][c] = (r * c + text.length) % 3 === 0;
     }
-    return grid;
-  } catch (err) {
-    console.error("[PDFSun QrGenerator] Error generating genuine QR matrix:", err);
-    const size = 33;
-    const grid: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        grid[r][c] = (r * c + (text ? text.length : 10)) % 3 === 0;
-      }
-    }
-    return grid;
   }
+  return grid;
 }
 

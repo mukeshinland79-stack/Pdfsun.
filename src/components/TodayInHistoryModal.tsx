@@ -117,7 +117,6 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   }, [initialCountryCode]);
 
   // Derived Date properties
-  const selectedYear = selectedDate.getFullYear();
   const selectedMonth = selectedDate.getMonth() + 1; // 1-12
   const selectedDay = selectedDate.getDate(); // 1-31
   const maxDaysInSelectedMonth = DAYS_IN_MONTH[selectedMonth - 1] || 31;
@@ -160,16 +159,6 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
       if (!isNaN(newDate.getTime())) {
         setSelectedDate(newDate);
       }
-    }
-  };
-
-  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newYear = parseInt(e.target.value, 10);
-    if (!isNaN(newYear)) {
-      const newMaxDays = DAYS_IN_MONTH[selectedMonth - 1] || 31;
-      const clampedDay = Math.min(selectedDay, newMaxDays);
-      const newDate = new Date(newYear, selectedMonth - 1, clampedDay);
-      setSelectedDate(newDate);
     }
   };
 
@@ -446,7 +435,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               </button>
             </div>
 
-            {/* Direct Month, Day & Year Dropdowns for Complete Reactivity */}
+            {/* Direct Month & Day Dropdowns for Complete Reactivity */}
             <div className="flex items-center space-x-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">{getHistoryText("selectMonth", langCode)}:</span>
               <select
@@ -474,34 +463,6 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                 {Array.from({ length: maxDaysInSelectedMonth }, (_, i) => i + 1).map((d) => (
                   <option key={d} value={d} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {d}
-                  </option>
-                ))}
-              </select>
-
-              <span className="text-[10px] text-slate-400 font-semibold uppercase ml-1">Year:</span>
-              <select
-                id="history-year-select"
-                value={selectedYear}
-                onChange={handleYearChange}
-                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-hidden cursor-pointer"
-                aria-label="Select Year"
-              >
-                {[
-                  2026, 2025, 2024, 2023, 2022, 2020, 2015, 2010, 2005, 2000,
-                  1995, 1991, 1989, 1980, 1975, 1969, 1965, 1960, 1950, 1947,
-                  1945, 1939, 1930, 1920, 1914, 1900, 1865, 1800, 1776, 1492
-                ].includes(selectedYear) ? null : (
-                  <option value={selectedYear} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {selectedYear}
-                  </option>
-                )}
-                {[
-                  2026, 2025, 2024, 2023, 2022, 2020, 2015, 2010, 2005, 2000,
-                  1995, 1991, 1989, 1980, 1975, 1969, 1965, 1960, 1950, 1947,
-                  1945, 1939, 1930, 1920, 1914, 1900, 1865, 1800, 1776, 1492
-                ].map((y) => (
-                  <option key={y} value={y} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {y}
                   </option>
                 ))}
               </select>
@@ -597,14 +558,9 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
         </div>
 
         {/* MAIN SCROLLABLE CONTENT BODY */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 relative">
-          {/* Top Subtle Loading Progress Bar */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* LOADING SKELETON */}
           {loading && (
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 animate-pulse z-20" />
-          )}
-
-          {/* INITIAL COLD-LOAD SKELETON (Only on first load when no data exists) */}
-          {loading && !historyData && (
             <div className="space-y-4 animate-pulse">
               <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -615,8 +571,8 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
             </div>
           )}
 
-          {historyData && (
-            <div className={`space-y-6 transition-opacity duration-150 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+          {!loading && historyData && (
+            <>
               {/* FEATURED HEADLINE BANNER & COUNTRY STATUS BADGE */}
               <div className="relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-500/20 shadow-sm space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -921,7 +877,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   </button>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>

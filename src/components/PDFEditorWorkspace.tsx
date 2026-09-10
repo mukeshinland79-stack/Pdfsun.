@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
-import { PDFJS_ASSETS } from "../utils/wasmPdfLifecycle";
 import {
   Highlighter,
   Pen,
@@ -241,17 +240,12 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
 
         const loadingTask = pdfjsLib.getDocument({
           data: new Uint8Array(arrayBuffer),
-          cMapUrl: PDFJS_ASSETS.cMapUrl,
-          cMapPacked: PDFJS_ASSETS.cMapPacked,
-          standardFontDataUrl: PDFJS_ASSETS.standardFontDataUrl,
+          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/cmaps/",
+          cMapPacked: true,
         });
 
         const doc = await loadingTask.promise;
-        if (!isMounted) {
-          doc.cleanup?.();
-          (doc as any).destroy?.();
-          return;
-        }
+        if (!isMounted) return;
 
         setPdfDocProxy(doc);
         const meta: PageMeta[] = [];
@@ -330,25 +324,16 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         }
 
         const page = await pdfDocProxy.getPage(activePageMeta.pageIndex + 1);
-        if (isCancelled) {
-          page.cleanup?.();
-          return;
-        }
+        if (isCancelled) return;
 
         const totalRotation = (page.rotate + activePageMeta.rotation) % 360;
         const viewport = page.getViewport({ scale, rotation: totalRotation });
 
         const canvas = pdfCanvasRef.current;
-        if (!canvas) {
-          page.cleanup?.();
-          return;
-        }
+        if (!canvas) return;
 
         const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          page.cleanup?.();
-          return;
-        }
+        if (!ctx) return;
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
@@ -358,11 +343,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
           viewport: viewport,
         });
 
-        try {
-          await renderTask.promise;
-        } finally {
-          page.cleanup?.();
-        }
+        await renderTask.promise;
       } catch (err: any) {
         if (err.name !== "RenderingCancelledException") {
           console.error("PDF render error:", err);

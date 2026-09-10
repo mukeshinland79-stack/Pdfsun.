@@ -36,13 +36,10 @@ import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
-import { TodayInHistoryHub } from "./components/TodayInHistoryHub";
-import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
-import { WasmPerformanceOverlay } from "./components/WasmPerformanceOverlay";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -964,19 +961,15 @@ export default function App() {
         />
 
         {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
-        <TodayInHistoryHub
+        <TodayInHistoryBanner
           geoResult={geoResult}
           onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-          onOpenAiWorkspace={() => {
-            const aiTool = ALL_TOOLS.find((t) => t.id === "ai-chat" || t.id === "ai-summarize");
-            if (aiTool) handleSelectTool(aiTool);
-          }}
         />
 
-        {/* Section Replacement: Responsive, SEO-optimized, and AdSense-compliant Article Content Section */}
-        <PdfSunArticleSection
-          showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
-        />
+        {/* Placement 2: In-Content AdSense Banner (Between major PDF tool sections) */}
+        {adPlacements.some((p) => p.id === "incontent-grid-ad") && (
+          <AdSensePlaceholder slotId="pdfsun-auto-incontent-02" format="rectangle" />
+        )}
 
         {/* Supported File Formats */}
         <SupportedFormats />
@@ -1289,9 +1282,6 @@ export default function App() {
 
       {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
-
-      {/* Real-Time WebAssembly Heap & Leak Telemetry Overlay (Restricted to Authorized Admins/Owners only) */}
-      {canAccessAdmin && <WasmPerformanceOverlay />}
     </div>
   );
 }

@@ -10,7 +10,6 @@ export async function fetchDayInHistory(
   langCode: string = "en",
   countryCode: string = "IN"
 ): Promise<DayInHistoryData> {
-  const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dateKey = `${month}-${day}`;
@@ -21,7 +20,7 @@ export async function fetchDayInHistory(
     const timeoutId = setTimeout(() => controller.abort(), 3500);
 
     const res = await fetch(
-      `/api/history/today?month=${month}&day=${day}&year=${year}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}`,
+      `/api/history/today?month=${month}&day=${day}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);

@@ -29,15 +29,13 @@ historyRouter.get("/today", async (req, res) => {
   try {
     const rawMonth = parseInt(req.query.month as string, 10);
     const rawDay = parseInt(req.query.day as string, 10);
-    const rawYear = parseInt(req.query.year as string, 10);
     const now = new Date();
     const month = !isNaN(rawMonth) && rawMonth >= 1 && rawMonth <= 12 ? rawMonth : now.getMonth() + 1;
     const day = !isNaN(rawDay) && rawDay >= 1 && rawDay <= 31 ? rawDay : now.getDate();
-    const year = !isNaN(rawYear) && rawYear >= 1 && rawYear <= 2100 ? rawYear : now.getFullYear();
     const lang = (req.query.lang as string || "en").toLowerCase();
     const country = (req.query.country as string || "IN").toUpperCase();
 
-    const cacheKey = `${month}-${day}-${year}-${lang}-${country}`;
+    const cacheKey = `${month}-${day}-${lang}-${country}`;
     if (historyCache.has(cacheKey)) {
       return res.json(historyCache.get(cacheKey));
     }
@@ -54,12 +52,12 @@ historyRouter.get("/today", async (req, res) => {
     if (ai) {
       try {
         const prompt = `You are the core intelligence of "Today in History & Global Knowledge Hub".
-Generate authentic, factual historical events for the date: ${formattedDate} (${monthName} ${day}) with respect to year context: ${year}.
+Generate authentic, factual historical events for the date: ${formattedDate} (${monthName} ${day}).
 Target Country/Perspective: ${countryMeta.name} (Country Code: ${country}).
 Target Output Language: ${langMeta.name} (Native: ${langMeta.nativeName}, Code: ${lang}).
 
 Requirements:
-1. Provide 4-6 major historical milestones on ${formattedDate}. If events occurred in ${year} or related to ${countryMeta.name}, prioritize them; include other major world events as well.
+1. Provide 4-6 major historical milestones on ${formattedDate}. Prioritize events related to ${countryMeta.name} if any exist; include other major world events as well.
 2. Provide 2-3 famous birthdays on ${formattedDate}.
 3. Provide 1-2 scientific inventions or breakthroughs on or around ${formattedDate}.
 4. Provide 1 accurate daily trivia question with 4 options, 0-based correctIndex, and clear explanation in ${langMeta.name}.
@@ -77,32 +75,21 @@ Return ONLY valid JSON matching this schema:
   "quoteOfTheDay": {"quote": "...", "author": "...", "context": "..."}
 }`;
 
-        const generateWithFallback = async () => {
-          const candidateModels = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
-          for (const m of candidateModels) {
-            try {
-              const res = await ai.models.generateContent({
-                model: m,
-                contents: prompt,
-                config: {
-                  responseMimeType: "application/json",
-                  temperature: 0.2,
-                },
-              });
-              if (res) return res;
-            } catch (err: any) {
-              console.log(`[HistoryService] Model ${m} unavailable or busy, trying next option:`, err?.message || err);
-            }
-          }
-          return null;
-        };
+        const generatePromise = ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+          },
+        });
 
-        // 5500ms timeout race to prevent any network hangs
+        // 2500ms timeout race to prevent any network hangs or 503 delays
         const timeoutPromise = new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error("Gemini AI request timeout")), 5500)
+          setTimeout(() => reject(new Error("Gemini AI request timeout")), 2500)
         );
 
-        const response: any = await Promise.race([generateWithFallback(), timeoutPromise]);
+        const response: any = await Promise.race([generatePromise, timeoutPromise]);
 
         if (response && response.text) {
           const parsed = JSON.parse(response.text);

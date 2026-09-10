@@ -4,24 +4,16 @@ import JSZip from "jszip";
 import { createWorker } from "tesseract.js";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTable, TableRow, TableCell, WidthType, ImageRun } from "docx";
+import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTable, TableRow, TableCell, WidthType } from "docx";
 import PptxGenJS from "pptxgenjs";
 import * as pdfjsLib from "pdfjs-dist";
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
-import {
-  safeLoadPdfJsDocument,
-  safeRenderPdfPage,
-  releaseCanvasMemory,
-  PDFJS_ASSETS,
-} from "../utils/wasmPdfLifecycle";
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerSrc;
-  } catch {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerFallbackSrc;
-  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
+    pdfjsLib.version || "4.10.38"
+  }/pdf.worker.min.mjs`;
 }
 
 // Helper to read File as ArrayBuffer
@@ -560,7 +552,7 @@ export async function flattenPdf(
 
   // MODE B: High-Security Rasterization (Converts pages to 150/300 DPI canvas images, locking editing completely)
   const arrayBuffer = await fileToArrayBuffer(file);
-  const { pdf: pdfJsDoc, cleanup: cleanupPdfJs } = await safeLoadPdfJsDocument(arrayBuffer);
+  const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdfJsDoc.numPages;
 
   let targetIndices: number[] = [];
@@ -576,55 +568,45 @@ export async function flattenPdf(
   // 150 DPI = scale ~2.0833, 300 DPI = scale ~4.1666
   const scale = dpi === 300 ? 4.1666 : 2.0833;
 
-  try {
-    for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-      const origPage = pdfDoc.getPage(pageIdx);
-      const { width: origWidth, height: origHeight } = origPage.getSize();
+  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    const origPage = pdfDoc.getPage(pageIdx);
+    const { width: origWidth, height: origHeight } = origPage.getSize();
 
-      if (targetIndices.includes(pageIdx)) {
-        const page = await pdfJsDoc.getPage(pageIdx + 1);
-        const viewport = page.getViewport({ scale });
+    if (targetIndices.includes(pageIdx)) {
+      const page = await pdfJsDoc.getPage(pageIdx + 1);
+      const viewport = page.getViewport({ scale });
 
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d");
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d");
 
-        if (ctx) {
-          try {
-            await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-            const quality = dpi === 300 ? 0.92 : 0.88;
-            const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
-            const jpegImgBytes = await fetch(jpegDataUrl).then((r) => r.arrayBuffer());
-            const embeddedImg = await flattenedDoc.embedJpg(jpegImgBytes);
+      if (ctx) {
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+        const quality = dpi === 300 ? 0.92 : 0.88;
+        const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
+        const jpegImgBytes = await fetch(jpegDataUrl).then((r) => r.arrayBuffer());
+        const embeddedImg = await flattenedDoc.embedJpg(jpegImgBytes);
 
-            const newPage = flattenedDoc.addPage([origWidth, origHeight]);
-            newPage.drawImage(embeddedImg, {
-              x: 0,
-              y: 0,
-              width: origWidth,
-              height: origHeight,
-            });
-          } finally {
-            page.cleanup?.();
-            releaseCanvasMemory(canvas);
-          }
-        } else {
-          page.cleanup?.();
-          const [copied] = await flattenedDoc.copyPages(pdfDoc, [pageIdx]);
-          flattenedDoc.addPage(copied);
-        }
+        const newPage = flattenedDoc.addPage([origWidth, origHeight]);
+        newPage.drawImage(embeddedImg, {
+          x: 0,
+          y: 0,
+          width: origWidth,
+          height: origHeight,
+        });
       } else {
         const [copied] = await flattenedDoc.copyPages(pdfDoc, [pageIdx]);
         flattenedDoc.addPage(copied);
       }
-
-      if (onProgress) {
-        onProgress(10 + Math.round(((pageIdx + 1) / totalPages) * 80));
-      }
+    } else {
+      const [copied] = await flattenedDoc.copyPages(pdfDoc, [pageIdx]);
+      flattenedDoc.addPage(copied);
     }
-  } finally {
-    await cleanupPdfJs();
+
+    if (onProgress) {
+      onProgress(10 + Math.round(((pageIdx + 1) / totalPages) * 80));
+    }
   }
 
   if (onProgress) onProgress(95);
@@ -679,248 +661,40 @@ export function textToPdf(text: string, title: string = "Document"): Uint8Array 
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-/**
- * Detects whether a PDF file contains a readable vector/digital text layer,
- * or is an image-only / scanned document.
- */
-export async function detectPdfTextPresence(file: File): Promise<{
-  hasVectorText: boolean;
-  characterCount: number;
-  pageCount: number;
-  isScanned: boolean;
-}> {
-  try {
-    const arrayBuffer = await fileToArrayBuffer(file);
-    const { pdf, cleanup } = await safeLoadPdfJsDocument(arrayBuffer);
-    let totalChars = 0;
-    const pageCount = pdf.numPages;
-
-    try {
-      const samplePages = Math.min(pageCount, 5);
-      for (let i = 1; i <= samplePages; i++) {
-        const page = await pdf.getPage(i);
-        try {
-          const textContent = await page.getTextContent();
-          const str = textContent.items.map((it: any) => it.str).join("");
-          totalChars += str.trim().length;
-        } finally {
-          page.cleanup?.();
-        }
-      }
-    } finally {
-      await cleanup();
-    }
-
-    const hasVectorText = totalChars > 25;
-    return {
-      hasVectorText,
-      characterCount: totalChars,
-      pageCount,
-      isScanned: !hasVectorText,
-    };
-  } catch (err) {
-    return {
-      hasVectorText: false,
-      characterCount: 0,
-      pageCount: 1,
-      isScanned: true,
-    };
-  }
-}
-
-/**
- * Safely renders a PDF.js page onto an offscreen canvas and returns high-res image data
- */
-export async function renderPageToImageBlob(
-  page: any,
-  scale: number = 1.5
-): Promise<{ dataUrl: string; uint8Array: Uint8Array; width: number; height: number }> {
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.floor(viewport.width);
-  canvas.height = Math.floor(viewport.height);
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Failed to acquire 2D canvas context for page rendering.");
-  }
-
-  await safeRenderPdfPage(page, {
-    canvasContext: context,
-    viewport,
-    canvas,
-  });
-
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
-  const base64 = dataUrl.split(",")[1];
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const uint8 = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    uint8[i] = binaryString.charCodeAt(i);
-  }
-
-  const width = canvas.width;
-  const height = canvas.height;
-  releaseCanvasMemory(canvas);
-
-  return { dataUrl, uint8Array: uint8, width, height };
-}
-
-/**
- * Auto-OCR Pipeline for Scanned / Image PDFs
- * Automatically triggers OCR when digital text is absent, routing through
- * Gemini Vision OCR with seamless client-side Tesseract.js fallback.
- */
-export async function autoOcrPdfFile(
-  file: File,
-  onProgress?: (percent: number, status?: string) => void
-): Promise<string> {
-  if (onProgress) onProgress(20, "Scanned document detected. Initializing Auto-OCR pipeline...");
-  let fullOcrText = "";
-
-  try {
-    const arrayBuffer = await fileToArrayBuffer(file);
-    const { pdf, cleanup } = await safeLoadPdfJsDocument(arrayBuffer);
-    const numPages = pdf.numPages;
-
-    try {
-      for (let i = 1; i <= numPages; i++) {
-        if (onProgress) {
-          const pct = Math.min(85, Math.round(20 + ((i - 1) / numPages) * 65));
-          onProgress(pct, `Running Auto-OCR on page ${i} of ${numPages}...`);
-        }
-
-        const page = await pdf.getPage(i);
-        let pageText = "";
-
-        try {
-          if (typeof document !== "undefined") {
-            const { dataUrl, uint8Array } = await renderPageToImageBlob(page, 1.5);
-            const base64Data = dataUrl.split(",")[1];
-
-            // 1. Try Gemini Vision OCR backend
-            try {
-              const res = await fetch("/api/ai/ocr", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ imageBase64: base64Data, mimeType: "image/jpeg" }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                if (data.result && data.result.trim().length > 0) {
-                  pageText = data.result.trim();
-                }
-              }
-            } catch (err) {
-              console.warn(`[Auto-OCR] Page ${i} API OCR warning, falling back to local engine:`, err);
-            }
-
-            // 2. Client-side local Tesseract OCR fallback
-            if (!pageText) {
-              try {
-                const pageBlob = new Blob([uint8Array], { type: "image/jpeg" });
-                const pageImgFile = new File([pageBlob], `page_${i}.jpg`, { type: "image/jpeg" });
-                pageText = await ocrImageToText(pageImgFile);
-              } catch (tessErr) {
-                console.warn(`[Auto-OCR] Page ${i} Tesseract engine fallback warning:`, tessErr);
-              }
-            }
-          }
-        } finally {
-          page.cleanup?.();
-        }
-
-        const clean = pageText ? sanitizeOcrText(pageText) : "";
-        if (clean.trim()) {
-          fullOcrText += `--- Page ${i} (Auto-OCR) ---\n${clean}\n\n`;
-        } else {
-          fullOcrText += `--- Page ${i} (Scanned Image) ---\n[Visual Layout Preserved]\n\n`;
-        }
-      }
-    } finally {
-      await cleanup();
-    }
-  } catch (err) {
-    console.warn("[Auto-OCR] PDF page rendering notice, attempting direct document-level OCR:", err);
-    try {
-      const dataUrl = await fileToDataURL(file);
-      const base64 = dataUrl.split(",")[1];
-      const res = await fetch("/api/ai/ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: file.type || "application/pdf" }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.result) return data.result;
-      }
-    } catch {}
-  }
-
-  return fullOcrText.trim() || `--- Document: ${file.name} (Scanned) ---\n[Document visual layout preserved]\n`;
-}
-
-// 11. Extract raw text from File using pdfjsLib with Auto-OCR fallback
-export async function extractTextFromPdfFile(
-  file: File,
-  onProgress?: (percent: number, status?: string) => void
-): Promise<string> {
+// 11. Extract raw text from File using pdfjsLib
+export async function extractTextFromPdfFile(file: File): Promise<string> {
   if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".xml")) {
     return await fileToText(file);
   }
 
   try {
     const arrayBuffer = await fileToArrayBuffer(file);
-    const { pdf, cleanup } = await safeLoadPdfJsDocument(arrayBuffer);
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     let fullText = "";
 
-    try {
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        try {
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(" ");
-          if (pageText.trim()) {
-            fullText += `--- Page ${i} ---\n${pageText}\n\n`;
-          }
-        } finally {
-          page.cleanup?.();
-        }
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(" ");
+      if (pageText.trim()) {
+        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
       }
-    } finally {
-      await cleanup();
     }
 
-    // AUTOMATIC TEXT DETECTION & AUTO-OCR ROUTING
-    // If readable text content is missing (0 characters found), DO NOT throw an error or crash.
-    // Automatically route the file through OCR pipeline without interrupting the user.
-    if (!fullText.trim() || fullText.trim().length < 20) {
-      if (onProgress) onProgress(30, "Scanned document detected. Auto-routing through OCR engine...");
-      try {
-        const ocrText = await autoOcrPdfFile(file, onProgress);
-        if (ocrText && ocrText.trim().length > 0) {
-          return ocrText;
-        }
-      } catch (ocrErr) {
-        console.warn("[extractTextFromPdfFile] Auto-OCR fallback notice:", ocrErr);
-      }
-
-      return `--- Document: ${file.name} (Scanned Document) ---\n[Scanned document content layout-preserved]\n`;
+    if (!fullText.trim()) {
+      throw new Error(`No readable text content found in "${file.name}". If this is a scanned document, please use the OCR tool.`);
     }
 
     return fullText.trim();
   } catch (err: any) {
-    console.warn("PDF vector text extraction fallback, engaging auto-OCR:", err);
-    try {
-      const ocrFallback = await autoOcrPdfFile(file, onProgress);
-      if (ocrFallback.trim().length > 0) {
-        return ocrFallback;
-      }
-    } catch {}
-
-    return `--- Document: ${file.name} ---\n[Scanned document content preserved]`;
+    if (err.message && err.message.includes("No readable text content found")) {
+      throw err;
+    }
+    console.error("PDF text extraction error:", err);
+    throw new Error(`Failed to extract text from "${file.name}": ${err?.message || "Invalid or unreadable PDF"}`);
   }
 }
 
@@ -1062,27 +836,16 @@ export async function ocrImageToText(
   file: File,
   onStatus?: (status: string, progress: number) => void
 ): Promise<string> {
-  let worker: any = null;
-  try {
-    worker = await createWorker("eng");
-    const dataUrl = await fileToDataURL(file);
+  const worker = await createWorker("eng");
+  const dataUrl = await fileToDataURL(file);
 
-    if (onStatus) onStatus("Initializing OCR engine...", 20);
+  if (onStatus) onStatus("Initializing OCR engine...", 20);
 
-    const ret = await worker.recognize(dataUrl);
-    if (onStatus) onStatus("Text extraction complete", 100);
+  const ret = await worker.recognize(dataUrl);
+  if (onStatus) onStatus("Text extraction complete", 100);
 
-    return ret?.data?.text || "No legible text found in image.";
-  } catch (err) {
-    console.warn("OCR engine warning, utilizing fallback text extraction:", err);
-    return "Extracted image content.";
-  } finally {
-    if (worker) {
-      try {
-        await worker.terminate();
-      } catch {}
-    }
-  }
+  await worker.terminate();
+  return ret.data.text || "No legible text found in image.";
 }
 
 // 13. Create ZIP package for Batch tools
@@ -1121,46 +884,17 @@ export function ensureValidFilename(fileName: string, mimeType: string = "applic
   return cleanName;
 }
 
-/**
- * Helper to convert tabular text lines into a formatted Word Table
- */
-export function createDocxTableFromLines(tableLines: string[]): DocxTable {
-  const rows: TableRow[] = [];
-  for (const line of tableLines) {
-    const cells = line.split(/\t+|\||\s{2,}/).map((c) => c.trim()).filter(Boolean);
-    if (cells.length > 0) {
-      rows.push(
-        new TableRow({
-          children: cells.map(
-            (cellText) =>
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [new TextRun({ text: cellText, size: 20 })],
-                  }),
-                ],
-                width: { size: Math.floor(100 / Math.max(1, cells.length)), type: WidthType.PERCENTAGE },
-              })
-          ),
-        })
-      );
-    }
-  }
-  return new DocxTable({
-    rows,
-    width: { size: 100, type: WidthType.PERCENTAGE },
-  });
-}
-
-// 14. Real PDF to Word (.docx) Converter - Dual Engine Architecture (Standard & Auto-OCR)
+// 14. Real PDF to Word (.docx) Converter using docx package
 export async function pdfToWordDocx(
   file: File,
-  onProgress?: (percent: number, status?: string) => void
+  onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(10, "Analyzing document text layer and structure...");
+  if (onProgress) onProgress(20);
+  const textContent = await extractTextFromPdfFile(file);
+  if (onProgress) onProgress(50);
 
-  const textPresence = await detectPdfTextPresence(file);
-  const docParagraphs: any[] = [];
+  const lines = textContent.split("\n").map((line) => line.trim()).filter(Boolean);
+  const docParagraphs: Paragraph[] = [];
 
   // Title
   docParagraphs.push(
@@ -1176,233 +910,32 @@ export async function pdfToWordDocx(
     })
   );
 
-  // DUAL ENGINE MODE
-  // MODE 1: Standard Mode (Native vector text PDF)
-  if (textPresence.hasVectorText) {
-    if (onProgress) onProgress(30, "Standard Engine: Extracting native typography and vector layout...");
-    const textContent = await extractTextFromPdfFile(file, onProgress);
-    if (onProgress) onProgress(60, "Structuring paragraphs, headings, and tables...");
-
-    const lines = textContent.split("\n").map((l) => l.trim()).filter(Boolean);
-    let tableBuffer: string[] = [];
-
-    const flushTable = () => {
-      if (tableBuffer.length > 0) {
-        docParagraphs.push(createDocxTableFromLines(tableBuffer));
-        tableBuffer = [];
-      }
-    };
-
-    for (const line of lines) {
-      // Check if line represents a tabular structure (tabs, pipes, or 2+ consecutive spaces with multiple items)
-      const isTabular = (line.includes("\t") || line.includes("|") || /\S\s{2,}\S/.test(line)) && !line.startsWith("---");
-      if (isTabular) {
-        tableBuffer.push(line);
-        continue;
-      } else {
-        flushTable();
-      }
-
-      if (line.startsWith("--- PAGE") || line.startsWith("Document:") || line.startsWith("--- Page")) {
-        docParagraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: line,
-                bold: true,
-                color: "1E40AF",
-                size: 24,
-              }),
-            ],
-            spacing: { before: 200, after: 100 },
-          })
-        );
-      } else {
-        docParagraphs.push(
-          new Paragraph({
-            children: [new TextRun({ text: line, size: 22 })],
-            spacing: { after: 120 },
-          })
-        );
-      }
-    }
-    flushTable();
-  }
-  // MODE 2: Auto-OCR Mode (Scanned / Image-only PDF)
-  else {
-    if (onProgress) onProgress(20, "Scanned document detected. Engaging Auto-OCR & High-Fidelity Layout Engine...");
-
-    try {
-      const arrayBuffer = await fileToArrayBuffer(file);
-      const { pdf, cleanup } = await safeLoadPdfJsDocument(arrayBuffer);
-      const totalPages = pdf.numPages;
-
-      try {
-        for (let i = 1; i <= totalPages; i++) {
-          if (onProgress) {
-            const pct = Math.min(85, Math.round(20 + ((i - 1) / totalPages) * 65));
-            onProgress(pct, `Auto-OCR & Layout Processing Page ${i} of ${totalPages}...`);
-          }
-
-          const page = await pdf.getPage(i);
-          let pageText = "";
-          let pageImageUint8: Uint8Array | null = null;
-          let imgWidth = 580;
-          let imgHeight = 780;
-
-          try {
-            if (typeof document !== "undefined") {
-              const rendered = await renderPageToImageBlob(page, 1.5);
-              pageImageUint8 = rendered.uint8Array;
-              const ratio = rendered.height / Math.max(1, rendered.width);
-              imgWidth = 580;
-              imgHeight = Math.min(780, Math.round(imgWidth * ratio));
-
-              const base64Data = rendered.dataUrl.split(",")[1];
-
-              // 1. Try Gemini Vision OCR
-              try {
-                const res = await fetch("/api/ai/ocr", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ imageBase64: base64Data, mimeType: "image/jpeg" }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.result && data.result.trim().length > 0) {
-                    pageText = data.result.trim();
-                  }
-                }
-              } catch (apiErr) {
-                console.warn(`[pdfToWordDocx] Page ${i} API OCR notice:`, apiErr);
-              }
-
-              // 2. Local Tesseract OCR fallback
-              if (!pageText) {
-                try {
-                  const pageBlob = new Blob([pageImageUint8], { type: "image/jpeg" });
-                  const pageImgFile = new File([pageBlob], `page_${i}.jpg`, { type: "image/jpeg" });
-                  pageText = await ocrImageToText(pageImgFile);
-                } catch (tessErr) {
-                  console.warn(`[pdfToWordDocx] Page ${i} Tesseract fallback notice:`, tessErr);
-                }
-              }
-            }
-          } finally {
-            page.cleanup?.();
-          }
-
-          // Page Section Header
-          docParagraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `--- Page ${i} of ${totalPages} (Auto-OCR & Layout Preserved) ---`,
-                  bold: true,
-                  color: "1E40AF",
-                  size: 24,
-                }),
-              ],
-              spacing: { before: 240, after: 120 },
-            })
-          );
-
-          // Embed High-Resolution Layout-Preserved Page Image
-          if (pageImageUint8 && pageImageUint8.length > 0) {
-            try {
-              docParagraphs.push(
-                new Paragraph({
-                  children: [
-                    new ImageRun({
-                      data: pageImageUint8,
-                      transformation: {
-                        width: imgWidth,
-                        height: imgHeight,
-                      },
-                      type: "jpg",
-                    }),
-                  ],
-                  spacing: { after: 160 },
-                })
-              );
-            } catch (imgErr) {
-              console.warn(`[pdfToWordDocx] Embed page image ${i} note:`, imgErr);
-            }
-          }
-
-          // Append Editable Structured OCR Text
-          const cleanOcr = sanitizeOcrText(pageText || "");
-          if (cleanOcr.trim()) {
-            docParagraphs.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Editable Content (Page ${i}):`,
-                    bold: true,
-                    size: 20,
-                    color: "475569",
-                  }),
-                ],
-                spacing: { before: 100, after: 80 },
-              })
-            );
-
-            const ocrLines = cleanOcr.split("\n").map((l) => l.trim()).filter(Boolean);
-            let tableBuffer: string[] = [];
-            const flushOcrTable = () => {
-              if (tableBuffer.length > 0) {
-                docParagraphs.push(createDocxTableFromLines(tableBuffer));
-                tableBuffer = [];
-              }
-            };
-
-            for (const ocrLine of ocrLines) {
-              const isTabular = (ocrLine.includes("\t") || ocrLine.includes("|") || /\S\s{2,}\S/.test(ocrLine)) && !ocrLine.startsWith("---");
-              if (isTabular) {
-                tableBuffer.push(ocrLine);
-              } else {
-                flushOcrTable();
-                docParagraphs.push(
-                  new Paragraph({
-                    children: [new TextRun({ text: ocrLine, size: 22 })],
-                    spacing: { after: 100 },
-                  })
-                );
-              }
-            }
-            flushOcrTable();
-          } else {
-            // Fallback Graceful Degradation: layout image was embedded with editable note
-            docParagraphs.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `[Visual scanned page content layout-preserved above]`,
-                    italics: true,
-                    size: 20,
-                    color: "64748B",
-                  }),
-                ],
-                spacing: { after: 120 },
-              })
-            );
-          }
-        }
-      } finally {
-        await cleanup();
-      }
-    } catch (scannedErr) {
-      console.warn("[pdfToWordDocx] Fallback layout conversion for scanned doc:", scannedErr);
-      const textContent = await extractTextFromPdfFile(file, onProgress);
+  // Body content lines
+  for (const line of lines) {
+    if (line.startsWith("--- PAGE") || line.startsWith("Document:")) {
       docParagraphs.push(
         new Paragraph({
-          children: [new TextRun({ text: textContent || `Document content for ${file.name}`, size: 22 })],
+          children: [
+            new TextRun({
+              text: line,
+              bold: true,
+              color: "1E40AF",
+              size: 24,
+            }),
+          ],
+          spacing: { before: 200, after: 100 },
+        })
+      );
+    } else {
+      docParagraphs.push(
+        new Paragraph({
+          children: [new TextRun({ text: line, size: 22 })],
+          spacing: { after: 120 },
         })
       );
     }
   }
 
-  if (onProgress) onProgress(90, "Compiling and packaging Microsoft Word (.docx) document...");
   const docxDoc = new DocxDocument({
     sections: [
       {
@@ -1412,10 +945,10 @@ export async function pdfToWordDocx(
     ],
   });
 
-  if (onProgress) onProgress(95, "Packaging Word document stream...");
+  if (onProgress) onProgress(80);
   const blob = await Packer.toBlob(docxDoc);
   const arrayBuffer = await blob.arrayBuffer();
-  if (onProgress) onProgress(100, "Conversion complete!");
+  if (onProgress) onProgress(100);
   return new Uint8Array(arrayBuffer);
 }
 
@@ -1581,7 +1114,7 @@ export async function pdfToPowerPointPptx(
 
   if (onProgress) onProgress(10);
   const arrayBuffer = await fileToArrayBuffer(file);
-  const { pdf, cleanup: cleanupPdf } = await safeLoadPdfJsDocument(arrayBuffer);
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdf.numPages;
 
   let targetIndices: number[] = [];
@@ -1599,40 +1132,29 @@ export async function pdfToPowerPointPptx(
     pptx.layout = "LAYOUT_16x9";
   }
 
-  try {
-    for (let idx = 0; idx < targetIndices.length; idx++) {
-      const pageNum = targetIndices[idx] + 1;
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d");
+  for (let idx = 0; idx < targetIndices.length; idx++) {
+    const pageNum = targetIndices[idx] + 1;
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
 
-      if (ctx) {
-        try {
-          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-          const imgDataUrl = canvas.toDataURL("image/png");
-          const slide = pptx.addSlide();
-          slide.addImage({
-            data: imgDataUrl,
-            x: 0,
-            y: 0,
-            w: "100%",
-            h: "100%",
-          });
-        } finally {
-          page.cleanup?.();
-          releaseCanvasMemory(canvas);
-        }
-      } else {
-        page.cleanup?.();
-      }
-
-      if (onProgress) onProgress(10 + Math.round(((idx + 1) / targetIndices.length) * 75));
+    if (ctx) {
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      const imgDataUrl = canvas.toDataURL("image/png");
+      const slide = pptx.addSlide();
+      slide.addImage({
+        data: imgDataUrl,
+        x: 0,
+        y: 0,
+        w: "100%",
+        h: "100%",
+      });
     }
-  } finally {
-    await cleanupPdf();
+
+    if (onProgress) onProgress(10 + Math.round(((idx + 1) / targetIndices.length) * 75));
   }
 
   if (onProgress) onProgress(90);
@@ -1649,40 +1171,29 @@ export async function pdfToImagesZip(
 ): Promise<Blob> {
   if (onProgress) onProgress(10);
   const arrayBuffer = await fileToArrayBuffer(file);
-  const { pdf, cleanup: cleanupPdf } = await safeLoadPdfJsDocument(arrayBuffer);
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const pageCount = pdf.numPages;
   const zip = new JSZip();
 
   const baseName = file.name.replace(/\.[^/.]+$/, "");
 
-  try {
-    for (let i = 1; i <= pageCount; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d");
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
 
-      if (ctx) {
-        try {
-          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-          const mimeType = format === "png" ? "image/png" : "image/jpeg";
-          const dataUrl = canvas.toDataURL(mimeType, 0.92);
-          const base64Data = dataUrl.split(",")[1];
-          zip.file(`${baseName}_page_${i}.${format}`, base64Data, { base64: true });
-        } finally {
-          page.cleanup?.();
-          releaseCanvasMemory(canvas);
-        }
-      } else {
-        page.cleanup?.();
-      }
-
-      if (onProgress) onProgress(10 + Math.round((i / pageCount) * 85));
+    if (ctx) {
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      const mimeType = format === "png" ? "image/png" : "image/jpeg";
+      const dataUrl = canvas.toDataURL(mimeType, 0.92);
+      const base64Data = dataUrl.split(",")[1];
+      zip.file(`${baseName}_page_${i}.${format}`, base64Data, { base64: true });
     }
-  } finally {
-    await cleanupPdf();
+
+    if (onProgress) onProgress(10 + Math.round((i / pageCount) * 85));
   }
 
   const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -1983,95 +1494,85 @@ export async function removeWatermarkFromPdf(
   if (method === "color" || (method === "combined" && opts.targetColorRgb)) {
     if (onProgress) onProgress(20);
 
-    const { pdf: pdfJsDoc, cleanup: cleanupPdfJs } = await safeLoadPdfJsDocument(arrayBuffer);
+    const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const cleanPdfDoc = await PDFDocument.create();
 
     const maxDist = (colorTolerance / 100) * 441.67; // max distance in RGB space (sqrt(255^2*3) = 441.67)
 
-    try {
-      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-        const origPage = pdfDoc.getPage(pageIdx);
-        const { width: origWidth, height: origHeight } = origPage.getSize();
+    for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+      const origPage = pdfDoc.getPage(pageIdx);
+      const { width: origWidth, height: origHeight } = origPage.getSize();
 
-        if (targetIndices.includes(pageIdx)) {
-          const page = await pdfJsDoc.getPage(pageIdx + 1);
-          const viewport = page.getViewport({ scale: 2.0 });
+      if (targetIndices.includes(pageIdx)) {
+        const page = await pdfJsDoc.getPage(pageIdx + 1);
+        const viewport = page.getViewport({ scale: 2.0 });
 
-          const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d");
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d");
 
-          if (ctx) {
-            try {
-              await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-              const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              const data = imgData.data;
+        if (ctx) {
+          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
 
-              for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
 
-                const dist = Math.sqrt(
-                  (r - targetRgb.r) ** 2 +
-                  (g - targetRgb.g) ** 2 +
-                  (b - targetRgb.b) ** 2
-                );
+            const dist = Math.sqrt(
+              (r - targetRgb.r) ** 2 +
+              (g - targetRgb.g) ** 2 +
+              (b - targetRgb.b) ** 2
+            );
 
-                if (dist <= maxDist) {
-                  // Convert matching watermark pixel to pure white
-                  data[i] = 255;
-                  data[i + 1] = 255;
-                  data[i + 2] = 255;
-                }
-              }
-
-              ctx.putImageData(imgData, 0, 0);
-
-              // If manual area box is also supplied in combined mode, apply white fill mask
-              if (opts.areaBox) {
-                const { xPercent, yPercent, widthPercent, heightPercent } = opts.areaBox;
-                const maskX = (xPercent / 100) * canvas.width;
-                const maskY = (yPercent / 100) * canvas.height;
-                const maskW = (widthPercent / 100) * canvas.width;
-                const maskH = (heightPercent / 100) * canvas.height;
-
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(maskX, maskY, maskW, maskH);
-              }
-
-              const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-              const jpegImgBytes = await fetch(jpegDataUrl).then((r) => r.arrayBuffer());
-              const embeddedImg = await cleanPdfDoc.embedJpg(jpegImgBytes);
-
-              const newPage = cleanPdfDoc.addPage([origWidth, origHeight]);
-              newPage.drawImage(embeddedImg, {
-                x: 0,
-                y: 0,
-                width: origWidth,
-                height: origHeight,
-              });
-            } finally {
-              page.cleanup?.();
-              releaseCanvasMemory(canvas);
+            if (dist <= maxDist) {
+              // Convert matching watermark pixel to pure white
+              data[i] = 255;
+              data[i + 1] = 255;
+              data[i + 2] = 255;
             }
-          } else {
-            page.cleanup?.();
-            const [copied] = await cleanPdfDoc.copyPages(pdfDoc, [pageIdx]);
-            cleanPdfDoc.addPage(copied);
           }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          // If manual area box is also supplied in combined mode, apply white fill mask
+          if (opts.areaBox) {
+            const { xPercent, yPercent, widthPercent, heightPercent } = opts.areaBox;
+            const maskX = (xPercent / 100) * canvas.width;
+            const maskY = (yPercent / 100) * canvas.height;
+            const maskW = (widthPercent / 100) * canvas.width;
+            const maskH = (heightPercent / 100) * canvas.height;
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(maskX, maskY, maskW, maskH);
+          }
+
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+          const jpegImgBytes = await fetch(jpegDataUrl).then((r) => r.arrayBuffer());
+          const embeddedImg = await cleanPdfDoc.embedJpg(jpegImgBytes);
+
+          const newPage = cleanPdfDoc.addPage([origWidth, origHeight]);
+          newPage.drawImage(embeddedImg, {
+            x: 0,
+            y: 0,
+            width: origWidth,
+            height: origHeight,
+          });
         } else {
           const [copied] = await cleanPdfDoc.copyPages(pdfDoc, [pageIdx]);
           cleanPdfDoc.addPage(copied);
         }
-
-        if (onProgress) {
-          onProgress(20 + Math.round(((pageIdx + 1) / totalPages) * 70));
-        }
+      } else {
+        const [copied] = await cleanPdfDoc.copyPages(pdfDoc, [pageIdx]);
+        cleanPdfDoc.addPage(copied);
       }
-    } finally {
-      await cleanupPdfJs();
+
+      if (onProgress) {
+        onProgress(20 + Math.round(((pageIdx + 1) / totalPages) * 70));
+      }
     }
 
     const cleanBytes = await cleanPdfDoc.save();
@@ -2610,93 +2111,84 @@ export async function generateDocumentThumbnail(file: File, maxDim = 320): Promi
   if (file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf")) {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const { pdf, cleanup } = await safeLoadPdfJsDocument(arrayBuffer);
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+      const pdf = await loadingTask.promise;
+      const pageCount = pdf.numPages;
 
+      let title = "";
+      let author = "";
+      let creator = "";
+      let producer = "";
+      let version = "1.7";
       try {
-        const pageCount = pdf.numPages;
-
-        let title = "";
-        let author = "";
-        let creator = "";
-        let producer = "";
-        let version = "1.7";
-        try {
-          const meta = await pdf.getMetadata();
-          if (meta?.info) {
-            const info = meta.info as any;
-            title = info.Title || "";
-            author = info.Author || "";
-            creator = info.Creator || "";
-            producer = info.Producer || "";
-            if (info.PDFFormatVersion) version = info.PDFFormatVersion;
-          }
-        } catch {
-          // ignore metadata reading errors
+        const meta = await pdf.getMetadata();
+        if (meta?.info) {
+          const info = meta.info as any;
+          title = info.Title || "";
+          author = info.Author || "";
+          creator = info.Creator || "";
+          producer = info.Producer || "";
+          if (info.PDFFormatVersion) version = info.PDFFormatVersion;
         }
+      } catch {
+        // ignore metadata reading errors
+      }
 
-        const page = await pdf.getPage(1);
-        try {
-          const originalViewport = page.getViewport({ scale: 1.0 });
-          const ptWidth = Math.round(originalViewport.width);
-          const ptHeight = Math.round(originalViewport.height);
+      const page = await pdf.getPage(1);
+      const originalViewport = page.getViewport({ scale: 1.0 });
+      const ptWidth = Math.round(originalViewport.width);
+      const ptHeight = Math.round(originalViewport.height);
 
-          // Determine standard paper size name
-          let pageSizeName = `${ptWidth}×${ptHeight} pt`;
-          if (
-            (ptWidth >= 590 && ptWidth <= 600 && ptHeight >= 835 && ptHeight <= 845) ||
-            (ptHeight >= 590 && ptHeight <= 600 && ptWidth >= 835 && ptWidth <= 845)
-          ) {
-            pageSizeName = "A4 (210×297 mm)";
-          } else if (
-            (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 785 && ptHeight <= 800) ||
-            (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 785 && ptWidth <= 800)
-          ) {
-            pageSizeName = "US Letter (8.5×11 in)";
-          } else if (
-            (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 1000 && ptHeight <= 1015) ||
-            (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 1000 && ptWidth <= 1015)
-          ) {
-            pageSizeName = "US Legal (8.5×14 in)";
-          }
+      // Determine standard paper size name
+      let pageSizeName = `${ptWidth}×${ptHeight} pt`;
+      if (
+        (ptWidth >= 590 && ptWidth <= 600 && ptHeight >= 835 && ptHeight <= 845) ||
+        (ptHeight >= 590 && ptHeight <= 600 && ptWidth >= 835 && ptWidth <= 845)
+      ) {
+        pageSizeName = "A4 (210×297 mm)";
+      } else if (
+        (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 785 && ptHeight <= 800) ||
+        (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 785 && ptWidth <= 800)
+      ) {
+        pageSizeName = "US Letter (8.5×11 in)";
+      } else if (
+        (ptWidth >= 605 && ptWidth <= 620 && ptHeight >= 1000 && ptHeight <= 1015) ||
+        (ptHeight >= 605 && ptHeight <= 620 && ptWidth >= 1000 && ptWidth <= 1015)
+      ) {
+        pageSizeName = "US Legal (8.5×14 in)";
+      }
 
-          const scale = Math.min(maxDim / originalViewport.width, maxDim / originalViewport.height, 1.2);
-          const viewport = page.getViewport({ scale });
+      const scale = Math.min(maxDim / originalViewport.width, maxDim / originalViewport.height, 1.2);
+      const viewport = page.getViewport({ scale });
 
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(viewport.width));
-          canvas.height = Math.max(1, Math.round(viewport.height));
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(viewport.width));
+      canvas.height = Math.max(1, Math.round(viewport.height));
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            await page.render({
-              canvasContext: ctx,
-              viewport,
-              canvas,
-            }).promise;
+        await page.render({
+          canvasContext: ctx,
+          viewport,
+          canvas,
+        }).promise;
 
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-            releaseCanvasMemory(canvas);
-            return {
-              thumbnailUrl: dataUrl,
-              pageCount,
-              width: ptWidth,
-              height: ptHeight,
-              pageSizeName,
-              title: title || undefined,
-              author: author || undefined,
-              creator: creator || undefined,
-              producer: producer || undefined,
-              isEncrypted: false,
-              version,
-            };
-          }
-        } finally {
-          page.cleanup?.();
-        }
-      } finally {
-        await cleanup();
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+        return {
+          thumbnailUrl: dataUrl,
+          pageCount,
+          width: ptWidth,
+          height: ptHeight,
+          pageSizeName,
+          title: title || undefined,
+          author: author || undefined,
+          creator: creator || undefined,
+          producer: producer || undefined,
+          isEncrypted: false,
+          version,
+        };
       }
     } catch (err) {
       console.warn("Failed to generate PDF thumbnail preview:", err);

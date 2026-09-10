@@ -14,15 +14,12 @@ import {
   Maximize2,
   Lock,
 } from "lucide-react";
-import { PDFJS_ASSETS } from "../utils/wasmPdfLifecycle";
 
 // Ensure PDF.js worker is registered
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerSrc;
-  } catch {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_ASSETS.workerFallbackSrc;
-  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
+    pdfjsLib.version || "4.10.38"
+  }/pdf.worker.min.mjs`;
 }
 
 export interface PdfDocumentMeta {
@@ -183,9 +180,6 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
 
         await renderTask.promise;
         renderTaskRef.current = null;
-        try {
-          page.cleanup?.();
-        } catch {}
         setIsLoading(false);
       } catch (err: any) {
         if (err?.name === "RenderingCancelledException") {
@@ -267,9 +261,8 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
 
         const loadingTask = pdfjsLib.getDocument({
           data: bufferData.slice(0),
-          cMapUrl: PDFJS_ASSETS.cMapUrl,
-          cMapPacked: PDFJS_ASSETS.cMapPacked,
-          standardFontDataUrl: PDFJS_ASSETS.standardFontDataUrl,
+          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/cmaps/",
+          cMapPacked: true,
         });
 
         loadingTask.onPassword = () => {
@@ -278,11 +271,7 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
         };
 
         const pdfDoc = await loadingTask.promise;
-        if (isCancelled) {
-          pdfDoc.cleanup?.();
-          (pdfDoc as any).destroy?.();
-          return;
-        }
+        if (isCancelled) return;
 
         pdfDocRef.current = pdfDoc;
         const total = pdfDoc.numPages;
@@ -314,9 +303,6 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
         const ptWidth = Math.round(originalViewport.width);
         const ptHeight = Math.round(originalViewport.height);
         const sizeName = getPaperSizeName(ptWidth, ptHeight);
-        try {
-          firstPage.cleanup?.();
-        } catch {}
 
         const summary: PdfDocumentMeta = {
           pageCount: total,
@@ -352,13 +338,6 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
         } catch {
           // ignore
         }
-      }
-      if (pdfDocRef.current) {
-        try {
-          pdfDocRef.current.cleanup?.();
-          (pdfDocRef.current as any).destroy?.();
-        } catch {}
-        pdfDocRef.current = null;
       }
     };
   }, [file]);

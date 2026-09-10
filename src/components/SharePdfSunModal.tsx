@@ -46,9 +46,6 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
   const [useReferralLink, setUseReferralLink] = useState(false);
 
   const targetShareUrl = useReferralLink ? WEBSITE_REFERRAL_URL : WEBSITE_URL;
-  const dynamicShareCopy = useMemo(() => {
-    return `I use PDFSun for fast, free, and secure PDF tools (Compress, Convert, Edit). Check it out: ${targetShareUrl}`;
-  }, [targetShareUrl]);
 
   // Analytics Tracking Dispatcher
   const trackShareEvent = useCallback((channel: string, method: string) => {
@@ -125,7 +122,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       try {
         await navigator.share({
           title: WEBSITE_TITLE,
-          text: dynamicShareCopy,
+          text: HIGH_CONVERTING_COPY,
           url: targetShareUrl,
         });
         showToast("Shared successfully!");
@@ -349,12 +346,12 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
 
         ctx.fillStyle = "#38BDF8";
         ctx.font = "bold 28px sans-serif";
-        ctx.fillText(targetShareUrl, width / 2, 1100);
+        ctx.fillText("https://www.pdfsun.in", width / 2, 1100);
 
         return canvas;
       }
     },
-    [qrMatrix, targetShareUrl]
+    [qrMatrix]
   );
 
   // Copy QR Image directly to Clipboard
@@ -363,11 +360,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
     if (!canvas) return;
 
     canvas.toBlob(async (blob) => {
-      if (!blob) {
-        showToast("QR Image downloaded as PNG instead.");
-        handleDownloadQr(false);
-        return;
-      }
+      if (!blob) return;
       try {
         if (
           typeof navigator !== "undefined" &&
@@ -382,61 +375,40 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
           trackShareEvent("qr_image", "copy_clipboard");
           setTimeout(() => setCopiedQrImage(false), 2500);
         } else {
-          showToast("Clipboard copy not supported; downloading PNG instead.");
-          handleDownloadQr(false);
+          showToast("Clipboard image copy not supported on this browser.");
         }
       } catch (err) {
-        console.warn("Clipboard image write error (browser permission):", err);
+        console.error("Copy QR image failed:", err);
         showToast("QR Image downloaded as PNG instead.");
         handleDownloadQr(false);
       }
     }, "image/png");
   };
 
-  // Download High-Res QR Code or Branded Promo Poster with universal cross-browser support
+  // Download High-Res QR Code or Branded Promo Poster
   const handleDownloadQr = (isBrandedFrame: boolean = false) => {
     const canvas = createQrCanvas(isBrandedFrame);
     if (!canvas) return;
 
-    const filename = isBrandedFrame
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = isBrandedFrame
       ? "pdfsun_branded_promo_qr.png"
       : "pdfsun_qr_code.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-    const triggerDownload = (url: string, revokeAfter: boolean = false) => {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-        if (revokeAfter) URL.revokeObjectURL(url);
-      }, 300);
-
-      showToast(
-        isBrandedFrame
-          ? "Branded Promo Poster Downloaded!"
-          : "High-Res QR Code Downloaded!"
-      );
-      trackShareEvent(
-        isBrandedFrame ? "branded_poster_qr" : "high_res_qr",
-        "download_png"
-      );
-    };
-
-    if (canvas.toBlob) {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const objectUrl = URL.createObjectURL(blob);
-          triggerDownload(objectUrl, true);
-        } else {
-          triggerDownload(canvas.toDataURL("image/png"), false);
-        }
-      }, "image/png");
-    } else {
-      triggerDownload(canvas.toDataURL("image/png"), false);
-    }
+    showToast(
+      isBrandedFrame
+        ? "Branded Promo Poster Downloaded!"
+        : "High-Res QR Code Downloaded!"
+    );
+    trackShareEvent(
+      isBrandedFrame ? "branded_poster_qr" : "high_res_qr",
+      "download_png"
+    );
   };
 
   if (!isOpen) return null;
@@ -448,7 +420,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       icon: MessageCircle,
       color: "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20",
       url: `https://api.whatsapp.com/send?text=${encodeURIComponent(
-        dynamicShareCopy
+        `${HIGH_CONVERTING_COPY}`
       )}`,
       channelKey: "whatsapp",
     },
@@ -458,7 +430,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       color: "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20",
       url: `https://t.me/share/url?url=${encodeURIComponent(
         targetShareUrl
-      )}&text=${encodeURIComponent(dynamicShareCopy)}`,
+      )}&text=${encodeURIComponent(HIGH_CONVERTING_COPY)}`,
       channelKey: "telegram",
     },
     {
@@ -467,7 +439,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       color: "bg-slate-900 hover:bg-black text-white shadow-slate-900/20",
       url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
         targetShareUrl
-      )}&text=${encodeURIComponent(dynamicShareCopy)}`,
+      )}&text=${encodeURIComponent(HIGH_CONVERTING_COPY)}`,
       channelKey: "twitter",
     },
     {
@@ -476,7 +448,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       color: "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20",
       url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
         targetShareUrl
-      )}&quote=${encodeURIComponent(dynamicShareCopy)}`,
+      )}&quote=${encodeURIComponent(HIGH_CONVERTING_COPY)}`,
       channelKey: "facebook",
     },
     {
@@ -503,7 +475,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       color: "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20",
       url: `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=${encodeURIComponent(
         WEBSITE_TITLE
-      )}&body=${encodeURIComponent(dynamicShareCopy)}`,
+      )}&body=${encodeURIComponent(`${HIGH_CONVERTING_COPY}`)}`,
       channelKey: "gmail",
     },
     {
@@ -512,7 +484,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
       color: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20",
       url: `mailto:?subject=${encodeURIComponent(
         WEBSITE_TITLE
-      )}&body=${encodeURIComponent(dynamicShareCopy)}`,
+      )}&body=${encodeURIComponent(`${HIGH_CONVERTING_COPY}`)}`,
       channelKey: "email_client",
     },
   ];
@@ -689,7 +661,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
                   Pre-filled Sharing Message
                 </div>
                 <p className="text-xs text-slate-700 dark:text-slate-300 italic font-medium leading-relaxed">
-                  &ldquo;{dynamicShareCopy}&rdquo;
+                  "{HIGH_CONVERTING_COPY}"
                 </p>
               </div>
 
@@ -764,8 +736,8 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Scan with Google Lens or Camera to open{" "}
-                  <strong className="text-amber-500 font-extrabold break-all">
-                    {targetShareUrl}
+                  <strong className="text-amber-500 font-extrabold">
+                    https://pdfsun.in
                   </strong>{" "}
                   instantly on mobile.
                 </p>
