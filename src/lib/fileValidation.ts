@@ -28,7 +28,7 @@ export interface FileValidationStatus {
   signatureVerified?: boolean;
 }
 
-export const DEFAULT_MAX_FILE_SIZE_MB = 100;
+export const DEFAULT_MAX_FILE_SIZE_MB = 500; // 500 MB max for enterprise chunked processing
 
 /**
  * Formats bytes to human-readable string (e.g., "4.2 MB")

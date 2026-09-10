@@ -1206,7 +1206,30 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
         case "pdf-to-word": {
           const onProgress = createToolProgressHandler("Converting PDF Layout to Microsoft Word (.docx)", "transformation");
-          outputBytes = await pdfToWordDocx(files[0], (p) => onProgress(p, "Converting PDF layout to Word (.docx)..."));
+          try {
+            outputBytes = await pdfToWordDocx(files[0], (p, msg) => onProgress(p, msg || "Converting PDF layout to Word (.docx)..."));
+          } catch (clientErr) {
+            console.warn("[pdf-to-word] Client-side engine warning, routing through backend pipeline fallback:", clientErr);
+            onProgress(40, "Engaging resilient backend conversion pipeline...");
+            const base64Data = await fileToBase64(files[0]);
+            const serverRes = await fetch("/api/documents/convert/pdf-to-word", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pdfBase64: base64Data, fileName: files[0].name }),
+            });
+            if (serverRes.ok) {
+              const serverData = await serverRes.json();
+              if (serverData.downloadUrl) {
+                const dlRes = await fetch(serverData.downloadUrl);
+                const dlBlob = await dlRes.blob();
+                outputBytes = new Uint8Array(await dlBlob.arrayBuffer());
+              } else {
+                throw clientErr;
+              }
+            } else {
+              throw clientErr;
+            }
+          }
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.docx`;
           mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
           break;
@@ -1229,7 +1252,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         case "pdf-to-excel": {
           const onProgress = createToolProgressHandler("Extracting Structured Table Data into Microsoft Excel (.xlsx)", "transformation");
           onProgress(25, "Extracting text and positional streams...");
-          const textContent = await extractTextFromPdfFile(files[0]);
+          const textContent = await extractTextFromPdfFile(files[0], (p, msg) => onProgress(p, msg || "Extracting text..."));
           onProgress(50, "Parsing layout into tabular grid...");
           const tableGrid = parseTextToTableGrid(textContent);
           onProgress(75, "Compiling Excel spreadsheet (.xlsx)...");

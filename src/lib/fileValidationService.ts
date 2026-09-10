@@ -32,8 +32,8 @@ export interface ChunkedReadOptions {
 }
 
 // Configurable constants
-export const MAX_SINGLE_FILE_SIZE_MB = 100; // 100 MB max per file
-export const MAX_BATCH_SIZE_MB = 500; // 500 MB max per batch operation
+export const MAX_SINGLE_FILE_SIZE_MB = 500; // 500 MB max per file (High-throughput chunked architecture)
+export const MAX_BATCH_SIZE_MB = 1000; // 1000 MB max per batch operation
 export const DEFAULT_CHUNK_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB chunk size
 
 /**

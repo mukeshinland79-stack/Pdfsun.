@@ -128,7 +128,19 @@ export const AdminSystemHealth: React.FC<AdminSystemHealthProps> = ({ className 
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 self-start md:self-auto">
+        <div className="flex items-center space-x-2 self-start md:self-auto flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("open-wasm-overlay"));
+            }}
+            className="px-3 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition shadow-xs cursor-pointer"
+            title="Open WebAssembly Live Memory & Heap HUD (Admin Only)"
+          >
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <span>WASM Telemetry HUD</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsLive(!isLive)}
