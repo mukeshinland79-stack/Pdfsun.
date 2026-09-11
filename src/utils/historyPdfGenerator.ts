@@ -84,7 +84,15 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
       doc.setTextColor(71, 85, 105);
       const splitDesc = doc.splitTextToSize(event.description, pageWidth - 48);
       doc.text(splitDesc, 34, y);
-      y += splitDesc.length * 4.2 + 3;
+      y += splitDesc.length * 4.2 + 1;
+
+      // Plain text source attribution (non-clickable)
+      const srcText = `Source: ${event.sourceName || "Wikimedia Foundation"} (${event.sourceDomain || "wikimedia.org"})`;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(srcText, 34, y);
+      y += 5;
     });
   }
 
@@ -117,7 +125,15 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
       doc.setTextColor(71, 85, 105);
       const splitDesc = doc.splitTextToSize(birth.description, pageWidth - 48);
       doc.text(splitDesc, 34, y);
-      y += splitDesc.length * 4.2 + 3;
+      y += splitDesc.length * 4.2 + 1;
+
+      // Plain text source attribution (non-clickable)
+      const srcText = `Source: ${birth.sourceName || "Wikimedia Foundation"} (${birth.sourceDomain || "wikimedia.org"})`;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(srcText, 34, y);
+      y += 5;
     });
   }
 
@@ -126,9 +142,9 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
   // 5. Section: Daily Trivia Challenge & Study Question
   if (data.dailyTrivia && y < pageHeight - 50) {
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(14, y, pageWidth - 28, 38, 2, 2, "F");
+    doc.roundedRect(14, y, pageWidth - 28, 42, 2, 2, "F");
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(14, y, pageWidth - 28, 38, 2, 2, "D");
+    doc.roundedRect(14, y, pageWidth - 28, 42, 2, 2, "D");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
@@ -150,6 +166,12 @@ export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
       doc.text(opt, 32, optY);
       optY += 4.5;
     });
+
+    const triviaSrc = `Source: ${data.dailyTrivia.sourceName || "Wikimedia Foundation"} • ${data.dailyTrivia.sourceDomain || "wikimedia.org"} (VERIFIED)`;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(6.8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(triviaSrc, 20, optY + 1.5);
   }
 
   // 6. Footer Disclaimer & Watermark

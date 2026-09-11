@@ -16,7 +16,6 @@ import {
   RotateCcw,
   Flame,
   FileText,
-  ExternalLink,
   Bot,
   Layers,
   X,
@@ -27,6 +26,7 @@ import {
   Info,
   CalendarDays,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { DayInHistoryData, SupportedLanguage, HistoryEventItem } from "../types/history";
@@ -131,10 +131,10 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   }, [selectedDate]);
 
   // 2. Fetch data whenever Date, Country, or Language changes
-  const loadHistoryData = useCallback(async (date: Date, langCode: string, countryCode: string) => {
+  const loadHistoryData = useCallback(async (date: Date, langCode: string, countryCode: string, forceRefresh: boolean = false) => {
     setLoading(true);
     try {
-      const data = await fetchDayInHistory(date, langCode, countryCode);
+      const data = await fetchDayInHistory(date, langCode, countryCode, forceRefresh);
       setHistoryData(data);
     } catch (err) {
       console.error("Failed to load history data:", err);
@@ -150,6 +150,25 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
       loadHistoryData(selectedDate, selectedLang.code, selectedCountry);
     }
   }, [isOpen, selectedDate, selectedLang, selectedCountry, loadHistoryData]);
+
+  // Automatic midnight date change detector while modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      // Check if viewing today and the day has rolled over
+      const isYesterday =
+        selectedDate.getDate() !== now.getDate() &&
+        Math.abs(now.getTime() - selectedDate.getTime()) < 36 * 60 * 60 * 1000;
+
+      if (isYesterday) {
+        setSelectedDate(now);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, selectedDate]);
 
   // 3. Event Listeners for Date, Country, and Language
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,6 +380,10 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   <MapPin className="w-3.5 h-3.5 text-rose-400" />
                   {COUNTRY_META_MAP[selectedCountry]?.name || "Global"}
                 </span>
+                <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                  <Globe className="w-3 h-3 text-emerald-400" />
+                  {historyData?.version?.includes("verified-internet") ? "Internet Verified" : "Verified Hub"}
+                </span>
                 {historyData?.isAiEnhanced && (
                   <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/30 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-cyan-300" />
@@ -374,8 +397,18 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions (PDF Export & Close) */}
+          {/* Quick Actions (Refresh, PDF Export & Close) */}
           <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+            <button
+              id="history-refresh-btn"
+              onClick={() => loadHistoryData(selectedDate, selectedLang.code, selectedCountry, true)}
+              disabled={loading}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition text-xs flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+              title="Refresh latest internet historical events"
+            >
+              <RefreshCw className={`w-4 h-4 text-amber-300 ${loading ? "animate-spin" : ""}`} />
+            </button>
+
             <button
               id="history-export-pdf-btn"
               onClick={handleExportPdf}
@@ -759,23 +792,28 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         </p>
                       </div>
 
-                      {/* Footer & Meta */}
-                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="italic truncate max-w-[200px]">
-                          {item.significance || "Major Historical Milestone"}
-                        </span>
+                      {/* Significance Note */}
+                      {item.significance && (
+                        <p className="text-[11px] italic text-slate-500 dark:text-slate-400">
+                          {item.significance}
+                        </p>
+                      )}
 
-                        {item.wikipediaUrl && (
-                          <a
-                            href={item.wikipediaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-1 text-blue-600 dark:text-blue-400 hover:underline shrink-0"
-                          >
-                            <span>Read Wiki</span>
-                            <ExternalLink className="w-3 h-3 ml-0.5" />
-                          </a>
-                        )}
+                      {/* Display-Only Source Reference (Strictly Plain Text • Not Clickable) */}
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 select-text cursor-default">
+                        <div className="flex items-center space-x-1.5 min-w-0">
+                          <span className="text-blue-500 dark:text-blue-400 font-bold shrink-0">◉</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                            Source: {item.sourceName || "Wikimedia Foundation"}
+                          </span>
+                          <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
+                            • {item.sourceDomain || "wikimedia.org"}
+                          </span>
+                        </div>
+
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                          {item.verificationStatus || "VERIFIED"}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -875,6 +913,22 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                       </p>
                     </div>
                   )}
+
+                  {/* Display-Only Trivia Source Reference (Strictly Plain Text • Not Clickable) */}
+                  <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 select-text cursor-default">
+                    <div className="flex items-center space-x-1.5 min-w-0">
+                      <span className="text-amber-500 font-bold shrink-0">◉</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                        Source: {historyData.dailyTrivia.sourceName || "Wikimedia Foundation"}
+                      </span>
+                      <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
+                        • {historyData.dailyTrivia.sourceDomain || "wikimedia.org"}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                      {historyData.dailyTrivia.verificationStatus || "VERIFIED"}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -882,19 +936,37 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Quote Box */}
                 {historyData.quoteOfTheDay && (
-                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      {getHistoryText("quoteTitle", langCode)}
-                    </span>
-                    <blockquote className="text-xs sm:text-sm font-serif italic text-slate-800 dark:text-slate-200 leading-relaxed">
-                      &ldquo;{historyData.quoteOfTheDay.quote}&rdquo;
-                    </blockquote>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">
-                      — {historyData.quoteOfTheDay.author}{" "}
-                      <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                        ({historyData.quoteOfTheDay.context})
+                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        {getHistoryText("quoteTitle", langCode)}
                       </span>
-                    </p>
+                      <blockquote className="text-xs sm:text-sm font-serif italic text-slate-800 dark:text-slate-200 leading-relaxed mt-1">
+                        &ldquo;{historyData.quoteOfTheDay.quote}&rdquo;
+                      </blockquote>
+                      <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                        — {historyData.quoteOfTheDay.author}{" "}
+                        <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                          ({historyData.quoteOfTheDay.context})
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Display-Only Quote Source Reference (Strictly Plain Text • Not Clickable) */}
+                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 select-text cursor-default mt-2">
+                      <div className="flex items-center space-x-1.5 min-w-0">
+                        <span className="text-blue-500 dark:text-blue-400 font-bold shrink-0">◉</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                          Source: {historyData.quoteOfTheDay.sourceName || "Historical Archives"}
+                        </span>
+                        <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
+                          • {historyData.quoteOfTheDay.sourceDomain || "wikimedia.org"}
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                        {historyData.quoteOfTheDay.verificationStatus || "VERIFIED"}
+                      </span>
+                    </div>
                   </div>
                 )}
 

@@ -3,25 +3,48 @@ import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data
 import { formatLocalizedHistoryDate, COUNTRY_META_MAP, TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 /**
- * Service to fetch and provide rich Day in History data
+ * Service to fetch and provide rich Day in History data with client persistence and internet updates
  */
 export async function fetchDayInHistory(
   date: Date,
   langCode: string = "en",
-  countryCode: string = "IN"
+  countryCode: string = "IN",
+  forceRefresh: boolean = false
 ): Promise<DayInHistoryData> {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dateKey = `${month}-${day}`;
+  const localCacheKey = `pdfsun_daily_history_${month}_${day}_${countryCode.toUpperCase()}_${langCode.toLowerCase()}`;
 
-  // 1. Try fetching from server API with short timeout
+  // If not forcing refresh, check client localStorage first for instant rendering
+  if (!forceRefresh) {
+    try {
+      const stored = localStorage.getItem(localCacheKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.events && parsed.events.length > 0 && parsed.version?.includes("verified-internet")) {
+          // Revalidate in background if cached > 6 hours
+          const cachedTime = parsed.generatedAt ? new Date(parsed.generatedAt).getTime() : 0;
+          if (Date.now() - cachedTime < 6 * 60 * 60 * 1000) {
+            return parsed;
+          }
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
+  // 1. Try fetching from server API which connects to Wikimedia Foundation REST API
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+
+    const clientTz = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
 
     const res = await fetch(
-      `/api/history/today?month=${month}&day=${day}&year=${year}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}`,
+      `/api/history/today?month=${month}&day=${day}&year=${year}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}&tz=${encodeURIComponent(clientTz)}${forceRefresh ? "&forceRefresh=true" : ""}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
@@ -29,6 +52,11 @@ export async function fetchDayInHistory(
     if (res.ok) {
       const data = await res.json();
       if (data && data.events && data.events.length > 0) {
+        try {
+          localStorage.setItem(localCacheKey, JSON.stringify(data));
+        } catch {
+          // Quota exceeded or private browsing
+        }
         return data;
       }
     }
@@ -83,4 +111,39 @@ export async function fetchDayInHistory(
   algorithmic.dateString = formattedDateStr;
   algorithmic.isGlobalFallback = true;
   return algorithmic;
+}
+
+/**
+ * Queries the engine health and status from server
+ */
+export async function fetchHistoryEngineStatus(): Promise<any> {
+  try {
+    const res = await fetch("/api/history/status");
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Could not fetch history status:", err);
+  }
+  return null;
+}
+
+/**
+ * Forces a cache purge and internet refetch for today's data
+ */
+export async function refreshTodayHistory(month: number, day: number, country: string, lang: string): Promise<DayInHistoryData | null> {
+  try {
+    const res = await fetch("/api/history/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month, day, country, lang }),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      return body.data;
+    }
+  } catch (err) {
+    console.error("Failed to refresh today history:", err);
+  }
+  return null;
 }

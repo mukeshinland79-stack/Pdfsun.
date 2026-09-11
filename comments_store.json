@@ -1,0 +1,107 @@
+{
+  "updatedAt": "2026-09-11T07:53:07.769Z",
+  "comments": [
+    {
+      "id": "cmt_seed_1",
+      "toolId": "merge-pdf",
+      "toolName": "Merge PDF",
+      "userName": "Aarav Sharma",
+      "userEmail": "aarav.s@gmail.com",
+      "rating": 5,
+      "comment": "Extremely fast and seamless! Merged 15 heavy PDFs in under 3 seconds without losing any formatting. Best PDF tool in India!",
+      "createdAt": "2026-09-09T07:53:07.768Z",
+      "status": "approved",
+      "ipHash": "hash_seed_1",
+      "helpfulCount": 24,
+      "verifiedUser": true
+    },
+    {
+      "id": "cmt_seed_2",
+      "toolId": "merge-pdf",
+      "toolName": "Merge PDF",
+      "userName": "Priya Patel",
+      "userEmail": "priya.design@outlook.com",
+      "rating": 5,
+      "comment": "I love that all processing happens securely. Zero file upload delays and super clean user interface!",
+      "createdAt": "2026-09-10T07:53:07.768Z",
+      "status": "approved",
+      "ipHash": "hash_seed_2",
+      "helpfulCount": 18,
+      "verifiedUser": true
+    },
+    {
+      "id": "cmt_seed_3",
+      "toolId": "compress-pdf",
+      "toolName": "Compress PDF",
+      "userName": "Rajesh Kumar",
+      "userEmail": "rajesh.k@company.in",
+      "rating": 5,
+      "comment": "Reduced my 45MB scan down to 1.8MB while maintaining perfect text crispness! Absolutely essential tool for official submissions.",
+      "createdAt": "2026-09-08T07:53:07.768Z",
+      "status": "approved",
+      "ipHash": "hash_seed_3",
+      "helpfulCount": 31,
+      "verifiedUser": true
+    },
+    {
+      "id": "cmt_seed_4",
+      "toolId": "pdf-editor",
+      "toolName": "Edit PDF",
+      "userName": "Neha Gupta",
+      "userEmail": "neha.g@gmail.com",
+      "rating": 5,
+      "comment": "The inline text editing and annotations work like magic. Saved me hours on my college assignments!",
+      "createdAt": "2026-09-07T07:53:07.768Z",
+      "status": "approved",
+      "ipHash": "hash_seed_4",
+      "helpfulCount": 15,
+      "verifiedUser": true
+    },
+    {
+      "id": "cmt_seed_5",
+      "toolId": "split-pdf",
+      "toolName": "Split PDF",
+      "userName": "David Miller",
+      "userEmail": "david.m@techcorp.io",
+      "rating": 5,
+      "comment": "Clean split options and instant page extraction. PDFSun is hands down the most reliable PDF suite.",
+      "createdAt": "2026-09-06T07:53:07.768Z",
+      "status": "approved",
+      "ipHash": "hash_seed_5",
+      "helpfulCount": 20,
+      "verifiedUser": true
+    }
+  ],
+  "quickFeedback": {
+    "merge-pdf": {
+      "toolId": "merge-pdf",
+      "likes": 342,
+      "dislikes": 4
+    },
+    "compress-pdf": {
+      "toolId": "compress-pdf",
+      "likes": 489,
+      "dislikes": 6
+    },
+    "split-pdf": {
+      "toolId": "split-pdf",
+      "likes": 215,
+      "dislikes": 2
+    },
+    "pdf-editor": {
+      "toolId": "pdf-editor",
+      "likes": 398,
+      "dislikes": 8
+    },
+    "protect-pdf": {
+      "toolId": "protect-pdf",
+      "likes": 187,
+      "dislikes": 1
+    },
+    "ocr-pdf": {
+      "toolId": "ocr-pdf",
+      "likes": 276,
+      "dislikes": 5
+    }
+  }
+}

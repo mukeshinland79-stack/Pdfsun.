@@ -31,17 +31,44 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    const now = new Date();
-    fetchDayInHistory(now, geoResult.detectedLanguage.code, geoResult.detectedCountryCode).then((data) => {
-      if (isMounted && data) {
-        setFeaturedHeadline(data.featuredHeadline);
-        setDateString(data.formattedDate);
-        setLoading(false);
+    let lastLoadedDay = new Date().getDate();
+
+    const loadData = () => {
+      const now = new Date();
+      lastLoadedDay = now.getDate();
+      fetchDayInHistory(now, geoResult.detectedLanguage.code, geoResult.detectedCountryCode).then((data) => {
+        if (isMounted && data) {
+          setFeaturedHeadline(data.featuredHeadline);
+          setDateString(data.formattedDate);
+          setLoading(false);
+        }
+      });
+    };
+
+    loadData();
+
+    // Automatic midnight / calendar date change detector
+    const interval = setInterval(() => {
+      const currentDay = new Date().getDate();
+      if (currentDay !== lastLoadedDay) {
+        loadData();
       }
-    });
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const currentDay = new Date().getDate();
+        if (currentDay !== lastLoadedDay) {
+          loadData();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [geoResult.detectedLanguage?.code, geoResult.detectedCountryCode]);
 

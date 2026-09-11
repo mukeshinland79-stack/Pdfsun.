@@ -227,6 +227,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [dbRestoreFeedback, setDbRestoreFeedback] = useState<{ message: string; success: boolean } | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
+  // Daily History Engine Admin State
+  const [historyStatus, setHistoryStatus] = useState<any>(null);
+  const [isPurgingHistory, setIsPurgingHistory] = useState(false);
+  const [historyPurgeMsg, setHistoryPurgeMsg] = useState<string | null>(null);
+
+  const fetchHistoryStatus = async () => {
+    try {
+      const res = await fetch("/api/history/status");
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryStatus(data);
+      }
+    } catch {
+      // Ignore background fetch error
+    }
+  };
+
+  const handlePurgeHistoryCache = async () => {
+    setIsPurgingHistory(true);
+    setHistoryPurgeMsg(null);
+    try {
+      const res = await fetch("/api/history/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: "IN", lang: "en" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryPurgeMsg(data.message || "Daily history cache purged and refreshed from verified internet source.");
+        if (data.status) setHistoryStatus(data.status);
+      } else {
+        setHistoryPurgeMsg("Failed to purge cache. Please try again.");
+      }
+    } catch (err: any) {
+      setHistoryPurgeMsg(`Error: ${err?.message || "Network error"}`);
+    } finally {
+      setIsPurgingHistory(false);
+    }
+  };
+
   const safeParseAdminJson = async (res: Response): Promise<any> => {
     try {
       const text = await res.text();
@@ -266,6 +306,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchLiveUsers();
+      fetchHistoryStatus();
     }
   }, [isOpen, activeTab]);
 
@@ -1817,6 +1858,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <option value="gemini-3.6-flash">gemini-3.6-flash (Recommended: Lightning Fast Document Analysis)</option>
                     <option value="gemini-3.6-pro">gemini-3.6-pro (Deep Multimodal Document Reasoning)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Daily History & Knowledge Hub Engine */}
+              <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Daily History & Knowledge Hub Engine</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Automated internet data pipeline & Wikimedia REST API cache</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    ● Operational
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Today&apos;s Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {historyStatus?.todayDate || new Date().toISOString().split("T")[0]}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Verified Events Loaded</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                      {historyStatus?.verifiedEvents ?? historyStatus?.totalEventsLoaded ?? 0} verified
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Sources Checked</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {historyStatus?.sourcesChecked ?? 2} (Wikimedia / Archives)
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Rejected / Deduplicated</span>
+                    <span className="font-semibold text-amber-600 dark:text-amber-400 block mt-0.5">
+                      {historyStatus?.rejectedEvents ?? 0} filtered
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Cache Partitions</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {historyStatus?.cachedKeysCount ?? 1} in-memory • Disk Active
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Last Fetch Time</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5 truncate" title={historyStatus?.lastFetchTime || "Today"}>
+                      {historyStatus?.lastFetchTime ? new Date(historyStatus.lastFetchTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Today"}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Failed Sources</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {historyStatus?.failedSources ?? 0} errors
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-400 text-[10px] block uppercase font-bold">Active Internet Feed</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5 truncate" title={historyStatus?.activeSource || "Wikimedia REST API"}>
+                      Wikimedia Foundation
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <button
+                    onClick={handlePurgeHistoryCache}
+                    disabled={isPurgingHistory}
+                    className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isPurgingHistory ? "animate-spin" : ""}`} />
+                    <span>{isPurgingHistory ? "Refreshing & Purging Cache..." : "Refresh Today's Data & Invalidate Cache"}</span>
+                  </button>
+                  {historyPurgeMsg && (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      {historyPurgeMsg}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

@@ -2,13 +2,22 @@ export interface HistoryEventItem {
   id: string;
   year: number | string;
   headline: string;
+  title?: string;
   description: string;
   category: "milestone" | "birth" | "invention" | "culture" | "country-spotlight";
   tag: string;
   significance: string;
   countryCode?: string;
   countryName?: string;
-  wikipediaUrl?: string;
+  wikipediaUrl?: string; // internal reference
+  sourceName?: string;
+  sourceDomain?: string;
+  sourceUrl?: string; // internal backend provenance
+  retrievedAt?: string;
+  verificationStatus?: "VERIFIED" | "ARCHIVED" | "CROSS_REFERENCED";
+  confidence?: "high" | "medium" | "standard";
+  people?: string[];
+  imageUrl?: string;
 }
 
 export interface DailyTriviaQuiz {
@@ -19,6 +28,18 @@ export interface DailyTriviaQuiz {
   explanation: string;
   historicalContext: string;
   relatedYear: string | number;
+  sourceName?: string;
+  sourceDomain?: string;
+  verificationStatus?: string;
+}
+
+export interface HistorySourceInfo {
+  name: string;
+  url: string;
+  domain?: string;
+  type: string;
+  status: string;
+  retrievedAt: string;
 }
 
 export interface DayInHistoryData {
@@ -32,6 +53,11 @@ export interface DayInHistoryData {
   countryName: string;
   languageCode: string;
   languageName: string;
+  timezone?: string;
+  generatedAt?: string;
+  expiresAt?: string;
+  sources?: HistorySourceInfo[];
+  version?: string;
   isAiEnhanced?: boolean;
   isCountrySpecific?: boolean;
   isGlobalFallback?: boolean;
@@ -44,6 +70,9 @@ export interface DayInHistoryData {
     quote: string;
     author: string;
     context: string;
+    sourceName?: string;
+    sourceDomain?: string;
+    verificationStatus?: string;
   };
 }
 
