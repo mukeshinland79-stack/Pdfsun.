@@ -21,6 +21,8 @@ export interface PoolTaskResult {
   url: string;
   bytes: Uint8Array;
   durationMs: number;
+  mimeType?: string;
+  fileName?: string;
 }
 
 export interface WorkerPoolStatus {
@@ -186,11 +188,19 @@ class PDFWorkerPool {
           cleanup();
           const durationMs = Math.round(performance.now() - task.startTime);
           const bytes = new Uint8Array(resultBuffer);
-          const blob = new Blob([bytes], { type: "application/pdf" });
+          const mimeType = e.data.mimeType || "application/pdf";
+          const blob = new Blob([bytes], { type: mimeType });
           const url = registerBlobUrl(URL.createObjectURL(blob));
 
           this.releaseWorker(availableWorker);
-          task.resolve({ blob, url, bytes, durationMs });
+          task.resolve({
+            blob,
+            url,
+            bytes,
+            durationMs,
+            mimeType,
+            fileName: e.data.fileName,
+          });
         } else if (type === "error") {
           cleanup();
           this.releaseWorker(availableWorker);
@@ -275,6 +285,31 @@ class PDFWorkerPool {
           const pages = doc.getPages();
           pages.forEach((p) => p.setRotation(degrees((p.getRotation().angle + (task.options.rotationAngle || 90)) % 360)));
           resultBytes = await doc.save();
+        } else if (task.action === "split") {
+          const { splitPdfCore } = await import("../lib/pdfSplitEngine");
+          const splitRes = await splitPdfCore(new Uint8Array(buffers[0]), task.files[0]?.name || "document.pdf", {
+            mode: task.options.mode || "range",
+            rangeStr: task.options.rangeStr || "1, 2-3",
+            interval: task.options.interval || 2,
+            extractMode: task.options.extractMode || "separate",
+            customPrefix: task.options.customPrefix || "",
+            onProgress: task.onProgress,
+          });
+          resultBytes = splitRes.bytes;
+          const durationMs = Math.round(performance.now() - task.startTime);
+          const blob = new Blob([resultBytes], { type: splitRes.mimeType });
+          const url = registerBlobUrl(URL.createObjectURL(blob));
+
+          this.releaseWorker(workerInstance);
+          task.resolve({
+            blob,
+            url,
+            bytes: resultBytes,
+            durationMs,
+            mimeType: splitRes.mimeType,
+            fileName: splitRes.fileName,
+          });
+          return;
         } else {
           const doc = await PDFDocument.load(new Uint8Array(buffers[0]), { ignoreEncryption: true });
           resultBytes = await doc.save();
@@ -323,11 +358,38 @@ export async function compressPdfWithPool(
   return pdfWorkerPool.executeTask("compress", [file], { quality }, onProgress);
 }
 
+export interface PoolMergeOptions {
+  pagesToCopy?: string;
+  addPageNumbers?: boolean;
+  autoGenerateToc?: boolean;
+  onProgress?: (percent: number) => void;
+}
+
 export async function mergePdfsWithPool(
   files: File[],
-  onProgress?: (percent: number) => void
+  optionsOrProgress?: PoolMergeOptions | ((percent: number) => void),
+  legacyProgress?: (percent: number) => void
 ): Promise<PoolTaskResult> {
-  return pdfWorkerPool.executeTask("merge", files, {}, onProgress);
+  const options: PoolMergeOptions =
+    typeof optionsOrProgress === "object" && optionsOrProgress !== null
+      ? optionsOrProgress
+      : {};
+  const progressFn =
+    typeof optionsOrProgress === "function"
+      ? optionsOrProgress
+      : options.onProgress || legacyProgress;
+
+  return pdfWorkerPool.executeTask(
+    "merge",
+    files,
+    {
+      fileNames: files.map((f) => f.name),
+      pagesToCopy: options.pagesToCopy || "all",
+      addPageNumbers: !!options.addPageNumbers,
+      autoGenerateToc: !!options.autoGenerateToc,
+    },
+    progressFn
+  );
 }
 
 export async function rotatePdfWithPool(
@@ -345,3 +407,45 @@ export async function ocrPdfWithPool(
 ): Promise<PoolTaskResult> {
   return pdfWorkerPool.executeTask("ocr", [file], { language }, onProgress);
 }
+
+export interface PoolSplitOptions {
+  mode?: "range" | "interval";
+  rangeStr?: string;
+  interval?: number;
+  extractMode?: "separate" | "merged";
+  customPrefix?: string;
+  onProgress?: (percent: number) => void;
+}
+
+export async function splitPdfWithPool(
+  file: File,
+  optionsOrRange?: PoolSplitOptions | string,
+  legacyProgress?: (percent: number) => void
+): Promise<PoolTaskResult> {
+  const options: PoolSplitOptions =
+    typeof optionsOrRange === "object" && optionsOrRange !== null
+      ? optionsOrRange
+      : typeof optionsOrRange === "string"
+      ? { rangeStr: optionsOrRange }
+      : {};
+
+  const progressFn =
+    typeof optionsOrRange === "function"
+      ? optionsOrRange
+      : options.onProgress || legacyProgress;
+
+  return pdfWorkerPool.executeTask(
+    "split",
+    [file],
+    {
+      fileName: file.name,
+      mode: options.mode || "range",
+      rangeStr: options.rangeStr || "1, 2-3",
+      interval: options.interval || 2,
+      extractMode: options.extractMode || "separate",
+      customPrefix: options.customPrefix || "",
+    },
+    progressFn
+  );
+}
+

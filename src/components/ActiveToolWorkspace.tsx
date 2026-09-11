@@ -120,7 +120,9 @@ import {
   sanitizeOcrText,
   exportTableGridToSpreadsheet,
   parseTextToTableGrid,
+  splitPdfCore,
 } from "../lib/pdfEngine";
+import { mergePdfsWithPool, splitPdfWithPool } from "../utils/pdfWorkerPool";
 import {
   validateFile,
   validateBatchFiles,
@@ -366,6 +368,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [mergeAutoToc, setMergeAutoToc] = useState(false);
   const [splitMode, setSplitMode] = useState<"range" | "pages" | "interval">("range");
   const [splitInterval, setSplitInterval] = useState(2);
+  const [splitExtractMode, setSplitExtractMode] = useState<"separate" | "merged">("separate");
+  const [splitPreserveBookmarks, setSplitPreserveBookmarks] = useState(true);
+  const [splitPreserveForms, setSplitPreserveForms] = useState(true);
+  const [splitCompactStreams, setSplitCompactStreams] = useState(true);
+  const [splitAutoRepair, setSplitAutoRepair] = useState(true);
+  const [splitCustomPrefix, setSplitCustomPrefix] = useState("");
   const [removePagesRange, setRemovePagesRange] = useState("2, 4, 7-9");
   const [extractPagesRange, setExtractPagesRange] = useState("1-3");
   const [extractPagesFormat, setExtractPagesFormat] = useState<"combined" | "zip">("combined");
@@ -813,21 +821,70 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
       switch (tool.id) {
         case "merge-pdf":
-          setStatusMessage("Merging PDF documents...");
-          outputBytes = await mergePdfs(files, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          setStatusMessage("Merging PDF documents with client-side chunked safety...");
+          try {
+            // Off-main-thread Web Worker execution with transferable ArrayBuffers
+            const poolResult = await mergePdfsWithPool(
+              files,
+              {
+                pagesToCopy: mergePagesToCopy,
+                addPageNumbers: mergeAddNumbers,
+                autoGenerateToc: mergeAutoToc,
+              },
+              (p) => setProgress(45 + Math.round((p / 100) * 50))
+            );
+            outputBytes = poolResult.bytes;
+          } catch (workerErr) {
+            console.warn("Worker pool execution bypassed or failed, executing in local WASM core:", workerErr);
+            outputBytes = await mergePdfs(files, {
+              pagesToCopy: mergePagesToCopy,
+              addPageNumbers: mergeAddNumbers,
+              autoGenerateToc: mergeAutoToc,
+              onProgress: (p) => setProgress(45 + Math.round((p / 100) * 50)),
+              signal: abortControllerRef.current?.signal,
+            });
+          }
           outputName = `PDFSun_Merged_${files.length}_files.pdf`;
           break;
 
         case "split-pdf":
-          setStatusMessage("Splitting PDF pages...");
-          const splits = await splitPdf(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          if (splits.length === 1) {
-            outputBytes = splits[0].pdfBytes;
-            outputName = splits[0].fileName;
-          } else {
-            outputBytes = await createBatchZip(splits.map((s) => ({ name: s.fileName, bytes: s.pdfBytes })));
-            outputName = `PDFSun_Split_Pages_${files[0].name}.zip`;
-            mimeType = "application/zip";
+          setStatusMessage("Splitting PDF pages with client-side chunked safety...");
+          try {
+            const poolRes = await splitPdfWithPool(
+              files[0],
+              {
+                mode: splitMode === "interval" ? "interval" : "range",
+                rangeStr: splitRange,
+                interval: splitInterval,
+                extractMode: splitExtractMode,
+                customPrefix: splitCustomPrefix,
+                onProgress: (p) => setProgress(45 + Math.round((p / 100) * 50)),
+              }
+            );
+            outputBytes = poolRes.bytes;
+            outputName =
+              poolRes.fileName ||
+              (poolRes.mimeType === "application/zip"
+                ? `PDFSun_Split_${files[0].name.replace(/\.[^/.]+$/, "")}.zip`
+                : `PDFSun_Split_${files[0].name}`);
+            mimeType =
+              poolRes.mimeType ||
+              (outputName.endsWith(".zip") ? "application/zip" : "application/pdf");
+          } catch (poolErr) {
+            console.warn("Worker pool split bypassed or failed, running in local WASM core:", poolErr);
+            const coreRes = await splitPdfCore(files[0], files[0].name, {
+              mode: splitMode === "interval" ? "interval" : "range",
+              rangeStr: splitRange,
+              interval: splitInterval,
+              extractMode: splitExtractMode,
+              customPrefix: splitCustomPrefix,
+              compactStreams: splitCompactStreams,
+              onProgress: (p) => setProgress(45 + Math.round((p / 100) * 50)),
+              signal: abortControllerRef.current?.signal,
+            });
+            outputBytes = coreRes.bytes;
+            outputName = coreRes.fileName;
+            mimeType = coreRes.mimeType;
           }
           break;
 

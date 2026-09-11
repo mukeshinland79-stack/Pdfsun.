@@ -9,6 +9,31 @@ import PptxGenJS from "pptxgenjs";
 import * as pdfjsLib from "pdfjs-dist";
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
+import {
+  mergePdfsCore,
+  MergePdfOptions,
+  autoRepairPdfBytes,
+  parsePagesToCopy,
+  loadRobustPdfDocument,
+} from "./pdfMergeEngine";
+import {
+  splitPdfCore,
+  parseSplitRanges,
+  calculateIntervalGroups,
+  SplitPdfOptions,
+  SplitPdfOutput,
+} from "./pdfSplitEngine";
+
+export type { MergePdfOptions, SplitPdfOptions, SplitPdfOutput };
+export {
+  autoRepairPdfBytes,
+  parsePagesToCopy,
+  loadRobustPdfDocument,
+  mergePdfsCore,
+  splitPdfCore,
+  parseSplitRanges,
+  calculateIntervalGroups,
+};
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
@@ -77,92 +102,53 @@ export function createSamplePdfFile(fileName: string = "PDFSun_Sample.pdf"): Fil
   throw new Error("Sample PDF generation disabled. Please upload a real PDF document to process.");
 }
 
-// 1. Merge PDFs
+// 1. Merge PDFs (World-Class Client-Side WASM / Memory-Safe Engine)
 export async function mergePdfs(
   files: File[],
-  onProgress?: (percent: number) => void
+  optionsOrProgress?: MergePdfOptions | ((percent: number) => void),
+  legacyProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  const mergedPdf = await PDFDocument.create();
-  const total = files.length;
+  const options: MergePdfOptions =
+    typeof optionsOrProgress === "object" && optionsOrProgress !== null
+      ? optionsOrProgress
+      : {};
+  const progressFn =
+    typeof optionsOrProgress === "function"
+      ? optionsOrProgress
+      : options.onProgress || legacyProgress;
 
-  for (let i = 0; i < total; i++) {
-    const file = files[i];
-    const pdf = await loadSafePdfDocument(file);
-    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-    copiedPages.forEach((page) => mergedPdf.addPage(page));
-
-    if (onProgress) {
-      onProgress(Math.round(((i + 1) / total) * 90));
-    }
-  }
-
-  const resultBytes = await mergedPdf.save();
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  return mergePdfsCore(files, {
+    ...options,
+    onProgress: progressFn,
+  });
 }
 
-// 2. Split PDF
+// 2. Split PDF (Client-Side WASM / Memory-Safe Engine)
 export async function splitPdf(
   file: File,
-  pageRangesStr: string,
-  onProgress?: (percent: number) => void
+  optionsOrRangeStr?: SplitPdfOptions | string,
+  legacyProgress?: (percent: number) => void
 ): Promise<{ pdfBytes: Uint8Array; fileName: string }[]> {
-  const srcPdf = await loadSafePdfDocument(file);
-  const totalPages = srcPdf.getPageCount();
+  const options: SplitPdfOptions =
+    typeof optionsOrRangeStr === "object" && optionsOrRangeStr !== null
+      ? optionsOrRangeStr
+      : { rangeStr: optionsOrRangeStr || "1, 2-3" };
 
-  let pageIndices: number[] = [];
-  if (!pageRangesStr || pageRangesStr.trim() === "all" || pageRangesStr.trim() === "") {
-    pageIndices = Array.from({ length: totalPages }, (_, i) => i);
-  } else {
-    // Parse ranges like "1, 3-5, 8"
-    const parts = pageRangesStr.split(",");
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (trimmed.includes("-")) {
-        const [start, end] = trimmed.split("-").map((num) => parseInt(num.trim(), 10));
-        if (!isNaN(start) && !isNaN(end)) {
-          for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) {
-            pageIndices.push(p - 1);
-          }
-        }
-      } else {
-        const p = parseInt(trimmed, 10);
-        if (!isNaN(p) && p >= 1 && p <= totalPages) {
-          pageIndices.push(p - 1);
-        }
-      }
-    }
-  }
+  const progressFn =
+    typeof optionsOrRangeStr === "function"
+      ? optionsOrRangeStr
+      : options.onProgress || legacyProgress;
 
-  // Remove duplicates and sort
-  pageIndices = Array.from(new Set(pageIndices)).sort((a, b) => a - b);
+  const res = await splitPdfCore(file, file.name, {
+    ...options,
+    extractMode: options.extractMode || "separate",
+    onProgress: progressFn,
+  });
 
-  if (pageIndices.length === 0) {
-    pageIndices = Array.from({ length: totalPages }, (_, i) => i);
-  }
-
-  const results: { pdfBytes: Uint8Array; fileName: string }[] = [];
-  const baseName = file.name.replace(/\.[^/.]+$/, "");
-
-  for (let i = 0; i < pageIndices.length; i++) {
-    const pageIdx = pageIndices[i];
-    const newPdf = await PDFDocument.create();
-    const [copiedPage] = await newPdf.copyPages(srcPdf, [pageIdx]);
-    newPdf.addPage(copiedPage);
-
-    const pdfBytes = await newPdf.save();
-    results.push({
-      pdfBytes,
-      fileName: `${baseName}_page_${pageIdx + 1}.pdf`,
-    });
-
-    if (onProgress) {
-      onProgress(Math.round(((i + 1) / pageIndices.length) * 95));
-    }
-  }
-
-  if (onProgress) onProgress(100);
-  return results;
+  return res.items.map((item) => ({
+    pdfBytes: item.pdfBytes,
+    fileName: item.fileName,
+  }));
 }
 
 // 3. Compress PDF

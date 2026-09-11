@@ -4,6 +4,8 @@
  */
 
 import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
+import { mergePdfsCore } from "../lib/pdfMergeEngine";
+import { splitPdfCore } from "../lib/pdfSplitEngine";
 
 self.onmessage = async (e: MessageEvent) => {
   const { taskId, action, payload } = e.data;
@@ -12,16 +14,62 @@ self.onmessage = async (e: MessageEvent) => {
     let resultBuffer: Uint8Array | null = null;
 
     if (action === "merge") {
-      const { filesBuffers } = payload;
-      const mergedPdf = await PDFDocument.create();
-      for (let i = 0; i < filesBuffers.length; i++) {
-        const bytes = new Uint8Array(filesBuffers[i]);
-        const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
-        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        pages.forEach((p) => mergedPdf.addPage(p));
-        self.postMessage({ taskId, type: "progress", percent: Math.round(((i + 1) / filesBuffers.length) * 90) });
-      }
-      resultBuffer = await mergedPdf.save();
+      const {
+        filesBuffers,
+        fileNames = [],
+        pagesToCopy = "all",
+        addPageNumbers = false,
+        autoGenerateToc = false,
+      } = payload;
+
+      const items = filesBuffers.map((buf: ArrayBuffer, idx: number) => ({
+        name: fileNames[idx] || `Document_${idx + 1}.pdf`,
+        bytes: new Uint8Array(buf),
+      }));
+
+      resultBuffer = await mergePdfsCore(items, {
+        pagesToCopy,
+        addPageNumbers,
+        autoGenerateToc,
+        onProgress: (percent) => {
+          self.postMessage({ taskId, type: "progress", percent });
+        },
+      });
+    } else if (action === "split") {
+      const {
+        fileBuffer,
+        fileName = "document.pdf",
+        mode = "range",
+        rangeStr = "1, 2-3",
+        interval = 2,
+        extractMode = "separate",
+        customPrefix = "",
+      } = payload;
+
+      const splitOutput = await splitPdfCore(new Uint8Array(fileBuffer), fileName, {
+        mode,
+        rangeStr,
+        interval,
+        extractMode,
+        customPrefix,
+        onProgress: (percent) => {
+          self.postMessage({ taskId, type: "progress", percent });
+        },
+      });
+
+      resultBuffer = splitOutput.bytes;
+      const transferBuffer = resultBuffer.buffer;
+      (self as any).postMessage(
+        {
+          taskId,
+          type: "complete",
+          resultBuffer: transferBuffer,
+          mimeType: splitOutput.mimeType,
+          fileName: splitOutput.fileName,
+        },
+        [transferBuffer]
+      );
+      return;
     } else if (action === "compress") {
       const { fileBuffer } = payload;
       const bytes = new Uint8Array(fileBuffer);
