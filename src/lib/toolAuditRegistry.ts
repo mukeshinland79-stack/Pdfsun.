@@ -63,7 +63,7 @@ export function generateToolAuditRegistry(): ToolAuditRecord[] {
       outputFormats = [".zip", ".jpg", ".png"];
       maxMb = 100;
     } else if (tool.id === "compress-pdf") {
-      engine = "Lossless Vector Re-Encoder + Image Stream Compressor";
+      engine = "Aservus WebAssembly Engine (Lossless Stream Re-Encoder)";
       outputFormats = [".pdf"];
       maxMb = 200;
     } else if (tool.id === "merge-pdf") {

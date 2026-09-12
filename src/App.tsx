@@ -10,6 +10,7 @@ import { RemoveWatermarkTool } from "./components/RemoveWatermarkTool";
 import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
 import { ViewPdfMetadataTool } from "./components/ViewPdfMetadataTool";
 import { ProtectPdfTool } from "./components/ProtectPdfTool";
+import { AservusPdfCompressor } from "./components/AservusPdfCompressor";
 import { SharePdfSunModal } from "./components/SharePdfSunModal";
 import { SupportedFormats } from "./components/SupportedFormats";
 import { PricingSection } from "./components/PricingSection";
@@ -1048,6 +1049,12 @@ export default function App() {
               />
             ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
               <ProtectPdfTool
+                initialFile={activeToolFiles[0] || null}
+                onClose={handleCloseTool}
+                onAddHistory={addHistory}
+              />
+            ) : activeTool.id === "compress-pdf" ? (
+              <AservusPdfCompressor
                 initialFile={activeToolFiles[0] || null}
                 onClose={handleCloseTool}
                 onAddHistory={addHistory}

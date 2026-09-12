@@ -53,8 +53,8 @@ export const CompressionEfficiency: React.FC<CompressionEfficiencyProps> = ({
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
                 Compression Efficiency
               </h3>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                PDFSun Engine
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/30">
+                Aservus Engine
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">

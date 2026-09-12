@@ -171,21 +171,24 @@ export async function splitPdf(
   }));
 }
 
-// 3. Compress PDF
+// 3. Compress PDF (Powered by Aservus Engine)
 export async function compressPdf(
   file: File,
   qualityFactor: number = 0.7,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  preset: "extreme" | "recommended" | "low" = "recommended"
 ): Promise<Uint8Array> {
   if (onProgress) onProgress(20);
   const pdfDoc = await loadSafePdfDocument(file);
 
-  // Compress streams and clear metadata
+  // Compress streams and set Aservus engine metadata
   if (onProgress) onProgress(60);
   pdfDoc.setTitle("");
   pdfDoc.setAuthor("");
   pdfDoc.setSubject("");
   pdfDoc.setKeywords([]);
+  pdfDoc.setProducer("Pdfsun.in Aservus Engine");
+  pdfDoc.setCreator("Pdfsun.in Aservus Engine");
 
   const resultBytes = await pdfDoc.save({ useObjectStreams: true });
   if (onProgress) onProgress(100);
