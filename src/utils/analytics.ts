@@ -171,6 +171,32 @@ export const trackGADownloadSuccess = (toolId: string, fileName?: string, fileSi
     tool_id: toolId,
     file_name: fileName || "output.pdf",
     file_size_bytes: fileSizeBytes || 0,
+    is_key_event: true,
+  });
+};
+
+export const trackGADownloadFailed = (toolId: string, reason: string, fileSizeBytes?: number) => {
+  trackGAEvent("download_failed", {
+    tool_id: toolId,
+    reason: reason.slice(0, 100),
+    file_size_bytes: fileSizeBytes || 0,
+  });
+};
+
+export const trackGAFileSelected = (toolId: string, fileCount: number, fileType?: string, fileSizeBytes?: number) => {
+  trackGAEvent("file_selected", {
+    tool_id: toolId,
+    file_count: fileCount,
+    file_type: fileType || "unknown",
+    file_size_bytes: fileSizeBytes || 0,
+  });
+};
+
+export const trackGAToolError = (toolId: string, errorType: string, message: string) => {
+  trackGAEvent("tool_error", {
+    tool_id: toolId,
+    error_type: errorType,
+    message: message.slice(0, 120),
   });
 };
 
@@ -275,6 +301,12 @@ export const trackGASearch = (query: string, resultsCount: number) => {
 export const trackGALanguageChange = (language: string) => {
   trackGAEvent("language_change", {
     language,
+  });
+};
+
+export const trackGAThemeChanged = (theme: string) => {
+  trackGAEvent("theme_changed", {
+    theme,
   });
 };
 

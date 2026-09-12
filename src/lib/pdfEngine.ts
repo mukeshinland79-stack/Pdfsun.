@@ -23,8 +23,20 @@ import {
   SplitPdfOptions,
   SplitPdfOutput,
 } from "./pdfSplitEngine";
+import {
+  analyzeDocumentStructure,
+  convertToSmartExcel,
+  convertToSmartWordDocx,
+  convertWordToPdfSmart,
+  convertExcelToPdfSmart,
+  validateConversionOutput,
+  SmartDocumentAnalysis,
+  DetectionMode,
+  isIdentifierField,
+  parseNumericCell,
+} from "./smartDocumentEngine";
 
-export type { MergePdfOptions, SplitPdfOptions, SplitPdfOutput };
+export type { MergePdfOptions, SplitPdfOptions, SplitPdfOutput, SmartDocumentAnalysis, DetectionMode };
 export {
   autoRepairPdfBytes,
   parsePagesToCopy,
@@ -33,6 +45,14 @@ export {
   splitPdfCore,
   parseSplitRanges,
   calculateIntervalGroups,
+  analyzeDocumentStructure,
+  convertToSmartExcel,
+  convertToSmartWordDocx,
+  convertWordToPdfSmart,
+  convertExcelToPdfSmart,
+  validateConversionOutput,
+  isIdentifierField,
+  parseNumericCell,
 };
 
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
@@ -132,7 +152,7 @@ export async function splitPdf(
   const options: SplitPdfOptions =
     typeof optionsOrRangeStr === "object" && optionsOrRangeStr !== null
       ? optionsOrRangeStr
-      : { rangeStr: optionsOrRangeStr || "1, 2-3" };
+      : { rangeStr: typeof optionsOrRangeStr === "string" ? optionsOrRangeStr : "1, 2-3" };
 
   const progressFn =
     typeof optionsOrRangeStr === "function"
@@ -870,72 +890,18 @@ export function ensureValidFilename(fileName: string, mimeType: string = "applic
   return cleanName;
 }
 
-// 14. Real PDF to Word (.docx) Converter using docx package
+// 14. Real PDF to Word (.docx) Converter using Smart Document Engine
 export async function pdfToWordDocx(
   file: File,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  mode: DetectionMode = "auto"
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const textContent = await extractTextFromPdfFile(file);
-  if (onProgress) onProgress(50);
-
-  const lines = textContent.split("\n").map((line) => line.trim()).filter(Boolean);
-  const docParagraphs: Paragraph[] = [];
-
-  // Title
-  docParagraphs.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Converted Document: ${file.name}`,
-          bold: true,
-          size: 32, // 16pt
-        }),
-      ],
-      spacing: { after: 300 },
-    })
-  );
-
-  // Body content lines
-  for (const line of lines) {
-    if (line.startsWith("--- PAGE") || line.startsWith("Document:")) {
-      docParagraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: line,
-              bold: true,
-              color: "1E40AF",
-              size: 24,
-            }),
-          ],
-          spacing: { before: 200, after: 100 },
-        })
-      );
-    } else {
-      docParagraphs.push(
-        new Paragraph({
-          children: [new TextRun({ text: line, size: 22 })],
-          spacing: { after: 120 },
-        })
-      );
-    }
-  }
-
-  const docxDoc = new DocxDocument({
-    sections: [
-      {
-        properties: {},
-        children: docParagraphs,
-      },
-    ],
+  const analysis = await analyzeDocumentStructure(file, mode, (p) => {
+    if (onProgress) onProgress(p);
   });
-
-  if (onProgress) onProgress(80);
-  const blob = await Packer.toBlob(docxDoc);
-  const arrayBuffer = await blob.arrayBuffer();
-  if (onProgress) onProgress(100);
-  return new Uint8Array(arrayBuffer);
+  const res = await convertToSmartWordDocx(analysis, file.name);
+  validateConversionOutput(res.bytes, "docx", res.fileName);
+  return res.bytes;
 }
 
 // 15. Real Word (.docx) to PDF Converter using Mammoth & jsPDF
@@ -943,27 +909,11 @@ export async function wordToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  let rawText = "";
-
-  try {
-    const arrayBuffer = await fileToArrayBuffer(file);
-    const result = await mammoth.extractRawText({ arrayBuffer });
-    rawText = result.value || "";
-  } catch (err) {
-    console.warn("Mammoth text extraction warning, falling back to text reader:", err);
-    rawText = await fileToText(file);
-  }
-
-  if (onProgress) onProgress(60);
-
-  if (!rawText || rawText.trim().length === 0) {
-    throw new Error(`Could not extract readable text from "${file.name}". The Word file may be empty or corrupted.`);
-  }
-
-  const pdfBytes = textToPdf(rawText, file.name.replace(/\.[^/.]+$/, ""));
-  if (onProgress) onProgress(100);
-  return pdfBytes;
+  const res = await convertWordToPdfSmart(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  validateConversionOutput(res.bytes, "pdf", res.fileName);
+  return res.bytes;
 }
 
 // 16. Real Excel (.xlsx / .csv) to PDF Converter using XLSX & jsPDF
@@ -971,75 +921,25 @@ export async function excelToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const arrayBuffer = await fileToArrayBuffer(file);
-  const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-  if (onProgress) onProgress(50);
-
-  const doc = new jsPDF({ orientation: "landscape" });
-  let isFirstPage = true;
-
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    if (!isFirstPage) doc.addPage();
-    isFirstPage = false;
-
-    doc.setFontSize(14);
-    doc.text(`Sheet: ${sheetName}`, 14, 15);
-    doc.setFontSize(9);
-
-    let y = 25;
-    for (let r = 0; r < Math.min(rows.length, 100); r++) {
-      const row = rows[r];
-      if (y > 185) {
-        doc.addPage();
-        y = 20;
-      }
-      const rowText = (row || []).map((val) => String(val ?? "").slice(0, 20)).join("  |  ");
-      doc.text(rowText, 14, y);
-      y += 6;
-    }
-  }
-
-  if (onProgress) onProgress(90);
-  const resultBytes = new Uint8Array(doc.output("arraybuffer"));
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  const res = await convertExcelToPdfSmart(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  validateConversionOutput(res.bytes, "pdf", res.fileName);
+  return res.bytes;
 }
 
-// 17. Real PDF to Excel (.xlsx) Converter using XLSX
+// 17. Real PDF to Excel (.xlsx) Converter using Smart Document Engine
 export async function pdfToExcelXlsx(
   file: File,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  mode: DetectionMode = "auto"
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const textContent = await extractTextFromPdfFile(file);
-  if (onProgress) onProgress(50);
-
-  const lines = textContent.split("\n").filter((l) => l.trim().length > 0);
-  const tableData: string[][] = [["Page Section", "Line Content", "Detected Value 1", "Detected Value 2"]];
-
-  let currentSection = "General";
-  lines.forEach((line, idx) => {
-    if (line.startsWith("--- PAGE")) {
-      currentSection = line.replace(/---/g, "").trim();
-    } else {
-      const parts = line.split(/\s{2,}|\t/);
-      tableData.push([currentSection, parts[0] || line, parts[1] || "", parts[2] || ""]);
-    }
+  const analysis = await analyzeDocumentStructure(file, mode, (p) => {
+    if (onProgress) onProgress(p);
   });
-
-  const ws = XLSX.utils.aoa_to_sheet(tableData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Extracted Data");
-
-  if (onProgress) onProgress(80);
-  const outBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  if (onProgress) onProgress(100);
-  return new Uint8Array(outBuffer);
+  const res = await convertToSmartExcel(analysis, file.name, "xlsx");
+  validateConversionOutput(res.bytes, "xlsx", res.fileName);
+  return res.bytes;
 }
 
 // 18. Real PowerPoint (.pptx) to PDF Converter
@@ -1877,24 +1777,54 @@ export function validateOutputBlob(
 
   let blob: Blob;
   let bytesCount = 0;
+  let uint8: Uint8Array | null = null;
 
   if (data instanceof Blob) {
     blob = data;
     bytesCount = blob.size;
   } else if (typeof data === "string") {
     const encoder = new TextEncoder();
-    const bytes = encoder.encode(data);
-    bytesCount = bytes.length;
-    blob = new Blob([bytes], { type: mimeType });
-  } else if (data instanceof Uint8Array || ArrayBuffer.isView(data)) {
-    bytesCount = data.byteLength;
-    blob = new Blob([data], { type: mimeType });
+    uint8 = encoder.encode(data);
+    bytesCount = uint8.length;
+    blob = new Blob([uint8], { type: mimeType });
+  } else if (data instanceof Uint8Array) {
+    uint8 = data;
+    bytesCount = uint8.byteLength;
+    blob = new Blob([uint8], { type: mimeType });
+  } else if (ArrayBuffer.isView(data)) {
+    const view = data as unknown as ArrayBufferView;
+    uint8 = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+    bytesCount = uint8.byteLength;
+    blob = new Blob([uint8], { type: mimeType });
   } else {
     throw new Error("Invalid output format generated by processing engine.");
   }
 
   if (bytesCount === 0) {
     throw new Error("Processing engine produced a 0KB empty file. Download aborted to prevent saving corrupted files.");
+  }
+
+  // Magic header inspection for binary document types
+  if (uint8 && bytesCount >= 4) {
+    const lowerMime = mimeType.toLowerCase();
+    // 1. PDF Magic Bytes Validation (%PDF-)
+    if (lowerMime.includes("pdf")) {
+      const isPdfHeader = uint8[0] === 0x25 && uint8[1] === 0x50 && uint8[2] === 0x44 && uint8[3] === 0x46;
+      if (!isPdfHeader) {
+        // Search first 512 bytes for %PDF- in case of leading whitespace
+        const sample = new TextDecoder("ascii").decode(uint8.subarray(0, Math.min(512, bytesCount)));
+        if (!sample.includes("%PDF-")) {
+          throw new Error("Output validation failed: generated document does not contain valid PDF binary signatures.");
+        }
+      }
+    }
+    // 2. OpenXML Office Document / ZIP Validation (PK..)
+    else if (lowerMime.includes("openxmlformats") || lowerMime.includes("zip") || lowerMime.includes("wordprocessingml") || lowerMime.includes("spreadsheetml")) {
+      const isZipHeader = uint8[0] === 0x50 && uint8[1] === 0x4B && (uint8[2] === 0x03 || uint8[2] === 0x05);
+      if (!isZipHeader) {
+        throw new Error("Output validation failed: generated Office document does not contain valid OpenXML binary signatures.");
+      }
+    }
   }
 
   return { blob, bytesCount };
@@ -2431,17 +2361,35 @@ export async function imageToExcel(
   options?: {
     outputFormat?: "xlsx" | "csv";
     autoDetectTables?: boolean;
+    mode?: DetectionMode;
   },
   onProgress?: (percent: number, step?: string) => void
-): Promise<{ bytes: Uint8Array; fileName: string; rowCount: number; previewRows: string[][] }> {
+): Promise<{ bytes: Uint8Array; fileName: string; rowCount: number; previewRows: string[][]; analysis?: SmartDocumentAnalysis }> {
   const fileList = Array.isArray(files) ? files : [files];
   const outputFormat = options?.outputFormat || "xlsx";
+  const mode = options?.mode || "auto";
+
+  if (fileList.length === 1) {
+    const analysis = await analyzeDocumentStructure(fileList[0], mode, (p, msg) => {
+      if (onProgress) onProgress(p, msg);
+    });
+    const res = await convertToSmartExcel(analysis, fileList[0].name, outputFormat);
+    validateConversionOutput(res.bytes, outputFormat, res.fileName);
+    return {
+      bytes: res.bytes,
+      fileName: res.fileName,
+      rowCount: analysis.stats.rowsCount,
+      previewRows: analysis.primaryTableMatrix,
+      analysis,
+    };
+  }
 
   if (onProgress) onProgress(10, "Uploading & Initializing OCR...");
 
   const wb = XLSX.utils.book_new();
   let totalRows = 0;
   let aggregatedPreviewRows: string[][] = [];
+  let lastAnalysis: SmartDocumentAnalysis | undefined;
 
   for (let i = 0; i < fileList.length; i++) {
     const f = fileList[i];
@@ -2449,27 +2397,24 @@ export async function imageToExcel(
 
     if (onProgress) onProgress(baseProgress, `Processing OCR on image ${i + 1} of ${fileList.length}...`);
 
-    let rawText = "";
-    try {
-      rawText = await ocrImageToText(f);
-    } catch (ocrErr) {
-      console.warn(`Local Tesseract OCR warning on ${f.name}:`, ocrErr);
-      rawText = `Document: ${f.name}\nExtracted row data content.`;
-    }
+    const analysis = await analyzeDocumentStructure(f, mode, (p, msg) => {
+      if (onProgress) onProgress(Math.min(90, baseProgress + Math.round((p / 100) * 20)), msg);
+    });
+    lastAnalysis = analysis;
 
-    if (onProgress) onProgress(baseProgress + 10, "Structuring & formatting tabular gridlines...");
-
-    const tableGrid = parseTextToTableGrid(rawText);
-    totalRows += tableGrid.length;
+    totalRows += analysis.primaryTableMatrix.length;
     if (aggregatedPreviewRows.length === 0) {
-      aggregatedPreviewRows = tableGrid;
+      aggregatedPreviewRows = analysis.primaryTableMatrix;
     } else {
-      aggregatedPreviewRows = [...aggregatedPreviewRows, ...tableGrid];
+      aggregatedPreviewRows = [...aggregatedPreviewRows, ...analysis.primaryTableMatrix.slice(1)];
     }
 
-    const ws = buildStructuredWorksheet(tableGrid);
-    const sheetName = `Sheet_${i + 1}`.slice(0, 31);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    const singleWb = XLSX.read(
+      (await convertToSmartExcel(analysis, f.name, "xlsx")).bytes,
+      { type: "array" }
+    );
+    const sheetName = `Doc_${i + 1}_${f.name.replace(/\.[^/.]+$/, "")}`.slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, singleWb.Sheets[singleWb.SheetNames[0]], sheetName);
   }
 
   if (onProgress) onProgress(90, "Applying column auto-fit & packing spreadsheet...");
@@ -2486,6 +2431,7 @@ export async function imageToExcel(
     fileName,
     rowCount: totalRows,
     previewRows: aggregatedPreviewRows,
+    analysis: lastAnalysis,
   };
 }
 
@@ -2498,11 +2444,27 @@ export async function imageToWordDocx(
   options?: {
     format?: "docx" | "rtf";
     styleHeadings?: boolean;
+    mode?: DetectionMode;
   },
   onProgress?: (percent: number, step?: string) => void
-): Promise<{ bytes: Uint8Array; fileName: string; text: string }> {
+): Promise<{ bytes: Uint8Array; fileName: string; text: string; analysis?: SmartDocumentAnalysis }> {
   const fileList = Array.isArray(files) ? files : [files];
   const format = options?.format || "docx";
+  const mode = options?.mode || "auto";
+
+  if (fileList.length === 1 && format === "docx") {
+    const analysis = await analyzeDocumentStructure(fileList[0], mode, (p, msg) => {
+      if (onProgress) onProgress(p, msg);
+    });
+    const res = await convertToSmartWordDocx(analysis, fileList[0].name);
+    validateConversionOutput(res.bytes, "docx", res.fileName);
+    return {
+      bytes: res.bytes,
+      fileName: res.fileName,
+      text: analysis.fullText,
+      analysis,
+    };
+  }
 
   if (onProgress) onProgress(10, "Uploading & Initializing OCR...");
 

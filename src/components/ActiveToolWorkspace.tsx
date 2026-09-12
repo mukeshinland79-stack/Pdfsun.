@@ -122,6 +122,16 @@ import {
   parseTextToTableGrid,
   splitPdfCore,
 } from "../lib/pdfEngine";
+import {
+  analyzeDocumentStructure,
+  convertToSmartExcel,
+  convertToSmartWordDocx,
+  convertWordToPdfSmart,
+  convertExcelToPdfSmart,
+  validateConversionOutput,
+  SmartDocumentAnalysis,
+  DetectionMode,
+} from "../lib/smartDocumentEngine";
 import { mergePdfsWithPool, splitPdfWithPool } from "../utils/pdfWorkerPool";
 import {
   validateFile,
@@ -156,6 +166,8 @@ import {
   trackGAProcessingFailed,
   trackGADownloadStart,
   trackGADownloadSuccess,
+  trackGADownloadFailed,
+  trackGAFileSelected,
   trackGAToolSwitch,
   trackGAAiToolUsed,
 } from "../utils/analytics";
@@ -260,15 +272,27 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     (customBytes?: Uint8Array | Blob | string, customName?: string, customMime?: string) => {
       if (!downloadReady && !customBytes) return;
       setIsDownloading(true);
+      const dataToDownload = customBytes || downloadReady!.data;
+      const nameToDownload = customName || downloadReady!.fileName;
+      const mimeToDownload = customMime || downloadReady!.mimeType;
+      const fileSizeBytes =
+        typeof dataToDownload === "string"
+          ? new Blob([dataToDownload]).size
+          : dataToDownload instanceof ArrayBuffer
+          ? dataToDownload.byteLength
+          : dataToDownload instanceof Uint8Array
+          ? dataToDownload.byteLength
+          : (dataToDownload as any)?.size || 0;
+
+      trackGADownloadStart(tool.id, nameToDownload, fileSizeBytes);
       try {
-        const dataToDownload = customBytes || downloadReady!.data;
-        const nameToDownload = customName || downloadReady!.fileName;
-        const mimeToDownload = customMime || downloadReady!.mimeType;
         downloadFile(dataToDownload, nameToDownload, mimeToDownload);
+        trackGADownloadSuccess(tool.id, nameToDownload, fileSizeBytes);
         setDownloadSuccessBadge(true);
         setTimeout(() => setDownloadSuccessBadge(false), 4000);
       } catch (err: any) {
         console.error("Download error:", err);
+        trackGADownloadFailed(tool.id, err?.message || "Could not save file to disk", fileSizeBytes);
         triggerErrorToast("Download Failed", err?.message || "Could not save file to disk.");
       } finally {
         setTimeout(() => {
@@ -276,7 +300,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         }, 800);
       }
     },
-    [downloadReady]
+    [downloadReady, tool.id]
   );
 
   // Clean up memory and file references on unmount
@@ -446,6 +470,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [postProcessDropdownOpen, setPostProcessDropdownOpen] = useState(false);
   const [tablesOnlyToggle, setTablesOnlyToggle] = useState(true);
   const [autoDetectColsToggle, setAutoDetectColsToggle] = useState(true);
+  const [smartDetectionMode, setSmartDetectionMode] = useState<DetectionMode>("auto");
+  const [smartAnalysisResult, setSmartAnalysisResult] = useState<SmartDocumentAnalysis | null>(null);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -900,67 +926,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           outputName = `PDFSun_Rotated_${files[0].name}`;
           break;
 
-        case "image-to-excel": {
-          setStatusMessage("Extracting structured table data and generating spreadsheet...");
-          const res = await imageToExcel(
-            files,
-            { outputFormat: imageExcelFormat, autoDetectTables: excelTableDetect },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
-          );
-          outputBytes = res.bytes;
-          outputName = res.fileName;
-          mimeType = imageExcelFormat === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-          if (res.previewRows && res.previewRows.length > 0) {
-            setLiveTableMatrix(res.previewRows);
-            setLiveTableFileName(res.fileName);
-          }
-          break;
-        }
-
-        case "image-to-word": {
-          setStatusMessage("Extracting styled text & structuring document headers...");
-          const res = await imageToWordDocx(
-            files,
-            { format: imageWordFormat, styleHeadings: true },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
-          );
-          outputBytes = res.bytes;
-          outputName = res.fileName;
-          mimeType = imageWordFormat === "rtf" ? "application/rtf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-          break;
-        }
-
-        case "image-to-notepad": {
-          setStatusMessage("Applying 100% regex noise filter & generating clean text...");
-          const res = await imageToNotepadText(
-            files,
-            { cleanNoise: ocrNoiseFilter },
-            (p, msg) => {
-              if (msg) setStatusMessage(msg);
-              setProgress(p);
-            }
-          );
-          outputBytes = res.bytes;
-          outputName = res.fileName;
-          mimeType = "text/plain";
-          setOcrResultText(res.text);
-          break;
-        }
-
-        case "image-to-pdf":
-        case "jpg-to-pdf":
-        case "png-to-pdf":
-          setStatusMessage("Converting image files to high-quality PDF...");
-          outputBytes = await imagesToPdf(files, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_Converted_Images.pdf`;
-          break;
-
         case "pdf-to-image": {
           setStatusMessage(`Exporting PDF pages to ${pdfImageFormat.toUpperCase()} image archive...`);
           outputBytes = await pdfToImagesZip(files[0], pdfImageFormat, (p) => setProgress(45 + Math.round((p / 100) * 50)));
@@ -1076,36 +1041,105 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           mimeType = "text/plain";
           break;
 
-        case "pdf-to-word":
-          setStatusMessage("Converting PDF layout to Microsoft Word (.docx)...");
-          outputBytes = await pdfToWordDocx(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.docx`;
+        case "pdf-to-word": {
+          setStatusMessage("Analyzing document structure, headings & layout...");
+          const analysis = await analyzeDocumentStructure(files[0], smartDetectionMode, (p, msg) => {
+            setProgress(25 + Math.round((p / 100) * 60));
+            if (msg) setStatusMessage(msg);
+          });
+          setSmartAnalysisResult(analysis);
+          const res = await convertToSmartWordDocx(analysis, files[0].name);
+          validateConversionOutput(res.bytes, "docx", res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
           mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
           break;
+        }
 
-        case "word-to-pdf":
-          setStatusMessage("Converting Word document (.docx) to standard PDF...");
-          outputBytes = await wordToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "word-to-pdf": {
+          setStatusMessage("Converting Word document (.docx) to standard PDF with layout preservation...");
+          outputBytes = await wordToPdf(files[0], (p) => setProgress(35 + Math.round((p / 100) * 60)));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
           break;
+        }
 
-        case "excel-to-pdf":
-          setStatusMessage("Formatting spreadsheet tables to PDF...");
-          outputBytes = await excelToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+        case "excel-to-pdf": {
+          setStatusMessage("Formatting spreadsheet tables & gridlines to PDF...");
+          outputBytes = await excelToPdf(files[0], (p) => setProgress(35 + Math.round((p / 100) * 60)));
           outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
           break;
+        }
 
         case "pdf-to-excel": {
-          setStatusMessage("Extracting structured table data into Microsoft Excel (.xlsx)...");
-          const textContent = await extractTextFromPdfFile(files[0]);
-          const tableGrid = parseTextToTableGrid(textContent);
-          const out = exportTableGridToSpreadsheet(tableGrid, "xlsx", files[0].name.replace(/\.[^/.]+$/, "") + "_Data");
-          outputBytes = out.bytes;
-          outputName = out.fileName;
-          mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-          setLiveTableMatrix(tableGrid);
-          setLiveTableFileName(out.fileName);
+          setStatusMessage("Analyzing document structure, rows, columns & tables...");
+          const analysis = await analyzeDocumentStructure(files[0], smartDetectionMode, (p, msg) => {
+            setProgress(25 + Math.round((p / 100) * 60));
+            if (msg) setStatusMessage(msg);
+          });
+          setSmartAnalysisResult(analysis);
+          const format = postProcessFormatChoice === "csv" ? "csv" : "xlsx";
+          const res = await convertToSmartExcel(analysis, files[0].name, format);
+          validateConversionOutput(res.bytes, format, res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = format === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          setLiveTableMatrix(analysis.primaryTableMatrix);
+          setLiveTableFileName(res.fileName);
           setShowInlineTablePreview(true);
+          break;
+        }
+
+        case "image-to-excel": {
+          setStatusMessage("Running OCR & analyzing tabular structure from image...");
+          const res = await imageToExcel(files, { outputFormat: imageExcelFormat, mode: smartDetectionMode }, (p, msg) => {
+            setProgress(20 + Math.round((p / 100) * 70));
+            if (msg) setStatusMessage(msg);
+          });
+          if (res.analysis) {
+            setSmartAnalysisResult(res.analysis);
+          }
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = imageExcelFormat === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          setLiveTableMatrix(res.previewRows);
+          setLiveTableFileName(res.fileName);
+          setShowInlineTablePreview(true);
+          break;
+        }
+
+        case "image-to-word": {
+          setStatusMessage("Running OCR, heading detection & structuring Word document...");
+          const res = await imageToWordDocx(files, { format: imageWordFormat, mode: smartDetectionMode }, (p, msg) => {
+            setProgress(20 + Math.round((p / 100) * 70));
+            if (msg) setStatusMessage(msg);
+          });
+          if (res.analysis) {
+            setSmartAnalysisResult(res.analysis);
+          }
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = imageWordFormat === "rtf" ? "application/rtf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+          break;
+        }
+
+        case "image-to-notepad":
+        case "image-to-text": {
+          setStatusMessage("Extracting text with noise-filtered OCR...");
+          const res = await imageToNotepadText(files[0], { cleanNoise: ocrNoiseFilter }, (p) => setProgress(30 + Math.round((p / 100) * 60)));
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = "text/plain";
+          setOcrResultText(res.text);
+          break;
+        }
+
+        case "image-to-pdf":
+        case "jpg-to-pdf":
+        case "png-to-pdf": {
+          setStatusMessage("Converting image pages to PDF document...");
+          outputBytes = await imagesToPdf(files);
+          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Images.pdf`;
+          mimeType = "application/pdf";
           break;
         }
 
@@ -2109,46 +2143,145 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             )}
 
             {tool.id === "split-pdf" && (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div className="flex items-center space-x-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setSplitMode("range")}
-                    className={`flex-1 py-1 px-2.5 rounded-lg text-xs font-bold transition ${splitMode === "range" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500"}`}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${splitMode === "range" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}
                   >
-                    Range Split
+                    <span>Custom Ranges</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSplitMode("interval")}
-                    className={`flex-1 py-1 px-2.5 rounded-lg text-xs font-bold transition ${splitMode === "interval" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500"}`}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${splitMode === "interval" ? "bg-white dark:bg-slate-900 text-orange-500 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}
                   >
-                    Fixed Interval
+                    <span>Fixed Page Interval</span>
                   </button>
                 </div>
+
                 {splitMode === "range" ? (
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Ranges (e.g., "1-3, 5, 8" or "all")</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Page Ranges to Extract
+                      </label>
+                      <span className="text-[10px] text-slate-400">e.g. 1-3, 5, 8-end</span>
+                    </div>
                     <input
                       type="text"
                       value={splitRange}
                       onChange={(e) => setSplitRange(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                      placeholder="1-3, 5, 8"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 font-mono"
                     />
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setSplitRange("all")}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 border border-slate-200 dark:border-slate-700 transition"
+                      >
+                        All Pages
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSplitRange("odd")}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 border border-slate-200 dark:border-slate-700 transition"
+                      >
+                        Odd Pages (1, 3, 5...)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSplitRange("even")}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 border border-slate-200 dark:border-slate-700 transition"
+                      >
+                        Even Pages (2, 4, 6...)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSplitRange("1-5")}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 border border-slate-200 dark:border-slate-700 transition"
+                      >
+                        First 5 Pages (1-5)
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Split Every N Pages</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={splitInterval}
-                      onChange={(e) => setSplitInterval(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Split Document Every N Pages
+                      </label>
+                      <span className="text-[11px] font-mono font-bold text-orange-600 dark:text-orange-400">
+                        {splitInterval} page{splitInterval > 1 ? "s" : ""} / file
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="range"
+                        min={1}
+                        max={50}
+                        value={splitInterval}
+                        onChange={(e) => setSplitInterval(Number(e.target.value))}
+                        className="flex-1 accent-orange-500 cursor-pointer"
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={splitInterval}
+                        onChange={(e) => setSplitInterval(Math.max(1, Number(e.target.value)))}
+                        className="w-16 px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
+                    <div className="flex gap-1.5 pt-0.5">
+                      {[1, 2, 5, 10].map((intVal) => (
+                        <button
+                          key={intVal}
+                          type="button"
+                          onClick={() => setSplitInterval(intVal)}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition ${
+                            splitInterval === intVal
+                              ? "bg-orange-50 dark:bg-orange-950/40 border-orange-500/50 text-orange-600 dark:text-orange-400"
+                              : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                          }`}
+                        >
+                          {intVal === 1 ? "Every Page (Burst)" : `Every ${intVal} Pages`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Output Mode & Prefix */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Output Format
+                    </label>
+                    <select
+                      value={splitExtractMode}
+                      onChange={(e) => setSplitExtractMode(e.target.value as "separate" | "merged")}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-medium"
+                    >
+                      <option value="separate">Separate Files (.zip archive)</option>
+                      <option value="merged">Single Merged PDF (.pdf)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Filename Prefix (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={splitCustomPrefix}
+                      onChange={(e) => setSplitCustomPrefix(e.target.value)}
+                      placeholder="e.g. Document_Part"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -3172,6 +3305,124 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
+            {/* Smart Document Understanding, Heading & Layout Detection Options */}
+            {["pdf-to-excel", "pdf-to-word", "image-to-excel", "image-to-word", "excel-to-pdf", "word-to-pdf"].includes(tool.id) && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 border border-orange-500/25 space-y-3.5">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-orange-500" />
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                      Document Understanding & Layout Detection
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-700 dark:text-amber-400 border border-orange-500/30">
+                    Smart Structure Engine
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    Detection Strategy & Layout Model
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSmartDetectionMode("auto")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        smartDetectionMode === "auto"
+                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
+                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        ✨ Smart Auto-Detect
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Balanced detection of headings, key-value forms, and tabular columns.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSmartDetectionMode("table")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        smartDetectionMode === "table"
+                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
+                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        📊 Table Focus
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Prioritizes columnar alignment, cell boundaries & invoice item grids.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSmartDetectionMode("fields")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        smartDetectionMode === "fields"
+                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
+                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        📋 Form & Text Fields
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Focuses on key-value pairs (RO No, GSTIN, Customer details, dates).
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-orange-200/50 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>
+                      Critical identifiers (GSTIN, PAN, RO, Phone) preserved as text to prevent leading zero loss.
+                    </span>
+                  </div>
+
+                  {(tool.id === "pdf-to-excel" || tool.id === "image-to-excel") && (
+                    <div className="flex items-center space-x-1.5 font-bold">
+                      <span className="text-slate-500 text-[10px]">Output:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPostProcessFormatChoice("xlsx");
+                          setImageExcelFormat("xlsx");
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] ${
+                          postProcessFormatChoice === "xlsx"
+                            ? "bg-orange-500 text-white font-bold"
+                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        .XLSX
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPostProcessFormatChoice("csv");
+                          setImageExcelFormat("csv");
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] ${
+                          postProcessFormatChoice === "csv"
+                            ? "bg-orange-500 text-white font-bold"
+                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        .CSV
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Collapsible Advanced Engine Options Drawer */}
             <div className="mt-3 border-t border-slate-200/80 dark:border-slate-700/80 pt-3">
               <button
@@ -3262,6 +3513,39 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       </select>
                     </div>
                   </div>
+
+                  {tool.id === "split-pdf" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <label className="flex items-start space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={splitCompactStreams}
+                          onChange={(e) => setSplitCompactStreams(e.target.checked)}
+                          className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
+                        />
+                        <div>
+                          <span className="font-bold block">Object Stream Compression</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Packages cross-references into PDF 1.5 object streams to minimize split file sizes.
+                          </span>
+                        </div>
+                      </label>
+                      <label className="flex items-start space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={splitAutoRepair}
+                          onChange={(e) => setSplitAutoRepair(e.target.checked)}
+                          className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
+                        />
+                        <div>
+                          <span className="font-bold block">Corrupted Stream Auto-Recovery</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Auto-fixes shifted EOF markers, broken xref tables, and leading stream junk.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -3611,6 +3895,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       setDownloadReady(null);
                       setFiles([]);
                       setLiveTableMatrix([]);
+                      setSmartAnalysisResult(null);
                     }}
                     className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1.5"
                     title="Clear current output and process another document"
@@ -3724,12 +4009,88 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               </div>
 
+              {/* Intelligent Document Understanding & Layout Breakdown */}
+              {smartAnalysisResult && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-blue-50/70 dark:from-slate-900/90 dark:via-indigo-950/30 dark:to-slate-900/90 border border-blue-200/80 dark:border-indigo-800/60 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-black text-blue-900 dark:text-blue-200">
+                        Intelligent Document Structure Detected
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        {smartAnalysisResult.ocrUsed ? `OCR Vision (${smartAnalysisResult.ocrEngine})` : "Native Vector Structure"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        {smartAnalysisResult.tables.length} Table{smartAnalysisResult.tables.length !== 1 ? "s" : ""} Found
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Badges / Metrics Row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Headings & Sections</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                        {smartAnalysisResult.sections.length} detected
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Tables & Grids</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                        {smartAnalysisResult.tables.length} ({smartAnalysisResult.primaryTableMatrix.length} rows)
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Form / Key Fields</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                        {smartAnalysisResult.fields.length} extracted
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Document Model</span>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 uppercase text-[10px]">
+                        {smartAnalysisResult.documentType.replace("_", " ")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Labeled fields preview */}
+                  {smartAnalysisResult.fields.length > 0 && (
+                    <div className="pt-1">
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                        Identified Key-Value Metadata
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {smartAnalysisResult.fields.slice(0, 8).map((field, idx) => (
+                          <div
+                            key={idx}
+                            className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-300"
+                          >
+                            <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">{field.label}:</span>
+                            <span>{field.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* File Processing Item Card */}
               <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 {/* Left: File Thumbnail & Details */}
                 <div className="flex items-center space-x-3.5 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <FileSpreadsheet className="w-6 h-6" />
+                    {downloadReady.fileName.endsWith(".docx") ? (
+                      <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    ) : downloadReady.fileName.endsWith(".pdf") ? (
+                      <FileText className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                    ) : (
+                      <FileSpreadsheet className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    )}
                   </div>
 
                   <div className="min-w-0 text-left">
@@ -3958,7 +4319,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           : fmt === "xls"
                           ? "application/vnd.ms-excel"
                           : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                      const size = res.bytes.byteLength;
+                      trackGADownloadStart(tool.id, res.fileName, size);
                       downloadFile(res.bytes, res.fileName, mime);
+                      trackGADownloadSuccess(tool.id, res.fileName, size);
                     }}
                     onExpandFullscreen={() => setShowLiveTableModal(true)}
                   />

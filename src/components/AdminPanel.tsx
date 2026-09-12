@@ -63,6 +63,7 @@ import { BusinessGrowthDashboard } from "./BusinessGrowthDashboard";
 import { RealTimeApiLatencyMonitor } from "./RealTimeApiLatencyMonitor";
 import { AdminActivityLog } from "./AdminActivityLog";
 import { AdminCmsTab } from "./AdminCmsTab";
+import { OwnerGrowthIntelligenceDashboard } from "./OwnerGrowthIntelligenceDashboard";
 import {
   useLanguage,
   SUPPORTED_LANGUAGES,
@@ -623,6 +624,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {isPlatformOwner ? (
             <>
               <button
+                onClick={() => setActiveTab("growth_engine")}
+                className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition font-bold ${
+                  effectiveActiveTab === "growth_engine"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/20"
+                    : "text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>209 → 10K Growth & QA</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab("profile")}
                 className={`px-3 py-2 rounded-xl flex items-center space-x-1.5 transition ${
                   effectiveActiveTab === "profile" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
@@ -839,6 +852,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Tab Content Body */}
         <div className="flex-1 p-6 overflow-y-auto">
+          {/* Owner-Only 209 -> 10K Growth & Reliability Engine */}
+          {effectiveActiveTab === "growth_engine" && (
+            <OwnerGrowthIntelligenceDashboard currentUserEmail={currentUserProfile?.email} />
+          )}
+
           {/* CMS & Live Translation Tab */}
           {effectiveActiveTab === "cms" && <AdminCmsTab />}
 
