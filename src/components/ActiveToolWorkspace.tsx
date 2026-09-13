@@ -1480,17 +1480,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+        {/* Glow backdrop decorative accent matching Compress PDF */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 bg-orange-500/10 blur-3xl pointer-events-none rounded-full" />
+
         {/* Workspace Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="relative z-10 px-6 py-4 bg-[var(--bg-surface,#111114)]/90 backdrop-blur-md border-b border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-orange-500/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
+              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
                 <span>{translatedToolName}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500 text-white font-extrabold uppercase">
+                <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
                   PDFSun Engine
                 </span>
 
@@ -1498,15 +1501,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowReviewModal(true)}
-                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition ml-1"
+                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold transition ml-1"
                   title="View user reviews and ratings"
                 >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                   <span>4.9</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">(128)</span>
+                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">(128)</span>
                 </button>
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{translatedToolDesc}</p>
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)] line-clamp-1">{translatedToolDesc}</p>
             </div>
           </div>
 
@@ -1516,17 +1519,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setToolSwapOpen(!toolSwapOpen)}
-                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1 border border-slate-200 dark:border-slate-700"
+                  className="px-2.5 py-1 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold transition flex items-center space-x-1 border border-[var(--border-color,rgba(255,255,255,0.1))]"
                   title="Switch to another tool keeping current files"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
                   <span className="hidden sm:inline">{t("workspace.swapTool", "Swap Tool")}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                  <ChevronDown className="w-3 h-3 text-[var(--text-muted,#64748b)]" />
                 </button>
 
                 {toolSwapOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 max-h-72 overflow-y-auto">
-                    <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                  <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-elevated,#16161a)] rounded-2xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] p-1.5 z-50 animate-in fade-in zoom-in-95 max-h-72 overflow-y-auto">
+                    <div className="px-2.5 py-1 text-[10px] font-bold text-[var(--text-muted,#64748b)] uppercase tracking-wider border-b border-[var(--border-color,rgba(255,255,255,0.08))] mb-1">
                       {t("workspace.switchActiveTool", "Switch Active Tool")}
                     </div>
                     {ALL_TOOLS.filter((t) => t.id !== tool.id).slice(0, 10).map((tItem) => (
@@ -1539,10 +1542,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             onSelectTool(tItem, files);
                           }
                         }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-200 hover:text-orange-600 transition flex items-center justify-between"
+                        className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-orange-500/15 text-[var(--text-secondary,#94a3b8)] hover:text-orange-400 transition flex items-center justify-between"
                       >
                         <span className="truncate">{t(`tools.${tItem.id}.name`, tItem.name)}</span>
-                        {tItem.isAi && <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 font-extrabold uppercase">AI</span>}
+                        {tItem.isAi && <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-400 font-extrabold uppercase">AI</span>}
                       </button>
                     ))}
                   </div>
@@ -1551,7 +1554,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="p-2 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1573,7 +1576,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 ? "border-emerald-500 bg-emerald-500/10 scale-[1.01] ring-2 ring-emerald-500/20"
                 : isDragActive
                 ? "border-orange-500 bg-orange-500/10 scale-[1.01] ring-2 ring-orange-500/20"
-                : "border-slate-300 dark:border-slate-700 hover:border-orange-500 bg-slate-50/50 dark:bg-slate-800/40"
+                : "border-[var(--dropzone-border,rgba(255,255,255,0.15))] hover:border-orange-500 bg-[var(--dropzone-bg,#111114)] hover:bg-[var(--bg-elevated,#16161a)]"
             }`}
           >
             <input {...getInputProps()} />
@@ -1582,14 +1585,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 isDragActive ? "text-orange-500 scale-125 animate-bounce" : "text-orange-500"
               }`}
             />
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            <p className="text-sm font-bold text-[var(--text-primary,#f8fafc)]">
               {isDragActive
                 ? isDragReject
                   ? t("workspace.dropzoneReject", "Some files may not be supported")
                   : t("workspace.dropzoneRelease", "Release files to add to workspace")
                 : t("workspace.dropzoneTitle", "Click or Drag & Drop Files Here")}
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[var(--text-muted,#64748b)] mt-1">
               {t("workspace.supportsFormat", `Supports ${tool.supportedInput.join(", ")} • Up to 100MB per file • Real-time header validation`)}
             </p>
           </div>
@@ -1696,42 +1699,42 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       </div>
 
                       {/* Document Metadata Badges Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-500/20 dark:border-emerald-500/10 text-[11px]">
-                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[var(--border-color,rgba(255,255,255,0.1))] text-[11px]">
+                        <div className="p-2 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2">
                           <FileText className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-[10px] text-slate-400 font-medium">Page Count</div>
-                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                            <div className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">Page Count</div>
+                            <div className="font-bold text-[var(--text-primary,#f8fafc)] truncate">
                               {firstThumb?.pageCount ? `${firstThumb.pageCount} Page${firstThumb.pageCount > 1 ? "s" : ""}` : "1 Page"}
                             </div>
                           </div>
                         </div>
 
-                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                        <div className="p-2 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2">
                           <SlidersHorizontal className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-[10px] text-slate-400 font-medium">Paper Format</div>
-                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                            <div className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">Paper Format</div>
+                            <div className="font-bold text-[var(--text-primary,#f8fafc)] truncate">
                               {firstThumb?.pageSizeName || firstState.detectedType}
                             </div>
                           </div>
                         </div>
 
-                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                        <div className="p-2 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2">
                           <HardDrive className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-[10px] text-slate-400 font-medium">Exact Size</div>
-                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                            <div className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">Exact Size</div>
+                            <div className="font-bold text-[var(--text-primary,#f8fafc)] truncate">
                               {firstState.sizeFormatted}
                             </div>
                           </div>
                         </div>
 
-                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 flex items-center space-x-2">
+                        <div className="p-2 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-[10px] text-slate-400 font-medium">Security</div>
-                            <div className="font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                            <div className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">Security</div>
+                            <div className="font-bold text-emerald-400 truncate">
                               Client-Side Safe
                             </div>
                           </div>
@@ -1743,19 +1746,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                 if (files.length > 1) {
                   return (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-slate-50 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-slate-900/60 border border-orange-500/30 dark:border-orange-500/20 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-orange-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-black">
                           <Layers className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                          <div className="font-bold text-[var(--text-primary,#f8fafc)] flex items-center space-x-2">
                             <span>{files.length} Documents Uploaded</span>
                             <span className="px-2 py-0.5 rounded-md bg-orange-500 text-white font-extrabold text-[10px]">
                               Batch Ready
                             </span>
                           </div>
-                          <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                          <div className="text-[var(--text-secondary,#94a3b8)] text-[11px] mt-0.5">
                             Combined {formattedTotalSize} • ~{totalEstimatedPages} total pages • Ready for {tool.name}
                           </div>
                         </div>
@@ -1769,7 +1772,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             setFileStates([]);
                             setDocThumbnails({});
                           }}
-                          className="px-2.5 py-1 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[11px] font-bold transition"
+                          className="px-2.5 py-1 rounded-xl text-rose-400 hover:bg-rose-950/40 text-[11px] font-bold transition"
                         >
                           Clear All Files
                         </button>
@@ -1781,9 +1784,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 return null;
               })()}
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-[var(--text-muted,#64748b)] uppercase tracking-wider">
                 <div className="flex items-center space-x-2">
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold normal-case">
+                  <span className="text-[var(--text-primary,#f8fafc)] font-extrabold normal-case">
                     Document Order & PDF Thumbnails ({files.length})
                   </span>
                   {isValidating && (
@@ -1796,14 +1799,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                 <div className="flex items-center space-x-3">
                   {/* View Mode Toggle: Grid vs List */}
-                  <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center p-0.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
                         viewMode === "grid"
-                          ? "bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                          ? "bg-[var(--bg-elevated,#16161a)] text-orange-400 shadow-xs"
+                          : "text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)]"
                       }`}
                       title="PDF Thumbnail Grid View"
                     >
@@ -1815,8 +1818,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onClick={() => setViewMode("list")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
                         viewMode === "list"
-                          ? "bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                          ? "bg-[var(--bg-elevated,#16161a)] text-orange-400 shadow-xs"
+                          : "text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)]"
                       }`}
                       title="Compact List View"
                     >
@@ -1853,10 +1856,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         key={fs.id || idx}
                         className={`group relative rounded-2xl border p-2.5 flex flex-col justify-between transition-all ${
                           isInvalid
-                            ? "bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900"
+                            ? "bg-rose-950/30 border-rose-900"
                             : hasWarning
-                            ? "bg-amber-50/80 dark:bg-amber-950/20 border-amber-300 dark:border-amber-900"
-                            : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-500 dark:hover:border-orange-400 hover:shadow-lg"
+                            ? "bg-amber-950/20 border-amber-900"
+                            : "bg-[var(--bg-elevated,#16161a)] border-[var(--border-color,rgba(255,255,255,0.1))] hover:border-orange-500 hover:shadow-lg"
                         }`}
                       >
                         {/* Sequence Order Badge */}
@@ -1886,20 +1889,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         {/* File Details & Action Bar */}
                         <div className="mt-1 space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]" title={fs.file.name}>
+                            <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)] truncate max-w-[110px]" title={fs.file.name}>
                               {fs.file.name}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">{fs.sizeFormatted}</span>
+                            <span className="text-[10px] text-[var(--text-muted,#64748b)] font-mono">{fs.sizeFormatted}</span>
                           </div>
 
                           {/* Controls Bar: Reorder Left / Right, Rotate & Delete */}
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex items-center justify-between pt-1 border-t border-[var(--border-color,rgba(255,255,255,0.08))]">
                             <div className="flex items-center space-x-1">
                               <button
                                 type="button"
                                 onClick={() => moveFile(idx, "up")}
                                 disabled={idx === 0}
-                                className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30 transition"
+                                className="p-1 rounded-lg bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:text-orange-400 disabled:opacity-30 transition"
                                 title="Move document left (earlier in order)"
                               >
                                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -1908,7 +1911,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 type="button"
                                 onClick={() => moveFile(idx, "down")}
                                 disabled={idx === files.length - 1}
-                                className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-30 transition"
+                                className="p-1 rounded-lg bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:text-orange-400 disabled:opacity-30 transition"
                                 title="Move document right (later in order)"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1921,7 +1924,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                     [idx]: ((prev[idx] || 0) + 90) % 360,
                                   }));
                                 }}
-                                className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 transition"
+                                className="p-1 rounded-lg bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:text-orange-400 transition"
                                 title="Rotate thumbnail 90° clockwise"
                               >
                                 <RotateCw className="w-3.5 h-3.5" />
@@ -1931,7 +1934,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => removeFile(idx)}
-                              className="p-1 rounded-lg text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-950 transition"
+                              className="p-1 rounded-lg text-rose-400 hover:bg-rose-950 transition"
                               title="Remove file"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1957,10 +1960,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         key={fs.id || idx}
                         className={`p-3 rounded-2xl border transition text-xs font-medium ${
                           isInvalid
-                            ? "bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900"
+                            ? "bg-rose-950/30 border-rose-900"
                             : hasWarning
-                            ? "bg-amber-50/80 dark:bg-amber-950/20 border-amber-300 dark:border-amber-900"
-                            : "bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                            ? "bg-amber-950/20 border-amber-900"
+                            : "bg-[var(--bg-elevated,#16161a)] border-[var(--border-color,rgba(255,255,255,0.1))]"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -1970,7 +1973,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             </span>
 
                             {/* Mini rendered thumbnail in list row */}
-                            <div className="w-7 h-9 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                            <div className="w-7 h-9 bg-[var(--bg-surface,#111114)] rounded border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden shrink-0 flex items-center justify-center">
                               {thumb?.thumbnailUrl ? (
                                 <img src={thumb.thumbnailUrl} alt="" className="w-full h-full object-contain" />
                               ) : (
@@ -1989,17 +1992,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             )}
 
                             <div className="truncate max-w-xs">
-                              <span className="font-bold text-slate-800 dark:text-slate-100">
+                              <span className="font-bold text-[var(--text-primary,#f8fafc)]">
                                 {fs.file.name}
                               </span>
                               {thumb?.pageSizeName && (
-                                <span className="text-[10px] text-slate-400 ml-2 font-mono">
+                                <span className="text-[10px] text-[var(--text-muted,#64748b)] ml-2 font-mono">
                                   ({thumb.pageSizeName})
                                 </span>
                               )}
                             </div>
 
-                            <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            <span className="text-[10px] text-[var(--text-muted,#64748b)] font-mono shrink-0">
                               {fs.sizeFormatted}
                             </span>
                           </div>
@@ -2007,15 +2010,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           <div className="flex items-center space-x-2 shrink-0">
                             {/* Validation Status Badges */}
                             {isInvalid ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-900/60 text-rose-300">
                                 Invalid
                               </span>
                             ) : hasWarning ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-900/60 text-amber-300">
                                 Header Repaired
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950 text-emerald-400">
                                 {thumb?.pageCount ? `${thumb.pageCount} pgs` : `${fs.detectedType} ✓`}
                               </span>
                             )}
@@ -2024,7 +2027,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
-                              className="p-1 rounded text-slate-400 hover:text-orange-500"
+                              className="p-1 rounded text-[var(--text-muted,#64748b)] hover:text-orange-500"
                               title="Preview document details"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -2036,7 +2039,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 type="button"
                                 onClick={() => moveFile(idx, "up")}
                                 disabled={idx === 0}
-                                className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-30"
+                                className="p-1 rounded text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30"
                               >
                                 <ArrowUp className="w-3.5 h-3.5" />
                               </button>
@@ -2044,7 +2047,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 type="button"
                                 onClick={() => moveFile(idx, "down")}
                                 disabled={idx === files.length - 1}
-                                className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-30"
+                                className="p-1 rounded text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30"
                               >
                                 <ArrowDown className="w-3.5 h-3.5" />
                               </button>
@@ -2054,7 +2057,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => removeFile(idx)}
-                              className="p-1 rounded text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-950 transition"
+                              className="p-1 rounded text-rose-400 hover:bg-rose-950 transition"
                               title="Remove file"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3307,21 +3310,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
             {/* Smart Document Understanding, Heading & Layout Detection Options */}
             {["pdf-to-excel", "pdf-to-word", "image-to-excel", "image-to-word", "excel-to-pdf", "word-to-pdf"].includes(tool.id) && (
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 border border-orange-500/25 space-y-3.5">
+              <div className="p-4 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-3.5 shadow-sm">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center space-x-2">
                     <Sparkles className="w-4 h-4 text-orange-500" />
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                    <span className="text-xs font-black text-[var(--text-primary,#f8fafc)]">
                       Document Understanding & Layout Detection
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-700 dark:text-amber-400 border border-orange-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30">
                     Smart Structure Engine
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
                     Detection Strategy & Layout Model
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -3330,14 +3333,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onClick={() => setSmartDetectionMode("auto")}
                       className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
                         smartDetectionMode === "auto"
-                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
-                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                          ? "bg-[var(--bg-elevated,#16161a)] border-orange-500 shadow-sm ring-1 ring-orange-500/50"
+                          : "bg-[var(--bg-elevated,#16161a)]/60 border-[var(--border-color,rgba(255,255,255,0.1))] hover:border-orange-500/40"
                       }`}
                     >
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                         ✨ Smart Auto-Detect
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                      <span className="text-[10px] text-[var(--text-muted,#64748b)] mt-1 leading-snug">
                         Balanced detection of headings, key-value forms, and tabular columns.
                       </span>
                     </button>
@@ -3347,14 +3350,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onClick={() => setSmartDetectionMode("table")}
                       className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
                         smartDetectionMode === "table"
-                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
-                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                          ? "bg-[var(--bg-elevated,#16161a)] border-orange-500 shadow-sm ring-1 ring-orange-500/50"
+                          : "bg-[var(--bg-elevated,#16161a)]/60 border-[var(--border-color,rgba(255,255,255,0.1))] hover:border-orange-500/40"
                       }`}
                     >
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                         📊 Table Focus
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                      <span className="text-[10px] text-[var(--text-muted,#64748b)] mt-1 leading-snug">
                         Prioritizes columnar alignment, cell boundaries & invoice item grids.
                       </span>
                     </button>
@@ -3364,21 +3367,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onClick={() => setSmartDetectionMode("fields")}
                       className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
                         smartDetectionMode === "fields"
-                          ? "bg-white dark:bg-slate-900 border-orange-500 shadow-xs ring-1 ring-orange-500"
-                          : "bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/80 hover:border-orange-300"
+                          ? "bg-[var(--bg-elevated,#16161a)] border-orange-500 shadow-sm ring-1 ring-orange-500/50"
+                          : "bg-[var(--bg-elevated,#16161a)]/60 border-[var(--border-color,rgba(255,255,255,0.1))] hover:border-orange-500/40"
                       }`}
                     >
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                         📋 Form & Text Fields
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                      <span className="text-[10px] text-[var(--text-muted,#64748b)] mt-1 leading-snug">
                         Focuses on key-value pairs (RO No, GSTIN, Customer details, dates).
                       </span>
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-orange-200/50 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-[var(--border-color,rgba(255,255,255,0.08))] text-[11px] text-[var(--text-secondary,#94a3b8)]">
                   <div className="flex items-center space-x-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span>
@@ -3388,7 +3391,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                   {(tool.id === "pdf-to-excel" || tool.id === "image-to-excel") && (
                     <div className="flex items-center space-x-1.5 font-bold">
-                      <span className="text-slate-500 text-[10px]">Output:</span>
+                      <span className="text-[var(--text-muted,#64748b)] text-[10px]">Output:</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -3398,7 +3401,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[10px] ${
                           postProcessFormatChoice === "xlsx"
                             ? "bg-orange-500 text-white font-bold"
-                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         }`}
                       >
                         .XLSX
@@ -3412,7 +3415,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         className={`px-2 py-0.5 rounded-lg text-[10px] ${
                           postProcessFormatChoice === "csv"
                             ? "bg-orange-500 text-white font-bold"
-                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         }`}
                       >
                         .CSV
@@ -3424,18 +3427,18 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             )}
 
             {/* Collapsible Advanced Engine Options Drawer */}
-            <div className="mt-3 border-t border-slate-200/80 dark:border-slate-700/80 pt-3">
+            <div className="mt-3 border-t border-[var(--border-color,rgba(255,255,255,0.08))] pt-3">
               <button
                 type="button"
                 onClick={() => setAdvancedOptionsOpen(!advancedOptionsOpen)}
-                className="flex items-center justify-between w-full py-2.5 px-3.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
+                className="flex items-center justify-between w-full py-2.5 px-3.5 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-xs font-bold text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] transition"
               >
                 <div className="flex items-center space-x-2">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
                   <span>Advanced Engine Fine-Tuning & Filters</span>
                 </div>
                 <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 font-extrabold uppercase">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 font-extrabold uppercase">
                     Advanced
                   </span>
                   <ChevronDown
@@ -3447,7 +3450,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </button>
 
               {advancedOptionsOpen && (
-                <div className="mt-3 p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 space-y-3 text-xs animate-in fade-in">
+                <div className="mt-3 p-3.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-3 text-xs animate-in fade-in text-[var(--text-primary,#f8fafc)]">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <label className="flex items-start space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                       <input
@@ -4466,15 +4469,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
           {/* Collapsible In-Tool FAQ Section for Long-Tail SEO and User Guidance */}
           {toolFAQs && toolFAQs.length > 0 && (
-            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
+            <div className="pt-2 border-t border-[var(--border-color,rgba(255,255,255,0.08))] space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <HelpCircle className="w-4 h-4 text-orange-500" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                     Frequently Asked Questions ({tool.name})
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">
+                <span className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">
                   {toolFAQs.length} questions answered
                 </span>
               </div>
@@ -4485,7 +4488,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   return (
                     <div
                       key={fIdx}
-                      className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden"
+                      className="rounded-xl border border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)] overflow-hidden"
                       itemScope
                       itemProp="mainEntity"
                       itemType="https://schema.org/Question"
@@ -4493,18 +4496,18 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       <button
                         type="button"
                         onClick={() => setOpenFaqIdx(isOpen ? null : fIdx)}
-                        className="w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-orange-500 dark:hover:text-orange-400 transition"
+                        className="w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs font-semibold text-[var(--text-primary,#f8fafc)] hover:text-orange-400 transition"
                       >
                         <span itemProp="name">{faq.question}</span>
                         <ChevronDown
-                          className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                          className={`w-3.5 h-3.5 text-[var(--text-muted,#64748b)] transition-transform ${
                             isOpen ? "rotate-180 text-orange-500" : ""
                           }`}
                         />
                       </button>
                       {isOpen && (
                         <div
-                          className="px-3.5 pb-3 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200/50 dark:border-slate-800/50 pt-2 leading-relaxed"
+                          className="px-3.5 pb-3 text-[11px] text-[var(--text-secondary,#94a3b8)] border-t border-[var(--border-color,rgba(255,255,255,0.08))] pt-2 leading-relaxed"
                           itemScope
                           itemProp="acceptedAnswer"
                           itemType="https://schema.org/Answer"
@@ -4521,29 +4524,29 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         </div>
 
         {/* Workspace Footer Actions */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[var(--bg-surface,#111114)] border-t border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-wrap items-center justify-between gap-3 text-[var(--text-primary,#f8fafc)]">
           <button
             onClick={isProcessing ? handleCancelProcess : onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
           >
             {isProcessing ? "Cancel Operation" : "Cancel"}
           </button>
 
           {/* Compact Smart Actions Bar */}
-          <div className="flex items-center space-x-1.5 bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-2xl border border-slate-300/60 dark:border-slate-700/60">
+          <div className="flex items-center space-x-1.5 bg-[var(--bg-elevated,#16161a)] p-1 rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
             {/* Star Rating & Reviews Trigger */}
             <button
               type="button"
               onClick={() => setShowReviewModal(true)}
-              className="px-2.5 py-1 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1 transition"
+              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1 transition"
               title="View & write 5-star user reviews"
             >
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
               <span>4.9</span>
-              <span className="text-[10px] text-slate-400 font-normal">(128)</span>
+              <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">(128)</span>
             </button>
 
-            <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700" />
+            <div className="w-px h-3.5 bg-[var(--border-color,rgba(255,255,255,0.1))]" />
 
             {/* Like Toggle Button */}
             <button
@@ -4551,8 +4554,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               onClick={handleToggleLike}
               className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
                 hasLiked
-                  ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                  : "hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
               }`}
               title="Like this tool"
             >
@@ -4560,13 +4563,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <span>{likeCount}</span>
             </button>
 
-            <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700" />
+            <div className="w-px h-3.5 bg-[var(--border-color,rgba(255,255,255,0.1))]" />
 
             {/* Quick Share Trigger */}
             <button
               type="button"
               onClick={() => setShowShareModal(true)}
-              className="px-2.5 py-1 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition"
+              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1.5 transition"
               title="Share this tool"
             >
               <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
@@ -4611,19 +4614,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       {/* PDF Thumbnail Enlarged Preview Modal */}
       {previewModalFile && (
         <div className="fixed inset-0 z-60 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 relative">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-5 relative">
+            <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-3">
               <div className="flex items-center space-x-2.5">
                 <span className="px-2.5 py-0.5 rounded-lg bg-orange-500 text-white font-extrabold text-xs">
                   #{previewModalFile.index + 1}
                 </span>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-xs">
+                <h3 className="text-sm font-bold text-[var(--text-primary,#f8fafc)] truncate max-w-xs">
                   {previewModalFile.file.name}
                 </h3>
               </div>
               <button
                 onClick={() => setPreviewModalFile(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-1.5 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -10,7 +10,7 @@ body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  background-color: #0B0F19;
+  background-color: var(--bg-primary, #0B0F19);
 }
 
 #root {
@@ -20,7 +20,7 @@ body {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  background-color: #0B0F19;
+  background-color: var(--bg-primary, #0B0F19);
 }
 
 .main-wrapper {
@@ -34,23 +34,110 @@ body {
 }
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: #e2e8f0;
-  --accent-color: #2563eb;
-  --accent-hover: #1d4ed8;
-}
-
-.dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
+  /* PDFSun Design Tokens - Shared across all tools and modals */
+  --bg-primary: #0a0a0f;
+  --bg-surface: #111114;
+  --bg-elevated: #16161a;
+  --bg-elevated-hover: #1f1f26;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --border-color: #334155;
-  --accent-color: #3b82f6;
-  --accent-hover: #60a5fa;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-focus: #f97316;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
+  --dropzone-bg: #111114;
+  --dropzone-border: rgba(255, 255, 255, 0.15);
+  --dropzone-hover-bg: rgba(249, 115, 22, 0.08);
+  --dropzone-hover-border: #f97316;
+  --input-bg: #111114;
+  --input-border: rgba(255, 255, 255, 0.15);
+}
+
+.dark,
+.aurora-theme {
+  --bg-primary: #0a0a0f;
+  --bg-surface: #111114;
+  --bg-elevated: #16161a;
+  --bg-elevated-hover: #1f1f26;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-focus: #f97316;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
+  --dropzone-bg: #111114;
+  --dropzone-border: rgba(255, 255, 255, 0.15);
+  --dropzone-hover-bg: rgba(249, 115, 22, 0.08);
+  --dropzone-hover-border: #f97316;
+  --input-bg: #111114;
+  --input-border: rgba(255, 255, 255, 0.15);
+}
+
+/* Light Theme reactive fallback if user explicitly switches to light mode */
+html.light,
+html:not(.dark):not(.aurora-theme):not(.eye-protection) {
+  --bg-primary: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-elevated-hover: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #f97316;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
+  --dropzone-bg: #f8fafc;
+  --dropzone-border: #cbd5e1;
+  --dropzone-hover-bg: rgba(249, 115, 22, 0.05);
+  --dropzone-hover-border: #f97316;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+}
+
+/* Tool Shared UI Token Helper Classes */
+.tool-theme-shell {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.tool-theme-header {
+  background-color: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.tool-theme-surface {
+  background-color: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.tool-theme-card {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.tool-theme-dropzone {
+  background-color: var(--dropzone-bg);
+  border-color: var(--dropzone-border);
+  color: var(--text-primary);
+}
+
+.tool-theme-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
 }
 
 /* Responsive Ad Grid Layout & Interactive Hover Animation */

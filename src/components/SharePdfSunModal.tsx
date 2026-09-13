@@ -524,33 +524,33 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
     >
       {/* Modal Dialog Box Container */}
       <div
-        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900 dark:text-slate-100 flex flex-col relative transition-all animate-in zoom-in-95 duration-200"
+        className="w-full max-w-lg bg-[var(--bg-primary,#0a0a0f)] rounded-3xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden text-[var(--text-primary,#f8fafc)] flex flex-col relative transition-all animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Floating Toast Notification */}
         {toastMessage && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-full shadow-xl border border-slate-700 flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-[var(--bg-elevated,#16161a)] text-white text-xs font-bold rounded-full shadow-xl border border-[var(--border-color,rgba(255,255,255,0.2))] flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
             <Check className="w-4 h-4 text-emerald-400" />
             <span>{toastMessage}</span>
           </div>
         )}
 
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)] flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-blue-600 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center font-bold">
               <Share2 className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-lg font-black tracking-tight text-[var(--text-primary,#f8fafc)]">
                   Share PDFSun
                 </h2>
-                <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   ⭐ Official
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
                 Help friends & colleagues edit PDFs fast, free & secure.
               </p>
             </div>
@@ -559,7 +559,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-2xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-2xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
             aria-label="Close Share Modal"
           >
             <X className="w-5 h-5" />
@@ -572,25 +572,25 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">
+            <p className="text-xs font-bold text-[var(--text-primary,#f8fafc)] leading-tight">
               🚀 Share with 3 friends to help keep PDFSun 100% free forever!
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[10px] text-[var(--text-muted,#64748b)] mt-0.5">
               Zero popups • Unlimited high-speed PDF processing
             </p>
           </div>
         </div>
 
         {/* Tab Toggle Navigation */}
-        <div className="px-6 pt-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30">
+        <div className="px-6 pt-3 flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)]">
           <div className="flex items-center space-x-2">
             <button
               type="button"
               onClick={() => setActiveTab("quick")}
               className={`pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 ${
                 activeTab === "quick"
-                  ? "border-amber-500 text-amber-600 dark:text-amber-400"
-                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "border-amber-500 text-amber-400"
+                  : "border-transparent text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
               }`}
             >
               <Share2 className="w-4 h-4" />
@@ -602,8 +602,8 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
               onClick={() => setActiveTab("qr")}
               className={`pb-3 px-3 text-xs font-bold transition border-b-2 flex items-center space-x-2 ${
                 activeTab === "qr"
-                  ? "border-amber-500 text-amber-600 dark:text-amber-400"
-                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "border-amber-500 text-amber-400"
+                  : "border-transparent text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
               }`}
             >
               <QrCode className="w-4 h-4" />
@@ -613,14 +613,14 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
 
           {/* Referral Link Toggle */}
           <label
-            className="flex items-center space-x-1.5 pb-2 cursor-pointer text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-amber-500 transition"
+            className="flex items-center space-x-1.5 pb-2 cursor-pointer text-[11px] font-bold text-[var(--text-secondary,#94a3b8)] hover:text-amber-400 transition"
             title="Attach referral tracking code to the share link"
           >
             <input
               type="checkbox"
               checked={useReferralLink}
               onChange={(e) => setUseReferralLink(e.target.checked)}
-              className="w-3.5 h-3.5 text-amber-500 rounded border-slate-300 dark:border-slate-700 focus:ring-amber-500 cursor-pointer accent-amber-500"
+              className="w-3.5 h-3.5 text-amber-500 rounded border-[var(--border-color,rgba(255,255,255,0.2))] focus:ring-amber-500 cursor-pointer accent-amber-500 bg-[var(--bg-elevated,#16161a)]"
             />
             <span>Include Ref Hook</span>
           </label>
@@ -633,20 +633,20 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
               {/* Copy Link Input Bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary,#94a3b8)]">
                     Direct Website Share Link
                   </label>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[10px] font-bold text-emerald-400">
                     ⚡ Instant Access
                   </span>
                 </div>
 
-                <div className="flex items-center space-x-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center space-x-2 p-1.5 rounded-2xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))]">
                   <input
                     type="text"
                     readOnly
                     value={targetShareUrl}
-                    className="flex-1 bg-transparent px-3 text-xs font-mono font-extrabold text-slate-800 dark:text-slate-200 focus:outline-none"
+                    className="flex-1 bg-transparent px-3 text-xs font-mono font-extrabold text-[var(--text-primary,#f8fafc)] focus:outline-none"
                   />
                   <button
                     type="button"
@@ -676,7 +676,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
               <button
                 type="button"
                 onClick={handleNativeShare}
-                className="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-extrabold shadow-lg transition flex items-center justify-center space-x-2 border border-slate-800 dark:border-slate-700 active:scale-98"
+                className="w-full py-3 px-4 rounded-2xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-primary,#f8fafc)] text-xs font-extrabold shadow-lg transition flex items-center justify-center space-x-2 border border-[var(--border-color,rgba(255,255,255,0.1))] active:scale-98"
               >
                 <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>Share via System / Native Apps</span>
@@ -684,18 +684,18 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
               </button>
 
               {/* Pre-configured High-Converting Copy Banner */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="p-3 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted,#64748b)]">
                   Pre-filled Sharing Message
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300 italic font-medium leading-relaxed">
+                <p className="text-xs text-[var(--text-secondary,#94a3b8)] italic font-medium leading-relaxed">
                   &ldquo;{dynamicShareCopy}&rdquo;
                 </p>
               </div>
 
               {/* Social Channels Grid */}
               <div className="space-y-2">
-                <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary,#94a3b8)]">
                   One-Click Messaging & Social Share
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -751,7 +751,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
 
                 {/* Center Custom PDFSun Badge Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="px-3.5 py-1.5 bg-slate-900 border-2 border-amber-500 rounded-2xl shadow-xl flex items-center space-x-0.5 font-black text-xs tracking-tight text-white ring-4 ring-white dark:ring-slate-900">
+                  <div className="px-3.5 py-1.5 bg-slate-900 border-2 border-amber-500 rounded-2xl shadow-xl flex items-center space-x-0.5 font-black text-xs tracking-tight text-white ring-4 ring-white">
                     <span className="text-white font-black">PDF</span>
                     <span className="text-amber-500 font-black">Sun</span>
                   </div>
@@ -759,12 +759,12 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
               </div>
 
               <div className="space-y-1 max-w-xs">
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-extrabold text-[var(--text-primary,#f8fafc)]">
                   Scan QR Code with Camera or Google Lens
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
                   Scan with Google Lens or Camera to open{" "}
-                  <strong className="text-amber-500 font-extrabold break-all">
+                  <strong className="text-amber-400 font-extrabold break-all">
                     {targetShareUrl}
                   </strong>{" "}
                   instantly on mobile.
@@ -780,7 +780,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
                   className={`py-2.5 px-3 rounded-2xl font-bold text-xs shadow-md transition flex items-center justify-center space-x-1.5 ${
                     copiedQrImage
                       ? "bg-emerald-600 text-white"
-                      : "bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white"
+                      : "bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]"
                   }`}
                 >
                   {copiedQrImage ? (
@@ -800,7 +800,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDownloadQr(false)}
-                  className="py-2.5 px-3 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold shadow-md transition flex items-center justify-center space-x-1.5"
+                  className="py-2.5 px-3 rounded-2xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-xs font-bold shadow-md transition flex items-center justify-center space-x-1.5"
                 >
                   <Download className="w-4 h-4 text-sky-400" />
                   <span>High-Res QR</span>
@@ -822,7 +822,7 @@ export const SharePdfSunModal: React.FC<SharePdfSunModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+        <div className="p-4 border-t border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)] flex items-center justify-between text-[11px] text-[var(--text-muted,#64748b)] font-mono">
           <div className="flex items-center space-x-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
             <span>100% Free & Encrypted • Zero Tracking</span>

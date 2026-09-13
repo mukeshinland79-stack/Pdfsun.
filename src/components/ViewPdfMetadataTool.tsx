@@ -651,9 +651,9 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-800 dark:text-slate-100 my-4">
+    <div className="w-full max-w-6xl mx-auto bg-[var(--bg-primary,#0a0a0f)] rounded-3xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden text-[var(--text-primary,#f8fafc)] my-4">
       {/* Modal / Tool Header */}
-      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))]">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center shrink-0">
             <FileSearch className="w-5 h-5" />
@@ -687,7 +687,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-white flex items-center justify-center transition border border-[var(--border-color,rgba(255,255,255,0.1))]"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -705,17 +705,17 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
               className={`border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all ${
                 isDragActive
                   ? "border-indigo-500 bg-indigo-500/10 scale-[1.01]"
-                  : "border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  : "border-[var(--dropzone-border,rgba(255,255,255,0.15))] bg-[var(--dropzone-bg,#111114)] hover:border-indigo-500/70 hover:bg-[var(--bg-elevated,#16161a)]"
               }`}
             >
               <input {...getInputProps()} />
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-950/60 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
                 <UploadCloud className="w-8 h-8" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)] mb-1">
                 Select or Drop PDF File to Inspect
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-3">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)] max-w-sm mx-auto mb-3">
                 Upload any PDF document to instantly view its title, author, creation timestamp, creator application, embedded XMP metadata, and page visual preview.
               </p>
               <span className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-md hover:bg-indigo-700 transition">
@@ -723,7 +723,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
               </span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-3">
+            <div className="p-3 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[11px] text-[var(--text-secondary,#94a3b8)] flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>
@@ -734,7 +734,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
               <button
                 type="button"
                 onClick={() => setShowReviewModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition shadow-sm shrink-0"
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1.5 transition shadow-sm shrink-0"
                 title="Read user comments and leave feedback"
               >
                 <MessageSquare className="w-3.5 h-3.5 text-orange-500 shrink-0" />
@@ -744,16 +744,16 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
           </div>
         ) : (
           /* Selected File Summary Banner */
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-3 truncate">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 font-black text-xs">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center shrink-0 font-black text-xs border border-red-500/20">
                 PDF
               </div>
               <div className="truncate">
-                <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                <div className="text-sm font-bold text-[var(--text-primary,#f8fafc)] truncate">
                   {file.name}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-3 mt-0.5 font-mono">
+                <div className="text-xs text-[var(--text-secondary,#94a3b8)] flex items-center space-x-3 mt-0.5 font-mono">
                   <span>{formatFileSize(file.size)}</span>
                   {metadata && (
                     <>
@@ -773,8 +773,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 onClick={() => setShowPreview(!showPreview)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center space-x-1.5 ${
                   showPreview
-                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
-                    : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-transparent hover:bg-slate-300 dark:hover:bg-slate-600"
+                    ? "bg-indigo-950/60 text-indigo-400 border-indigo-800"
+                    : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border-[var(--border-color,rgba(255,255,255,0.1))] hover:bg-[var(--bg-elevated-hover,#1f1f26)] hover:text-[var(--text-primary,#f8fafc)]"
                 }`}
                 title="Toggle visual page preview"
               >
@@ -786,7 +786,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 <input {...getInputProps()} />
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition flex items-center space-x-1.5"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:bg-[var(--bg-elevated-hover,#1f1f26)] hover:text-[var(--text-primary,#f8fafc)] transition flex items-center space-x-1.5"
                   title="Choose another file"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -801,7 +801,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   setMetadata(null);
                   pdfDocRef.current = null;
                 }}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition"
+                className="p-1.5 rounded-xl text-[var(--text-muted,#64748b)] hover:text-red-400 hover:bg-red-500/10 transition"
                 title="Remove File"
               >
                 <X className="w-4 h-4" />
@@ -813,8 +813,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
         {/* Loading Spinner */}
         {isLoading && (
           <div className="py-12 text-center space-y-3">
-            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
               Inspecting XMP & PDF Metadata Streams + Generating Preview...
             </p>
           </div>
@@ -824,15 +824,15 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
         {metadata && !isLoading && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Nav Tabs & Top Actions */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-3">
+              <div className="flex items-center space-x-1 bg-[var(--bg-surface,#111114)] p-1 rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] w-fit">
                 <button
                   type="button"
                   onClick={() => setActiveTab("fields")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
                     activeTab === "fields"
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      ? "bg-[var(--bg-elevated,#16161a)] text-indigo-400 shadow-sm border border-[var(--border-color,rgba(255,255,255,0.1))]"
+                      : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
                   }`}
                 >
                   <Info className="w-3.5 h-3.5" />
@@ -844,8 +844,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   onClick={() => setActiveTab("xmp")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
                     activeTab === "xmp"
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      ? "bg-[var(--bg-elevated,#16161a)] text-indigo-400 shadow-sm border border-[var(--border-color,rgba(255,255,255,0.1))]"
+                      : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
                   }`}
                 >
                   <FileCode className="w-3.5 h-3.5" />
@@ -859,8 +859,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   onClick={() => setActiveTab("json")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
                     activeTab === "json"
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      ? "bg-[var(--bg-elevated,#16161a)] text-indigo-400 shadow-sm border border-[var(--border-color,rgba(255,255,255,0.1))]"
+                      : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
                   }`}
                 >
                   <Code2Icon className="w-3.5 h-3.5" />
@@ -872,7 +872,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyAllJson}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] transition flex items-center space-x-1.5"
                   title="Copy extracted metadata JSON to clipboard"
                 >
                   {copiedKey === "ALL_JSON" ? (
@@ -901,17 +901,17 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 <button
                   type="button"
                   onClick={handleDownloadReport}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] transition flex items-center space-x-1.5"
                   title="Download metadata report as text file"
                 >
-                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <FileText className="w-3.5 h-3.5 text-[var(--text-muted,#64748b)]" />
                   <span>TXT Report</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handlePrintMetadata}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5 shadow-sm"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] transition flex items-center space-x-1.5 shadow-sm"
                   title="Print extracted metadata summary"
                 >
                   <Printer className="w-3.5 h-3.5 text-indigo-500" />
@@ -928,18 +928,18 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
             >
               {/* PDF.js Document Preview Panel */}
               {showPreview && (
-                <div className="lg:col-span-5 flex flex-col bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl p-4 space-y-3">
+                <div className="lg:col-span-5 flex flex-col bg-[var(--bg-surface,#111114)] rounded-3xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden shadow-xl p-4 space-y-3">
                   {/* Preview Panel Header */}
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 px-1">
+                  <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-2.5 px-1">
                     <div className="flex items-center space-x-2">
                       <BookOpen className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-bold text-white">
+                      <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                         Document Preview
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
                         {Math.round(previewScale * 100)}%
                       </span>
                       {previewScale !== 1.0 && (
@@ -956,21 +956,21 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   </div>
 
                   {/* Clean Navigation & Zoom Control Bar */}
-                  <div className="p-2 bg-slate-800/80 rounded-2xl border border-slate-700/80 flex flex-wrap items-center justify-between gap-2">
+                  <div className="p-2 bg-[var(--bg-elevated,#16161a)] rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-wrap items-center justify-between gap-2">
                     {/* Page Navigation Group */}
                     <div className="flex items-center space-x-1">
                       <button
                         type="button"
                         disabled={previewPage <= 1}
                         onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 disabled:opacity-30 disabled:hover:bg-slate-700 transition text-xs font-bold flex items-center space-x-1"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 transition text-xs font-bold flex items-center space-x-1 border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         title="Previous Page"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                         <span className="hidden xs:inline">Prev</span>
                       </button>
 
-                      <div className="px-2 py-1 bg-slate-900/90 rounded-lg text-[11px] font-mono font-bold text-slate-200 border border-slate-800">
+                      <div className="px-2 py-1 bg-[var(--input-bg,#111114)] rounded-lg text-[11px] font-mono font-bold text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
                         {previewPage} / {totalPages}
                       </div>
 
@@ -978,7 +978,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                         type="button"
                         disabled={previewPage >= totalPages}
                         onClick={() => setPreviewPage((p) => Math.min(totalPages, p + 1))}
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 disabled:opacity-30 disabled:hover:bg-slate-700 transition text-xs font-bold flex items-center space-x-1"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 transition text-xs font-bold flex items-center space-x-1 border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         title="Next Page"
                       >
                         <span className="hidden xs:inline">Next</span>
@@ -992,7 +992,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                         type="button"
                         disabled={previewScale <= 0.6}
                         onClick={() => setPreviewScale((s) => Math.max(0.6, s - 0.2))}
-                        className="p-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 disabled:opacity-30 transition flex items-center space-x-1 text-xs font-bold"
+                        className="p-1.5 rounded-xl bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 transition flex items-center space-x-1 text-xs font-bold border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         title="Zoom Out"
                       >
                         <ZoomOut className="w-3.5 h-3.5" />
@@ -1003,7 +1003,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                         type="button"
                         disabled={previewScale >= 2.0}
                         onClick={() => setPreviewScale((s) => Math.min(2.0, s + 0.2))}
-                        className="p-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 disabled:opacity-30 transition flex items-center space-x-1 text-xs font-bold"
+                        className="p-1.5 rounded-xl bg-[var(--bg-surface,#111114)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 transition flex items-center space-x-1 text-xs font-bold border border-[var(--border-color,rgba(255,255,255,0.1))]"
                         title="Zoom In"
                       >
                         <ZoomIn className="w-3.5 h-3.5" />
@@ -1013,9 +1013,9 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   </div>
 
                   {/* Canvas Render Container */}
-                  <div className="relative flex-1 min-h-[340px] max-h-[520px] overflow-auto rounded-2xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-center p-3">
+                  <div className="relative flex-1 min-h-[340px] max-h-[520px] overflow-auto rounded-2xl bg-[var(--bg-primary,#0a0a0f)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-center p-3">
                     {isRenderingPreview && (
-                      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-10 space-x-2 text-xs font-bold text-indigo-300">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-10 space-x-2 text-xs font-bold text-indigo-300">
                         <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                         <span>Rendering Page {previewPage}...</span>
                       </div>
@@ -1023,8 +1023,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
                     {previewError ? (
                       <div className="text-center p-6 space-y-2">
-                        <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-                        <p className="text-xs text-slate-400 font-medium">
+                        <FileText className="w-8 h-8 text-[var(--text-muted,#64748b)] mx-auto" />
+                        <p className="text-xs text-[var(--text-secondary,#94a3b8)] font-medium">
                           {typeof previewError === "object" && previewError !== null
                             ? (previewError as any)?.message || JSON.stringify(previewError)
                             : String(previewError)}
@@ -1038,7 +1038,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                     )}
                   </div>
 
-                  <div className="text-[10px] text-slate-400 text-center font-mono pt-1">
+                  <div className="text-[10px] text-[var(--text-muted,#64748b)] text-center font-mono pt-1">
                     Powered by PDF.js engine • Page {previewPage} of {totalPages}
                   </div>
                 </div>
@@ -1146,9 +1146,9 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                   <div className="space-y-4">
                     {metadata.xmpPacket ? (
                       <>
-                        <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
+                        <div className="p-3 rounded-2xl bg-indigo-950/40 border border-indigo-800 text-xs text-indigo-200 flex items-center justify-between">
                           <span className="font-bold flex items-center space-x-1.5">
-                            <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                            <CheckCircle2 className="w-4 h-4 text-indigo-400" />
                             <span>Embedded XMP XML Metadata Stream Found</span>
                           </span>
                           <button
@@ -1156,23 +1156,23 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                             onClick={() =>
                               handleCopyText(metadata.xmpPacket || "", "xmpPacket")
                             }
-                            className="px-2.5 py-1 bg-white dark:bg-slate-900 rounded-lg text-[11px] font-bold border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-50 transition"
+                            className="px-2.5 py-1 bg-[var(--bg-elevated,#16161a)] rounded-lg text-[11px] font-bold border border-indigo-700 hover:bg-indigo-900/50 text-[var(--text-primary,#f8fafc)] transition"
                           >
                             {copiedKey === "xmpPacket" ? "Copied Packet!" : "Copy Raw XML"}
                           </button>
                         </div>
 
-                        <pre className="p-4 rounded-2xl bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto max-h-96 border border-slate-800 whitespace-pre-wrap leading-relaxed">
+                        <pre className="p-4 rounded-2xl bg-[var(--bg-surface,#111114)] text-[var(--text-primary,#f8fafc)] font-mono text-[11px] overflow-x-auto max-h-96 border border-[var(--border-color,rgba(255,255,255,0.1))] whitespace-pre-wrap leading-relaxed">
                           {metadata.xmpPacket}
                         </pre>
                       </>
                     ) : (
-                      <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-                        <FileCode className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <div className="p-8 text-center rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+                        <FileCode className="w-8 h-8 text-[var(--text-muted,#64748b)] mx-auto mb-2" />
+                        <h4 className="text-sm font-bold text-[var(--text-secondary,#94a3b8)]">
                           No XMP Stream Detected
                         </h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
+                        <p className="text-xs text-[var(--text-muted,#64748b)] max-w-sm mx-auto mt-1">
                           This document relies on standard PDF Document Information Dictionary fields rather than an extended XMP XML metadata packet.
                         </p>
                       </div>
@@ -1182,7 +1182,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
                 {/* TAB 3: JSON Summary */}
                 {activeTab === "json" && (
-                  <pre className="p-4 rounded-2xl bg-slate-900 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-96 border border-slate-800 leading-relaxed">
+                  <pre className="p-4 rounded-2xl bg-[var(--bg-surface,#111114)] text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-96 border border-[var(--border-color,rgba(255,255,255,0.1))] leading-relaxed">
                     {JSON.stringify(
                       {
                         fileName: file.name,
@@ -1208,7 +1208,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
             </div>
 
             {/* Bottom Disclaimer Notice & Footer Actions */}
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-3">
+            <div className="p-3 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[11px] text-[var(--text-secondary,#94a3b8)] flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>
@@ -1219,7 +1219,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
               <button
                 type="button"
                 onClick={() => setShowReviewModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition shadow-sm shrink-0"
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1.5 transition shadow-sm shrink-0"
                 title="Read user comments and leave feedback"
               >
                 <MessageSquare className="w-3.5 h-3.5 text-orange-500 shrink-0" />
@@ -1232,18 +1232,18 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
       {/* Isolated Review & Feedback Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative max-h-[88vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[var(--bg-surface,#111114)] text-[var(--text-primary,#f8fafc)] rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-4 relative max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-3">
               <div className="flex items-center space-x-2">
                 <Star className="w-5 h-5 fill-amber-400 text-amber-500 shrink-0" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)] truncate">
                   User Reviews & Ratings for View PDF Metadata
                 </h3>
               </div>
               <button
                 onClick={() => setShowReviewModal(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-xl text-[var(--text-muted,#64748b)] hover:text-white hover:bg-[var(--bg-elevated,#16161a)] transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1251,7 +1251,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
             <React.Suspense
               fallback={
-                <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center space-x-2">
+                <div className="py-12 text-center text-xs text-[var(--text-muted,#64748b)] flex items-center justify-center space-x-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
                   <span>Loading review board...</span>
                 </div>
@@ -1261,15 +1261,15 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
             </React.Suspense>
 
             {/* Modal Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-[11px] text-slate-400 font-medium">
+            <div className="pt-3 border-t border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-between flex-wrap gap-2">
+              <span className="text-[11px] text-[var(--text-muted,#64748b)] font-medium">
                 PDFSun • Client-Side Security Verified
               </span>
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={handleCopyAllJson}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center space-x-1.5 transition shadow-sm"
+                  className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center space-x-1.5 transition shadow-sm border border-[var(--border-color,rgba(255,255,255,0.1))]"
                   title="Copy all extracted technical metadata to clipboard"
                 >
                   {copiedKey === "ALL_JSON" ? (
@@ -1288,10 +1288,10 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 <button
                   type="button"
                   onClick={handlePrintMetadata}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center space-x-1.5 transition shadow-sm"
+                  className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center space-x-1.5 transition shadow-sm border border-[var(--border-color,rgba(255,255,255,0.1))]"
                   title="Print extracted metadata summary"
                 >
-                  <Printer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 shrink-0" />
+                  <Printer className="w-3.5 h-3.5 text-[var(--text-secondary,#94a3b8)] shrink-0" />
                   <span>Print</span>
                 </button>
 
@@ -1335,11 +1335,11 @@ const FieldDisplayCard: React.FC<FieldDisplayCardProps> = ({
   const hasValue = Boolean(value && value.trim().length > 0 && value !== "(Not specified)");
 
   return (
-    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-2 group hover:border-indigo-500/40 transition">
+    <div className="p-3.5 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-col justify-between space-y-2 group hover:border-indigo-500/40 transition">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           {icon}
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
             {label}
           </span>
         </div>
@@ -1348,7 +1348,7 @@ const FieldDisplayCard: React.FC<FieldDisplayCardProps> = ({
           <button
             type="button"
             onClick={onCopy}
-            className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1 rounded-lg text-[var(--text-muted,#64748b)] hover:text-indigo-400 hover:bg-[var(--bg-elevated,#16161a)] transition"
             title="Copy field value"
           >
             {isCopied ? (
@@ -1364,14 +1364,14 @@ const FieldDisplayCard: React.FC<FieldDisplayCardProps> = ({
         <div
           className={`text-xs font-medium break-all ${
             hasValue
-              ? "text-slate-900 dark:text-white font-semibold"
-              : "text-slate-400 dark:text-slate-500 italic"
+              ? "text-[var(--text-primary,#f8fafc)] font-semibold"
+              : "text-[var(--text-muted,#64748b)] italic"
           }`}
         >
           {hasValue ? value : placeholder}
         </div>
         {rawIso && hasValue && (
-          <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+          <div className="text-[10px] text-[var(--text-muted,#64748b)] font-mono mt-0.5 truncate">
             {rawIso}
           </div>
         )}

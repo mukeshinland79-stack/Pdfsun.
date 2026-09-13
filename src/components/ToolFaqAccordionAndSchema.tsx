@@ -62,15 +62,15 @@ export const ToolFaqAccordionAndSchema: React.FC<ToolFaqAccordionAndSchemaProps>
       />
 
       {!renderSchemaOnly && localizedFaqs.length > 0 && (
-        <div className={`pt-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2.5 ${className}`}>
+        <div className={`pt-3 border-t border-[var(--border-color,rgba(255,255,255,0.1))] space-y-2.5 ${className}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <HelpCircle className="w-4 h-4 text-orange-500" />
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                 {title || t("faq.toolFaqBadge", `${toolDisplayName} FAQs`)}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-medium">
+            <span className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">
               {localizedFaqs.length} {t("faq.questionsAnswered", "questions answered")}
             </span>
           </div>
@@ -81,7 +81,7 @@ export const ToolFaqAccordionAndSchema: React.FC<ToolFaqAccordionAndSchemaProps>
               return (
                 <div
                   key={fIdx}
-                  className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden"
+                  className="rounded-xl border border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-elevated,#16161a)] overflow-hidden transition-colors"
                   itemScope
                   itemProp="mainEntity"
                   itemType="https://schema.org/Question"
@@ -89,18 +89,18 @@ export const ToolFaqAccordionAndSchema: React.FC<ToolFaqAccordionAndSchemaProps>
                   <button
                     type="button"
                     onClick={() => setOpenIdx(isOpen ? null : fIdx)}
-                    className="w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-orange-500 dark:hover:text-orange-400 transition"
+                    className="w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs font-semibold text-[var(--text-primary,#f8fafc)] hover:text-orange-400 transition"
                   >
                     <span itemProp="name">{faq.question}</span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                      className={`w-3.5 h-3.5 text-[var(--text-muted,#64748b)] transition-transform ${
                         isOpen ? "rotate-180 text-orange-500" : ""
                       }`}
                     />
                   </button>
                   {isOpen && (
                     <div
-                      className="px-3.5 pb-3 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200/50 dark:border-slate-800/50 pt-2 leading-relaxed"
+                      className="px-3.5 pb-3 text-[11px] text-[var(--text-secondary,#94a3b8)] border-t border-[var(--border-color,rgba(255,255,255,0.08))] pt-2 leading-relaxed bg-[var(--bg-surface,#111114)]/50"
                       itemScope
                       itemProp="acceptedAnswer"
                       itemType="https://schema.org/Answer"

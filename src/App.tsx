@@ -76,7 +76,7 @@ export default function App() {
     if (savedTheme === "system" || savedTheme === "dark" || savedTheme === "eye-protection" || savedTheme === "aurora" || savedTheme === "light") {
       return savedTheme as ThemeMode;
     }
-    return "light";
+    return "dark";
   });
 
   // Sync with System preference setting state

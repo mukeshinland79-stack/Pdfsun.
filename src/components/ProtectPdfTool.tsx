@@ -259,23 +259,23 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col my-auto transition-all">
+    <div className="w-full max-w-4xl bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden flex flex-col my-auto transition-all">
       {/* Tool Header */}
-      <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+      <div className="p-6 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)] flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
             <Lock className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-black text-slate-900 dark:text-white">
+              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)]">
                 Protect PDF Document
               </h2>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
                 256-Bit AES
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
               Encrypt your PDF with strong passwords & permissions right inside your browser.
             </p>
           </div>
@@ -285,7 +285,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-2xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-2xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -300,8 +300,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
             {...getRootProps()}
             className={`border-2 border-dashed rounded-3xl p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center space-y-4 ${
               isDragActive
-                ? "border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 scale-[0.99]"
-                : "border-slate-300 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-500 bg-slate-50/30 dark:bg-slate-900/30"
+                ? "border-amber-500 bg-amber-950/20 scale-[0.99]"
+                : "border-[var(--border-color,rgba(255,255,255,0.15))] hover:border-amber-500 bg-[var(--bg-surface,#111114)]"
             }`}
           >
             <input {...getInputProps()} />
@@ -309,14 +309,14 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
               <UploadCloud className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+              <h3 className="text-base font-extrabold text-[var(--text-primary,#f8fafc)]">
                 Drag & drop your PDF file here
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
                 or click to browse from your device
               </p>
             </div>
-            <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono pt-2">
+            <div className="flex items-center space-x-2 text-[11px] text-[var(--text-muted,#64748b)] font-mono pt-2">
               <Shield className="w-3.5 h-3.5 text-emerald-500" />
               <span>100% Client-Side Encryption • Password never leaves your browser</span>
             </div>
@@ -325,10 +325,10 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
           /* File Selected & Settings Panel */
           <div className="space-y-6">
             {/* File Info Banner */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center space-x-3 min-w-0">
                 <div className="relative shrink-0">
-                  <div className="w-12 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 overflow-hidden flex items-center justify-center">
+                  <div className="w-12 h-16 rounded-lg bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.15))] overflow-hidden flex items-center justify-center">
                     <canvas ref={canvasRef} className="max-w-full max-h-full object-contain" />
                     {isRenderingPreview && (
                       <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
@@ -339,10 +339,10 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                 </div>
 
                 <div className="min-w-0 space-y-0.5">
-                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md">
+                  <h4 className="text-sm font-extrabold text-[var(--text-primary,#f8fafc)] truncate max-w-xs sm:max-w-md">
                     {file.name}
                   </h4>
-                  <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                  <div className="flex items-center space-x-2 text-xs text-[var(--text-muted,#64748b)] font-mono">
                     <span>{formatSize(file.size)}</span>
                     {pageCount > 0 && <span>• {pageCount} {pageCount === 1 ? "page" : "pages"}</span>}
                   </div>
@@ -357,7 +357,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                   setUserPassword("");
                   setConfirmPassword("");
                 }}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-800 text-xs font-extrabold transition flex items-center space-x-1.5"
+                className="px-3 py-1.5 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.15))] text-[var(--text-secondary,#94a3b8)] hover:text-rose-400 hover:border-rose-800 text-xs font-extrabold transition flex items-center space-x-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Change File</span>
@@ -369,17 +369,17 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Passwords */}
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-                    <div className="flex items-center space-x-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="p-5 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-4 shadow-sm">
+                    <div className="flex items-center space-x-2 border-b border-[var(--border-color,rgba(255,255,255,0.08))] pb-3">
                       <Key className="w-4 h-4 text-amber-500" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      <h3 className="text-sm font-extrabold text-[var(--text-primary,#f8fafc)]">
                         Password Setup
                       </h3>
                     </div>
 
                     {/* User Password */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center justify-between">
                         <span>Set Document Password *</span>
                         {userPassword && (
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded text-white ${strength.color}`}>
@@ -393,12 +393,12 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                           value={userPassword}
                           onChange={(e) => setUserPassword(e.target.value)}
                           placeholder="Enter password..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition pr-10"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--input-border,rgba(255,255,255,0.15))] bg-[var(--input-bg,#111114)] text-sm font-medium text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-amber-500 transition pr-10"
                         />
                         <button
                           type="button"
                           onClick={() => setShowUserPassword(!showUserPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)]"
                         >
                           {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -406,7 +406,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
                       {/* Password Strength Meter */}
                       {userPassword && (
-                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-2">
+                        <div className="w-full h-1.5 bg-[var(--bg-elevated,#16161a)] rounded-full overflow-hidden mt-2">
                           <div
                             className={`h-full transition-all duration-300 ${strength.color}`}
                             style={{ width: `${strength.score}%` }}
@@ -417,7 +417,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
                     {/* Confirm Password */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                         Confirm Password *
                       </label>
                       <div className="relative">
@@ -428,14 +428,14 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                           placeholder="Repeat password..."
                           className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 transition pr-10 ${
                             confirmPassword && !passwordsMatch
-                              ? "border-rose-400 focus:ring-rose-500 bg-rose-50/20 dark:bg-rose-950/20 text-slate-900 dark:text-white"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-amber-500"
+                              ? "border-rose-500/80 focus:ring-rose-500 bg-rose-950/20 text-[var(--text-primary,#f8fafc)]"
+                              : "border-[var(--input-border,rgba(255,255,255,0.15))] bg-[var(--input-bg,#111114)] text-[var(--text-primary,#f8fafc)] focus:ring-amber-500"
                           }`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)]"
                         >
                           {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -445,13 +445,13 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                         <div className="flex items-center space-x-1.5 text-xs pt-0.5">
                           {passwordsMatch ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Passwords match</span>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400 font-bold">Passwords match</span>
                             </>
                           ) : (
                             <>
-                              <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                              <span className="text-rose-500 font-bold">Passwords do not match</span>
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                              <span className="text-rose-400 font-bold">Passwords do not match</span>
                             </>
                           )}
                         </div>
@@ -459,15 +459,15 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                     </div>
 
                     {/* Advanced Owner Password Toggle */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="pt-2 border-t border-[var(--border-color,rgba(255,255,255,0.08))]">
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={useOwnerPassword}
                           onChange={(e) => setUseOwnerPassword(e.target.checked)}
-                          className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 border-slate-300 dark:border-slate-700"
+                          className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-[var(--input-bg,#111114)]"
                         />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                           Set Separate Master / Owner Password
                         </span>
                       </label>
@@ -479,12 +479,12 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                             value={ownerPassword}
                             onChange={(e) => setOwnerPassword(e.target.value)}
                             placeholder="Owner admin password..."
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition pr-10"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--input-border,rgba(255,255,255,0.15))] bg-[var(--input-bg,#111114)] text-sm font-medium text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-amber-500 transition pr-10"
                           />
                           <button
                             type="button"
                             onClick={() => setShowOwnerPassword(!showOwnerPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)]"
                           >
                             {showOwnerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -494,20 +494,20 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                   </div>
 
                   {/* Right Column: Permissions & Restrictions */}
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-                    <div className="flex items-center space-x-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                      <Sliders className="w-4 h-4 text-blue-500" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  <div className="p-5 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-4 shadow-sm">
+                    <div className="flex items-center space-x-2 border-b border-[var(--border-color,rgba(255,255,255,0.08))] pb-3">
+                      <Sliders className="w-4 h-4 text-blue-400" />
+                      <h3 className="text-sm font-extrabold text-[var(--text-primary,#f8fafc)]">
                         Permissions & Encryption Rules
                       </h3>
                     </div>
 
                     <div className="space-y-3">
                       {/* Printing */}
-                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer">
+                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.08))] cursor-pointer">
                         <div className="flex items-center space-x-2.5">
-                          <Printer className="w-4 h-4 text-slate-500" />
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <Printer className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                             Allow High-Res Printing
                           </span>
                         </div>
@@ -520,10 +520,10 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                       </label>
 
                       {/* Content Copying */}
-                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer">
+                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.08))] cursor-pointer">
                         <div className="flex items-center space-x-2.5">
-                          <Copy className="w-4 h-4 text-slate-500" />
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <Copy className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                             Allow Text & Image Copying
                           </span>
                         </div>
@@ -536,10 +536,10 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                       </label>
 
                       {/* Page Modifying */}
-                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer">
+                      <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.08))] cursor-pointer">
                         <div className="flex items-center space-x-2.5">
-                          <Edit className="w-4 h-4 text-slate-500" />
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <Edit className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
                             Allow Document Modifying
                           </span>
                         </div>
@@ -553,8 +553,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                     </div>
 
                     {/* Encryption Level */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <div className="pt-2 border-t border-[var(--border-color,rgba(255,255,255,0.08))] space-y-2">
+                      <span className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
                         Encryption Standard
                       </span>
                       <div className="grid grid-cols-2 gap-2">
@@ -563,8 +563,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                           onClick={() => setEncryptionLevel("AES-256")}
                           className={`p-2 rounded-xl text-xs font-extrabold border transition ${
                             encryptionLevel === "AES-256"
-                              ? "bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400"
-                              : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              ? "bg-amber-500/10 border-amber-500 text-amber-400"
+                              : "border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated,#16161a)]"
                           }`}
                         >
                           AES 256-Bit (Max)
@@ -574,8 +574,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                           onClick={() => setEncryptionLevel("AES-128")}
                           className={`p-2 rounded-xl text-xs font-extrabold border transition ${
                             encryptionLevel === "AES-128"
-                              ? "bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400"
-                              : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              ? "bg-amber-500/10 border-amber-500 text-amber-400"
+                              : "border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated,#16161a)]"
                           }`}
                         >
                           AES 128-Bit (Standard)
@@ -587,12 +587,12 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
                 {/* Progress bar when processing */}
                 {isProcessing && (
-                  <div className="space-y-2 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 animate-pulse">
-                    <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-300">
+                  <div className="space-y-2 p-4 rounded-2xl bg-amber-950/20 border border-amber-900/40 animate-pulse">
+                    <div className="flex items-center justify-between text-xs font-bold text-amber-400">
                       <span>{statusMessage}</span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="w-full h-2 bg-amber-200 dark:bg-amber-900/50 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-amber-900/50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
                         style={{ width: `${progress}%` }}
@@ -625,16 +625,16 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
             {/* Success / Download Ready State */}
             {downloadReady && (
-              <div className="p-6 rounded-3xl bg-slate-900 text-white space-y-6 border border-slate-800 animate-in zoom-in-95 duration-200">
-                <div className="flex items-center space-x-3 text-emerald-400 border-b border-slate-800 pb-4">
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface,#111114)] text-white space-y-6 border border-[var(--border-color,rgba(255,255,255,0.1))] animate-in zoom-in-95 duration-200">
+                <div className="flex items-center space-x-3 text-emerald-400 border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-4">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-white">
+                    <h3 className="text-base font-black text-[var(--text-primary,#f8fafc)]">
                       PDF Document Encrypted Successfully!
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <p className="text-xs text-[var(--text-muted,#64748b)] font-mono">
                       Protected with 256-Bit AES encryption • File ready for download
                     </p>
                   </div>
@@ -653,7 +653,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowShareModal(true)}
-                    className="py-3.5 px-6 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white font-bold text-sm transition flex items-center justify-center space-x-2"
+                    className="py-3.5 px-6 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-white font-bold text-sm transition flex items-center justify-center space-x-2"
                   >
                     <Share2 className="w-4 h-4 text-amber-400" />
                     <span>Share Encrypted File</span>
@@ -668,13 +668,13 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
                       setUserPassword("");
                       setConfirmPassword("");
                     }}
-                    className="text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1"
+                    className="text-xs font-bold text-[var(--text-muted,#64748b)] hover:text-white transition flex items-center space-x-1"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Encrypt Another File</span>
                   </button>
 
-                  <span className="text-[11px] font-mono text-slate-400 flex items-center space-x-1">
+                  <span className="text-[11px] font-mono text-[var(--text-muted,#64748b)] flex items-center space-x-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                     <span>100% Client-Side Privacy Guaranteed</span>
                   </span>
