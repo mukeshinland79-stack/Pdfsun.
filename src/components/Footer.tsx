@@ -10,6 +10,7 @@ import {
   Facebook,
   Linkedin,
   Youtube,
+  Instagram,
 } from "lucide-react";
 import { PolicyType } from "../types";
 import { PDFSunLogo } from "./PDFSunLogo";
@@ -359,7 +360,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <a
                   href="https://facebook.com"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="Follow PDFSun on Facebook"
                   title="Follow PDFSun on Facebook"
                   className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xs"
@@ -367,9 +368,19 @@ export const Footer: React.FC<FooterProps> = ({
                   <Facebook className="w-3.5 h-3.5" />
                 </a>
                 <a
+                  href="https://www.instagram.com/pdfsun.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  title="Follow PDFSun on Instagram"
+                  className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xs"
+                >
+                  <Instagram className="w-3.5 h-3.5" />
+                </a>
+                <a
                   href="https://linkedin.com"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="Follow PDFSun on LinkedIn"
                   title="Follow PDFSun on LinkedIn"
                   className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xs"
@@ -379,7 +390,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <a
                   href="https://youtube.com"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="Subscribe to PDFSun on YouTube"
                   title="Subscribe to PDFSun on YouTube"
                   className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xs"
@@ -389,7 +400,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <a
                   href="https://x.com"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="Follow PDFSun on X (Twitter)"
                   title="Follow PDFSun on X (Twitter)"
                   className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-xs"
