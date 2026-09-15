@@ -37,6 +37,7 @@ import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
+import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
 import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
@@ -1069,16 +1070,18 @@ export default function App() {
                   />
                 </div>
               }
-              childrenHistorySection={
-                <TodayInHistoryBanner
-                  geoResult={geoResult}
-                  onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-                />
-              }
-              childrenArticleSection={
-                <PdfSunArticleSection
-                  showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
-                />
+              childrenChroniclesSection={
+                <div className="space-y-6">
+                  <EngineChroniclesHub
+                    geoResult={geoResult}
+                    onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+                    onNavigateArticle={handleNavigateArticle}
+                    onNavigateBlog={handleNavigateBlog}
+                  />
+                  <PdfSunArticleSection
+                    showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
+                  />
+                </div>
               }
               childrenFormatsSection={<SupportedFormats />}
               childrenTestimonialsSection={<TestimonialsSection />}

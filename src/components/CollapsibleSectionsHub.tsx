@@ -3,6 +3,7 @@ import { ChevronDown, Sparkles, BookOpen, Layers, MessageSquare, Compass, Shield
 
 export interface CollapsibleSectionsHubProps {
   childrenAiSection?: React.ReactNode;
+  childrenChroniclesSection?: React.ReactNode;
   childrenHistorySection?: React.ReactNode;
   childrenArticleSection?: React.ReactNode;
   childrenFormatsSection?: React.ReactNode;
@@ -13,6 +14,7 @@ export interface CollapsibleSectionsHubProps {
 
 export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
   childrenAiSection,
+  childrenChroniclesSection,
   childrenHistorySection,
   childrenArticleSection,
   childrenFormatsSection,
@@ -74,15 +76,15 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
         </section>
       )}
 
-      {/* Section 2: Knowledge Base & In-Depth Technical Guides */}
-      {(childrenHistorySection || childrenArticleSection) && (
+      {/* Section 2: PDFSun Engine & Daily Chronicles */}
+      {(childrenChroniclesSection || childrenHistorySection || childrenArticleSection) && (
         <section
-          id="section-knowledge-hub"
-          aria-labelledby="heading-knowledge-hub"
+          id="section-engine-chronicles-hub"
+          aria-labelledby="heading-engine-chronicles-hub"
           className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 overflow-hidden shadow-2xs transition-all duration-200"
         >
           <button
-            id="heading-knowledge-hub"
+            id="heading-engine-chronicles-hub"
             onClick={() => setKnowledgeExpanded((prev) => !prev)}
             aria-expanded={knowledgeExpanded}
             className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition cursor-pointer"
@@ -93,10 +95,10 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Technical Knowledge Base &amp; Daily History
+                  PDFSun Engine &amp; Daily Chronicles
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Client-side security architecture, compression algorithms &amp; educational guides
+                  Client-Side WebAssembly Architecture, Historical Insights &amp; World-Class Document Intelligence
                 </p>
               </div>
             </div>
@@ -114,8 +116,12 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
 
           {knowledgeExpanded && (
             <div className="px-3 sm:px-6 pb-6 pt-2 space-y-4 border-t border-slate-200/60 dark:border-slate-800/60 animate-in fade-in duration-200">
-              {childrenHistorySection}
-              {childrenArticleSection}
+              {childrenChroniclesSection || (
+                <>
+                  {childrenHistorySection}
+                  {childrenArticleSection}
+                </>
+              )}
             </div>
           )}
         </section>
