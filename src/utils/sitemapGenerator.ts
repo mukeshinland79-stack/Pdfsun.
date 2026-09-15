@@ -99,10 +99,10 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
   // 3. Blog & Tutorial Articles (Scanned from BLOG_POSTS)
   BLOG_POSTS.forEach((post) => {
     entries.push({
-      loc: `${baseUrl}/?blog=${post.slug}`,
-      lastmod: today,
-      changefreq: "monthly",
-      priority: "0.7",
+      loc: `${baseUrl}/blog/${post.slug}`,
+      lastmod: post.lastModified || today,
+      changefreq: "weekly",
+      priority: "0.8",
       title: `${post.title} | PDF Sun Blog`,
       type: "blog",
     });

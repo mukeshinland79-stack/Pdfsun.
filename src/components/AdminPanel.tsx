@@ -93,6 +93,7 @@ import {
   copySitemapToClipboard,
   getSitemapStats,
 } from "../utils/sitemapGenerator";
+import { downloadBlogSitemapFile } from "../utils/sitemap";
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -2143,13 +2144,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => downloadSitemapFile(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
-                    className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:bg-amber-600 transition flex items-center space-x-1.5"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download sitemap.xml</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => downloadSitemapFile(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
+                      className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:bg-amber-600 transition flex items-center space-x-1.5"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download sitemap.xml</span>
+                    </button>
+                    <button
+                      onClick={() => downloadBlogSitemapFile(localSettings.domainName ? `https://${localSettings.domainName}` : undefined)}
+                      className="px-3.5 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md hover:bg-indigo-700 transition flex items-center space-x-1.5"
+                    >
+                      <Download className="w-4 h-4 text-indigo-200" />
+                      <span>Download blog-sitemap.xml</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sitemap Statistics Grid */}

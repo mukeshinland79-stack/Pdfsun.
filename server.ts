@@ -3241,13 +3241,14 @@ Disallow: /api/admin/
 
 Sitemap: https://pdfsun.in/sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-blog.xml
+Sitemap: https://pdfsun.in/blog-sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://pdfsun.in/sitemap-pseo.xml
 `);
 });
 
 // Dedicated Blog & Technical Guides Sitemap (for Google Search Console indexing & AdSense review)
-app.get("/sitemap-blog.xml", (req, res) => {
+app.get(["/sitemap-blog.xml", "/blog-sitemap.xml"], (req, res) => {
   res.set("Content-Type", "application/xml; charset=utf-8");
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   res.set("X-Content-Type-Options", "nosniff");

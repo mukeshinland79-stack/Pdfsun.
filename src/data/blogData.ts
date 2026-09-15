@@ -1155,9 +1155,11 @@ export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   // Keyword / Alias fallback map for rich URL compatibility
   const aliasMap: Record<string, string> = {
     "in-browser-pdf-processing-privacy": "in-browser-pdf-processing-privacy",
+    "privacy-future": "in-browser-pdf-processing-privacy",
     "future-of-document-privacy-webassembly": "in-browser-pdf-processing-privacy",
     "local-browser-pdf-processing-privacy": "in-browser-pdf-processing-privacy",
     "pdf-compression-guide": "pdf-compression-guide",
+    "compression-guide": "pdf-compression-guide",
     "ultimate-guide-pdf-compression-quality": "pdf-compression-guide",
     "mastering-pdf-compression-dpi-quantization": "pdf-compression-guide",
     "client-side-ocr-browser-text-extraction": "client-side-ocr-browser-text-extraction",
