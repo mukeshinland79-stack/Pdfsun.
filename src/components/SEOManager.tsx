@@ -6,6 +6,7 @@ import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 import { PSEOLandingPage } from "../data/pSEOData";
 import { getLocalizedToolFAQs, buildFaqJsonLd, ToolFAQ } from "../lib/toolFaqHelper";
 import { useLanguage } from "../lib/i18n";
+import { HIGH_INTENT_LOCALES } from "../lib/seoGenerator";
 
 export interface SEOManagerProps {
   activeTool: ToolItem | null;
@@ -15,6 +16,7 @@ export interface SEOManagerProps {
   totalPages?: number;
   isTodayInHistoryActive?: boolean;
   isPricingActive?: boolean;
+  isBlogActive?: boolean;
   pseoPage?: PSEOLandingPage | null;
 }
 
@@ -32,8 +34,10 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   totalPages,
   isTodayInHistoryActive = false,
   isPricingActive = false,
+  isBlogActive = false,
   pseoPage = null,
 }) => {
+  if (isBlogActive) return null;
   const { t, currentLanguage, isRtl, getToolName, getToolDescription } = useLanguage();
 
   // 1. Base WebSite & SearchAction Schema
@@ -566,8 +570,31 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
       )}
 
-      {/* Global 30-Language Hreflang Tags for International Organic Search Indexing */}
-      {TOP_30_LANGUAGES.map((lang) => (
+      {/* Global 30-Language & Multi-Tier High-Intent Hreflang Tags (Tier-1: US, UK, CA, AU, DE, FR; Tier-2: LATAM, ME; Tier-3: IN) */}
+      {HIGH_INTENT_LOCALES.map((loc) => {
+        const targetPath = pseoPage
+          ? `${baseUrl}/${pseoPage.slug}`
+          : isPricingActive
+          ? `${baseUrl}/pricing`
+          : isTodayInHistoryActive
+          ? `${baseUrl}/today-in-history`
+          : activeTool
+          ? `${baseUrl}/${activeTool.slug}`
+          : `${baseUrl}/`;
+
+        const langParam = loc.lang !== "en" ? `?lang=${loc.lang}` : loc.code !== "en-US" ? `?gl=${loc.country.toLowerCase()}` : "";
+        const href = `${targetPath}${langParam}`;
+
+        return (
+          <link
+            key={loc.code}
+            rel="alternate"
+            hrefLang={loc.hreflang}
+            href={href}
+          />
+        );
+      })}
+      {TOP_30_LANGUAGES.filter((lang) => !HIGH_INTENT_LOCALES.some((l) => l.hreflang.toLowerCase() === lang.hreflang.toLowerCase())).map((lang) => (
         <link
           key={lang.code}
           rel="alternate"

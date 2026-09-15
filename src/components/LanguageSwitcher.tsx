@@ -155,7 +155,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`p-2 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center justify-center cursor-pointer ${
+          className={`h-9 w-9 p-2 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center justify-center cursor-pointer ${
             isOpen
               ? "bg-blue-50 dark:bg-blue-950/70 border-blue-400 dark:border-blue-700 text-blue-600 dark:text-blue-400"
               : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -265,7 +265,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs cursor-pointer ${
+        className={`h-9 flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs cursor-pointer ${
           isOpen
             ? "bg-blue-50 dark:bg-blue-950/70 border-blue-400 dark:border-blue-700 text-blue-600 dark:text-blue-400"
             : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700"

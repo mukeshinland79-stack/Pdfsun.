@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
 import { ALL_TOOLS } from "./src/data/toolsData";
 import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
+import { BLOG_POSTS } from "./src/data/blogData";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
 import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
@@ -3239,9 +3240,40 @@ Allow: /
 Disallow: /api/admin/
 
 Sitemap: https://pdfsun.in/sitemap.xml
+Sitemap: https://pdfsun.in/sitemap-blog.xml
 Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://pdfsun.in/sitemap-pseo.xml
 `);
+});
+
+// Dedicated Blog & Technical Guides Sitemap (for Google Search Console indexing & AdSense review)
+app.get("/sitemap-blog.xml", (req, res) => {
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.set("X-Content-Type-Options", "nosniff");
+  const today = new Date().toISOString().split("T")[0];
+
+  const blogIndexEntry = `  <url>
+    <loc>https://pdfsun.in/blog</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>`;
+
+  const blogArticles = BLOG_POSTS.map((post) => {
+    return `  <url>
+    <loc>https://pdfsun.in/blog/${post.slug}</loc>
+    <lastmod>${post.lastModified || today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+  }).join("\n");
+
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${blogIndexEntry}
+${blogArticles}
+</urlset>`);
 });
 
 // Dedicated Programmatic Target Sizes Sitemap (for Google Search Console monitoring)
@@ -3294,22 +3326,25 @@ app.get("/sitemap.xml", (req, res) => {
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   res.set("X-Content-Type-Options", "nosniff");
   
-  // Collect unique slugs from all tools, pSEO landing pages, popular compress sizes, plus root and static pages
-  const staticSlugs = ["", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history", "pricing"];
+  // Collect unique slugs from all tools, blog posts, pSEO landing pages, popular compress sizes, plus root and static pages
+  const staticSlugs = ["", "blog", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history", "pricing"];
   const toolSlugs = ALL_TOOLS.map((t) => t.slug).filter(Boolean);
+  const blogSlugs = BLOG_POSTS.map((b) => `blog/${b.slug}`);
   const pseoSlugs = PSEO_LANDING_PAGES.map((p) => p.slug);
   const compressSlugs = POPULAR_COMPRESS_SIZES.map((s) => `compress-pdf-to-${s}`);
-  const allSlugs = Array.from(new Set([...staticSlugs, ...toolSlugs, ...pseoSlugs, ...compressSlugs]));
+  const allSlugs = Array.from(new Set([...staticSlugs, ...toolSlugs, ...blogSlugs, ...pseoSlugs, ...compressSlugs]));
 
   const today = new Date().toISOString().split("T")[0];
 
   const sitemapEntries = allSlugs
     .map((slug) => {
       const isHome = slug === "";
+      const isBlogIndex = slug === "blog";
+      const isBlogArticle = slug.startsWith("blog/");
       const isTool = toolSlugs.includes(slug);
       const isCompressSize = slug.startsWith("compress-pdf-to-");
-      const priority = isHome ? "1.0" : isCompressSize ? "0.9" : isTool ? "0.8" : "0.7";
-      const changefreq = isHome ? "daily" : "weekly";
+      const priority = isHome ? "1.0" : isBlogIndex ? "0.95" : isBlogArticle ? "0.9" : isCompressSize ? "0.9" : isTool ? "0.8" : "0.7";
+      const changefreq = isHome ? "daily" : isBlogIndex ? "daily" : "weekly";
       const urlPath = slug ? `/${slug}` : "";
 
       return `  <url>

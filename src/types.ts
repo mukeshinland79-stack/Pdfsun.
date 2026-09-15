@@ -120,6 +120,15 @@ export interface BlogPost {
   author: string;
   content: string;
   image: string;
+  executiveSummary?: string;
+  faqs?: Array<{ question: string; answer: string }>;
+  comparisonTable?: {
+    headers: string[];
+    rows: Array<string[]>;
+  };
+  relatedTools?: string[];
+  tags?: string[];
+  lastModified?: string;
 }
 
 export const DUAL_OWNER_EMAILS = [

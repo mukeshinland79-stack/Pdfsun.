@@ -34,6 +34,7 @@ import {
   FileCheck,
   Smartphone,
   Camera,
+  BookOpen,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
@@ -70,6 +71,7 @@ interface HeaderProps {
   onOpenTodayInHistory?: () => void;
   onOpenShareModal?: () => void;
   onOpenPricing?: () => void;
+  onOpenBlog?: () => void;
   onOpenInstallApp?: () => void;
   onOpenAvatarModal?: () => void;
   selectedCategory?: CategoryId;
@@ -102,6 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTodayInHistory,
   onOpenShareModal,
   onOpenPricing,
+  onOpenBlog,
   onOpenInstallApp,
   onOpenAvatarModal,
 }) => {
@@ -275,7 +278,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={handleOpenSearchModal}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs cursor-pointer group gap-1"
+              className="w-full h-9 flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70 shadow-2xs cursor-pointer group gap-1"
               title={`Command Palette (${isMac ? "Cmd+K" : "Ctrl+K"})`}
               aria-label="Open Command Palette tool search modal"
             >
@@ -305,7 +308,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => {
                 if (onOpenInstallApp) onOpenInstallApp();
               }}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
               title="Install PDFSun App on your device"
               aria-label="Install PDFSun Mobile App"
             >
@@ -320,7 +323,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               id="header-nav-pricing-btn"
               onClick={handleOpenPricing}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-amber-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-amber-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
               title="View PDFSun Pricing & Plans"
               aria-label="View Pricing Plans"
             >
@@ -338,7 +341,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-                className={`p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center space-x-1.5 cursor-pointer ${
+                className={`h-9 p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all border shadow-2xs flex items-center space-x-1.5 cursor-pointer ${
                   themeMode === "dark"
                     ? "bg-slate-800 text-blue-300 border-slate-700 hover:bg-slate-700"
                     : themeMode === "eye-protection"
@@ -432,7 +435,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs hover:opacity-95 transition cursor-pointer text-xs font-bold"
+                  className="h-9 flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs hover:opacity-95 transition cursor-pointer text-xs font-bold"
                   aria-label="Open Admin Menu"
                 >
                   <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
@@ -445,7 +448,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer text-xs font-bold"
+                  className="h-9 flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer text-xs font-bold"
                   aria-label="Open User Menu"
                 >
                   <div className="w-5 h-5 rounded-full overflow-hidden bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 ring-1 ring-orange-500/30">
@@ -468,7 +471,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenAuthModal("customer")}
-                  className="px-3.5 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer active:scale-95"
+                  className="h-9 px-3.5 sm:px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 whitespace-nowrap cursor-pointer active:scale-95"
                   aria-label="Login or Sign In"
                 >
                   <User className="w-3.5 h-3.5 shrink-0" />
@@ -853,6 +856,28 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 uppercase tracking-wider">
                 PRO &amp; SSO
+              </span>
+            </button>
+
+            {/* Mobile Blog Link */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenBlog) {
+                  onOpenBlog();
+                } else {
+                  window.location.href = "/blog";
+                }
+              }}
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/30 hover:bg-orange-500/20 flex items-center justify-between transition cursor-pointer"
+            >
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-4 h-4 text-orange-500 shrink-0" />
+                <span>Blog</span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white uppercase tracking-wider">
+                10 Guides
               </span>
             </button>
 

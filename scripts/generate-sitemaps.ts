@@ -28,11 +28,35 @@ Allow: /
 Disallow: /api/admin/
 
 Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-blog.xml
 Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
 `;
 
-// 2. Generate sitemap-compress-sizes.xml
+// 2. Generate sitemap-blog.xml
+const blogEntriesXml = [
+  `  <url>
+    <loc>${BASE_URL}/blog</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>`,
+  ...BLOG_POSTS.map((post) => {
+    return `  <url>
+    <loc>${BASE_URL}/blog/${post.slug}</loc>
+    <lastmod>${post.lastModified || today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+  }),
+].join("\n");
+
+const sitemapBlogXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${blogEntriesXml}
+</urlset>`;
+
+// 3. Generate sitemap-compress-sizes.xml
 const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
   return `  <url>
     <loc>${BASE_URL}/compress-pdf-to-${size}</loc>
@@ -47,7 +71,7 @@ const sitemapCompressXml = `<?xml version="1.0" encoding="UTF-8"?>
 ${compressUrls}
 </urlset>`;
 
-// 3. Generate sitemap-pseo.xml
+// 4. Generate sitemap-pseo.xml
 const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
   return `  <url>
     <loc>${BASE_URL}/${page.slug}</loc>
@@ -62,9 +86,10 @@ const sitemapPseoXml = `<?xml version="1.0" encoding="UTF-8"?>
 ${pseoUrls}
 </urlset>`;
 
-// 4. Generate master sitemap.xml
+// 5. Generate master sitemap.xml
 const staticPages = [
   { loc: `${BASE_URL}/`, priority: "1.0", changefreq: "daily" },
+  { loc: `${BASE_URL}/blog`, priority: "0.95", changefreq: "daily" },
   { loc: `${BASE_URL}/pricing`, priority: "0.9", changefreq: "weekly" },
   { loc: `${BASE_URL}/privacy-policy`, priority: "0.5", changefreq: "monthly" },
   { loc: `${BASE_URL}/terms-of-service`, priority: "0.5", changefreq: "monthly" },
@@ -81,8 +106,8 @@ const toolPages = ALL_TOOLS.map((t) => ({
 
 const blogPages = BLOG_POSTS.map((b) => ({
   loc: `${BASE_URL}/blog/${b.slug}`,
-  priority: "0.7",
-  changefreq: "monthly",
+  priority: "0.9",
+  changefreq: "weekly",
 }));
 
 const compressDirectPages = POPULAR_COMPRESS_SIZES.map((s) => ({
@@ -140,6 +165,7 @@ targets.forEach((targetDir) => {
     ensureDir(targetDir);
     fs.writeFileSync(path.join(targetDir, "robots.txt"), robotsTxt, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap.xml"), sitemapMasterXml, "utf8");
+    fs.writeFileSync(path.join(targetDir, "sitemap-blog.xml"), sitemapBlogXml, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap-compress-sizes.xml"), sitemapCompressXml, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap-pseo.xml"), sitemapPseoXml, "utf8");
     console.log(`[Sitemap Generator] Successfully generated static sitemaps & robots.txt in ${targetDir}`);

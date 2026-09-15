@@ -42,6 +42,9 @@ import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
+import { ReturningVisitorBar } from "./components/ReturningVisitorBar";
+import { CollapsibleSectionsHub } from "./components/CollapsibleSectionsHub";
+import { BlogPage } from "./components/BlogPage";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
@@ -431,6 +434,59 @@ export default function App() {
     }
   }, []);
 
+  // Dedicated Blog & Knowledge Base View State
+  const [blogViewActive, setBlogViewActive] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname;
+      return p === "/blog" || p.startsWith("/blog/");
+    }
+    return false;
+  });
+  const [blogActiveSlug, setBlogActiveSlug] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname;
+      const parts = p.split("/").filter(Boolean);
+      if (parts.length > 1 && parts[0] === "blog") {
+        return parts[1];
+      }
+    }
+    return null;
+  });
+
+  const handleNavigateBlog = useCallback(() => {
+    if (activeTool) setActiveTool(null);
+    if (activePseoPage) setActivePseoPage(null);
+    setPricingModalOpen(false);
+    setBlogViewActive(true);
+    setBlogActiveSlug(null);
+    if (typeof window !== "undefined" && window.location.pathname !== "/blog") {
+      window.history.pushState({}, "", "/blog");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeTool, activePseoPage]);
+
+  const handleNavigateArticle = useCallback((slug: string) => {
+    if (activeTool) setActiveTool(null);
+    if (activePseoPage) setActivePseoPage(null);
+    setPricingModalOpen(false);
+    setBlogViewActive(true);
+    setBlogActiveSlug(slug);
+    const targetPath = `/blog/${slug}`;
+    if (typeof window !== "undefined" && window.location.pathname !== targetPath) {
+      window.history.pushState({}, "", targetPath);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeTool, activePseoPage]);
+
+  const handleExitBlogToHome = useCallback(() => {
+    setBlogViewActive(false);
+    setBlogActiveSlug(null);
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/blog")) {
+      window.history.pushState({}, "", "/");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   useEffect(() => {
       // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links & Dedicated Pricing Page
       const syncRouteWithLocation = () => {
@@ -466,6 +522,29 @@ export default function App() {
 
         if (detectedLang && detectedLang !== currentLanguage) {
           setLanguage(detectedLang);
+        }
+
+        // 2. Dedicated Blog & Knowledge Base routing (/blog, /blog/:slug)
+        const isBlogRoute =
+          effectivePath === "/blog" ||
+          effectivePath.startsWith("/blog/") ||
+          params.get("view") === "blog" ||
+          params.has("blog");
+
+        if (isBlogRoute) {
+          setBlogViewActive(true);
+          const blogSegments = effectivePath.split("/").filter(Boolean);
+          if (blogSegments.length > 1 && blogSegments[0] === "blog") {
+            setBlogActiveSlug(blogSegments[1]);
+          } else {
+            setBlogActiveSlug(null);
+          }
+          setActiveTool(null);
+          setActivePseoPage(null);
+          return;
+        } else {
+          setBlogViewActive(false);
+          setBlogActiveSlug(null);
         }
 
         const isPricingUrl =
@@ -854,34 +933,37 @@ export default function App() {
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
         isPricingActive={pricingModalOpen}
+        isBlogActive={blogViewActive}
         pseoPage={activePseoPage}
       />
 
-      {/* Dynamic SEO Head Management */}
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="keywords" content="Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF, convert PDF to Word, online PDF editor, WebAssembly PDF, PDFSun, pdfsun.in" />
-        <meta name="author" content="PDFSun" />
-        <meta name="robots" content="index, follow, max-image-preview:large" />
+      {/* Dynamic SEO Head Management (BlogPage manages its own metadata when active) */}
+      {!blogViewActive && (
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="keywords" content="Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF, convert PDF to Word, online PDF editor, WebAssembly PDF, PDFSun, pdfsun.in" />
+          <meta name="author" content="PDFSun" />
+          <meta name="robots" content="index, follow, max-image-preview:large" />
 
-        <link rel="canonical" href={canonicalUrl} />
-        <link rel="icon" href="/favicon.ico" />
+          <link rel="canonical" href={canonicalUrl} />
+          <link rel="icon" href="/favicon.ico" />
 
-        {/* Open Graph / Social Sharing */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:title" content={ogTitle} />
-        <meta property="og:description" content={ogDescription} />
-        <meta property="og:image" content="https://pdfsun.in/og-image.png" />
-        <meta property="og:site_name" content="PDFSun" />
+          {/* Open Graph / Social Sharing */}
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={canonicalUrl} />
+          <meta property="og:title" content={ogTitle} />
+          <meta property="og:description" content={ogDescription} />
+          <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+          <meta property="og:site_name" content="PDFSun" />
 
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={twitterTitle} />
-        <meta name="twitter:description" content={twitterDescription} />
-        <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
-      </Helmet>
+          {/* Twitter Card */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={twitterTitle} />
+          <meta name="twitter:description" content={twitterDescription} />
+          <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
+        </Helmet>
+      )}
 
       {/* Sticky Top Header */}
       <Header
@@ -911,6 +993,7 @@ export default function App() {
         onOpenUserDashboard={() => setUserDashboardOpen(true)}
         onLogout={handleLogout}
         onGoHome={() => {
+          handleExitBlogToHome();
           setActiveTool(null);
           setSelectedCategory("all");
           setSearchQuery("");
@@ -919,85 +1002,107 @@ export default function App() {
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
         onOpenPricing={handleOpenPricing}
+        onOpenBlog={handleNavigateBlog}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
         onOpenAvatarModal={() => setAvatarModalOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
+          handleExitBlogToHome();
           setSelectedCategory(cat);
           if (activeTool) setActiveTool(null);
           document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
         }}
       />
 
-      {/* Main Hero Dropzone & Search Section */}
+      {/* Main Hero Dropzone & Search Section OR Dedicated Blog Portal */}
       <main className="content-area flex-1">
-        <HeroSection
-          onSelectTool={handleSelectTool}
-          onOpenSearch={() => setSearchModalOpen(true)}
-        />
+        {blogViewActive ? (
+          <BlogPage
+            currentSlug={blogActiveSlug}
+            onNavigateHome={handleExitBlogToHome}
+            onNavigateBlog={handleNavigateBlog}
+            onNavigateArticle={handleNavigateArticle}
+            onSelectTool={(toolId) => {
+              handleExitBlogToHome();
+              const tool = ALL_TOOLS.find((t) => t.id === toolId || t.slug === toolId);
+              if (tool) handleSelectTool(tool);
+            }}
+          />
+        ) : (
+          <>
+            <HeroSection
+              onSelectTool={handleSelectTool}
+              onOpenSearch={() => setSearchModalOpen(true)}
+            />
 
-        {/* PDF Tools Filterable Grid (Front-and-Center, iLovePDF Style) */}
-        <ToolGrid
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onSelectTool={handleSelectTool}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onPageChange={handleGridPageChange}
-        />
+            {/* Returning Visitor Session Recovery Bar (1-Click Local Privacy Resume) */}
+            <ReturningVisitorBar
+              onSelectTool={handleSelectTool}
+              onOpenHistory={() => setHistoryModalOpen(true)}
+            />
 
-        {/* Placement 1: Sub-Tools AdSense Banner */}
-        {adPlacements.some((p) => p.id === "hero-sub-ad") && (
-          <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
+            {/* PDF Tools Filterable Grid (Front-and-Center, iLovePDF Style) */}
+            <ToolGrid
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onSelectTool={handleSelectTool}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onPageChange={handleGridPageChange}
+            />
+
+            {/* Placement 1: Sub-Tools AdSense Banner */}
+            {adPlacements.some((p) => p.id === "hero-sub-ad") && (
+              <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
+            )}
+
+            {/* Distraction Isolation: Secondary Modules in Collapsible Sections Hub */}
+            <CollapsibleSectionsHub
+              childrenAiSection={
+                <div className="space-y-4">
+                  <MobileAppPromotionCard />
+                  <DualAiFeatureBanner
+                    onSelectTool={handleSelectTool}
+                    onOpenContactModal={() => setContactModalOpen(true)}
+                  />
+                </div>
+              }
+              childrenHistorySection={
+                <TodayInHistoryBanner
+                  geoResult={geoResult}
+                  onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+                />
+              }
+              childrenArticleSection={
+                <PdfSunArticleSection
+                  showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
+                />
+              }
+              childrenFormatsSection={<SupportedFormats />}
+              childrenTestimonialsSection={<TestimonialsSection />}
+              childrenFaqSection={<FAQSection activeTool={activeTool} />}
+              childrenNewsletterSection={<NewsletterSubscription variant="standalone" />}
+            />
+          </>
         )}
-
-        {/* Dedicated PDFSun Mobile App Promotion Card & QR Code */}
-        <MobileAppPromotionCard />
-
-        {/* Dual AI Pro Feature Cards & Global Enterprise Suite */}
-        <DualAiFeatureBanner
-          onSelectTool={handleSelectTool}
-          onOpenContactModal={() => setContactModalOpen(true)}
-        />
-
-        {/* Geo-Adaptive Multilingual Today in History Hub & Daily Knowledge Engine (Below Tools) */}
-        <TodayInHistoryBanner
-          geoResult={geoResult}
-          onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-        />
-
-        {/* Section Replacement: Responsive, SEO-optimized, and AdSense-compliant Article Content Section */}
-        <PdfSunArticleSection
-          showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
-        />
-
-        {/* Supported File Formats */}
-        <SupportedFormats />
-
-        {/* Testimonials */}
-        <TestimonialsSection />
-
-        {/* FAQ Accordion */}
-        <FAQSection activeTool={activeTool} />
-
-        {/* Newsletter Subscription Banner */}
-        <NewsletterSubscription variant="standalone" />
       </main>
 
       {/* Enterprise Clean Footer */}
       <Footer
         onOpenPolicy={(p) => setActivePolicy(p)}
         onOpenAllTools={() => {
+          handleExitBlogToHome();
           setSelectedCategory("all");
           document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
         }}
         onOpenAiTools={() => {
+          handleExitBlogToHome();
           setSelectedCategory("ai");
           document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
         }}
-        onOpenBlogModal={() => setBlogModalOpen(true)}
+        onOpenBlogModal={handleNavigateBlog}
         onOpenContactModal={() => setContactModalOpen(true)}
         onOpenPricing={handleOpenPricing}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
