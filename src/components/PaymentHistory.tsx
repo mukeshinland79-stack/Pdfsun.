@@ -230,9 +230,16 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
   // Real-time Firestore transactions listener strictly filtered for current userProfile.uid / email
   useEffect(() => {
+    const email = (userProfile.email || "").trim().toLowerCase();
+    const uid = (userProfile.uid || userProfile.id || "").trim();
+    if (!email && !uid) {
+      setLoading(false);
+      return;
+    }
+
     const userIdentifier = {
-      uid: userProfile.uid || userProfile.id,
-      email: userProfile.email || "mukeshinland79@gmail.com",
+      uid,
+      email,
     };
 
     const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (firestoreTxList) => {

@@ -422,16 +422,16 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           {/* MAIN ARTICLE BODY (Formatted Markdown/Prose) */}
           <section className="prose prose-slate dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 space-y-6 text-sm sm:text-base leading-relaxed">
             {activePost.content.split("\n\n").map((block, idx) => {
-              // Code or preformatted block
+              // Conceptual summary or callout block
               if (block.startsWith("```")) {
-                const cleanCode = block.replace(/```[a-z]*\n?/g, "");
+                const cleanText = block.replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
                 return (
-                  <pre
+                  <div
                     key={idx}
-                    className="p-4 rounded-2xl bg-slate-900 text-slate-100 text-xs sm:text-sm font-mono overflow-x-auto my-4 border border-slate-800 shadow-xs leading-normal"
+                    className="p-5 rounded-2xl bg-blue-50/60 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 text-sm my-4 border border-blue-100 dark:border-slate-800 shadow-xs leading-relaxed"
                   >
-                    <code>{cleanCode}</code>
-                  </pre>
+                    <p className="whitespace-pre-line">{cleanText}</p>
+                  </div>
                 );
               }
 
@@ -482,13 +482,15 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               }
 
               // Unordered List
-              if (block.startsWith("- ")) {
-                const items = block.split("\n").filter((l) => l.startsWith("- "));
+              if (block.startsWith("- ") || block.startsWith("* ")) {
+                const items = block
+                  .split("\n")
+                  .filter((l) => l.startsWith("- ") || l.startsWith("* "));
                 return (
                   <ul key={idx} className="list-disc pl-5 space-y-1.5 my-3">
                     {items.map((it, i) => (
                       <li key={i} className="text-slate-700 dark:text-slate-300">
-                        {it.replace("- ", "")}
+                        {it.replace(/^[-*]\s/, "")}
                       </li>
                     ))}
                   </ul>

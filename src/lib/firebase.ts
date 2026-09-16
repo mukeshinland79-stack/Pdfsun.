@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import {
+  initializeFirestore,
   getFirestore,
   collection,
   addDoc,
@@ -20,6 +21,54 @@ import {
 import { getAuth, Auth } from "firebase/auth";
 import firebaseConfigData from "../../firebase-applet-config.json";
 import { resolvePaymentProduct } from "../config/paymentProducts";
+
+export enum OperationType {
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
+  LIST = "list",
+  GET = "get",
+  WRITE = "write",
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): FirestoreErrorInfo {
+  const currentAuth = getFirebaseAuth();
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: currentAuth.currentUser?.uid,
+      email: currentAuth.currentUser?.email,
+      emailVerified: currentAuth.currentUser?.emailVerified,
+      isAnonymous: currentAuth.currentUser?.isAnonymous,
+      tenantId: currentAuth.currentUser?.tenantId,
+      providerInfo: currentAuth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.warn(`[Firestore ${operationType}] Notice on ${path || "root"}:`, errInfo.error);
+  return errInfo;
+}
 
 export const firebaseConfig = {
   apiKey: firebaseConfigData.apiKey || "AIzaSyAeO3-CIUwMOPKeJEpqSpAmj8jIh9jiUw4",
@@ -56,10 +105,18 @@ export function getFirebaseAuth(): Auth {
 export function getFirestoreDb(): Firestore {
   if (!db) {
     const firebaseApp = getFirebaseApp();
-    db = getFirestore(
-      firebaseApp,
-      firebaseConfigData.firestoreDatabaseId || "(default)"
-    );
+    const dbId = firebaseConfigData.firestoreDatabaseId || "(default)";
+    if (typeof window !== "undefined") {
+      try {
+        db = initializeFirestore(firebaseApp, {
+          experimentalForceLongPolling: true,
+        }, dbId);
+      } catch {
+        db = getFirestore(firebaseApp, dbId);
+      }
+    } else {
+      db = getFirestore(firebaseApp, dbId);
+    }
   }
   return db;
 }
@@ -296,70 +353,84 @@ function resolveUserIdentities(param: UserTransactionQueryParam): {
 export async function fetchUserTransactionsFromFirestore(
   userParam: UserTransactionQueryParam
 ): Promise<FirestoreTransactionRecord[]> {
-  try {
-    const { uid, email } = resolveUserIdentities(userParam);
-    if (!uid && !email) return [];
+  const { uid, email } = resolveUserIdentities(userParam);
+  if (!uid && !email) return [];
 
+  // Helper to map snapshot docs to records
+  const mapDocToRecord = (docSnap: any): FirestoreTransactionRecord => {
+    const data = docSnap.data();
+    const docUid = (data.userId || data.uid || "").trim();
+    const docEmail = (data.userEmail || "").trim().toLowerCase();
+    const rawAmount = typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100));
+    const rawAmountPaise = data.amountPaise || (rawAmount ? rawAmount * 100 : 0);
+    const resolvedProd = resolvePaymentProduct({
+      planId: data.planId,
+      amountINR: rawAmount,
+      amountPaise: rawAmountPaise,
+    });
+
+    return {
+      id: docSnap.id,
+      paymentId: data.paymentId || docSnap.id,
+      orderId: data.orderId || "",
+      subscriptionId: data.subscriptionId || "",
+      userId: docUid || uid,
+      uid: docUid || uid,
+      userEmail: docEmail || email,
+      amount: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+      amountINR: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
+      amountPaise: rawAmountPaise > 0 ? rawAmountPaise : resolvedProd.displayPriceINR * 100,
+      currency: data.currency || "INR",
+      status: (data.status || "COMPLETED").toString(),
+      planId: resolvedProd.internalProductId,
+      planName: resolvedProd.productName,
+      plan: resolvedProd.productName,
+      entitlementGranted: data.entitlementGranted || "",
+      signatureVerified: Boolean(data.signatureVerified),
+      source: data.source || "razorpay",
+      paymentMethod: data.paymentMethod || "Razorpay Live Gateway",
+      invoiceNo: data.invoiceNo || `INV-RZP-${docSnap.id.substring(docSnap.id.length - 6).toUpperCase()}`,
+      reconciledAt: data.reconciledAt || data.createdAt || new Date().toISOString(),
+      createdAt: data.createdAt || data.reconciledAt || new Date().toISOString(),
+      timestamp: data.createdAt || data.reconciledAt || new Date().toISOString(),
+      date: data.createdAt ? data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+    };
+  };
+
+  try {
     const firestore = getFirestoreDb();
     const colRef = collection(firestore, "transactions");
 
-    // Fetch snapshot
-    const snap = await getDocs(colRef);
+    // Scope query strictly by userEmail to satisfy Firestore security rules
+    const q = email
+      ? query(colRef, where("userEmail", "==", email))
+      : query(colRef, where("userId", "==", uid));
+
+    const snap = await getDocs(q);
     const results: FirestoreTransactionRecord[] = [];
-
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      const docUid = (data.userId || data.uid || "").trim();
-      const docEmail = (data.userEmail || "").trim().toLowerCase();
-
-      // Ensure transaction strictly belongs to current user uid or email
-      const matchesUid = uid && docUid && docUid === uid;
-      const matchesEmail = email && docEmail && docEmail === email;
-      const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
-
-      if (matchesUid || matchesEmail || matchesFallback) {
-        const rawAmount = typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100));
-        const rawAmountPaise = data.amountPaise || (rawAmount ? rawAmount * 100 : 0);
-        const resolvedProd = resolvePaymentProduct({
-          planId: data.planId,
-          amountINR: rawAmount,
-          amountPaise: rawAmountPaise,
-        });
-
-        results.push({
-          id: docSnap.id,
-          paymentId: data.paymentId || docSnap.id,
-          orderId: data.orderId || "",
-          subscriptionId: data.subscriptionId || "",
-          userId: docUid || uid,
-          uid: docUid || uid,
-          userEmail: docEmail || email,
-          amount: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
-          amountINR: rawAmount > 0 ? rawAmount : resolvedProd.displayPriceINR,
-          amountPaise: rawAmountPaise > 0 ? rawAmountPaise : resolvedProd.displayPriceINR * 100,
-          currency: data.currency || "INR",
-          status: (data.status || "COMPLETED").toString(),
-          planId: resolvedProd.internalProductId,
-          planName: resolvedProd.productName,
-          plan: resolvedProd.productName,
-          entitlementGranted: data.entitlementGranted || "",
-          signatureVerified: Boolean(data.signatureVerified),
-          source: data.source || "razorpay",
-          paymentMethod: data.paymentMethod || "Razorpay Live Gateway",
-          invoiceNo: data.invoiceNo || `INV-RZP-${docSnap.id.substring(docSnap.id.length - 6).toUpperCase()}`,
-          reconciledAt: data.reconciledAt || data.createdAt || new Date().toISOString(),
-          createdAt: data.createdAt || data.reconciledAt || new Date().toISOString(),
-          timestamp: data.createdAt || data.reconciledAt || new Date().toISOString(),
-          date: data.createdAt ? data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
-        });
-      }
+    snap.forEach((d) => {
+      results.push(mapDocToRecord(d));
     });
 
     return results.sort(
       (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     );
   } catch (err) {
-    console.error("[Firestore] Error fetching transactions:", err);
+    handleFirestoreError(err, OperationType.LIST, "transactions");
+    // Resilient fallback: fetch from secure server payment-history endpoint
+    if (typeof window !== "undefined" && email) {
+      try {
+        const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Array.isArray(json.transactions)) {
+            return json.transactions;
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn("[PaymentHistory] REST fallback fetch notice:", fallbackErr);
+      }
+    }
     return [];
   }
 }
@@ -378,23 +449,29 @@ export function subscribeUserTransactionsFromFirestore(
     return () => {};
   }
 
-  const firestore = getFirestoreDb();
-  const colRef = collection(firestore, "transactions");
+  // Only attach live snapshot listener if client has an active Firebase Auth session
+  const currentAuth = getFirebaseAuth();
+  if (!currentAuth.currentUser) {
+    // If not authenticated in Firebase Auth yet, fetch one-time via resilient helper
+    fetchUserTransactionsFromFirestore(userParam).then(onUpdate).catch(() => onUpdate([]));
+    return () => {};
+  }
 
-  return onSnapshot(
-    colRef,
-    (snap) => {
-      const results: FirestoreTransactionRecord[] = [];
-      snap.forEach((docSnap) => {
-        const data = docSnap.data();
-        const docUid = (data.userId || data.uid || "").trim();
-        const docEmail = (data.userEmail || "").trim().toLowerCase();
+  try {
+    const firestore = getFirestoreDb();
+    const colRef = collection(firestore, "transactions");
+    const q = email
+      ? query(colRef, where("userEmail", "==", email))
+      : query(colRef, where("userId", "==", uid));
 
-        const matchesUid = uid && docUid && docUid === uid;
-        const matchesEmail = email && docEmail && docEmail === email;
-        const matchesFallback = (!docUid && email && docEmail === email) || (!docEmail && uid && docUid === uid);
-
-        if (matchesUid || matchesEmail || matchesFallback) {
+    return onSnapshot(
+      q,
+      (snap) => {
+        const results: FirestoreTransactionRecord[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const docUid = (data.userId || data.uid || "").trim();
+          const docEmail = (data.userEmail || "").trim().toLowerCase();
           const rawAmount = typeof data.amount === "number" ? data.amount : (typeof data.amountINR === "number" ? data.amountINR : ((data.amountPaise || 0) / 100));
           const rawAmountPaise = data.amountPaise || (rawAmount ? rawAmount * 100 : 0);
           const resolvedProd = resolvePaymentProduct({
@@ -429,18 +506,23 @@ export function subscribeUserTransactionsFromFirestore(
             timestamp: data.createdAt || data.reconciledAt || new Date().toISOString(),
             date: data.createdAt ? data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
           });
-        }
-      });
+        });
 
-      results.sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-      onUpdate(results);
-    },
-    (err) => {
-      console.warn("[Firestore] subscribeUserTransactions error:", err);
-    }
-  );
+        results.sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        onUpdate(results);
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, "transactions");
+        // Fallback to fetch one-time
+        fetchUserTransactionsFromFirestore(userParam).then(onUpdate).catch(() => {});
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, "transactions");
+    return () => {};
+  }
 }
 
 
