@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BlogPost } from "../types";
 import { BLOG_POSTS, getBlogPostBySlug } from "../data/blogData";
 import { ALL_TOOLS } from "../data/toolsData";
@@ -22,8 +22,16 @@ import {
   ArrowRight,
   Lock,
   FileCheck2,
+  Bookmark,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import {
+  calculateReadingTime,
+  getSavedArticleSlugs,
+  toggleSavedArticle,
+  onBookmarksChange,
+  shareArticleContent,
+} from "../utils/blogArticleUtils";
 
 interface BlogPageProps {
   currentSlug?: string | null;
@@ -42,7 +50,14 @@ export const BlogPage: React.FC<BlogPageProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [viewSavedOnly, setViewSavedOnly] = useState<boolean>(false);
+  const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [shareToast, setShareToast] = useState<{
+    visible: boolean;
+    message: string;
+    slug?: string;
+  }>({ visible: false, message: "" });
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(0);
 
   // Active article detection (if slug provided)
@@ -50,6 +65,51 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     if (!currentSlug) return null;
     return getBlogPostBySlug(currentSlug);
   }, [currentSlug]);
+
+  // Sync bookmarks from localStorage safely
+  useEffect(() => {
+    setSavedSlugs(getSavedArticleSlugs());
+    const unsubscribe = onBookmarksChange((updated) => setSavedSlugs(updated));
+    return unsubscribe;
+  }, []);
+
+  // Passive, throttled scroll listener for article reading progress bar (CLS & AdSense safe)
+  useEffect(() => {
+    if (!activePost) {
+      setScrollProgress(0);
+      return;
+    }
+
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+          if (totalHeight > 0) {
+            const progress = Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
+            setScrollProgress(progress);
+          } else {
+            setScrollProgress(0);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [activePost]);
+
+  // Calculated reading time for active article using standard 200 WPM
+  const activeReadingTime = useMemo(() => {
+    if (!activePost) return null;
+    return calculateReadingTime(activePost.content, activePost.readTime);
+  }, [activePost]);
 
   // Unique categories list
   const categories = useMemo(() => {
@@ -61,13 +121,17 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     return Array.from(cats);
   }, []);
 
-  // Filtered posts for blog index
+  // Filtered posts for blog index (with Saved Articles and Category filtering)
   const filteredPosts = useMemo(() => {
     return BLOG_POSTS.filter((post) => {
-      const matchesCategory =
-        selectedCategory === "All" || post.category === selectedCategory;
+      if (viewSavedOnly) {
+        if (!savedSlugs.includes(post.slug)) return false;
+      } else if (selectedCategory !== "All" && post.category !== selectedCategory) {
+        return false;
+      }
+
       const query = searchQuery.toLowerCase().trim();
-      if (!query) return matchesCategory;
+      if (!query) return true;
 
       const matchesTitle = post.title.toLowerCase().includes(query);
       const matchesExcerpt = post.excerpt.toLowerCase().includes(query);
@@ -76,21 +140,38 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         t.toLowerCase().includes(query)
       );
 
-      return (
-        matchesCategory &&
-        (matchesTitle || matchesExcerpt || matchesCategoryText || matchesTags)
-      );
+      return matchesTitle || matchesExcerpt || matchesCategoryText || matchesTags;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, viewSavedOnly, savedSlugs]);
 
-  const handleCopyShareUrl = (slug: string) => {
-    const url = `https://pdfsun.in/blog/${slug}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2500);
-    }
-  };
+  // Native Web Share API with clipboard fallback
+  const handleShareArticle = useCallback(
+    async (post: BlogPost, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      const result = await shareArticleContent({
+        title: post.title,
+        text: post.excerpt,
+        slug: post.slug,
+      });
+
+      if (result.success) {
+        setShareToast({
+          visible: true,
+          message: result.message,
+          slug: post.slug,
+        });
+        setTimeout(() => {
+          setShareToast((prev) => (prev.slug === post.slug ? { visible: false, message: "" } : prev));
+        }, 2800);
+      }
+    },
+    []
+  );
+
+  const handleToggleBookmark = useCallback((slug: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    toggleSavedArticle(slug);
+  }, []);
 
   // Structured Data JSON-LD for Single Article View
   const articleJsonLd = useMemo(() => {
@@ -250,6 +331,39 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         </Helmet>
       )}
 
+      {/* SLIM, ACCELERATED ARTICLE SCROLL PROGRESS BAR (AdSense & Ezoic Buffer Safe, CLS = 0) */}
+      {activePost && (
+        <div
+          id="article-reading-progress-bar"
+          className="fixed top-0 left-0 right-0 h-1 z-50 pointer-events-none bg-transparent"
+          role="progressbar"
+          aria-valuenow={Math.round(scrollProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Article reading progress"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-amber-300 transition-[width] duration-75 ease-out shadow-xs shadow-amber-500/40"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+      )}
+
+      {/* Global Share Toast Notification */}
+      {shareToast.visible && (
+        <div
+          id="blog-share-toast"
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 bg-slate-900/95 border border-emerald-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <Check className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-xs font-semibold text-slate-100">{shareToast.message}</span>
+        </div>
+      )}
+
       {/* TOP NAVIGATION BAR */}
       <nav className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -333,9 +447,9 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-amber-400 border border-orange-500/20">
                 {activePost.category}
               </span>
-              <span className="inline-flex items-center text-xs text-slate-500 dark:text-slate-400 space-x-1">
+              <span className="inline-flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/15 px-2.5 py-0.5 rounded-lg border border-amber-500/20 space-x-1">
                 <Clock className="w-3.5 h-3.5" />
-                <span>{activePost.readTime}</span>
+                <span>{activeReadingTime?.badgeText || activePost.readTime}</span>
               </span>
               <span className="inline-flex items-center text-xs text-slate-500 dark:text-slate-400 space-x-1">
                 <Calendar className="w-3.5 h-3.5" />
@@ -347,7 +461,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               {activePost.title}
             </h1>
 
-            {/* Author E-E-A-T Identity & Share Buttons */}
+            {/* Author E-E-A-T Identity & Share / Bookmark Buttons */}
             <div className="pt-2 pb-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
@@ -372,25 +486,36 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               </div>
 
               <div className="flex items-center space-x-2">
+                {/* Bookmark Toggle Button in Article Header */}
                 <button
+                  id={`btn-bookmark-article-${activePost.slug}`}
                   type="button"
-                  onClick={() => handleCopyShareUrl(activePost.slug)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition flex items-center space-x-1.5 cursor-pointer shadow-2xs"
-                  title="Copy direct article URL"
+                  onClick={(e) => handleToggleBookmark(activePost.slug, e)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 cursor-pointer shadow-2xs ${
+                    savedSlugs.includes(activePost.slug)
+                      ? "bg-amber-500 text-slate-950 font-bold hover:bg-amber-400"
+                      : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                  }`}
+                  title={savedSlugs.includes(activePost.slug) ? "Remove from bookmarks" : "Save guide for later"}
                 >
-                  {copiedUrl ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        Link Copied!
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="w-3.5 h-3.5" />
-                      <span>Share Guide</span>
-                    </>
-                  )}
+                  <Bookmark
+                    className={`w-3.5 h-3.5 ${
+                      savedSlugs.includes(activePost.slug) ? "fill-current" : ""
+                    }`}
+                  />
+                  <span>{savedSlugs.includes(activePost.slug) ? "Saved" : "Save Guide"}</span>
+                </button>
+
+                {/* Native Web Share Button */}
+                <button
+                  id={`btn-share-article-${activePost.slug}`}
+                  type="button"
+                  onClick={(e) => handleShareArticle(activePost, e)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition flex items-center space-x-1.5 cursor-pointer shadow-2xs"
+                  title="Share article via Web Share API or copy link"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share Guide</span>
                 </button>
               </div>
             </div>
@@ -790,90 +915,207 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             </div>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-10 text-xs font-bold scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap shadow-2xs ${
-                  selectedCategory === cat
-                    ? "bg-orange-500 text-white"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+          {/* Category Filter Pills & Dedicated Saved Guides Tab */}
+          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-10 text-xs font-bold scrollbar-none flex-wrap sm:flex-nowrap">
+            {categories.map((cat) => {
+              const isActive = !viewSavedOnly && selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  id={`blog-category-${cat.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+                  type="button"
+                  onClick={() => {
+                    setViewSavedOnly(false);
+                    setSelectedCategory(cat);
+                  }}
+                  className={`px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap shadow-2xs ${
+                    isActive
+                      ? "bg-orange-500 text-white shadow-orange-500/20 shadow-md font-black"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+
+            {/* Saved Guides Filter Pill */}
+            <button
+              id="blog-category-saved"
+              type="button"
+              onClick={() => setViewSavedOnly(!viewSavedOnly)}
+              className={`px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap shadow-2xs flex items-center space-x-1.5 border ${
+                viewSavedOnly
+                  ? "bg-rose-500 text-white border-rose-400 font-black shadow-rose-500/20 shadow-md"
+                  : savedSlugs.length > 0
+                  ? "bg-white dark:bg-slate-900 text-rose-500 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <Bookmark
+                className={`w-3.5 h-3.5 ${
+                  viewSavedOnly || savedSlugs.length > 0 ? "fill-current" : ""
+                }`}
+              />
+              <span>Saved Guides</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  viewSavedOnly
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                 }`}
               >
-                {cat}
-              </button>
-            ))}
+                {savedSlugs.length}
+              </span>
+            </button>
           </div>
 
           {/* Articles Grid */}
           {filteredPosts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPosts.map((post) => (
-                <div
-                  key={post.id}
-                  onClick={() => onNavigateArticle(post.slug)}
-                  className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-orange-500 dark:hover:border-amber-400 transition cursor-pointer overflow-hidden group flex flex-col justify-between shadow-xs hover:shadow-lg"
-                >
-                  <div>
-                    <div className="relative overflow-hidden h-48 bg-slate-800">
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                        loading="lazy"
-                      />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-950/80 backdrop-blur-md text-amber-400 border border-white/10">
-                        {post.category}
-                      </span>
-                    </div>
+              {filteredPosts.map((post) => {
+                const isSaved = savedSlugs.includes(post.slug);
+                const readingTime = calculateReadingTime(post.content, post.readTime);
+                const isCopied = shareToast.visible && shareToast.slug === post.slug;
 
-                    <div className="p-6 space-y-3">
-                      <div className="flex items-center space-x-3 text-xs text-slate-400">
-                        <span className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>{post.date}</span>
+                return (
+                  <div
+                    key={post.id}
+                    id={`blog-card-${post.slug}`}
+                    onClick={() => onNavigateArticle(post.slug)}
+                    className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-orange-500 dark:hover:border-amber-400 transition cursor-pointer overflow-hidden group flex flex-col justify-between shadow-xs hover:shadow-lg"
+                  >
+                    <div>
+                      {/* Image Thumbnail with Category Tag, Bookmark & Share Buttons */}
+                      <div className="relative overflow-hidden h-48 bg-slate-800">
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          loading="lazy"
+                        />
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-950/80 backdrop-blur-md text-amber-400 border border-white/10">
+                          {post.category}
                         </span>
-                        <span>•</span>
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{post.readTime}</span>
-                        </span>
+
+                        {/* Top-Right Bookmark & Share Actions */}
+                        <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+                          <button
+                            id={`btn-bookmark-card-${post.slug}`}
+                            type="button"
+                            onClick={(e) => handleToggleBookmark(post.slug, e)}
+                            className={`p-2 rounded-xl backdrop-blur-md transition cursor-pointer shadow-md ${
+                              isSaved
+                                ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+                                : "bg-slate-950/80 text-white hover:bg-slate-850 border border-white/10"
+                            }`}
+                            title={isSaved ? "Remove from bookmarks" : "Save guide"}
+                            aria-label={isSaved ? "Remove bookmark" : "Bookmark article"}
+                          >
+                            <Bookmark
+                              className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
+                            />
+                          </button>
+
+                          <button
+                            id={`btn-share-card-${post.slug}`}
+                            type="button"
+                            onClick={(e) => handleShareArticle(post, e)}
+                            className={`p-2 rounded-xl backdrop-blur-md transition cursor-pointer shadow-md ${
+                              isCopied
+                                ? "bg-emerald-500 text-white"
+                                : "bg-slate-950/80 text-white hover:bg-slate-850 border border-white/10"
+                            }`}
+                            title="Share article via Web Share API or copy link"
+                            aria-label="Share article"
+                          >
+                            {isCopied ? (
+                              <Check className="w-3.5 h-3.5 text-white" />
+                            ) : (
+                              <Share2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Reading Time Badge Overlay */}
+                        <div className="absolute bottom-3 left-3">
+                          <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-slate-950/85 backdrop-blur-sm text-amber-300 border border-amber-500/30 flex items-center space-x-1 shadow-sm">
+                            <span>{readingTime.badgeText}</span>
+                          </span>
+                        </div>
                       </div>
 
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-orange-500 dark:group-hover:text-amber-400 transition leading-snug">
-                        {post.title}
-                      </h2>
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center space-x-3 text-xs text-slate-400">
+                          <span className="flex items-center space-x-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{post.date}</span>
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center space-x-1 font-semibold text-amber-600 dark:text-amber-400">
+                            <Clock className="w-3 h-3" />
+                            <span>{readingTime.text}</span>
+                          </span>
+                        </div>
 
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                        {post.excerpt}
-                      </p>
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-orange-500 dark:group-hover:text-amber-400 transition leading-snug">
+                          {post.title}
+                        </h2>
+
+                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                          {post.excerpt}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 pt-0 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 mt-2">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        By {post.author}
+                      </span>
+                      <span className="text-xs font-black text-orange-600 dark:text-amber-400 flex items-center space-x-1 group-hover:translate-x-1 transition">
+                        <span>Read Guide</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
                     </div>
                   </div>
-
-                  <div className="p-6 pt-0 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 mt-2">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      By {post.author}
-                    </span>
-                    <span className="text-xs font-black text-orange-600 dark:text-amber-400 flex items-center space-x-1 group-hover:translate-x-1 transition">
-                      <span>Read Guide</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8">
-              <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                No articles found matching &quot;{searchQuery}&quot;
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Try searching for keywords like &quot;WASM&quot;, &quot;Compression&quot;, &quot;OCR&quot;, or &quot;Encryption&quot;.
-              </p>
+              {viewSavedOnly ? (
+                <div className="max-w-md mx-auto space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto border border-rose-500/20">
+                    <Bookmark className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    No Saved Guides in Your Browser Yet
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Click the bookmark ribbon icon on any guide card to save it for quick offline reference without account registration.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewSavedOnly(false);
+                      setSelectedCategory("All");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-orange-500 text-white font-bold text-xs hover:bg-orange-600 transition cursor-pointer"
+                  >
+                    Browse All Guides
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    No articles found matching &quot;{searchQuery}&quot;
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Try searching for keywords like &quot;WASM&quot;, &quot;Compression&quot;, &quot;OCR&quot;, or &quot;Encryption&quot;.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

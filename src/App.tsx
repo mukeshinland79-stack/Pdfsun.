@@ -1080,6 +1080,8 @@ export default function App() {
                   />
                   <PdfSunArticleSection
                     showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
+                    onNavigateArticle={handleNavigateArticle}
+                    onNavigateBlog={handleNavigateBlog}
                   />
                 </div>
               }
