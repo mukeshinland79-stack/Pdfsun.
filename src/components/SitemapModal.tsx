@@ -44,7 +44,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
   const [copied, setCopied] = useState(false);
   const [blogCopied, setBlogCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"urls" | "raw" | "blog-sitemap">("urls");
-  const [blogViewMode, setBlogViewMode] = useState<"cards" | "xml">("cards");
+  const [blogViewMode, setBlogViewMode] = useState<"xml" | "cards">("xml");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "tool" | "blog" | "core" | "policy">("all");
 
@@ -141,6 +141,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
             {/* Main Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
+                id="sitemap-copy-full-btn"
                 type="button"
                 onClick={handleCopy}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer ${
@@ -150,10 +151,26 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                 }`}
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? "XML Copied!" : "Copy XML"}</span>
+                <span>{copied ? "Full XML Copied!" : "Copy Full XML"}</span>
               </button>
 
               <button
+                id="sitemap-copy-blog-btn"
+                type="button"
+                onClick={handleCopyBlog}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer ${
+                  blogCopied
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800"
+                }`}
+                title="Copy dedicated blog-sitemap.xml content to clipboard"
+              >
+                {blogCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{blogCopied ? "Blog XML Copied!" : "Copy Blog XML"}</span>
+              </button>
+
+              <button
+                id="sitemap-download-full-btn"
                 type="button"
                 onClick={handleDownload}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-md flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
@@ -164,6 +181,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
               </button>
 
               <button
+                id="sitemap-download-blog-btn"
                 type="button"
                 onClick={handleDownloadBlog}
                 className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center space-x-1.5 transition active:scale-95 cursor-pointer"
@@ -234,6 +252,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
         <div className="px-6 py-2 bg-slate-100/70 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div className="flex flex-wrap items-center gap-1">
             <button
+              id="sitemap-tab-urls"
               type="button"
               onClick={() => setActiveTab("urls")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
@@ -247,6 +266,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
             </button>
 
             <button
+              id="sitemap-tab-blog"
               type="button"
               onClick={() => setActiveTab("blog-sitemap")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
@@ -263,6 +283,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
             </button>
 
             <button
+              id="sitemap-tab-raw"
               type="button"
               onClick={() => setActiveTab("raw")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
@@ -461,6 +482,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                 <div className="flex flex-wrap items-center gap-2 shrink-0 self-stretch md:self-auto justify-end">
                   <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-xl text-xs font-bold mr-1">
                     <button
+                      id="sitemap-blog-view-cards"
                       type="button"
                       onClick={() => setBlogViewMode("cards")}
                       className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
@@ -473,6 +495,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                       <span>URL Entries ({blogEntries.length})</span>
                     </button>
                     <button
+                      id="sitemap-blog-view-xml"
                       type="button"
                       onClick={() => setBlogViewMode("xml")}
                       className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
@@ -487,6 +510,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                   </div>
 
                   <button
+                    id="sitemap-header-copy-blog-xml"
                     type="button"
                     onClick={handleCopyBlog}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
@@ -500,6 +524,7 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                   </button>
 
                   <button
+                    id="sitemap-header-download-blog-xml"
                     type="button"
                     onClick={handleDownloadBlog}
                     className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center space-x-1.5 transition cursor-pointer"
@@ -576,50 +601,126 @@ export const SitemapModal: React.FC<SitemapModalProps> = ({ isOpen, onClose }) =
                   </div>
                 </div>
               ) : (
-                /* View 2: Raw XML Preview */
-                <div className="relative">
-                  <div className="absolute right-3 top-3 z-10 flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={handleCopyBlog}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-700 text-xs font-bold transition flex items-center space-x-1 shadow-md cursor-pointer"
-                    >
-                      {blogCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{blogCopied ? "Copied" : "Copy XML"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadBlog}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 text-xs font-bold transition flex items-center space-x-1 shadow-md cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
+                /* View 2: Raw XML Preview of generateBlogSitemap() */
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-900/90 border border-indigo-500/30 rounded-2xl">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-mono text-xs font-black">
+                        XML
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-mono font-bold text-white tracking-wide">blog-sitemap.xml</span>
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            Valid XML 1.0
+                          </span>
+                          <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-mono px-2 py-0.5 rounded-full border border-indigo-500/30">
+                            generateBlogSitemap()
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {blogEntries.length} canonical articles • {(new Blob([blogXmlContent]).size / 1024).toFixed(1)} KB • Sitemaps.org Schema v0.9
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        id="btn-copy-blog-xml-view"
+                        type="button"
+                        onClick={handleCopyBlog}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm ${
+                          blogCopied
+                            ? "bg-emerald-600 text-white"
+                            : "bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700"
+                        }`}
+                        title="Copy blog-sitemap.xml to clipboard"
+                      >
+                        {blogCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{blogCopied ? "XML Copied!" : "Copy XML"}</span>
+                      </button>
+
+                      <button
+                        id="btn-download-blog-xml-view"
+                        type="button"
+                        onClick={handleDownloadBlog}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center space-x-1.5 transition cursor-pointer"
+                        title="Download blog-sitemap.xml file"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download blog-sitemap.xml</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <pre className="p-4 rounded-2xl bg-slate-950 text-indigo-300 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 max-h-[500px]">
-                    {blogXmlContent}
-                  </pre>
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-inner">
+                    <pre
+                      id="blog-sitemap-xml-output"
+                      className="p-4 bg-slate-950 text-indigo-300 font-mono text-xs overflow-x-auto leading-relaxed max-h-[500px] select-all"
+                    >
+                      {blogXmlContent}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
           {activeTab === "raw" && (
-            <div className="relative">
-              <div className="absolute right-3 top-3 z-10 flex items-center space-x-2">
-                <button
-                  onClick={handleCopy}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-700 text-xs font-bold transition flex items-center space-x-1 shadow-md"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? "Copied" : "Copy Source"}</span>
-                </button>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center font-mono text-xs font-black">
+                    XML
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-mono font-bold text-white tracking-wide">sitemap.xml (Full Master Index)</span>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                        Valid XML 1.0
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {stats.totalUrls} indexed URLs across PDF tools, blogs, and core pages • {(new Blob([xmlContent]).size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    id="btn-copy-raw-sitemap"
+                    type="button"
+                    onClick={handleCopy}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm ${
+                      copied
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700"
+                    }`}
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copied ? "Copied!" : "Copy Source"}</span>
+                  </button>
+
+                  <button
+                    id="btn-download-raw-sitemap"
+                    type="button"
+                    onClick={handleDownload}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm flex items-center space-x-1.5 transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download sitemap.xml</span>
+                  </button>
+                </div>
               </div>
 
-              <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 max-h-[500px]">
-                {xmlContent}
-              </pre>
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-inner">
+                <pre
+                  id="full-sitemap-xml-output"
+                  className="p-4 bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 max-h-[500px] select-all"
+                >
+                  {xmlContent}
+                </pre>
+              </div>
             </div>
           )}
         </div>
