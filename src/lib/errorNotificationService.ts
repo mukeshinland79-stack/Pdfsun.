@@ -133,7 +133,27 @@ export function parseHumanFriendlyError(err: any, fileName?: string): DetailedEr
     };
   }
 
-  // 6. Generic Fallback
+  // 6. AI Rate Limit or Quota Exhaustion
+  if (
+    lowerMsg.includes("rate limit") ||
+    lowerMsg.includes("quota") ||
+    lowerMsg.includes("resource exhausted") ||
+    lowerMsg.includes("429") ||
+    lowerMsg.includes("high demand") ||
+    lowerMsg.includes("503")
+  ) {
+    return {
+      type: "generic",
+      title: "AI Service Rate Limit / High Demand",
+      badge: "Gemini AI Rate Limit",
+      message: "Google Gemini AI is temporarily experiencing high traffic or reached the per-minute quota.",
+      suggestion: "Please wait 15-20 seconds before retrying. Your document text has been preserved safely.",
+      fileName,
+      rawDetails: rawMsg,
+    };
+  }
+
+  // 7. Generic Fallback
   return {
     type: "generic",
     title: "Document Processing Interrupted",

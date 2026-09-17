@@ -276,11 +276,26 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
     let timeoutTimer: any = null;
     let fetchInit = init;
 
-    if (!init?.signal && DEFAULT_TIMEOUT_MS > 0 && !isViteHmrNoise) {
+    const isAiOrHeavyRoute =
+      lowerUrl.includes("/api/translate") ||
+      lowerUrl.includes("/api/ai/") ||
+      lowerUrl.includes("/api/ocr") ||
+      lowerUrl.includes("/api/summarize") ||
+      lowerUrl.includes("/api/grammar") ||
+      lowerUrl.includes("/api/notes") ||
+      lowerUrl.includes("/api/explain") ||
+      lowerUrl.includes("/api/flashcards") ||
+      lowerUrl.includes("/api/process-pdf") ||
+      lowerUrl.includes("/api/convert");
+
+    // Allow generous 90-second timeout for heavy AI generation and multi-page conversions
+    const effectiveTimeoutMs = isAiOrHeavyRoute ? 90000 : DEFAULT_TIMEOUT_MS;
+
+    if (!init?.signal && effectiveTimeoutMs > 0 && !isViteHmrNoise) {
       timeoutController = new AbortController();
       timeoutTimer = setTimeout(() => {
         timeoutController?.abort("NETWORK_TIMEOUT_EXCEEDED");
-      }, DEFAULT_TIMEOUT_MS);
+      }, effectiveTimeoutMs);
 
       fetchInit = {
         ...init,
@@ -336,15 +351,17 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
 
       if (!isIgnoredNoise && !isBackgroundGet) {
         if (isTimeoutError) {
-          const timeoutMsg = `Request to ${pathName || urlStr} timed out after ${Math.round(
-            DEFAULT_TIMEOUT_MS / 1000
-          )}s.`;
+          const timeoutMsg = isAiOrHeavyRoute
+            ? `AI generation request to ${pathName || urlStr} timed out after ${Math.round(effectiveTimeoutMs / 1000)}s.`
+            : `Request to ${pathName || urlStr} timed out after ${Math.round(effectiveTimeoutMs / 1000)}s.`;
           logError(`[Fetch Timeout] ${method} ${pathName}`, "error", { url: urlStr, method, durationMs });
           networkMonitor.reportError(urlStr, method, timeoutMsg, 408);
 
           triggerDebouncedToast(
             "Request Timed Out",
-            "The server took too long to respond. Please check your network connection and try again.",
+            isAiOrHeavyRoute
+              ? "The AI request took longer than expected. Please try again with shorter text or in a few moments."
+              : "The server took too long to respond. Please check your network connection and try again.",
             { type: "upload" }
           );
         } else if (isBrowserOffline) {

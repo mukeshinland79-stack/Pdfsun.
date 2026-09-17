@@ -310,8 +310,68 @@ app.all(["/api/download/file", "/api/download/stream"], (req, res) => {
   }
 });
 
+// Unified Gemini Engine with multi-model failover (Primary: gemini-3.8-flash, Backup: gemini-3.1-flash-lite)
+interface GeminiCallParams {
+  contents: any;
+  systemInstruction?: string;
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: any;
+}
+
+async function callGeminiWithFallback(
+  ai: ReturnType<typeof getGeminiClient>,
+  params: GeminiCallParams
+): Promise<{ text: string; modelUsed: string }> {
+  const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
+  let lastError: any = null;
+
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    try {
+      const config: any = {};
+      if (params.systemInstruction) config.systemInstruction = params.systemInstruction;
+      if (typeof params.temperature === "number") config.temperature = params.temperature;
+      if (params.responseMimeType) config.responseMimeType = params.responseMimeType;
+      if (params.responseSchema) config.responseSchema = params.responseSchema;
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: params.contents,
+        config: Object.keys(config).length > 0 ? config : undefined,
+      });
+
+      const responseText = response.text?.trim();
+      if (responseText) {
+        return { text: responseText, modelUsed: model };
+      }
+    } catch (err: any) {
+      lastError = err;
+      const errMsg = (err?.message || String(err)).toLowerCase();
+      console.warn(`[Gemini Engine] Call on ${model} failed:`, err?.message || err);
+
+      const isUnavailableOrRateLimit =
+        errMsg.includes("503") ||
+        errMsg.includes("high demand") ||
+        errMsg.includes("unavailable") ||
+        errMsg.includes("429") ||
+        errMsg.includes("quota") ||
+        errMsg.includes("resource exhausted") ||
+        errMsg.includes("overloaded");
+
+      // Fast-failover to backup model immediately without wasting timeout budget
+      if (isUnavailableOrRateLimit && i < models.length - 1) {
+        console.info(`[Gemini Engine] Fast-failover from ${model} to backup model ${models[i + 1]}`);
+        continue;
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to process request with Gemini AI.");
+}
+
 // Intelligent Text Chunker to respect token limits and prevent rate/context overflows
-function splitTextIntoChunks(text: string, maxChunkLength: number = 6000): string[] {
+function splitTextIntoChunks(text: string, maxChunkLength: number = 25000): string[] {
   if (!text || text.length <= maxChunkLength) return [text];
 
   const chunks: string[] = [];
@@ -366,58 +426,35 @@ async function translateChunkWithGemini(
   ai: ReturnType<typeof getGeminiClient>,
   chunk: string,
   targetLanguage: string
-): Promise<string> {
-  const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest"];
-  let lastError: any = null;
+): Promise<{ text: string; modelUsed: string }> {
+  const systemInstruction = `You are a professional multi-language document translator. Translate the given extracted text precisely into ${targetLanguage}. Retain exact formatting, technical terms, entity names, phone numbers, and structural line breaks.
 
-  const systemInstruction = `You are PDFSun Enterprise AI Document Translator.
-Your job is to translate documents with professional fidelity and precision into ${targetLanguage}.
-CRITICAL INTEGRITY & FORMAT PRESERVATION DIRECTIVES:
-1. Translate the provided text accurately and fluently into ${targetLanguage}.
-2. PRESERVE EXACT LAYOUT: Maintain all markdown headings (#, ##), bullet points, numbered lists, line breaks, indentation, and tabular columns without altering table structure.
+CRITICAL TRANSLATION INTEGRITY GUIDELINES:
+1. ACCURACY & FIDELITY: Translate the document content fluently and accurately into ${targetLanguage}.
+2. FORMAT & STRUCTURAL INTEGRITY: Retain exact layout, markdown headings (#, ##), bullet points, numbered lists, tabular column structure, line breaks, and indentation without alteration.
 3. PRESERVE TECHNICAL IDENTIFIERS & ENTITIES: DO NOT translate or alter proper nouns, individual names, brand names, addresses, phone numbers, email addresses, URL links, GSTIN, PAN, VAT IDs, invoice numbers, currency codes (e.g. INR, USD, EUR, ₹, $), or numerical values.
-4. ZERO HALLUCINATION: Translate ONLY the provided source text. Never invent context, omit sections, or append unsolicited commentary, disclaimers, or preambles (e.g. do not say "Here is your translation:"). Return only the translated text.
+4. ZERO HALLUCINATION & ZERO PREAMBLE: Return ONLY the translated document text. Do NOT output conversational filler, disclaimers, or preambles (e.g., do NOT write "Here is your translation:").
 5. CODE & TAX ID PRESERVATION: Keep code snippets, formula symbols, serial keys, and alphanumeric tracking codes exactly as they appear in the source.`;
 
-  const prompt = `Translate the provided text into ${targetLanguage}. Maintain the original layout, tabular structure, line breaks, proper nouns, addresses, and code/ID numbers exactly as they appear.
+  const prompt = `Translate the following extracted document text precisely into ${targetLanguage}. Retain exact formatting, technical terms, entity names, phone numbers, and structural line breaks:
 
-Document Source Text:
----
-${chunk}
----`;
+${chunk}`;
 
-  for (const model of modelsToTry) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            temperature: 0.1,
-          },
-        });
-
-        if (response.text && response.text.trim()) {
-          return response.text.trim();
-        }
-      } catch (err: any) {
-        lastError = err;
-        console.warn(`[AI Translation] Attempt ${attempt} on model ${model} failed: ${err?.message || err}`);
-        if (attempt < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-    }
-  }
-
-  throw lastError || new Error("Failed to process translation request with Gemini AI.");
+  return await callGeminiWithFallback(ai, {
+    contents: prompt,
+    systemInstruction,
+    temperature: 0.1,
+  });
 }
 
 // AI API Endpoints (Fully accessible without throttling blocks)
 app.post("/api/ai/chat", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { message, documentText, history } = req.body;
+    const { message, documentText, history } = req.body || {};
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, error: "Message is required." });
+    }
     const ai = getGeminiClient();
 
     const systemInstruction = `You are PDFSun AI Document Assistant.
@@ -437,55 +474,75 @@ ${documentText ? documentText.slice(0, 15000) : "No document text uploaded yet."
     }
     contents.push(`User Question: ${message}`);
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+    const callResult = await callGeminiWithFallback(ai, {
       contents: contents.join("\n\n"),
-      config: {
-        systemInstruction,
-        temperature: 0.3,
-      },
+      systemInstruction,
+      temperature: 0.3,
     });
 
-    res.json({ success: true, result: response.text || "No response generated." });
+    return res.status(200).json({ success: true, result: callResult.text || "No response generated.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Chat Error:", error);
-    res.status(500).json({ success: false, error: error?.message || "Failed to process AI chat request." });
+    const msg = error?.message || "Failed to process AI chat request.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
 app.post("/api/ai/summarize", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { documentText, format = "executive" } = req.body;
+    const { documentText } = req.body || {};
+    const rawText = (documentText || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ success: false, error: "No document text provided to summarize." });
+    }
     const ai = getGeminiClient();
 
-    let formatPrompt = "Provide an executive summary with key takeaways and bullet points.";
-    if (format === "bullets") formatPrompt = "Provide concise, high-impact bullet points of the main ideas.";
-    if (format === "detailed") formatPrompt = "Provide a section-by-section detailed summary with deep insights.";
+    const callResult = await callGeminiWithFallback(ai, {
+      contents: `Summarize the following document into:
+1) Executive summary (3-5 sentences)
+2) Key takeaways (bullet list)
+3) Structured outline.
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: `Please summarize the following document content.\nFormat requirement: ${formatPrompt}\n\nDocument Text:\n${(documentText || "").slice(0, 20000)}`,
-      config: {
-        systemInstruction: "You are PDFSun AI Summarizer. Generate highly structured, clear, and actionable markdown summaries.",
-      },
+Document Text:
+${rawText.slice(0, 30000)}`,
+      systemInstruction: "You are PDFSun AI Document Summarizer. Produce a clear, professional summary in GitHub-flavored Markdown. Organize your response into: ## Executive Summary, ## Key Takeaways, and ## Structured Outline.",
+      temperature: 0.2,
     });
 
-    res.json({ success: true, result: response.text || "Summary generated." });
+    return res.status(200).json({ success: true, result: callResult.text || "Summary generated.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Summarize Error:", error);
-    res.status(500).json({ success: false, error: error?.message || "Failed to generate AI summary." });
+    const msg = error?.message || "Failed to generate AI summary.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
-app.post("/api/ai/translate", async (req, res) => {
-  try {
-    const { documentText, sourceText, targetLanguage = "English" } = req.body;
-    const rawText = (sourceText || documentText || "").trim();
+// Robust Document Translation API Endpoint (Accessible via /api/translate and /api/ai/translate)
+app.post(["/api/translate", "/api/ai/translate"], async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
 
-    if (!rawText) {
+  try {
+    const { documentText, sourceText, text, targetLanguage = "Hindi" } = req.body || {};
+    
+    // Text sanitization: remove null bytes, normalize carriage returns, trim whitespace
+    const rawInput = (sourceText || documentText || text || "")
+      .replace(/\0/g, "")
+      .replace(/\r\n/g, "\n")
+      .trim();
+
+    if (!rawInput) {
       return res.status(400).json({
         success: false,
-        error: "No source text provided for translation. Please upload a PDF or provide document text.",
+        error: "No source text provided for translation. Please provide extracted document text.",
       });
     }
 
@@ -497,35 +554,59 @@ app.post("/api/ai/translate", async (req, res) => {
     }
 
     const ai = getGeminiClient();
-    const cleanTargetLang = (targetLanguage || "English").toString().trim();
-    const chunks = splitTextIntoChunks(rawText, 6000);
+    const cleanTargetLang = (targetLanguage || "Hindi").toString().trim();
+    
+    // Chunk extracted text to prevent payload and token overflow (25,000 char windows for fast 1-call completions)
+    const chunks = splitTextIntoChunks(rawInput, 25000);
 
     const translatedChunks: string[] = [];
+    let modelUsed = "gemini-3.8-flash";
     for (let i = 0; i < chunks.length; i++) {
       const translatedChunk = await translateChunkWithGemini(ai, chunks[i], cleanTargetLang);
-      translatedChunks.push(translatedChunk);
+      translatedChunks.push(translatedChunk.text);
+      modelUsed = translatedChunk.modelUsed;
     }
 
     const fullTranslation = translatedChunks.join("\n\n");
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       result: fullTranslation,
       translatedText: fullTranslation,
       targetLanguage: cleanTargetLang,
       chunksProcessed: chunks.length,
       totalLength: fullTranslation.length,
-      modelUsed: "gemini-3.8-flash",
+      modelUsed,
     });
   } catch (error: any) {
-    console.error("AI Translate Route Error:", error);
-    const rawMsg = error?.message || "Failed to process request with Gemini AI.";
-    const isRateLimit = rawMsg.includes("429") || rawMsg.toLowerCase().includes("quota") || rawMsg.toLowerCase().includes("resource exhausted");
-    const isApiKeyError = rawMsg.toLowerCase().includes("api_key") || rawMsg.toLowerCase().includes("api key") || rawMsg.includes("403") || rawMsg.includes("401");
+    console.error("[Translation Route Error]:", error);
+    const rawMsg = error?.message || "Failed to process translation request with Gemini AI.";
+    const isRateLimit =
+      rawMsg.includes("429") ||
+      rawMsg.toLowerCase().includes("quota") ||
+      rawMsg.toLowerCase().includes("resource exhausted");
+    const isHighDemand =
+      rawMsg.includes("503") ||
+      rawMsg.toLowerCase().includes("high demand") ||
+      rawMsg.toLowerCase().includes("unavailable");
+    const isApiKeyError =
+      rawMsg.toLowerCase().includes("api_key") ||
+      rawMsg.toLowerCase().includes("api key") ||
+      rawMsg.includes("403") ||
+      rawMsg.includes("401");
 
-    const statusCode = isRateLimit ? 429 : isApiKeyError ? 401 : 500;
+    const statusCode = (isRateLimit || isHighDemand) ? 429 : isApiKeyError ? 401 : 500;
+
+    // Parse retry delay if available from Google API error details or message
+    const retryMatch =
+      rawMsg.match(/retry in ([0-9.]+)s/i) ||
+      JSON.stringify(error?.details || {}).match(/"retryDelay":"(\d+)s"/i);
+    const waitSeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 20;
+
     const userFriendlyError = isRateLimit
-      ? "Gemini AI rate limit reached. Please wait a few seconds before retrying."
+      ? `Gemini AI rate limit reached. Please wait ${waitSeconds} seconds before retrying.`
+      : isHighDemand
+      ? `Gemini AI is experiencing temporary high demand. Please retry in ${waitSeconds} seconds.`
       : isApiKeyError
       ? "Invalid or unauthenticated Gemini API key. Please check your API key in Settings > Secrets."
       : `Gemini AI Translation Error: ${rawMsg}`;
@@ -533,123 +614,169 @@ app.post("/api/ai/translate", async (req, res) => {
     return res.status(statusCode).json({
       success: false,
       error: userFriendlyError,
+      message: userFriendlyError,
       rawError: rawMsg,
+      retryAfterSeconds: waitSeconds,
       statusCode,
     });
   }
 });
 
+// Guard GET method for translate routes to return clear JSON instead of 404 HTML
+app.get(["/api/translate", "/api/ai/translate"], (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  return res.status(405).json({
+    success: false,
+    error: "Method Not Allowed. Please send a POST request with JSON body { documentText, targetLanguage }.",
+    statusCode: 405,
+  });
+});
+
 app.post("/api/ai/flashcards", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { documentText, count = 8 } = req.body;
+    const { documentText, count = 8 } = req.body || {};
+    const rawText = (documentText || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ success: false, error: "No document text provided for flashcards." });
+    }
     const ai = getGeminiClient();
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: `Generate ${count} flashcards (Question & Answer pairs) based on key concepts in this document text.
+    const callResult = await callGeminiWithFallback(ai, {
+      contents: `Generate ${count} interactive study flashcards (Question & Answer pairs) based on the core concepts in this document text.
 Return ONLY valid JSON format like:
 [
-  {"question": "...", "answer": "..."},
+  {"question": "What is...", "answer": "..."},
   ...
 ]
 
 Document Text:
-${(documentText || "").slice(0, 15000)}`,
-      config: {
-        responseMimeType: "application/json",
-      },
+${rawText.slice(0, 20000)}`,
+      responseMimeType: "application/json",
+      temperature: 0.2,
     });
 
     let flashcards = [];
     try {
-      flashcards = JSON.parse(response.text || "[]");
+      flashcards = JSON.parse(callResult.text || "[]");
     } catch {
-      flashcards = [{ question: "Key Concept", answer: response.text }];
+      flashcards = [{ question: "Key Concept", answer: callResult.text }];
     }
 
-    res.json({ flashcards });
+    return res.status(200).json({ success: true, flashcards, modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Flashcards Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to generate flashcards." });
+    const msg = error?.message || "Failed to generate flashcards.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
 app.post("/api/ai/notes", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { documentText } = req.body;
+    const { documentText } = req.body || {};
+    const rawText = (documentText || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ success: false, error: "No document text provided for notes." });
+    }
     const ai = getGeminiClient();
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: `Create structured study notes with key terms, definitions, formulas/concepts, and review questions from this document:\n\n${(documentText || "").slice(0, 18000)}`,
-      config: {
-        systemInstruction: "You are PDFSun AI Study Notes Generator. Produce beautifully formatted Markdown study notes.",
-      },
+    const callResult = await callGeminiWithFallback(ai, {
+      contents: `Create structured study notes with key terms, definitions, formulas/concepts, callout highlights, and review questions from this document:\n\n${rawText.slice(0, 25000)}`,
+      systemInstruction: "You are PDFSun AI Notes Generator. Produce beautifully formatted GitHub Markdown study notes with clear headings (## Key Terminology, ## Core Concepts, ## Summary & Review Questions).",
+      temperature: 0.2,
     });
 
-    res.json({ result: response.text || "Study notes created." });
+    return res.status(200).json({ success: true, result: callResult.text || "Study notes created.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Notes Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to generate study notes." });
+    const msg = error?.message || "Failed to generate study notes.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
 app.post("/api/ai/grammar", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { documentText, mode = "proofread" } = req.body;
+    const { documentText, mode = "proofread" } = req.body || {};
+    const rawText = (documentText || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ success: false, error: "No text provided for grammar check." });
+    }
     const ai = getGeminiClient();
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: `Perform ${mode} on the following text. Point out corrections, list improvements, and provide a fully polished version.\n\nText:\n${(documentText || "").slice(0, 15000)}`,
-      config: {
-        systemInstruction: "You are PDFSun AI Grammar & Style Inspector. Enhance writing clarity, fix spelling, grammar, and tone.",
-      },
+    const callResult = await callGeminiWithFallback(ai, {
+      contents: `Perform ${mode} on the following text. Point out corrections, list improvements, and provide a fully polished version in formatted Markdown.\n\nText:\n${rawText.slice(0, 20000)}`,
+      systemInstruction: "You are PDFSun AI Grammar & Style Inspector. Enhance writing clarity, fix spelling, grammar, and tone.",
+      temperature: 0.1,
     });
 
-    res.json({ result: response.text || "Grammar check completed." });
+    return res.status(200).json({ success: true, result: callResult.text || "Grammar check completed.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Grammar Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to process grammar check." });
+    const msg = error?.message || "Failed to process grammar check.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
 app.post("/api/ai/explain", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { documentText, targetAudience = "beginner" } = req.body;
+    const { documentText, targetAudience = "beginner" } = req.body || {};
+    const rawText = (documentText || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ success: false, error: "No document text provided to explain." });
+    }
     const ai = getGeminiClient();
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: `Explain this document in simple terms suited for a ${targetAudience} level. Break down jargon, complex clauses, math equations, or legal jargon.\n\nText:\n${(documentText || "").slice(0, 15000)}`,
-      config: {
-        systemInstruction: "You are PDFSun AI Explainer. Simplify complex documents into clear, easy-to-understand explanations with real-world analogies.",
-      },
+    const callResult = await callGeminiWithFallback(ai, {
+      contents: `Explain this document in simple, crystal-clear terms suited for a ${targetAudience} level. Break down legal clauses, technical terms, math formulas, or dense academic jargon with practical real-world analogies.\n\nText:\n${rawText.slice(0, 20000)}`,
+      systemInstruction: "You are PDFSun AI Explainer. Simplify complex documents into clear, easy-to-understand explanations with relatable analogies in structured Markdown.",
+      temperature: 0.3,
     });
 
-    res.json({ result: response.text || "Explanation ready." });
+    return res.status(200).json({ success: true, result: callResult.text || "Explanation ready.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
     console.error("AI Explain Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to generate explanation." });
+    const msg = error?.message || "Failed to generate explanation.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
 app.post("/api/ai/ocr", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const { imageBase64, mimeType = "application/pdf", detectTables = false } = req.body;
+    const { imageBase64, mimeType = "application/pdf" } = req.body || {};
     if (!imageBase64) {
-      return res.status(400).json({ error: "Missing imageBase64 payload." });
+      return res.status(400).json({ success: false, error: "Missing imageBase64 payload for OCR." });
     }
 
     const ai = getGeminiClient();
     let lastErr = null;
     let extractedText = "";
+    let modelUsed = "gemini-3.8-flash";
 
-    // Retry loop with exponential backoff (up to 3 attempts)
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
+    for (const model of models) {
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-3.8-flash",
+          model,
           contents: {
             parts: [
               {
@@ -665,11 +792,13 @@ app.post("/api/ai/ocr", async (req, res) => {
           },
         });
         extractedText = response.text || "";
-        if (extractedText) break;
-      } catch (err) {
+        if (extractedText) {
+          modelUsed = model;
+          break;
+        }
+      } catch (err: any) {
         lastErr = err;
-        console.warn(`[AI OCR] Attempt ${attempt + 1} failed:`, err);
-        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        console.warn(`[AI OCR] Model ${model} failed:`, err?.message || err);
       }
     }
 
@@ -677,13 +806,20 @@ app.post("/api/ai/ocr", async (req, res) => {
       throw lastErr;
     }
 
-    res.json({
+    return res.status(200).json({
+      success: true,
       status: "ok",
-      result: extractedText || "No readable text could be recognized.",
+      result: extractedText || "No readable text could be recognized in the document.",
+      modelUsed,
     });
   } catch (error: any) {
-    console.error("AI OCR Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to perform AI OCR." });
+    console.error("AI OCR Route Error:", error);
+    const msg = error?.message || "Failed to process document with AI OCR.";
+    const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
+    return res.status(isRateLimit ? 429 : 500).json({
+      success: false,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+    });
   }
 });
 
@@ -3549,6 +3685,16 @@ async function startServer() {
     console.warn("[WebSocket] Analytics WS initialization warning:", err);
   }
 
+  // Explicit Catch-all for API endpoints to prevent HTML error pages / SPA fallbacks
+  app.all("/api/*", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    return res.status(404).json({
+      success: false,
+      error: `API endpoint '${req.method} ${req.path}' was not found on this server.`,
+      statusCode: 404,
+    });
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -3557,6 +3703,14 @@ async function startServer() {
     app.use(vite.middlewares);
     app.use("*", async (req, res, next) => {
       const url = req.originalUrl;
+      if (url.startsWith("/api/")) {
+        res.setHeader("Content-Type", "application/json");
+        return res.status(404).json({
+          success: false,
+          error: `API endpoint '${req.method} ${req.path}' not found.`,
+          statusCode: 404,
+        });
+      }
       try {
         const indexPath = path.resolve(process.cwd(), "index.html");
         if (fs.existsSync(indexPath)) {
@@ -3587,6 +3741,14 @@ async function startServer() {
       })
     );
     app.get("*", (req, res) => {
+      if (req.path.startsWith("/api/")) {
+        res.setHeader("Content-Type", "application/json");
+        return res.status(404).json({
+          success: false,
+          error: `API endpoint '${req.method} ${req.path}' not found.`,
+          statusCode: 404,
+        });
+      }
       res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
       res.sendFile(path.join(distPath, "index.html"));
     });

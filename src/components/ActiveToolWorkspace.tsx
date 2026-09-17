@@ -59,6 +59,7 @@ import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
 import { getToolFAQs } from "./SEOManager";
 import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
 import { useLanguage } from "../lib/i18n";
+import { callTranslateApi } from "../lib/safeApi";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -1347,27 +1348,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             throw new Error("Could not extract readable text from this PDF. If it's a scanned document, please use our AI OCR tool first.");
           }
 
-          let translatedContent = "";
-          try {
-            const transRes = await fetch("/api/ai/translate", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                documentText: sourceTxt,
-                targetLanguage: translateTargetLang || "Hindi",
-              }),
-            });
-            const transData = await transRes.json();
-            if (!transRes.ok || !transData.result) {
-              throw new Error(transData.error || "Failed to process translation request with Gemini AI.");
-            }
-            translatedContent = transData.result;
-          } catch (tErr: any) {
-            console.error("Translation API error in workspace:", tErr);
-            throw new Error(tErr?.message || "Failed to process request with Gemini AI. Please check your network connection or API configuration.");
+          setStatusMessage("Translating document with Gemini AI (preserving tables, layout & formatting)...");
+          const translationResult = await callTranslateApi(sourceTxt, translateTargetLang || "Hindi");
+          if (!translationResult.success || !translationResult.text) {
+            throw new Error(translationResult.error || "Failed to process translation request with Gemini AI.");
           }
 
-          const formattedDoc = `PDFSun AI Translated Document\nTarget Language: ${translateTargetLang || "Hindi"}\nOriginal File: ${files[0].name}\n\n---\n\n${translatedContent}`;
+          const formattedDoc = `PDFSun AI Translated Document\nTarget Language: ${translateTargetLang || "Hindi"}\nOriginal File: ${files[0].name}\n\n---\n\n${translationResult.text}`;
           outputBytes = textToPdf(formattedDoc, `Translated: ${files[0].name}`);
           outputName = `PDFSun_Translated_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
