@@ -183,6 +183,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to process chat with Gemini AI.");
+      }
+
       const assistantMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -192,14 +196,14 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
       setChatMessages((prev) => [...prev, assistantMsg]);
       recordAiQuery();
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI Chat API Error:", err);
       setChatMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           role: "assistant",
-          content: "Sorry, I encountered an issue connecting to Gemini AI. Please check your API configuration.",
+          content: err?.message || "Sorry, I encountered an issue connecting to Gemini AI. Please try again.",
           timestamp: Date.now(),
         },
       ]);
@@ -255,12 +259,16 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
       const data = await res.json();
 
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to process request with Gemini AI.");
+      }
+
       if (feature === "flashcards") {
         setFlashcards(data.flashcards || []);
         setActiveFlashcardIdx(0);
         setShowFlashcardAnswer(false);
       } else {
-        setAiOutputResult(data.result || "AI execution completed.");
+        setAiOutputResult(data.result || data.translatedText || "AI execution completed.");
       }
 
       recordAiQuery();
@@ -274,9 +282,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         status: "completed",
         outputFileName: `PDFSun_AI_${feature}_output.pdf`,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI Feature Error:", err);
-      setAiOutputResult("Failed to process request with Gemini AI.");
+      setAiOutputResult(err?.message || "Failed to process request with Gemini AI. Please check your network connection and try again.");
     } finally {
       setIsAiLoading(false);
     }
@@ -670,28 +678,42 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             {activeTab !== "chat" && activeTab !== "flashcards" && (
               <div className="flex-1 p-6 flex flex-col space-y-4 overflow-hidden">
                 {activeTab === "translate" && (
-                  <div className="flex items-center space-x-3 pb-2">
+                  <div className="flex items-center space-x-3 pb-2 flex-wrap gap-2">
                     <label className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">Target Language:</label>
                     <select
                       value={targetLanguage}
                       onChange={(e) => setTargetLanguage(e.target.value)}
                       className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] text-xs font-bold text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]"
                     >
-                      <option value="Spanish">Spanish</option>
-                      <option value="French">French</option>
-                      <option value="German">German</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Japanese">Japanese</option>
-                      <option value="Chinese">Chinese</option>
-                      <option value="Arabic">Arabic</option>
-                      <option value="Portuguese">Portuguese</option>
+                      <option value="Hindi">Hindi (हिंदी)</option>
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish (Español)</option>
+                      <option value="French">French (Français)</option>
+                      <option value="German">German (Deutsch)</option>
+                      <option value="Japanese">Japanese (日本語)</option>
+                      <option value="Chinese">Chinese (Mandarin)</option>
+                      <option value="Arabic">Arabic (العربية)</option>
+                      <option value="Portuguese">Portuguese (Português)</option>
+                      <option value="Russian">Russian (Русский)</option>
+                      <option value="Italian">Italian (Italiano)</option>
+                      <option value="Korean">Korean (한국어)</option>
+                      <option value="Dutch">Dutch (Nederlands)</option>
+                      <option value="Bengali">Bengali (বাংলা)</option>
+                      <option value="Marathi">Marathi (मराठी)</option>
+                      <option value="Telugu">Telugu (తెలుగు)</option>
+                      <option value="Tamil">Tamil (தமிழ்)</option>
+                      <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                      <option value="Urdu">Urdu (اردو)</option>
+                      <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
+                      <option value="Malayalam">Malayalam (മലയാളം)</option>
+                      <option value="Punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
                     </select>
 
                     <button
                       onClick={() => runAiFeature("translate")}
-                      className="px-3 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold shadow-xs hover:bg-orange-600 transition"
+                      className="px-4 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold shadow-xs hover:bg-orange-600 transition"
                     >
-                      Re-Translate
+                      Translate Document
                     </button>
                   </div>
                 )}
@@ -714,7 +736,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   {isAiLoading ? (
                     <div className="h-full flex flex-col items-center justify-center space-y-2 text-[var(--text-muted,#64748b)]">
                       <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
-                      <span>Gemini 3.6 is generating insights...</span>
+                      <span>Gemini AI is processing your request with high fidelity...</span>
                     </div>
                   ) : (
                     aiOutputResult || "Click any AI tab above or upload a document to generate results."

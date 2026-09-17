@@ -338,7 +338,7 @@ export default function App() {
     adsenseEnabled: true,
     adsensePubId: "ca-pub-4189458265489554",
     defaultTheme: "dark",
-    aiModelVersion: "gemini-3.6-flash",
+    aiModelVersion: "gemini-3.8-flash",
   });
 
   // Category & Filter state

@@ -1874,8 +1874,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setLocalSettings({ ...localSettings, aiModelVersion: e.target.value })}
                     className="w-full p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200"
                   >
-                    <option value="gemini-3.6-flash">gemini-3.6-flash (Recommended: Lightning Fast Document Analysis)</option>
-                    <option value="gemini-3.6-pro">gemini-3.6-pro (Deep Multimodal Document Reasoning)</option>
+                    <option value="gemini-3.8-flash">gemini-3.8-flash (Recommended: Lightning Fast Document Analysis & Translation)</option>
+                    <option value="gemini-flash-latest">gemini-flash-latest (High-Availability Production Fallback)</option>
                   </select>
                 </div>
               </div>

@@ -1341,10 +1341,34 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "ai-translate-pdf":
-          setStatusMessage("Translating document while preserving layout...");
+          setStatusMessage("Extracting text and translating document with Gemini AI...");
           const sourceTxt = await extractTextFromPdfFile(files[0]);
-          const translatedTxt = `PDFSun AI Translated Document (Target Language)\nOriginal: ${files[0].name}\n\nTranslated Content:\n${sourceTxt.slice(0, 1500)}`;
-          outputBytes = textToPdf(translatedTxt, `Translated: ${files[0].name}`);
+          if (!sourceTxt || !sourceTxt.trim()) {
+            throw new Error("Could not extract readable text from this PDF. If it's a scanned document, please use our AI OCR tool first.");
+          }
+
+          let translatedContent = "";
+          try {
+            const transRes = await fetch("/api/ai/translate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                documentText: sourceTxt,
+                targetLanguage: translateTargetLang || "Hindi",
+              }),
+            });
+            const transData = await transRes.json();
+            if (!transRes.ok || !transData.result) {
+              throw new Error(transData.error || "Failed to process translation request with Gemini AI.");
+            }
+            translatedContent = transData.result;
+          } catch (tErr: any) {
+            console.error("Translation API error in workspace:", tErr);
+            throw new Error(tErr?.message || "Failed to process request with Gemini AI. Please check your network connection or API configuration.");
+          }
+
+          const formattedDoc = `PDFSun AI Translated Document\nTarget Language: ${translateTargetLang || "Hindi"}\nOriginal File: ${files[0].name}\n\n---\n\n${translatedContent}`;
+          outputBytes = textToPdf(formattedDoc, `Translated: ${files[0].name}`);
           outputName = `PDFSun_Translated_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
           break;
 
@@ -3246,11 +3270,54 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
+            {tool.id === "ai-translate-pdf" && (
+              <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-3">
+                <div className="font-bold text-orange-600 dark:text-amber-400 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-orange-500" />
+                  <span>Gemini 3.8 Flash Neural Translation Engine</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Translates complete document text with strict preservation of tables, headings, numbers, IDs, and layout structure.
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Target Language</label>
+                  <select
+                    value={translateTargetLang}
+                    onChange={(e) => setTranslateTargetLang(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="Hindi">Hindi (हिंदी)</option>
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish (Español)</option>
+                    <option value="French">French (Français)</option>
+                    <option value="German">German (Deutsch)</option>
+                    <option value="Japanese">Japanese (日本語)</option>
+                    <option value="Chinese">Chinese (Mandarin)</option>
+                    <option value="Arabic">Arabic (العربية)</option>
+                    <option value="Portuguese">Portuguese (Português)</option>
+                    <option value="Russian">Russian (Русский)</option>
+                    <option value="Italian">Italian (Italiano)</option>
+                    <option value="Korean">Korean (한국어)</option>
+                    <option value="Dutch">Dutch (Nederlands)</option>
+                    <option value="Bengali">Bengali (বাংলা)</option>
+                    <option value="Marathi">Marathi (मराठी)</option>
+                    <option value="Telugu">Telugu (తెలుగు)</option>
+                    <option value="Tamil">Tamil (தமிழ்)</option>
+                    <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                    <option value="Urdu">Urdu (اردو)</option>
+                    <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
+                    <option value="Malayalam">Malayalam (മലയാളം)</option>
+                    <option value="Punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {["ocr-pdf", "ocr-image-to-text", "ai-ocr"].includes(tool.id) && (
               <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-1.5">
                 <div className="font-bold text-orange-600 dark:text-amber-400 flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-orange-500" />
-                  <span>Gemini 3.6 Flash Neural OCR Engine</span>
+                  <span>Gemini 3.8 Flash Neural OCR Engine</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-300">
                   Extracts full plain text from scanned PDFs, handwritten notes, forms, and images. Preserves document structure, headings, lists, and tables. Outputs a downloadable .txt file.

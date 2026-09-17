@@ -310,6 +310,110 @@ app.all(["/api/download/file", "/api/download/stream"], (req, res) => {
   }
 });
 
+// Intelligent Text Chunker to respect token limits and prevent rate/context overflows
+function splitTextIntoChunks(text: string, maxChunkLength: number = 6000): string[] {
+  if (!text || text.length <= maxChunkLength) return [text];
+
+  const chunks: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
+  let currentChunk = "";
+
+  for (const para of paragraphs) {
+    if ((currentChunk + "\n\n" + para).length > maxChunkLength) {
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+        currentChunk = "";
+      }
+      if (para.length > maxChunkLength) {
+        const lines = para.split(/\n+/);
+        for (const line of lines) {
+          if ((currentChunk + "\n" + line).length > maxChunkLength) {
+            if (currentChunk.trim()) {
+              chunks.push(currentChunk.trim());
+              currentChunk = "";
+            }
+            if (line.length > maxChunkLength) {
+              let remaining = line;
+              while (remaining.length > maxChunkLength) {
+                chunks.push(remaining.slice(0, maxChunkLength));
+                remaining = remaining.slice(maxChunkLength);
+              }
+              currentChunk = remaining;
+            } else {
+              currentChunk = line;
+            }
+          } else {
+            currentChunk = currentChunk ? currentChunk + "\n" + line : line;
+          }
+        }
+      } else {
+        currentChunk = para;
+      }
+    } else {
+      currentChunk = currentChunk ? currentChunk + "\n\n" + para : para;
+    }
+  }
+
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks.length > 0 ? chunks : [text];
+}
+
+// Resilient Translation Worker with multi-model fallback and retry
+async function translateChunkWithGemini(
+  ai: ReturnType<typeof getGeminiClient>,
+  chunk: string,
+  targetLanguage: string
+): Promise<string> {
+  const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest"];
+  let lastError: any = null;
+
+  const systemInstruction = `You are PDFSun Enterprise AI Document Translator.
+Your job is to translate documents with professional fidelity and precision into ${targetLanguage}.
+CRITICAL INTEGRITY & FORMAT PRESERVATION DIRECTIVES:
+1. Translate the provided text accurately and fluently into ${targetLanguage}.
+2. PRESERVE EXACT LAYOUT: Maintain all markdown headings (#, ##), bullet points, numbered lists, line breaks, indentation, and tabular columns without altering table structure.
+3. PRESERVE TECHNICAL IDENTIFIERS & ENTITIES: DO NOT translate or alter proper nouns, individual names, brand names, addresses, phone numbers, email addresses, URL links, GSTIN, PAN, VAT IDs, invoice numbers, currency codes (e.g. INR, USD, EUR, ₹, $), or numerical values.
+4. ZERO HALLUCINATION: Translate ONLY the provided source text. Never invent context, omit sections, or append unsolicited commentary, disclaimers, or preambles (e.g. do not say "Here is your translation:"). Return only the translated text.
+5. CODE & TAX ID PRESERVATION: Keep code snippets, formula symbols, serial keys, and alphanumeric tracking codes exactly as they appear in the source.`;
+
+  const prompt = `Translate the provided text into ${targetLanguage}. Maintain the original layout, tabular structure, line breaks, proper nouns, addresses, and code/ID numbers exactly as they appear.
+
+Document Source Text:
+---
+${chunk}
+---`;
+
+  for (const model of modelsToTry) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            temperature: 0.1,
+          },
+        });
+
+        if (response.text && response.text.trim()) {
+          return response.text.trim();
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[AI Translation] Attempt ${attempt} on model ${model} failed: ${err?.message || err}`);
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to process translation request with Gemini AI.");
+}
+
 // AI API Endpoints (Fully accessible without throttling blocks)
 app.post("/api/ai/chat", async (req, res) => {
   try {
@@ -334,7 +438,7 @@ ${documentText ? documentText.slice(0, 15000) : "No document text uploaded yet."
     contents.push(`User Question: ${message}`);
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: contents.join("\n\n"),
       config: {
         systemInstruction,
@@ -342,10 +446,10 @@ ${documentText ? documentText.slice(0, 15000) : "No document text uploaded yet."
       },
     });
 
-    res.json({ result: response.text || "No response generated." });
+    res.json({ success: true, result: response.text || "No response generated." });
   } catch (error: any) {
     console.error("AI Chat Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to process AI chat request." });
+    res.status(500).json({ success: false, error: error?.message || "Failed to process AI chat request." });
   }
 });
 
@@ -359,37 +463,79 @@ app.post("/api/ai/summarize", async (req, res) => {
     if (format === "detailed") formatPrompt = "Provide a section-by-section detailed summary with deep insights.";
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Please summarize the following document content.\nFormat requirement: ${formatPrompt}\n\nDocument Text:\n${(documentText || "").slice(0, 20000)}`,
       config: {
         systemInstruction: "You are PDFSun AI Summarizer. Generate highly structured, clear, and actionable markdown summaries.",
       },
     });
 
-    res.json({ result: response.text || "Summary generated." });
+    res.json({ success: true, result: response.text || "Summary generated." });
   } catch (error: any) {
     console.error("AI Summarize Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to generate AI summary." });
+    res.status(500).json({ success: false, error: error?.message || "Failed to generate AI summary." });
   }
 });
 
 app.post("/api/ai/translate", async (req, res) => {
   try {
-    const { documentText, targetLanguage } = req.body;
+    const { documentText, sourceText, targetLanguage = "English" } = req.body;
+    const rawText = (sourceText || documentText || "").trim();
+
+    if (!rawText) {
+      return res.status(400).json({
+        success: false,
+        error: "No source text provided for translation. Please upload a PDF or provide document text.",
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: "GEMINI_API_KEY is not configured on the server. Please add your Gemini API key in Settings > Secrets.",
+      });
+    }
+
     const ai = getGeminiClient();
+    const cleanTargetLang = (targetLanguage || "English").toString().trim();
+    const chunks = splitTextIntoChunks(rawText, 6000);
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: `Translate the following text into ${targetLanguage || "English"}. Maintain original structure and paragraph formatting.\n\nText:\n${(documentText || "").slice(0, 15000)}`,
-      config: {
-        systemInstruction: `You are PDFSun AI Translator. Accurately translate document text into ${targetLanguage || "English"} while preserving formatting and technical accuracy.`,
-      },
+    const translatedChunks: string[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const translatedChunk = await translateChunkWithGemini(ai, chunks[i], cleanTargetLang);
+      translatedChunks.push(translatedChunk);
+    }
+
+    const fullTranslation = translatedChunks.join("\n\n");
+
+    return res.json({
+      success: true,
+      result: fullTranslation,
+      translatedText: fullTranslation,
+      targetLanguage: cleanTargetLang,
+      chunksProcessed: chunks.length,
+      totalLength: fullTranslation.length,
+      modelUsed: "gemini-3.8-flash",
     });
-
-    res.json({ result: response.text || "Translation complete." });
   } catch (error: any) {
-    console.error("AI Translate Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to translate document." });
+    console.error("AI Translate Route Error:", error);
+    const rawMsg = error?.message || "Failed to process request with Gemini AI.";
+    const isRateLimit = rawMsg.includes("429") || rawMsg.toLowerCase().includes("quota") || rawMsg.toLowerCase().includes("resource exhausted");
+    const isApiKeyError = rawMsg.toLowerCase().includes("api_key") || rawMsg.toLowerCase().includes("api key") || rawMsg.includes("403") || rawMsg.includes("401");
+
+    const statusCode = isRateLimit ? 429 : isApiKeyError ? 401 : 500;
+    const userFriendlyError = isRateLimit
+      ? "Gemini AI rate limit reached. Please wait a few seconds before retrying."
+      : isApiKeyError
+      ? "Invalid or unauthenticated Gemini API key. Please check your API key in Settings > Secrets."
+      : `Gemini AI Translation Error: ${rawMsg}`;
+
+    return res.status(statusCode).json({
+      success: false,
+      error: userFriendlyError,
+      rawError: rawMsg,
+      statusCode,
+    });
   }
 });
 
@@ -399,7 +545,7 @@ app.post("/api/ai/flashcards", async (req, res) => {
     const ai = getGeminiClient();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Generate ${count} flashcards (Question & Answer pairs) based on key concepts in this document text.
 Return ONLY valid JSON format like:
 [
@@ -434,7 +580,7 @@ app.post("/api/ai/notes", async (req, res) => {
     const ai = getGeminiClient();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Create structured study notes with key terms, definitions, formulas/concepts, and review questions from this document:\n\n${(documentText || "").slice(0, 18000)}`,
       config: {
         systemInstruction: "You are PDFSun AI Study Notes Generator. Produce beautifully formatted Markdown study notes.",
@@ -454,7 +600,7 @@ app.post("/api/ai/grammar", async (req, res) => {
     const ai = getGeminiClient();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Perform ${mode} on the following text. Point out corrections, list improvements, and provide a fully polished version.\n\nText:\n${(documentText || "").slice(0, 15000)}`,
       config: {
         systemInstruction: "You are PDFSun AI Grammar & Style Inspector. Enhance writing clarity, fix spelling, grammar, and tone.",
@@ -474,7 +620,7 @@ app.post("/api/ai/explain", async (req, res) => {
     const ai = getGeminiClient();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Explain this document in simple terms suited for a ${targetAudience} level. Break down jargon, complex clauses, math equations, or legal jargon.\n\nText:\n${(documentText || "").slice(0, 15000)}`,
       config: {
         systemInstruction: "You are PDFSun AI Explainer. Simplify complex documents into clear, easy-to-understand explanations with real-world analogies.",
@@ -503,7 +649,7 @@ app.post("/api/ai/ocr", async (req, res) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
+          model: "gemini-3.8-flash",
           contents: {
             parts: [
               {
@@ -637,7 +783,7 @@ You MUST return ONLY valid JSON matching this exact schema:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Extract and structure this resume/bio input into JSON:\n\n${inputText.slice(0, 25000)}`,
       config: {
         systemInstruction,
@@ -690,7 +836,7 @@ app.post("/api/ai/resume-improve", async (req, res) => {
 
     if (field && targetText) {
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `Task: ${taskInstruction}\n\nOriginal Text for ${field}:\n"${targetText}"\n\nReturn ONLY the improved text without markdown quotes or conversational commentary.`,
         config: {
           systemInstruction: "You are an elite Executive Resume Editor. Return only the polished text directly.",
@@ -706,7 +852,7 @@ app.post("/api/ai/resume-improve", async (req, res) => {
 
     // Full resume refinement
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Task: ${taskInstruction}\n\nPlease refine the summary, experience bullets, and project descriptions in this resume JSON. Do NOT alter names, companies, degrees, dates, or contact info.\n\nInput Resume JSON:\n${JSON.stringify(resumeData || {})}`,
       config: {
         systemInstruction: "You are an elite Executive Resume Editor. Return ONLY valid JSON matching the exact structure provided.",
@@ -777,7 +923,7 @@ You MUST return valid JSON adhering to:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Run complete ATS audit on this resume:\n\n${JSON.stringify(resumeData)}`,
       config: {
         systemInstruction,
@@ -842,7 +988,7 @@ You MUST return valid JSON adhering to:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: `Candidate Resume:\n${JSON.stringify(resumeData)}\n\nTarget Job Description (JD):\n${jobDescription.slice(0, 15000)}`,
       config: {
         systemInstruction,
