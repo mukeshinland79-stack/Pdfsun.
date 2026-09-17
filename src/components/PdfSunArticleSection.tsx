@@ -18,17 +18,72 @@ import {
   Filter,
   Layers,
   Heart,
+  X,
 } from "lucide-react";
 import { BLOG_POSTS } from "../data/blogData";
 import { BlogPost } from "../types";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
 import {
-  calculateReadingTime,
   getSavedArticleSlugs,
   toggleSavedArticle,
   onBookmarksChange,
   shareArticleContent,
 } from "../utils/blogArticleUtils";
+
+/**
+ * Calculates reading time in minutes based on average human reading speed of 200 words per minute (WPM).
+ * Sanitizes markdown, code blocks, HTML tags, and punctuation for accurate word counting.
+ * Returns formatted string: '⚡ X min read'
+ */
+export function calculateReadingTime(
+  content?: string | null,
+  fallbackTimeStr?: string
+): { minutes: number; text: string; badgeText: string } {
+  const wordsPerMinute = 200;
+  if (!content || !content.trim()) {
+    if (fallbackTimeStr) {
+      const parsed = parseInt(fallbackTimeStr.replace(/\D/g, ""), 10);
+      const mins = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+      const formatted = `⚡ ${mins} min read`;
+      return {
+        minutes: mins,
+        text: formatted,
+        badgeText: formatted,
+      };
+    }
+    return {
+      minutes: 4,
+      text: "⚡ 4 min read",
+      badgeText: "⚡ 4 min read",
+    };
+  }
+
+  // Strip code blocks, HTML tags, markdown symbols
+  const clean = content
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[#*`_~\[\]()>\-+|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = clean.split(/\s+/).filter((w) => w.length > 0).length;
+  // Calculate minutes at 200 WPM, minimum 1 minute
+  const minutes = Math.max(1, Math.ceil(words / wordsPerMinute));
+  const formatted = `⚡ ${minutes} min read`;
+
+  return {
+    minutes,
+    text: formatted,
+    badgeText: formatted,
+  };
+}
+
+/**
+ * Direct helper function to estimate reading time (200 WPM) and return '⚡ X min read'.
+ */
+export function estimateReadingTime(content?: string | null, fallbackTimeStr?: string): string {
+  return calculateReadingTime(content, fallbackTimeStr).text;
+}
 
 interface PdfSunArticleSectionProps {
   showAd?: boolean;
@@ -101,21 +156,71 @@ export const PdfSunArticleSection: React.FC<PdfSunArticleSectionProps> = ({
   const handleShareArticle = useCallback(
     async (e: React.MouseEvent, post: BlogPost) => {
       e.stopPropagation();
-      const result = await shareArticleContent({
-        title: post.title,
-        text: post.excerpt,
-        slug: post.slug,
-      });
 
-      if (result.success) {
+      const articleUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/blog/${post.slug}`
+          : `https://pdfsun.in/blog/${post.slug}`;
+
+      // 1. Try Native Web Share API first for supported browsers (mobile browsers, Safari, modern Chromium)
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        try {
+          await navigator.share({
+            title: `${post.title} — PDFSun`,
+            text: post.excerpt,
+            url: articleUrl,
+          });
+
+          setShareToast({
+            visible: true,
+            message: "Article shared successfully!",
+            slug: post.slug,
+          });
+          setTimeout(() => {
+            setShareToast((prev) => (prev.slug === post.slug ? { visible: false, message: "" } : prev));
+          }, 3200);
+          return;
+        } catch (err: any) {
+          // If the user cancelled the share dialog (AbortError), exit cleanly without error toast
+          if (err?.name === "AbortError") {
+            return;
+          }
+          console.warn("[PDFSun Share] navigator.share failed, falling back to clipboard:", err);
+        }
+      }
+
+      // 2. Fallback to clipboard copy with instant toast message
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(articleUrl);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = articleUrl;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+
         setShareToast({
           visible: true,
-          message: result.message,
+          message: "Link copied to clipboard!",
           slug: post.slug,
         });
         setTimeout(() => {
           setShareToast((prev) => (prev.slug === post.slug ? { visible: false, message: "" } : prev));
-        }, 2800);
+        }, 3200);
+      } catch (clipErr) {
+        setShareToast({
+          visible: true,
+          message: "Unable to copy link to clipboard",
+          slug: post.slug,
+        });
+        setTimeout(() => {
+          setShareToast((prev) => (prev.slug === post.slug ? { visible: false, message: "" } : prev));
+        }, 3200);
       }
     },
     []
@@ -152,12 +257,21 @@ export const PdfSunArticleSection: React.FC<PdfSunArticleSectionProps> = ({
             id="pdfsun-article-toast"
             role="status"
             aria-live="polite"
-            className="fixed bottom-6 right-6 z-50 bg-slate-900/95 border border-emerald-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="fixed bottom-6 right-6 z-50 bg-slate-900/95 border border-emerald-500/50 text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
           >
-            <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
               <Check className="w-3.5 h-3.5" />
             </div>
             <span className="text-xs font-semibold text-slate-100">{shareToast.message}</span>
+            <button
+              id="btn-dismiss-share-toast"
+              type="button"
+              onClick={() => setShareToast({ visible: false, message: "" })}
+              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              aria-label="Dismiss toast notification"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -437,16 +551,44 @@ export const PdfSunArticleSection: React.FC<PdfSunArticleSectionProps> = ({
                     </div>
 
                     {/* Card Footer Action Bar */}
-                    <div className="p-5 pt-3 border-t border-slate-700/50 flex items-center justify-between mt-auto">
+                    <div className="p-5 pt-3 border-t border-slate-700/50 flex items-center justify-between mt-auto gap-2">
                       <div className="flex items-center space-x-1.5">
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
                           {readingTime.text}
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-1 text-xs font-bold text-amber-400 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-transform">
-                        <span>Read Full Guide</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                      <div className="flex items-center space-x-2">
+                        {/* Native Web Share Button */}
+                        <button
+                          id={`btn-share-footer-${post.slug}`}
+                          type="button"
+                          onClick={(e) => handleShareArticle(e, post)}
+                          className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                            isCopied
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/50"
+                          }`}
+                          title="Share article via Web Share API or copy link"
+                          aria-label="Share article"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-[11px] font-bold">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="w-3.5 h-3.5 text-amber-400" />
+                              <span className="text-[11px]">Share</span>
+                            </>
+                          )}
+                        </button>
+
+                        <div className="flex items-center space-x-1 text-xs font-bold text-amber-400 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-transform whitespace-nowrap">
+                          <span>Read Full Guide</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { BlogPost } from "../types";
 import { BLOG_POSTS, getBlogPostBySlug } from "../data/blogData";
 import { ALL_TOOLS } from "../data/toolsData";
@@ -53,6 +53,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
   const [viewSavedOnly, setViewSavedOnly] = useState<boolean>(false);
   const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const articleRef = useRef<HTMLElement | null>(null);
   const [shareToast, setShareToast] = useState<{
     visible: boolean;
     message: string;
@@ -73,7 +74,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     return unsubscribe;
   }, []);
 
-  // Passive, throttled scroll listener for article reading progress bar (CLS & AdSense safe)
+  // High-performance passive scroll listener tracking article content reading progress
   useEffect(() => {
     if (!activePost) {
       setScrollProgress(0);
@@ -81,27 +82,58 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     }
 
     let ticking = false;
+
+    const calculateReadingProgress = () => {
+      const articleEl = articleRef.current;
+      if (articleEl) {
+        const rect = articleEl.getBoundingClientRect();
+        const articleTop = rect.top + window.scrollY;
+        const articleHeight = rect.height;
+        const viewportHeight = window.innerHeight;
+        const currentScrollY = window.scrollY;
+
+        // Reading begins when article top is near viewport top
+        const startScroll = articleTop;
+        // Reading finishes when article bottom enters viewport
+        const endScroll = articleTop + articleHeight - viewportHeight;
+
+        if (endScroll > startScroll) {
+          const progress = Math.min(
+            100,
+            Math.max(0, ((currentScrollY - startScroll) / (endScroll - startScroll)) * 100)
+          );
+          setScrollProgress(progress);
+        } else {
+          // Fallback for compact articles
+          const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = totalHeight > 0 ? (currentScrollY / totalHeight) * 100 : 0;
+          setScrollProgress(Math.min(100, Math.max(0, progress)));
+        }
+      } else {
+        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = totalHeight > 0 ? (window.scrollY / totalHeight) * 100 : 0;
+        setScrollProgress(Math.min(100, Math.max(0, progress)));
+      }
+      ticking = false;
+    };
+
     const handleScroll = () => {
       if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-          if (totalHeight > 0) {
-            const progress = Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
-            setScrollProgress(progress);
-          } else {
-            setScrollProgress(0);
-          }
-          ticking = false;
-        });
+        window.requestAnimationFrame(calculateReadingProgress);
         ticking = true;
       }
     };
 
+    // Passive event listeners guarantee non-blocking 60fps scrolling
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    window.addEventListener("resize", handleScroll, { passive: true });
+
+    // Initial calculation
+    calculateReadingProgress();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
     };
   }, [activePost]);
 
@@ -331,11 +363,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         </Helmet>
       )}
 
-      {/* SLIM, ACCELERATED ARTICLE SCROLL PROGRESS BAR (AdSense & Ezoic Buffer Safe, CLS = 0) */}
+      {/* FIXED, SLIM READING PROGRESS BAR (Tracks article content scroll with passive listener) */}
       {activePost && (
         <div
           id="article-reading-progress-bar"
-          className="fixed top-0 left-0 right-0 h-1 z-50 pointer-events-none bg-transparent"
+          className="fixed top-0 left-0 right-0 h-1 z-[100] pointer-events-none bg-slate-200/20 dark:bg-slate-800/30"
           role="progressbar"
           aria-valuenow={Math.round(scrollProgress)}
           aria-valuemin={0}
@@ -343,7 +375,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           aria-label="Article reading progress"
         >
           <div
-            className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-amber-300 transition-[width] duration-75 ease-out shadow-xs shadow-amber-500/40"
+            className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-amber-300 transition-[width] duration-75 ease-out shadow-xs shadow-amber-500/50"
             style={{ width: `${scrollProgress}%` }}
           />
         </div>
@@ -413,7 +445,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         /* =========================================================================
          * SINGLE ARTICLE DETAIL VIEW (Dedicated URL: /blog/:slug)
          * ========================================================================= */
-        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <article
+          ref={articleRef}
+          id="blog-article-content"
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12"
+        >
           {/* Breadcrumb Navigation */}
           <nav aria-label="Breadcrumb" className="mb-6">
             <ol className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">

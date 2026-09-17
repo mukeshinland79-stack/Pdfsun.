@@ -497,9 +497,33 @@ export async function reconcilePaymentWithFirestore(
 
     if (!alreadyReconciled) {
       // 5. Grant Entitlements in Firestore
-      if (matchedProduct.type === "one-time") {
-        // Credits Pack (e.g. 100 credits for flexi plan)
-        const creditAmount = matchedProduct.credits || 100;
+      if (matchedProduct.internalProductId === "flexi" || matchedProduct.internalProductId === "flex-pass") {
+        // Flex Pass (₹99 / 7 Days): Pay-as-you-go access, valid for 7 days
+        const durationDays = 7;
+        const activatedAt = now.toISOString();
+        const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+        subscriptionData = {
+          userId: normalizedEmail,
+          planId: "flexi",
+          planName: "Flex Pass",
+          status: "active",
+          activatedAt,
+          expiresAt,
+          durationDays,
+          paymentId: input.paymentId,
+          orderId: input.orderId || "",
+          subscriptionId: input.subscriptionId || "",
+          updatedAt: now.toISOString(),
+        };
+
+        const subDocRef = doc(db, "user_subscriptions", userDocId);
+        await setDoc(subDocRef, subscriptionData, { merge: true });
+        entitlementGranted = `Flex Pass Active (7 Days Unlimited Access until ${expiresAt.split("T")[0]})`;
+        console.log(`[Firestore Reconcile] Activated Flex Pass for ${normalizedEmail} until ${expiresAt}`);
+      } else if (matchedProduct.type === "one-time") {
+        // Credits Pack
+        const creditAmount = matchedProduct.credits || 50;
         const creditDocRef = doc(db, "user_credits", userDocId);
         const creditSnap = await getDoc(creditDocRef);
 

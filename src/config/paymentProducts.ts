@@ -17,6 +17,7 @@ export interface PaymentProduct {
   displayPriceINR: number;
   displayPriceUSD: number;
   billingInterval?: "monthly" | "yearly" | "one-time";
+  durationDays?: number; // Days of validity (e.g. 7 days for Flex Pass)
   credits?: number; // One-time credits granted
   razorpayPaymentLink: string;
   razorpayPlanIdEnvVar?: string;
@@ -33,26 +34,27 @@ export interface PaymentProduct {
 export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
   flexi: {
     internalProductId: "flexi",
-    productName: "Flexi Pack",
+    productName: "Flex Pass",
     type: "one-time",
     displayPriceINR: 99,
     displayPriceUSD: 1.99,
     billingInterval: "one-time",
+    durationDays: 7,
     credits: 50,
     razorpayPaymentLink: "https://rzp.io/rzp/pdfsun-flexi",
     razorpayPlanIdEnvVar: "RAZORPAY_FLEXI_PLAN_ID",
-    badge: "PAY-AS-YOU-GO",
+    badge: "7 DAYS • PAY-AS-YOU-GO",
     badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
-    description: "Pay-as-you-go credit top-up without any recurring commitments.",
+    description: "Pay-as-you-go access, valid for 7 days with no recurring auto-debit.",
     features: [
-      "50 Lifetime Credits (No Expiry)",
+      "7 Days Unlimited Access",
       "500 MB max file size limit",
-      "Pay once — no recurring commitments",
+      "Pay once — no recurring auto-debit commitments",
       "All premium PDF & AI OCR tools",
       "Dynamic QR payment with verified Razorpay checkout",
     ],
-    ctaText: "Buy Flexi Pack (₹99)",
-    guaranteeText: "Strictly Non-Refundable (Instant Credit Quota)",
+    ctaText: "Buy Flex Pass (₹99)",
+    guaranteeText: "Valid for 7 Full Days (Instant Activation)",
     popular: false,
   },
   "pro-monthly": {
@@ -191,7 +193,15 @@ export function resolvePaymentProduct(params: ResolvePaymentProductParams = {}):
   }
 
   // Alias maps
-  if (normalizedKey === "flexi-pack" || normalizedKey === "flexipack" || normalizedKey.includes("flexi") || normalizedKey.includes("token")) {
+  if (
+    normalizedKey === "flexi-pack" ||
+    normalizedKey === "flexipack" ||
+    normalizedKey === "flex-pass" ||
+    normalizedKey === "flex pass" ||
+    normalizedKey.includes("flex") ||
+    normalizedKey.includes("pass") ||
+    normalizedKey.includes("token")
+  ) {
     return PDFSUN_PAYMENT_PRODUCTS.flexi;
   }
   if (normalizedKey === "pro" || normalizedKey === "monthly" || normalizedKey === "pro-sun-monthly" || normalizedKey === "pro monthly") {

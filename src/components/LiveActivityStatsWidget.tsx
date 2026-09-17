@@ -15,55 +15,66 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
 }) => {
   const { currentLanguage } = useLanguage();
 
-  // Base starting files processed counter (simulates 42,000+ daily volume calibrated with time of day)
-  const initialCount = useMemo(() => {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    // Daily progress ramp from 12,000 to ~48,000
-    const progressRatio = (hours * 60 + minutes) / 1440;
-    return Math.floor(18500 + progressRatio * 28000);
-  }, []);
+  const [filesCount, setFilesCount] = useState<number | null>(null);
+  const [activeUsers, setActiveUsers] = useState<number>(1);
+  const [avgSpeedMs, setAvgSpeedMs] = useState<number>(120);
 
-  const [filesCount, setFilesCount] = useState<number>(initialCount);
-  const [activeUsers, setActiveUsers] = useState<number>(1428);
-  const [avgSpeedMs, setAvgSpeedMs] = useState<number>(190);
-  const [recentToolActivity, setRecentToolActivity] = useState<string>("Compress PDF (200KB)");
-
-  // High-performance micro-ticker that simulates real-time activity with zero CPU overhead
+  // Connect to actual server-side SSE telemetry stream and stats API
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Increments files by 1-3 every 3-5 seconds
-      setFilesCount((prev) => prev + Math.floor(Math.random() * 2) + 1);
+    let isMounted = true;
 
-      // Jitter active users slightly (e.g. 1420 - 1490)
-      setActiveUsers((prev) => {
-        const delta = Math.floor(Math.random() * 5) - 2;
-        return Math.max(1200, Math.min(1850, prev + delta));
+    fetch("/api/analytics/stats")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (isMounted && payload?.data) {
+          setFilesCount(payload.data.totalConversionsToday ?? 0);
+          setActiveUsers(Math.max(1, payload.data.activeUsersOnline ?? 1));
+          if (payload.data.serverLoadMs) {
+            setAvgSpeedMs(payload.data.serverLoadMs);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setFilesCount(0);
       });
 
-      // Fluctuate speed between 180ms and 220ms
-      setAvgSpeedMs(Math.floor(180 + Math.random() * 35));
+    let eventSource: EventSource | null = null;
+    try {
+      if (typeof window !== "undefined" && window.EventSource) {
+        eventSource = new EventSource("/api/analytics/live");
+        eventSource.onmessage = (event) => {
+          if (!isMounted) return;
+          try {
+            const data = JSON.parse(event.data);
+            if (typeof data.totalConversionsToday === "number") {
+              setFilesCount(data.totalConversionsToday);
+            }
+            if (typeof data.activeUsersOnline === "number") {
+              setActiveUsers(Math.max(1, data.activeUsersOnline));
+            }
+            if (typeof data.serverLoadMs === "number") {
+              setAvgSpeedMs(data.serverLoadMs);
+            }
+          } catch {
+            // Ignore parse errors from heartbeat pings
+          }
+        };
+      }
+    } catch {
+      // Graceful fallback if SSE is blocked by proxy
+    }
 
-      // Rotate recent popular actions
-      const actions = [
-        "Compress PDF to 100KB",
-        "Merge 4 Documents",
-        "PDF to Word (.docx)",
-        "Split 12 Pages",
-        "AI Summarize Research",
-        "Protect PDF with AES-256",
-        "Rotate 8 Pages",
-      ];
-      const randomAction = actions[Math.floor(Math.random() * actions.length)];
-      setRecentToolActivity(randomAction);
-    }, 4500);
-
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, []);
 
-  // Format large numbers cleanly with commas
+  // Format numbers cleanly
   const formattedCount = useMemo(() => {
+    if (filesCount === null) return "—";
     return filesCount.toLocaleString();
   }, [filesCount]);
 
@@ -106,10 +117,11 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
-        <span className="font-bold text-slate-900 dark:text-white tabular-nums">{formattedCount}+</span>
-        <span>files processed today</span>
+        <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+          {filesCount !== null && filesCount > 0 ? `${formattedCount} files processed` : "In-Browser Engine Ready"}
+        </span>
         <span>•</span>
-        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">0.2s avg speed</span>
+        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{activeUsers} active</span>
       </div>
     );
   }
@@ -135,10 +147,10 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
           <div className="flex items-center space-x-1.5">
             <Activity className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
             <span className="font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">
-              {formattedCount}+
+              {filesCount !== null && filesCount > 0 ? formattedCount : "Private WASM"}
             </span>
             <span className="text-slate-600 dark:text-slate-400 hidden xs:inline">
-              Files Processed Today
+              {filesCount !== null && filesCount > 0 ? "Files Processed Today" : "Processing Active"}
             </span>
           </div>
         </div>

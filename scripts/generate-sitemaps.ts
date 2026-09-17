@@ -4,7 +4,7 @@ import { ALL_TOOLS } from "../src/data/toolsData.js";
 import { POPULAR_COMPRESS_SIZES, PSEO_LANDING_PAGES } from "../src/data/pSEOData.js";
 import { BLOG_POSTS } from "../src/data/blogData.js";
 
-const BASE_URL = "https://www.pdfsun.in";
+const BASE_URL = "https://pdfsun.in";
 const today = new Date().toISOString().split("T")[0];
 
 function ensureDir(dirPath: string) {
@@ -27,10 +27,10 @@ const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /api/admin/
 
-Sitemap: https://www.pdfsun.in/sitemap.xml
-Sitemap: https://www.pdfsun.in/sitemap-blog.xml
-Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
-Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
+Sitemap: https://pdfsun.in/sitemap.xml
+Sitemap: https://pdfsun.in/sitemap-blog.xml
+Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://pdfsun.in/sitemap-pseo.xml
 `;
 
 // 2. Generate sitemap-blog.xml

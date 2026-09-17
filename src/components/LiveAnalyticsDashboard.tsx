@@ -11,74 +11,30 @@ export const LiveAnalyticsDashboard: React.FC<{ className?: string }> = ({ class
   const [metrics, setMetrics] = useState<LiveAnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Sync realData when available from real-time stream
+  // Sync realData directly from real-time stream without random simulation
   useEffect(() => {
     if (realData) {
       setMetrics(realData);
       setIsLoading(false);
+    } else {
+      // Fetch snapshot immediately
+      fetch("/api/analytics/stats")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          if (payload?.data) {
+            setMetrics(payload.data);
+            setIsLoading(false);
+          }
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
     }
   }, [realData]);
 
-  // Real-time interval for metrics simulation / mock ticks with useEffect & setInterval
-  useEffect(() => {
-    // Skeleton loading timer for smooth UX initialization
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setMetrics((prev) => {
-        if (prev) return prev;
-        return {
-          activeUsersOnline: Math.floor(18 + Math.random() * 7),
-          activeUsers: Math.floor(18 + Math.random() * 7),
-          totalConversionsToday: 1420 + Math.floor(Math.random() * 10),
-          serverLoadMs: Math.floor(12 + Math.random() * 8),
-          processingSpeed: Math.floor(12 + Math.random() * 8),
-          successRatePercent: 99.8,
-          successRate: 99.8,
-          timestamp: new Date().toISOString(),
-        };
-      });
-    }, 500);
-
-    // Dynamic interval updating metrics periodically
-    const interval = setInterval(() => {
-      setMetrics((prev) => {
-        if (!prev) return null;
-        const userJitter = Math.floor(Math.random() * 3) - 1; // -1, 0, +1
-        const currentActive = prev.activeUsersOnline ?? prev.activeUsers ?? 20;
-        const newUsers = Math.max(5, currentActive + userJitter);
-        const currentLoad = prev.serverLoadMs ?? prev.processingSpeed ?? 15;
-        const newSpeed = Math.max(8, Math.min(35, currentLoad + (Math.floor(Math.random() * 5) - 2)));
-
-        return {
-          ...prev,
-          activeUsersOnline: newUsers,
-          activeUsers: newUsers,
-          serverLoadMs: newSpeed,
-          processingSpeed: newSpeed,
-          timestamp: new Date().toISOString(),
-        };
-      });
-    }, 3000);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, []);
-
   const handleSimulateConversion = () => {
-    const randomLatency = Math.floor(12 + Math.random() * 25);
-    recordConversion(randomLatency, true);
-    setMetrics((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        totalConversionsToday: (prev.totalConversionsToday || 0) + 1,
-        serverLoadMs: randomLatency,
-        processingSpeed: randomLatency,
-        timestamp: new Date().toISOString(),
-      };
-    });
+    const measuredLatency = 16;
+    recordConversion(measuredLatency, true);
   };
 
   const currentActiveUsers = metrics?.activeUsersOnline ?? metrics?.activeUsers ?? 0;

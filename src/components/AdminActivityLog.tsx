@@ -129,67 +129,31 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
   const activeEmail = (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
   const isVerifiedOwner = DUAL_OWNER_EMAILS.includes(activeEmail);
 
-  // Live event ticker generator effect
+  // Fetch genuine audit logs from server or maintain verified records without random generation
   useEffect(() => {
-    if (!isLiveStream) return;
+    let isMounted = true;
+    const fetchAuditLogs = async () => {
+      try {
+        const res = await fetch("/api/admin/audit-logs");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && Array.isArray(data.logs) && data.logs.length > 0) {
+            setLogs(data.logs);
+          }
+        }
+      } catch {
+        // Fallback to verified initial records
+      }
+    };
 
-    const interval = setInterval(() => {
-      const sampleEvents: Partial<SystemActivityEntry>[] = [
-        {
-          action: "User Login Authentication",
-          category: "login_attempt",
-          userEmail: Math.random() > 0.5 ? "mukeshinland79@gmail.com" : "mukeshkalonia241@gmail.com",
-          status: "success",
-          details: "Dual-Owner session verified successfully with active secret token.",
-        },
-        {
-          action: "Failed Login Attempt",
-          category: "login_attempt",
-          userEmail: `guest_${Math.floor(Math.random() * 900 + 100)}@external.com`,
-          status: "denied",
-          details: "Invalid admin token provided. Access blocked with 404 Stealth response.",
-        },
-        {
-          action: "System Config Auto-Sync",
-          category: "config_change",
-          userEmail: "system-config-service",
-          status: "success",
-          details: "Hot-reloaded system_config.json parameters with zero downtime.",
-        },
-        {
-          action: "WASM Garbage Collection Exception",
-          category: "system_error",
-          userEmail: "worker-process-node",
-          status: "error",
-          details: "Transient WebAssembly memory heap buffer cleanup executed.",
-        },
-        {
-          action: "Anti-Abuse Rate Limit Enforcement",
-          category: "security",
-          userEmail: `ip-${Math.floor(Math.random() * 200)}`,
-          status: "warning",
-          details: "Bad request counter incremented. IP monitored for auto-blocking.",
-        },
-      ];
+    fetchAuditLogs();
+    const interval = setInterval(fetchAuditLogs, 30000); // 30s gentle real poll
 
-      const picked = sampleEvents[Math.floor(Math.random() * sampleEvents.length)];
-      const ips = ["152.58.16.42", "103.21.124.9", "185.220.101.5", "127.0.0.1", "45.12.89.102"];
-      const newEvt: SystemActivityEntry = {
-        id: `evt-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString(),
-        userEmail: picked.userEmail || "system",
-        action: picked.action || "System Event",
-        category: (picked.category as any) || "system_error",
-        ipAddress: ips[Math.floor(Math.random() * ips.length)],
-        status: (picked.status as any) || "success",
-        details: picked.details || "Automatic real-time system log entry.",
-      };
-
-      setLogs((prev) => [newEvt, ...prev.slice(0, 49)]);
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [isLiveStream]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =

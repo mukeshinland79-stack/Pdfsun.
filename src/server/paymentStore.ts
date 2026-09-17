@@ -224,30 +224,35 @@ export function recordVerifiedTransaction(params: {
   // If payment is completed, fulfill entitlement
   let updatedSub: UserSubscription | undefined;
   if (params.status === "COMPLETED" || params.status === "CAPTURED") {
-    if (normalizedPlanId !== "flexi") {
-      let durationDays = 30;
-      if (normalizedPlanId === "pro-yearly" || normalizedPlanId.includes("annual") || normalizedPlanId.includes("enterprise")) {
-        durationDays = 365;
-      }
-      const activatedAt = now.toISOString();
-      const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
-
-      updatedSub = {
-        id: params.subscriptionId || `sub_${params.paymentId}`,
-        user_id: normalizedEmail,
-        plan_id: normalizedPlanId,
-        plan_name: planName,
-        status: "active",
-        activated_at: activatedAt,
-        expires_at: expiresAt,
-        payment_id: params.paymentId,
-        created_at: activatedAt,
-        updated_at: activatedAt,
-      };
-
-      subscriptionsStore[normalizedEmail] = updatedSub;
-      saveSubscriptions();
+    let durationDays = 30;
+    if (normalizedPlanId === "flexi" || normalizedPlanId === "flex-pass" || normalizedPlanId.includes("flex") || normalizedPlanId.includes("pass")) {
+      durationDays = 7;
+    } else if (
+      normalizedPlanId === "pro-yearly" ||
+      normalizedPlanId.includes("annual") ||
+      normalizedPlanId.includes("enterprise") ||
+      normalizedPlanId.includes("yearly")
+    ) {
+      durationDays = 365;
     }
+    const activatedAt = now.toISOString();
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+    updatedSub = {
+      id: params.subscriptionId || `sub_${params.paymentId}`,
+      user_id: normalizedEmail,
+      plan_id: normalizedPlanId,
+      plan_name: planName,
+      status: "active",
+      activated_at: activatedAt,
+      expires_at: expiresAt,
+      payment_id: params.paymentId,
+      created_at: activatedAt,
+      updated_at: activatedAt,
+    };
+
+    subscriptionsStore[normalizedEmail] = updatedSub;
+    saveSubscriptions();
   }
 
   return { transaction: txRecord, isNew, subscription: updatedSub };

@@ -102,7 +102,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     Boolean(userProfile.ssoDomain) ||
     Boolean(userProfile.ssoProvider) ||
     Boolean(userProfile.organizationName);
-  const isFlexiUser = resolvedPlan.internalProductId === "flexi" || userProfile.plan?.toLowerCase().includes("flexi");
+  const isFlexiUser =
+    resolvedPlan.internalProductId === "flexi" ||
+    userProfile.plan?.toLowerCase().includes("flex") ||
+    userProfile.plan?.toLowerCase().includes("pass");
   const isPaidUser =
     userProfile.plan?.toLowerCase().includes("pro") ||
     userProfile.plan?.toLowerCase().includes("annual") ||
@@ -128,7 +131,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     : isSsoUser
     ? "Enterprise SSO Active (Managed by Organization IT)"
     : isFlexiUser
-    ? `Flexi Pack Active • ${resolvedPlan.credits || 50} Lifetime Operations (Never Expires)`
+    ? "Flex Pass Active (Valid for 7 Days access • Pay-as-you-go)"
     : resolvedPlan.billingInterval === "yearly" || userProfile.plan?.toLowerCase().includes("annual")
     ? "Active for 1 Year (365 Days • Renewable via Razorpay)"
     : isPaidUser
