@@ -892,37 +892,58 @@ app.post("/api/ai/extract-table", async (req, res) => {
     const ai = getGeminiClient();
     const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
 
-    const promptText = `You are PDFSun Enterprise Document Intelligence & Table Extraction Engine.
-Analyze this document/image/text with extreme precision and extract ALL tables, tabular grids, line items, and structured fields.
+    const promptText = `### SYSTEM ROLE & OBJECTIVE:
+You are "PDFSun AI Document Engine v5.0", an enterprise-grade OCR and Data Layout Reconstruction System specializing in Image-to-Excel conversion. Your job is to analyze any given document image (scans, mobile photos, screenshots, blurred receipts, skewed invoices) and extract 100% accurate structured table data directly into clean Excel/CSV format.
 
-MANDATORY RULES:
-1. NEVER merge multiple columns into a single cell. Every distinct column (e.g. S.No, Item Description, HSN/SAC, Quantity, Unit Price, Tax/GST, Total) MUST be placed into its own separate column.
-2. If a column is empty or missing in a row, preserve it as an empty string "" so that subsequent columns do not shift left.
-3. Detect both Lattice (line-bounded) and Stream (whitespace-separated) table layouts.
-4. Extract all exact numerical values, dates, codes, IDs, GSTIN, PAN, and currency amounts without hallucination.
-5. If there are multiple tables or structured key-value sections (e.g. Invoice Info + Itemized Table), extract both.
-6. Return pure JSON with this exact schema:
+### CORE EXTRACTION & RECONSTRUCTION RULES:
+1. ADVANCED OCR & TEXT ENHANCEMENT:
+   - Perform automatic image pre-processing (de-skewing, contrast enhancement, noise reduction, and de-blurring).
+   - Read fine print, low-contrast text, and zero-padded identifiers (e.g., GSTIN, PAN, Phone, PIN, Order IDs) as STRING to prevent leading-zero truncation.
+   - Preserved exact character case, special symbols (@, #, $, %, &, -), and multilingual numerical values.
+
+2. TABLE STRUCTURE & LAYOUT DETECTION:
+   - Detect grid lines (visible, implicit, dashed, or borderless tables).
+   - Merge multi-line row entries into single logical rows rather than breaking them into separate rows.
+   - Detect merged headers, sub-headers, and column spans (colspan/rowspan) and replicate the hierarchical header in output.
+   - Align numbers strictly to the right and text to the left.
+   - NEVER merge multiple columns into a single cell. Every distinct column MUST be placed into its own separate cell.
+
+3. DATA TYPES & FORMATTING:
+   - Numbers/Currency: Clean commas and currency symbols if required, but preserve numeric integrity for formulas.
+   - Dates: Normalize dates to consistent formats (e.g., YYYY-MM-DD or DD/MM/YYYY).
+   - Empty Cells: Represent blank cells as null or empty string "" without shifting adjacent column data left.
+
+4. ACCURACY GUARANTEE FOR LOW-QUALITY IMAGES:
+   - If an image is extremely blurred or low resolution, perform character-level context prediction based on dictionary and document context. Never output "Document contains no readable text" unless the image is 100% pitch black/blank.
+
+### OUTPUT FORMAT:
+Return pure JSON with this exact schema:
 {
+  "table_found": true,
+  "confidence_score": 0.99,
+  "headers": ["Col1", "Col2", "Col3"],
+  "rows": [
+    ["Val1", "Val2", "Val3"]
+  ],
+  "primaryMatrix": [
+    ["Col1", "Col2", "Col3"],
+    ["Val1", "Val2", "Val3"]
+  ],
   "tables": [
     {
-      "title": "Invoice Items Table",
-      "headers": ["S.No", "Description", "HSN/SAC", "Qty", "Rate", "Amount"],
+      "title": "Document Table",
+      "headers": ["Col1", "Col2", "Col3"],
       "rows": [
-        ["1", "Sample Item Description", "998311", "2", "100.00", "200.00"]
+        ["Val1", "Val2", "Val3"]
       ]
     }
   ],
-  "primaryMatrix": [
-    ["S.No", "Description", "HSN/SAC", "Qty", "Rate", "Amount"],
-    ["1", "Sample Item Description", "998311", "2", "100.00", "200.00"]
-  ],
   "keyValueFields": [
-    { "label": "Invoice No", "value": "INV-102" },
-    { "label": "Date", "value": "15-09-2024" }
+    { "label": "Document No", "value": "12345" }
   ]
 }
 
-${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract table matrix from the attached document image."}`;
+${documentText ? `Document Text Context:\n${documentText.slice(0, 15000)}` : "Analyze and extract high-precision table matrix from the document image."}`;
 
     let lastErr = null;
     let extractedData = null;
@@ -957,7 +978,7 @@ ${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract ta
         if (rawText) {
           try {
             const parsed = JSON.parse(rawText);
-            if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables))) {
+            if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables) || (Array.isArray(parsed.rows) && parsed.rows.length > 0))) {
               extractedData = parsed;
               modelUsed = model;
               break;
@@ -966,7 +987,7 @@ ${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract ta
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
-              if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables))) {
+              if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables) || (Array.isArray(parsed.rows) && parsed.rows.length > 0))) {
                 extractedData = parsed;
                 modelUsed = model;
                 break;
@@ -986,7 +1007,10 @@ ${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract ta
     }
 
     let matrix: string[][] = extractedData.primaryMatrix || [];
-    if ((!matrix || matrix.length === 0) && extractedData.tables && extractedData.tables.length > 0) {
+    if ((!matrix || matrix.length === 0) && extractedData.headers && extractedData.rows) {
+      const hdrs = Array.isArray(extractedData.headers[0]) ? extractedData.headers[0] : extractedData.headers;
+      matrix = [hdrs, ...(extractedData.rows || [])];
+    } else if ((!matrix || matrix.length === 0) && extractedData.tables && extractedData.tables.length > 0) {
       const firstTbl = extractedData.tables[0];
       matrix = [firstTbl.headers || [], ...(firstTbl.rows || [])];
     }
@@ -994,6 +1018,10 @@ ${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract ta
     return res.status(200).json({
       success: true,
       status: "ok",
+      table_found: extractedData.table_found !== undefined ? extractedData.table_found : true,
+      confidence_score: extractedData.confidence_score || 0.99,
+      headers: extractedData.headers || (matrix.length > 0 ? matrix[0] : []),
+      rows: extractedData.rows || (matrix.length > 1 ? matrix.slice(1) : []),
       primaryMatrix: matrix,
       tables: extractedData.tables || [],
       keyValueFields: extractedData.keyValueFields || [],

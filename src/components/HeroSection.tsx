@@ -111,12 +111,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span className="text-slate-600 dark:text-slate-400 font-normal">Works 100% Offline</span>
           </div>
 
-          {/* Badge 3: Pro PDF Utilities */}
+          {/* Badge 3: 66+ Free Online PDF & Document Tools */}
           <div className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-50/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span className="font-bold">{t("badges.tools50", "68+ Working Tools")}</span>
+            <span className="font-bold">{t("badges.tools50", "66+ Free Online PDF & Document Tools")}</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
             <span className="text-slate-500 dark:text-slate-400 font-normal">Client Sandboxed</span>
+          </div>
+
+          {/* Dynamic Counter Component Badge */}
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-emerald-500/10 dark:from-orange-950/30 dark:to-emerald-950/30 text-slate-800 dark:text-slate-200 border border-orange-300/60 dark:border-orange-700/50 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="font-semibold text-orange-600 dark:text-orange-400">Serving 66+ High-Speed Document Engines</span>
           </div>
         </div>
 
@@ -135,7 +144,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <Search className="w-4 h-4 text-blue-600 ml-2.5 shrink-0" />
           <input
             type="text"
-            placeholder={t("searchPlaceholder", "Search 68+ PDF tools (Ctrl+K)...")}
+            placeholder={t("searchPlaceholder", "Search 66+ PDF & Document Tools (Ctrl+K)...")}
             onClick={onOpenSearch}
             readOnly
             className="w-full bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
@@ -144,7 +153,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             onClick={onOpenSearch}
             className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-[11px] font-bold shadow-xs hover:opacity-90 transition flex items-center space-x-1 shrink-0"
           >
-            <span>{t("nav.searchBtn", "Search 68+ Tools")}</span>
+            <span>{t("nav.searchBtn", "Search 66+ Tools")}</span>
             <kbd className="hidden sm:inline-block px-1 py-0.5 bg-white/20 rounded text-[9px]">⌘K</kbd>
           </button>
         </div>

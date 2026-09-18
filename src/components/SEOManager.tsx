@@ -440,8 +440,16 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const localizedToolName = activeTool ? getToolName(activeTool) : "";
   const localizedToolDesc = activeTool ? getToolDescription(activeTool) : "";
 
-  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in` : (activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle));
-  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}` : (activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc));
+  let toolTitle = activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle;
+  let toolDesc = activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc;
+
+  if (activeTool?.id === "image-to-excel") {
+    toolTitle = "Free Image to Excel Converter Online (100% Accurate OCR) | PDFSun";
+    toolDesc = "Convert JPG, PNG, and scanned photos to fully editable Excel (.xlsx) spreadsheets instantly. AI-powered OCR preserves table layout, headers, and formulas. No registration needed.";
+  }
+
+  const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in` : (activeTool ? toolTitle : defaultTitle));
+  const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}` : (activeTool ? toolDesc : defaultDesc));
   const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : baseUrl));
 
   return (

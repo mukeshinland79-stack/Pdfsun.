@@ -247,6 +247,33 @@ export const TOOL_SPECIFIC_FAQS: Record<string, ToolFAQ[]> = {
     },
   ],
 
+  "image-to-excel": [
+    {
+      question: "How does PDFSun accurately convert image photos or scanned receipts into Excel spreadsheets?",
+      answer: "PDFSun uses PDFSun AI Document Engine v5.0 combined with high-precision optical table structure analysis. It reconstructs multi-line cell text, separates individual columns into dedicated cells without merging, and exports clean, formatted Microsoft Excel (.xlsx) and CSV files.",
+    },
+    {
+      question: "Will my GSTIN, PAN, Phone numbers, and leading zeros be preserved?",
+      answer: "Yes, 100%. All zero-padded identifiers (such as GSTIN, PAN, Phone numbers, PIN codes, account numbers, and Order IDs) are preserved as strings to prevent spreadsheet software from stripping leading zeros.",
+    },
+    {
+      question: "Can PDFSun convert low-resolution, blurred scans or skewed mobile phone camera photos?",
+      answer: "Yes! PDFSun's dual OCR pipeline executes automated client-side canvas pre-processing (contrast normalization, de-skewing, and 3x3 unsharp mask sharpening) before analyzing tables, allowing blurred scans, WhatsApp photos, and skewed receipts to be extracted accurately.",
+    },
+    {
+      question: "Can I edit table cells online before downloading the Excel (.xlsx) file?",
+      answer: "Yes! PDFSun provides a built-in Live Interactive Table Grid right on the page. You can review extracted values, edit cells directly, insert or delete rows/columns, and download the final verified spreadsheet with one click.",
+    },
+    {
+      question: "Are my uploaded invoice photos and financial documents kept secure and private?",
+      answer: "Absolutely. All processing occurs with zero permanent cloud storage. Images and extracted tabular data are held transiently in browser memory and automatically purged when your session closes.",
+    },
+    {
+      question: "What image formats are supported for Excel conversion?",
+      answer: "PDFSun supports all popular image formats including PNG, JPG, JPEG, WEBP, and BMP, as well as multi-image batch uploads.",
+    },
+  ],
+
   "edit-pdf-metadata": [
     {
       question: "What PDF metadata properties can I inspect and edit?",

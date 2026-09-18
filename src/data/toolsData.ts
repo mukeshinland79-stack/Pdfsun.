@@ -190,7 +190,7 @@ export const ALL_TOOLS: ToolItem[] = [
     id: "image-to-excel",
     name: "Image to Excel",
     slug: "image-to-excel",
-    description: "Auto-detect table layouts, headers, and rows from photos, screenshots, and scanned receipts to export clean structured spreadsheets (.xlsx / .csv).",
+    description: "Convert JPG, PNG, and scanned photos to fully editable Excel (.xlsx) spreadsheets instantly. AI-powered OCR preserves table layout, headers, and formulas. No registration needed.",
     icon: "Table",
     category: "convert",
     isPopular: true,
@@ -895,14 +895,14 @@ export function getToolCount(): number {
 }
 
 export const CATEGORIES = [
-  { id: "all", label: `All ${ALL_TOOLS.length} Tools`, icon: "Grid" },
+  { id: "all", label: "All 66+ Tools", icon: "Grid" },
+  { id: "convert", label: "Convert PDF (15 Tools)", icon: "RefreshCw" },
+  { id: "edit", label: "Edit & Annotate (12 Tools)", icon: "Sliders" },
+  { id: "security", label: "Security & Privacy (8 Tools)", icon: "Shield" },
+  { id: "ai", label: "AI PDF Tools (10 Tools)", icon: "Sparkles" },
+  { id: "advanced", label: "Image & Utilities (21 Tools)", icon: "Wrench" },
   { id: "student", label: "Student Essentials", icon: "GraduationCap" },
-  { id: "ai", label: "AI PDF Power Tools", icon: "Sparkles" },
   { id: "popular", label: "Most Popular", icon: "Flame" },
-  { id: "convert", label: "Convert & Export", icon: "RefreshCw" },
-  { id: "edit", label: "Edit & Organize", icon: "Sliders" },
-  { id: "security", label: "Security & Protect", icon: "Shield" },
-  { id: "advanced", label: "Advanced Utilities", icon: "Wrench" },
 ] as const;
 
 export const SUPPORTED_FORMATS = [

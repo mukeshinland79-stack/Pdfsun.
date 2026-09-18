@@ -285,7 +285,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center space-x-2 min-w-0">
                 <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
                 <span className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">
-                  {t("searchTools", "Search 68+ Tools...")}
+                  {t("searchTools", "Search 66+ Tools...")}
                 </span>
               </div>
 
@@ -785,7 +785,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="truncate">{t("searchTools", "Search 68+ Tools...")}</span>
+              <span className="truncate">{t("searchTools", "Search 66+ Tools...")}</span>
             </div>
             <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 shrink-0 ml-auto">Ctrl+K</kbd>
           </button>

@@ -49,6 +49,8 @@ import {
   RotateCcw,
   FileSpreadsheet,
   HelpCircle,
+  Shield,
+  Zap,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
@@ -1505,26 +1507,49 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
-                <span>{translatedToolName}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
-                  PDFSun Engine
-                </span>
-
-                {/* Header-Embedded Rating Badge */}
-                <button
-                  type="button"
-                  onClick={() => setShowReviewModal(true)}
-                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold transition ml-1"
-                  title="View user reviews and ratings"
-                >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                  <span>{toolRating.avgRating.toFixed(1)}</span>
-                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
-                    ({toolRating.totalRatings.toLocaleString()})
+              {tool.id === "image-to-excel" ? (
+                <h1 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
+                  <span>Free Online Image to Excel Converter (AI-Powered Table OCR)</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
+                    PDFSun Engine
                   </span>
-                </button>
-              </h2>
+
+                  {/* Header-Embedded Rating Badge */}
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(true)}
+                    className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold transition ml-1"
+                    title="View user reviews and ratings"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                    <span>{toolRating.avgRating.toFixed(1)}</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                      ({toolRating.totalRatings.toLocaleString()})
+                    </span>
+                  </button>
+                </h1>
+              ) : (
+                <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
+                  <span>{translatedToolName}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
+                    PDFSun Engine
+                  </span>
+
+                  {/* Header-Embedded Rating Badge */}
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(true)}
+                    className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold transition ml-1"
+                    title="View user reviews and ratings"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                    <span>{toolRating.avgRating.toFixed(1)}</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                      ({toolRating.totalRatings.toLocaleString()})
+                    </span>
+                  </button>
+                </h2>
+              )}
               <p className="text-xs text-[var(--text-secondary,#94a3b8)] line-clamp-1">{translatedToolDesc}</p>
             </div>
           </div>
@@ -4526,15 +4551,91 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </div>
           )}
 
+          {/* Dedicated SEO Guide & Architectural Layout Hierarchy for Image to Excel */}
+          {tool.id === "image-to-excel" && (
+            <section aria-label="Image to Excel OCR Engine Architecture" className="pt-3 border-t border-[var(--border-color,rgba(255,255,255,0.08))] space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-sm font-bold text-[var(--text-primary,#f8fafc)] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
+                  <span>Why PDFSun Image to Excel is the Most Accurate Tool</span>
+                </h2>
+                <p className="text-xs text-[var(--text-secondary,#94a3b8)] leading-relaxed">
+                  PDFSun combines client-side canvas pre-processing (contrast normalization, de-skewing, and 3x3 unsharp sharpening) with enterprise multimodal table layout reconstruction to convert JPG, PNG, WEBP, and scanned receipt photos into fully editable, beautifully formatted Microsoft Excel (.xlsx) and CSV spreadsheets.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.08))] space-y-1.5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Auto-Detect Table Layouts, Headers & Gridlines</span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)] leading-relaxed">
+                    Preserves multi-column boundaries without cell overlapping, captures nested headers, and keeps zero-padded identifiers (GSTIN, PAN, Phone numbers) intact.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.08))] space-y-1.5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Client-Side Privacy & Ultra-Fast Processing</span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)] leading-relaxed">
+                    Zero permanent cloud retention. Invoices, balance sheets, and personal documents remain strictly confidential and are purged automatically from memory.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.08))] space-y-1.5 shadow-2xs">
+                  <h3 className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Supports Low-Resolution, Blurred Scans & Mobile Photos</span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)] leading-relaxed">
+                    Adaptive unsharp mask filters and context-aware OCR accurately transcribe compressed WhatsApp photos, skewed receipts, and uneven camera snapshots.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.08))] space-y-2.5">
+                <h2 className="text-xs font-bold text-[var(--text-primary,#f8fafc)] uppercase tracking-wider">
+                  How to Convert Photo to Excel Spreadsheet in 3 Easy Steps
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                  <div className="space-y-1">
+                    <div className="font-semibold text-[var(--text-primary,#f8fafc)] flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-bold flex items-center justify-center">1</span>
+                      <span>Upload Image or Photo</span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed">Select or drag & drop JPG, PNG, WEBP, or scanned receipt photos into the workspace.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-semibold text-[var(--text-primary,#f8fafc)] flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-bold flex items-center justify-center">2</span>
+                      <span>AI OCR & Layout Recovery</span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed">The engine enhances edges, identifies columns, parses row items, and maps numeric types.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-semibold text-[var(--text-primary,#f8fafc)] flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-bold flex items-center justify-center">3</span>
+                      <span>Live Edit & Download</span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed">Review the live interactive table grid, tweak any cell inline, and download clean .xlsx or .csv.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Collapsible In-Tool FAQ Section for Long-Tail SEO and User Guidance */}
           {toolFAQs && toolFAQs.length > 0 && (
             <div className="pt-2 border-t border-[var(--border-color,rgba(255,255,255,0.08))] space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <HelpCircle className="w-4 h-4 text-orange-500" />
-                  <span className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                    Frequently Asked Questions ({tool.name})
-                  </span>
+                  <h2 className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
+                    Frequently Asked Questions (FAQ) {tool.name ? `— ${tool.name}` : ""}
+                  </h2>
                 </div>
                 <span className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">
                   {toolFAQs.length} questions answered
