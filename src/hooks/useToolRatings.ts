@@ -17,7 +17,7 @@ const DEFAULT_RATINGS: Record<string, { avgRating: number; totalRatings: number 
   "annotate-pdf": { avgRating: 4.8, totalRatings: 198 },
   "split-pdf": { avgRating: 4.7, totalRatings: 164 },
   "edit-pdf": { avgRating: 4.8, totalRatings: 212 },
-  "ocr-pdf": { avgRating: 4.7, totalRatings: 145 },
+  "ai-ocr": { avgRating: 4.9, totalRatings: 385 },
   "word-to-pdf": { avgRating: 4.8, totalRatings: 130 },
   "excel-to-pdf": { avgRating: 4.6, totalRatings: 98 },
   "pdf-to-jpg": { avgRating: 4.7, totalRatings: 112 },
@@ -104,7 +104,9 @@ export function useToolRatings() {
 
   const getToolRating = useCallback(
     (toolId: string): ToolRatingState => {
+      const canonicalId = (toolId === "ocr-pdf" || toolId === "ocr-image-to-text") ? "ai-ocr" : toolId;
       return (
+        ratings[canonicalId] ||
         ratings[toolId] || {
           avgRating: 4.8,
           totalRatings: 30,

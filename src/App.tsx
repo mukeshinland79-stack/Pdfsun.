@@ -624,6 +624,10 @@ export default function App() {
         }
 
         if (matchedSlug) {
+          // Canonical OCR tool consolidation: ensure all OCR slugs resolve to canonical AI OCR
+          if (matchedSlug === "ocr-pdf" || matchedSlug === "ocr-image-to-text") {
+            matchedSlug = "ai-ocr";
+          }
           const targetTool = ALL_TOOLS.find(
             (t) => t.slug === matchedSlug || t.id === matchedSlug
           );
@@ -802,37 +806,43 @@ export default function App() {
   }, [currentLanguage]);
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
-    trackToolUsage(tool.id);
+    // Canonical OCR Consolidation: ensure legacy ocr-pdf and ocr-image-to-text resolve directly to ai-ocr
+    const canonicalTool =
+      tool.id === "ocr-pdf" || tool.id === "ocr-image-to-text" || tool.slug === "ocr-pdf" || tool.slug === "ocr-image-to-text"
+        ? ALL_TOOLS.find((t) => t.id === "ai-ocr") || tool
+        : tool;
+
+    trackToolUsage(canonicalTool.id);
 
     // If futuristic studio tool is selected, launch Future AI Studio with corresponding tab
     const futureTools = ["ai-voice-reader", "voice-to-pdf", "quantum-preflight-hud", "macro-automator"];
-    if (futureTools.includes(tool.id) || futureTools.includes(tool.slug)) {
+    if (futureTools.includes(canonicalTool.id) || futureTools.includes(canonicalTool.slug)) {
       let tab: FutureStudioTab = "voice-reader";
-      if (tool.id === "voice-to-pdf" || tool.slug === "voice-to-pdf") tab = "voice-to-pdf";
-      else if (tool.id === "quantum-preflight-hud" || tool.slug === "quantum-preflight-hud") tab = "quantum-hud";
-      else if (tool.id === "macro-automator" || tool.slug === "macro-automator") tab = "macro-automator";
+      if (canonicalTool.id === "voice-to-pdf" || canonicalTool.slug === "voice-to-pdf") tab = "voice-to-pdf";
+      else if (canonicalTool.id === "quantum-preflight-hud" || canonicalTool.slug === "quantum-preflight-hud") tab = "quantum-hud";
+      else if (canonicalTool.id === "macro-automator" || canonicalTool.slug === "macro-automator") tab = "macro-automator";
 
       setFutureStudioTab(tab);
       setFutureStudioFile(initialFiles?.[0] || null);
       setFutureStudioOpen(true);
       if (typeof window !== "undefined") {
-        window.history.pushState({}, "", `/${tool.slug}`);
+        window.history.pushState({}, "", `/${canonicalTool.slug}`);
       }
       return;
     }
 
-    setActiveTool(tool);
+    setActiveTool(canonicalTool);
     const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
     if (customPseoPage !== undefined) {
       setActivePseoPage(customPseoPage);
       if (customPseoPage && typeof window !== "undefined") {
         window.history.pushState({}, "", `/${customPseoPage.slug}${langQuery}`);
       }
-    } else if (activePseoPage && (activePseoPage.targetToolId !== tool.id && activePseoPage.targetToolId !== tool.slug)) {
+    } else if (activePseoPage && (activePseoPage.targetToolId !== canonicalTool.id && activePseoPage.targetToolId !== canonicalTool.slug)) {
       setActivePseoPage(null);
     } else {
-      if (typeof window !== "undefined" && window.location.pathname !== `/${tool.slug}`) {
-        window.history.pushState({}, "", `/${tool.slug}${langQuery}`);
+      if (typeof window !== "undefined" && window.location.pathname !== `/${canonicalTool.slug}`) {
+        window.history.pushState({}, "", `/${canonicalTool.slug}${langQuery}`);
       }
     }
     if (initialFiles) setActiveToolFiles(initialFiles);

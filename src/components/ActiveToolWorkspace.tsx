@@ -60,6 +60,7 @@ import { getToolFAQs } from "./SEOManager";
 import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
 import { useLanguage } from "../lib/i18n";
 import { callTranslateApi } from "../lib/safeApi";
+import { useToolRatings } from "../hooks/useToolRatings";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -208,6 +209,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   usageTracker,
 }) => {
   const { t } = useLanguage();
+  const { getToolRating } = useToolRatings();
+  const toolRating = getToolRating(tool.id);
   const translatedToolName = t(`tools.${tool.id}.name`, tool.name);
   const translatedToolDesc = t(`tools.${tool.id}.desc`, tool.description);
   const effectiveInitialFiles = activeToolFiles && activeToolFiles.length > 0 ? activeToolFiles : initialFiles;
@@ -1516,8 +1519,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   title="View user reviews and ratings"
                 >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                  <span>4.9</span>
-                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">(128)</span>
+                  <span>{toolRating.avgRating.toFixed(1)}</span>
+                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                    ({toolRating.totalRatings.toLocaleString()})
+                  </span>
                 </button>
               </h2>
               <p className="text-xs text-[var(--text-secondary,#94a3b8)] line-clamp-1">{translatedToolDesc}</p>

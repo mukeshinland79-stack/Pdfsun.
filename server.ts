@@ -310,6 +310,16 @@ app.all(["/api/download/file", "/api/download/stream"], (req, res) => {
   }
 });
 
+// Helper to wrap any async operation with a strict timeout to prevent hangs
+function runWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs)
+    ),
+  ]);
+}
+
 // Unified Gemini Engine with multi-model failover (Primary: gemini-3.8-flash, Backup: gemini-3.1-flash-lite)
 interface GeminiCallParams {
   contents: any;
@@ -335,11 +345,15 @@ async function callGeminiWithFallback(
       if (params.responseMimeType) config.responseMimeType = params.responseMimeType;
       if (params.responseSchema) config.responseSchema = params.responseSchema;
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: params.contents,
-        config: Object.keys(config).length > 0 ? config : undefined,
-      });
+      const response = await runWithTimeout(
+        ai.models.generateContent({
+          model,
+          contents: params.contents,
+          config: Object.keys(config).length > 0 ? config : undefined,
+        }),
+        25000,
+        `Gemini [${model}]`
+      );
 
       const responseText = response.text?.trim();
       if (responseText) {
@@ -348,7 +362,7 @@ async function callGeminiWithFallback(
     } catch (err: any) {
       lastError = err;
       const errMsg = (err?.message || String(err)).toLowerCase();
-      console.warn(`[Gemini Engine] Call on ${model} failed:`, err?.message || err);
+      console.warn(`[Gemini Engine] Call on ${model} failed or timed out:`, err?.message || err);
 
       const isUnavailableOrRateLimit =
         errMsg.includes("503") ||
@@ -357,7 +371,9 @@ async function callGeminiWithFallback(
         errMsg.includes("429") ||
         errMsg.includes("quota") ||
         errMsg.includes("resource exhausted") ||
-        errMsg.includes("overloaded");
+        errMsg.includes("overloaded") ||
+        errMsg.includes("timed out") ||
+        errMsg.includes("timeout");
 
       // Fast-failover to backup model immediately without wasting timeout budget
       if (isUnavailableOrRateLimit && i < models.length - 1) {
@@ -762,44 +778,72 @@ app.post("/api/ai/explain", async (req, res) => {
 app.post("/api/ai/ocr", async (req, res) => {
   res.setHeader("Content-Type", "application/json");
   try {
-    const { imageBase64, mimeType = "application/pdf" } = req.body || {};
-    if (!imageBase64) {
+    const { imageBase64, mimeType = "application/pdf", fallbackText } = req.body || {};
+    if (!imageBase64 && !fallbackText) {
       return res.status(400).json({ success: false, error: "Missing imageBase64 payload for OCR." });
     }
 
-    const ai = getGeminiClient();
+    // Clean base64 input: strip data URI scheme and any stray whitespace
+    const cleanBase64 = (imageBase64 || "")
+      .replace(/^data:[^;]+;base64,/, "")
+      .replace(/\s+/g, "")
+      .trim();
+
+    // Multimodal OCR model priority:
+    // 1. gemini-2.5-flash (Google official designated model for multimodal vision & doc extraction)
+    // 2. gemini-3.1-flash-lite (Fastest low-latency model)
+    // 3. gemini-3.8-flash (General reasoning fallback)
+    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
     let lastErr = null;
     let extractedText = "";
-    let modelUsed = "gemini-3.8-flash";
+    let modelUsed = "gemini-2.5-flash";
 
-    const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
-    for (const model of models) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: {
-            parts: [
-              {
-                inlineData: {
-                  data: imageBase64,
-                  mimeType: mimeType,
-                },
+    if (cleanBase64) {
+      const ai = getGeminiClient();
+      for (const model of models) {
+        try {
+          const response = await runWithTimeout(
+            ai.models.generateContent({
+              model,
+              contents: {
+                parts: [
+                  {
+                    inlineData: {
+                      data: cleanBase64,
+                      mimeType: mimeType || "application/pdf",
+                    },
+                  },
+                  {
+                    text: "You are a professional OCR document processing engine. Extract all text from this document with 100% precision. Structure table data with clean row and column separators (using tab or pipe characters). Do not output garbage hallucination glyphs or repeating punctuation marks. Return ONLY the complete extracted text.",
+                  },
+                ],
               },
-              {
-                text: "You are a professional OCR document processing engine. Extract all text with 100% precision. Structure table data with clean row and column separators (using tab or pipe characters). Do not output garbage hallucination glyphs or repeating punctuation marks. Return the complete extracted text.",
-              },
-            ],
-          },
-        });
-        extractedText = response.text || "";
-        if (extractedText) {
-          modelUsed = model;
-          break;
+            }),
+            25000,
+            `OCR Model [${model}]`
+          );
+
+          extractedText = response.text?.trim() || "";
+          if (extractedText) {
+            modelUsed = model;
+            break;
+          }
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`[AI OCR] Model ${model} failed or timed out:`, err?.message || err);
         }
-      } catch (err: any) {
-        lastErr = err;
-        console.warn(`[AI OCR] Model ${model} failed:`, err?.message || err);
       }
+    }
+
+    // If Gemini models timed out or failed, but fallback text exists (e.g. digital PDF text)
+    if (!extractedText && fallbackText && typeof fallbackText === "string" && fallbackText.trim().length > 20) {
+      console.info("[AI OCR] Gracefully utilizing digital document text as fallback.");
+      return res.status(200).json({
+        success: true,
+        status: "ok",
+        result: fallbackText.trim(),
+        modelUsed: "embedded-pdf-text",
+      });
     }
 
     if (!extractedText && lastErr) {
@@ -816,9 +860,150 @@ app.post("/api/ai/ocr", async (req, res) => {
     console.error("AI OCR Route Error:", error);
     const msg = error?.message || "Failed to process document with AI OCR.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
-    return res.status(isRateLimit ? 429 : 500).json({
+    const isTimeout = msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout");
+    return res.status(isRateLimit ? 429 : isTimeout ? 504 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit
+        ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying."
+        : isTimeout
+        ? "OCR analysis timed out. Please try with a smaller document or fewer pages."
+        : msg,
+    });
+  }
+});
+
+// ========================================================
+// ENTERPRISE AI TABLE & SPREADSHEET EXTRACTION (GEMINI VISION)
+// ========================================================
+app.post("/api/ai/extract-table", async (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  try {
+    const { imageBase64, mimeType = "image/png", documentText, fileName } = req.body || {};
+
+    if (!imageBase64 && !documentText) {
+      return res.status(400).json({ success: false, error: "Missing document image or text payload for table extraction." });
+    }
+
+    const cleanBase64 = (imageBase64 || "")
+      .replace(/^data:[^;]+;base64,/, "")
+      .replace(/\s+/g, "")
+      .trim();
+
+    const ai = getGeminiClient();
+    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
+
+    const promptText = `You are PDFSun Enterprise Document Intelligence & Table Extraction Engine.
+Analyze this document/image/text with extreme precision and extract ALL tables, tabular grids, line items, and structured fields.
+
+MANDATORY RULES:
+1. NEVER merge multiple columns into a single cell. Every distinct column (e.g. S.No, Item Description, HSN/SAC, Quantity, Unit Price, Tax/GST, Total) MUST be placed into its own separate column.
+2. If a column is empty or missing in a row, preserve it as an empty string "" so that subsequent columns do not shift left.
+3. Detect both Lattice (line-bounded) and Stream (whitespace-separated) table layouts.
+4. Extract all exact numerical values, dates, codes, IDs, GSTIN, PAN, and currency amounts without hallucination.
+5. If there are multiple tables or structured key-value sections (e.g. Invoice Info + Itemized Table), extract both.
+6. Return pure JSON with this exact schema:
+{
+  "tables": [
+    {
+      "title": "Invoice Items Table",
+      "headers": ["S.No", "Description", "HSN/SAC", "Qty", "Rate", "Amount"],
+      "rows": [
+        ["1", "Sample Item Description", "998311", "2", "100.00", "200.00"]
+      ]
+    }
+  ],
+  "primaryMatrix": [
+    ["S.No", "Description", "HSN/SAC", "Qty", "Rate", "Amount"],
+    ["1", "Sample Item Description", "998311", "2", "100.00", "200.00"]
+  ],
+  "keyValueFields": [
+    { "label": "Invoice No", "value": "INV-102" },
+    { "label": "Date", "value": "15-09-2024" }
+  ]
+}
+
+${documentText ? `Document Text:\n${documentText.slice(0, 15000)}` : "Extract table matrix from the attached document image."}`;
+
+    let lastErr = null;
+    let extractedData = null;
+    let modelUsed = "gemini-2.5-flash";
+
+    for (const model of models) {
+      try {
+        const parts: any[] = [];
+        if (cleanBase64) {
+          parts.push({
+            inlineData: {
+              data: cleanBase64,
+              mimeType: mimeType || "image/png",
+            },
+          });
+        }
+        parts.push({ text: promptText });
+
+        const response = await runWithTimeout(
+          ai.models.generateContent({
+            model,
+            contents: { parts },
+            config: {
+              responseMimeType: "application/json",
+            },
+          }),
+          30000,
+          `Table Extract [${model}]`
+        );
+
+        const rawText = response.text?.trim() || "";
+        if (rawText) {
+          try {
+            const parsed = JSON.parse(rawText);
+            if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables))) {
+              extractedData = parsed;
+              modelUsed = model;
+              break;
+            }
+          } catch (e) {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed && (Array.isArray(parsed.primaryMatrix) || Array.isArray(parsed.tables))) {
+                extractedData = parsed;
+                modelUsed = model;
+                break;
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[AI Table Extract] Model ${model} failed:`, err?.message || err);
+      }
+    }
+
+    if (!extractedData) {
+      if (lastErr) throw lastErr;
+      return res.status(500).json({ success: false, error: "Failed to extract table structure from document." });
+    }
+
+    let matrix: string[][] = extractedData.primaryMatrix || [];
+    if ((!matrix || matrix.length === 0) && extractedData.tables && extractedData.tables.length > 0) {
+      const firstTbl = extractedData.tables[0];
+      matrix = [firstTbl.headers || [], ...(firstTbl.rows || [])];
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: "ok",
+      primaryMatrix: matrix,
+      tables: extractedData.tables || [],
+      keyValueFields: extractedData.keyValueFields || [],
+      modelUsed,
+    });
+  } catch (error: any) {
+    console.error("AI Table Extract Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || "Internal server error during table extraction.",
     });
   }
 });

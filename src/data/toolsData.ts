@@ -760,17 +760,6 @@ export const ALL_TOOLS: ToolItem[] = [
 
   // --- ADVANCED & UTILITIES ---
   {
-    id: "ocr-image-to-text",
-    name: "OCR Image to Text",
-    slug: "ocr-image-to-text",
-    description: "Extract raw plain text from screenshots, scanned photo documents, and image files directly. Convert images into editable text for quick copying or saving as plain text files.",
-    icon: "FileSearch",
-    category: "advanced",
-    isStudentFavorite: true,
-    supportedInput: [".png", ".jpg", ".jpeg", ".webp"],
-    outputFormat: "TXT / Clipboard",
-  },
-  {
     id: "batch-pdf-tools",
     name: "Batch PDF Tools",
     slug: "batch-pdf-tools",

@@ -288,8 +288,8 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("/api/process-pdf") ||
       lowerUrl.includes("/api/convert");
 
-    // Allow generous 90-second timeout for heavy AI generation and multi-page conversions
-    const effectiveTimeoutMs = isAiOrHeavyRoute ? 90000 : DEFAULT_TIMEOUT_MS;
+    // Allow generous 120-second timeout for heavy AI generation and multi-page conversions
+    const effectiveTimeoutMs = isAiOrHeavyRoute ? 120000 : DEFAULT_TIMEOUT_MS;
 
     if (!init?.signal && effectiveTimeoutMs > 0 && !isViteHmrNoise) {
       timeoutController = new AbortController();

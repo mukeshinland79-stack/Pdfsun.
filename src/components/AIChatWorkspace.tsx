@@ -36,8 +36,22 @@ import { useUsageTracker } from "../hooks/useUsageTracker";
 import { FreeLimitPaywallModal } from "./FreeLimitPaywallModal";
 import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
 import { FormattedMarkdown } from "./FormattedMarkdown";
+import { useToolRatings } from "../hooks/useToolRatings";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
+
+export type PipelineStage = "idle" | "ingestion" | "extraction" | "invocation" | "streaming" | "completed";
+
+export interface ToolOutputState {
+  output: string;
+  flashcards?: Flashcard[];
+  chatMessages?: ChatMessage[];
+  fileName?: string;
+  fileSize?: number;
+  timestamp: number;
+  isComplete: boolean;
+  targetLanguage?: string;
+}
 
 interface AIChatWorkspaceProps {
   tool: ToolItem;
@@ -167,11 +181,18 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [documentText, setDocumentText] = useState<string>("");
   const [isExtractingText, setIsExtractingText] = useState<boolean>(false);
 
-  // Active Tab state
+  // Active Tab state (synced with tool prop)
   const [activeTab, setActiveTab] = useState<AiTabId>(() => getInitialTab(tool));
 
-  // Per-tool cached outputs (switching tabs does not wipe generated results)
-  const [toolOutputs, setToolOutputs] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setActiveTab(getInitialTab(tool));
+  }, [tool.id, tool.slug]);
+
+  // Standardized 5-Stage Execution Pipeline State
+  const [pipelineStage, setPipelineStage] = useState<PipelineStage>("idle");
+
+  // Per-tool cached outputs (switching tabs retains generated output, flashcards, metadata)
+  const [toolOutputs, setToolOutputs] = useState<Record<string, ToolOutputState>>({});
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [activeFlashcardIdx, setActiveFlashcardIdx] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
@@ -185,6 +206,22 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState("Hindi");
   const [copied, setCopied] = useState(false);
+
+  // Restore cached tool state when activeTab changes
+  useEffect(() => {
+    const cached = toolOutputs[activeTab];
+    if (cached) {
+      if (cached.flashcards && cached.flashcards.length > 0) {
+        setFlashcards(cached.flashcards);
+      }
+      if (cached.chatMessages && cached.chatMessages.length > 0) {
+        setChatMessages(cached.chatMessages);
+      }
+      if (cached.targetLanguage) {
+        setTargetLanguage(cached.targetLanguage);
+      }
+    }
+  }, [activeTab, toolOutputs]);
 
   // Community Engagement States
   const [showShareModal, setShowShareModal] = useState(false);
@@ -203,21 +240,48 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     closePaywall,
   } = useUsageTracker();
 
+  // Dynamic Rating per Active Canonical Tool Tab
+  const { getToolRating } = useToolRatings();
+  const currentToolRating = useMemo(() => {
+    const tabToToolId: Record<AiTabId, string> = {
+      ocr: "ai-ocr",
+      summary: "ai-pdf-summary",
+      translate: "ai-translate-pdf",
+      notes: "ai-notes-generator",
+      flashcards: "ai-flashcards",
+      explain: "ai-explain-pdf",
+      resume: "ai-resume-builder",
+      chat: "ai-chat-pdf",
+    };
+    const targetToolId = tabToToolId[activeTab] || tool.id;
+    return getToolRating(targetToolId);
+  }, [activeTab, getToolRating, tool.id]);
+
   // Determine currently active tab configuration
   const activeTabConfig = useMemo(
     () => AI_TABS_CONFIG.find((t) => t.id === activeTab) || AI_TABS_CONFIG[0],
     [activeTab]
   );
 
-  // Current output for the active tab
-  const currentOutput = toolOutputs[activeTab] || "";
+  // Current output for the active tab from cache
+  const currentOutput = toolOutputs[activeTab]?.output || "";
 
-  // Extract text when a document is uploaded
+  // Extract text when a document is uploaded (Stages 1 & 2)
   const handleFileChange = useCallback(async (f: File) => {
     setFile(f);
+    setPipelineStage("ingestion");
     setIsExtractingText(true);
     setAiError(null);
 
+    // Validate size
+    if (f.size > 15 * 1024 * 1024 && !isPro) {
+      triggerPaywall("size", f.size);
+      setIsExtractingText(false);
+      setPipelineStage("idle");
+      return;
+    }
+
+    setPipelineStage("extraction");
     try {
       if (f.type.startsWith("image/") || f.name.match(/\.(png|jpg|jpeg|webp)$/i)) {
         setDocumentText(`Image file loaded: ${f.name} (${(f.size / 1024).toFixed(1)} KB).\nClick "Run AI Vision OCR" to extract full text with Gemini AI Vision.`);
@@ -232,8 +296,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       );
     } finally {
       setIsExtractingText(false);
+      setPipelineStage("idle");
     }
-  }, []);
+  }, [isPro, triggerPaywall]);
 
   // Initialize with initialFiles if provided
   useEffect(() => {
@@ -251,9 +316,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     [handleFileChange]
   );
 
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } =
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject, open: openDropzone } =
     useDropzone({
       onDrop,
+      noClick: false,
       multiple: false,
       accept: {
         "application/pdf": [".pdf"],
@@ -278,6 +344,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       return;
     }
 
+    setPipelineStage("invocation");
     setIsAiLoading(true);
     setAiError(null);
 
@@ -305,19 +372,77 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         if (file) {
           const base64 = await fileToBase64(file);
           const mime = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/png");
-          body = { imageBase64: base64, mimeType: mime };
+          const hasValidPreExtractedText =
+            documentText &&
+            !documentText.includes("Scanned or image-based document detected") &&
+            !documentText.includes("Image file loaded:") &&
+            documentText.trim().length > 30;
+          body = {
+            imageBase64: base64,
+            mimeType: mime,
+            fallbackText: hasValidPreExtractedText ? documentText.trim() : undefined,
+          };
         } else {
           throw new Error("Please upload a scanned PDF, photo, or image file on the left panel to run OCR.");
         }
       }
 
-      const res = await safeFetch<any>(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res;
+      try {
+        res = await safeFetch<any>(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (err: any) {
+        if (featureTab === "ocr") {
+          const hasValidPreExtractedText =
+            documentText &&
+            !documentText.includes("Scanned or image-based document detected") &&
+            !documentText.includes("Image file loaded:") &&
+            documentText.trim().length > 30;
+          if (hasValidPreExtractedText) {
+            setToolOutputs((prev) => ({
+              ...prev,
+              ocr: {
+                output: documentText.trim(),
+                fileName: file?.name,
+                fileSize: file?.size,
+                timestamp: Date.now(),
+                isComplete: true,
+              },
+            }));
+            setPipelineStage("completed");
+            setIsAiLoading(false);
+            return;
+          }
+        }
+        throw err;
+      }
 
       if (!res.ok || !res.data) {
+        if (featureTab === "ocr") {
+          const hasValidPreExtractedText =
+            documentText &&
+            !documentText.includes("Scanned or image-based document detected") &&
+            !documentText.includes("Image file loaded:") &&
+            documentText.trim().length > 30;
+          if (hasValidPreExtractedText) {
+            setToolOutputs((prev) => ({
+              ...prev,
+              ocr: {
+                output: documentText.trim(),
+                fileName: file?.name,
+                fileSize: file?.size,
+                timestamp: Date.now(),
+                isComplete: true,
+              },
+            }));
+            setPipelineStage("completed");
+            setIsAiLoading(false);
+            return;
+          }
+        }
         throw new Error(res.error || "Failed to process request with Gemini AI.");
       }
 
@@ -331,14 +456,85 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         setFlashcards(cardsList);
         setActiveFlashcardIdx(0);
         setShowFlashcardAnswer(false);
+        setToolOutputs((prev) => ({
+          ...prev,
+          flashcards: {
+            output: `${cardsList.length} flashcards synthesized successfully.`,
+            flashcards: cardsList,
+            fileName: file?.name,
+            fileSize: file?.size,
+            timestamp: Date.now(),
+            isComplete: true,
+          },
+        }));
+        setPipelineStage("completed");
       } else if (featureTab === "ocr") {
         const ocrText = data.result || data.text || "No text could be recognized.";
-        setToolOutputs((prev) => ({ ...prev, ocr: ocrText }));
-        // Also populate left document text so subsequent tools can use the recognized content
         setDocumentText(ocrText);
+        setPipelineStage("streaming");
+        setIsAiLoading(false);
+        // Stage 4: Stream progressive rendering
+        const words = ocrText.split(" ");
+        const step = Math.max(1, Math.floor(words.length / 15));
+        for (let i = step; i < words.length; i += step) {
+          const partial = words.slice(0, i).join(" ");
+          setToolOutputs((prev) => ({
+            ...prev,
+            ocr: {
+              output: partial,
+              fileName: file?.name,
+              fileSize: file?.size,
+              timestamp: Date.now(),
+              isComplete: false,
+            },
+          }));
+          await new Promise((r) => setTimeout(r, 20));
+        }
+        setToolOutputs((prev) => ({
+          ...prev,
+          ocr: {
+            output: ocrText,
+            fileName: file?.name,
+            fileSize: file?.size,
+            timestamp: Date.now(),
+            isComplete: true,
+          },
+        }));
+        setPipelineStage("completed");
       } else {
         const textResult = data.result || data.translatedText || "AI processing completed.";
-        setToolOutputs((prev) => ({ ...prev, [featureTab]: textResult }));
+        setPipelineStage("streaming");
+        setIsAiLoading(false);
+        // Stage 4: Stream progressive rendering
+        const words = textResult.split(" ");
+        const step = Math.max(1, Math.floor(words.length / 18));
+        for (let i = step; i < words.length; i += step) {
+          const partial = words.slice(0, i).join(" ");
+          setToolOutputs((prev) => ({
+            ...prev,
+            [featureTab]: {
+              output: partial,
+              fileName: file?.name,
+              fileSize: file?.size,
+              timestamp: Date.now(),
+              isComplete: false,
+              targetLanguage: featureTab === "translate" ? targetLanguage : undefined,
+            },
+          }));
+          await new Promise((r) => setTimeout(r, 20));
+        }
+        setToolOutputs((prev) => ({
+          ...prev,
+          [featureTab]: {
+            output: textResult,
+            fileName: file?.name,
+            fileSize: file?.size,
+            timestamp: Date.now(),
+            isComplete: true,
+            targetLanguage: featureTab === "translate" ? targetLanguage : undefined,
+          },
+        }));
+        setPipelineStage("completed");
       }
 
       recordAiQuery();
@@ -355,6 +551,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     } catch (err: any) {
       console.error("AI Pipeline Error:", err);
       setAiError(err?.message || "An unexpected error occurred while communicating with Gemini AI. Please try again.");
+      setPipelineStage("idle");
     } finally {
       setIsAiLoading(false);
     }
@@ -383,8 +580,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       timestamp: Date.now(),
     };
 
-    setChatMessages((prev) => [...prev, newMsg]);
+    const updatedWithUser = [...chatMessages, newMsg];
+    setChatMessages(updatedWithUser);
     setChatInput("");
+    setPipelineStage("invocation");
     setIsAiLoading(true);
     setAiError(null);
 
@@ -409,15 +608,28 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       }
 
       const botReply = res.data.result || res.data.reply || "No response received from Gemini.";
-      setChatMessages((prev) => [
-        ...prev,
+      const updatedMessages: ChatMessage[] = [
+        ...updatedWithUser,
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
           content: botReply,
           timestamp: Date.now(),
         },
-      ]);
+      ];
+      setChatMessages(updatedMessages);
+      setToolOutputs((prev) => ({
+        ...prev,
+        chat: {
+          output: botReply,
+          chatMessages: updatedMessages,
+          fileName: file?.name,
+          fileSize: file?.size,
+          timestamp: Date.now(),
+          isComplete: true,
+        },
+      }));
+      setPipelineStage("completed");
 
       recordAiQuery();
 
@@ -441,12 +653,13 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
           timestamp: Date.now(),
         },
       ]);
+      setPipelineStage("idle");
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  // Copy to Clipboard (Enabled only when output exists)
+  // Copy to Clipboard (Stage 5 Action Enablement)
   const copyToClipboard = () => {
     let textToCopy = "";
     if (activeTab === "flashcards" && flashcards.length > 0) {
@@ -463,7 +676,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Export PDF (Enabled only when output exists)
+  // Export PDF (Stage 5 Action Enablement)
   const exportAsPdf = () => {
     let title = activeTabConfig.canonicalName;
     let textToExport = "";
@@ -488,13 +701,16 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     downloadFile(pdfBytes, cleanFileName, "application/pdf");
   };
 
-  // Check if current tab has valid output to enable Copy & Export
+  // Stage 5 Action Enablement: Export/Copy buttons strictly disabled until pipeline completes
   const hasValidOutput = useMemo(() => {
+    if (isAiLoading || pipelineStage === "invocation" || pipelineStage === "streaming" || isExtractingText) {
+      return false;
+    }
     if (activeTab === "resume") return true;
     if (activeTab === "flashcards") return flashcards.length > 0;
     if (activeTab === "chat") return chatMessages.length > 0;
     return Boolean(currentOutput && currentOutput.trim().length > 0);
-  }, [activeTab, flashcards.length, chatMessages.length, currentOutput]);
+  }, [isAiLoading, pipelineStage, isExtractingText, activeTab, flashcards.length, chatMessages.length, currentOutput]);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -526,7 +742,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase">
                   {activeTabConfig.badge}
                 </span>
-                {/* Rating Badge */}
+                {/* Dynamic Header-Embedded Rating Badge */}
                 <button
                   type="button"
                   onClick={() => setShowReviewModal(true)}
@@ -534,8 +750,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   title="View user reviews and ratings"
                 >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                  <span>4.9</span>
-                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">(1,480)</span>
+                  <span>{currentToolRating.avgRating.toFixed(1)}</span>
+                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                    ({currentToolRating.totalRatings.toLocaleString()})
+                  </span>
                 </button>
               </div>
               <p className="text-xs text-[var(--text-secondary,#94a3b8)]">PDFSun Unified AI Document Suite</p>
@@ -621,7 +839,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition duration-150 text-xs ${
                   isActive
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold shadow-md scale-100 ring-2 ring-orange-400/40"
-                    : "text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated,#16161a)] hover:text-[var(--text-primary,#f8fafc)] opacity-70 hover:opacity-100 font-medium"
+                    : "border border-white/10 bg-white/[0.03] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] hover:border-white/20 hover:bg-white/[0.06] font-medium opacity-65 hover:opacity-100"
                 }`}
               >
                 <IconComponent className="w-3.5 h-3.5 shrink-0" />
@@ -714,6 +932,49 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
             {/* Right Column: Interactive Gemini AI Console */}
             <div className="md:col-span-8 flex flex-col h-full bg-[var(--bg-primary,#0a0a0f)] overflow-hidden">
+              {/* Standardized 5-Stage Tool Execution Pipeline Indicator */}
+              <div className="px-4 py-2 border-b border-[var(--border-color,rgba(255,255,255,0.08))] bg-[var(--bg-surface,#111114)] shrink-0">
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.06))] text-[11px]">
+                  {[
+                    { key: "ingestion", label: "1. File Ingestion" },
+                    { key: "extraction", label: "2. Text Extraction" },
+                    { key: "invocation", label: "3. Gemini API Invocation" },
+                    { key: "streaming", label: "4. Stream Rendering" },
+                    { key: "completed", label: "5. Action Enablement" },
+                  ].map((stageItem) => {
+                    const isCurrent = pipelineStage === stageItem.key;
+                    const isPast =
+                      (stageItem.key === "ingestion" && ["extraction", "invocation", "streaming", "completed"].includes(pipelineStage)) ||
+                      (stageItem.key === "extraction" && ["invocation", "streaming", "completed"].includes(pipelineStage)) ||
+                      (stageItem.key === "invocation" && ["streaming", "completed"].includes(pipelineStage)) ||
+                      (stageItem.key === "streaming" && pipelineStage === "completed") ||
+                      (stageItem.key === "completed" && pipelineStage === "completed");
+
+                    return (
+                      <div
+                        key={stageItem.key}
+                        className={`flex items-center space-x-1 font-semibold transition-all ${
+                          isCurrent
+                            ? "text-amber-400 font-bold"
+                            : isPast
+                            ? "text-emerald-400"
+                            : "text-[var(--text-muted,#64748b)] opacity-50"
+                        }`}
+                      >
+                        {isPast ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        ) : isCurrent ? (
+                          <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                        ) : (
+                          <div className="w-2.5 h-2.5 rounded-full border border-current opacity-60 shrink-0" />
+                        )}
+                        <span className="hidden xl:inline">{stageItem.label}</span>
+                        <span className="xl:hidden">{stageItem.label.split(". ")[1]?.split(" ")[0]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               {/* TAB 1: AI Chat with PDF */}
               {activeTab === "chat" && (
                 <div className="flex-1 flex flex-col h-full p-4 overflow-hidden">
@@ -1022,19 +1283,28 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                           </p>
                         </div>
 
-                        <button
-                          onClick={() => runAiFeature(activeTab)}
-                          disabled={isAiLoading || (!documentText.trim() && !file)}
-                          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          <span>{activeTabConfig.buttonLabel}</span>
-                        </button>
-
-                        {!documentText.trim() && !file && (
-                          <p className="text-[11px] text-amber-400/80">
-                            * Please upload a document or paste text in the left panel to begin.
-                          </p>
+                        {!documentText.trim() && !file ? (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => openDropzone()}
+                              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition flex items-center space-x-2 mx-auto"
+                            >
+                              <UploadCloud className="w-4 h-4" />
+                              <span>Upload Document for {activeTabConfig.canonicalName}</span>
+                            </button>
+                            <p className="text-[11px] text-[var(--text-muted,#64748b)]">
+                              Upload a PDF, document, or scanned file to extract and analyze.
+                            </p>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => runAiFeature(activeTab)}
+                            disabled={isAiLoading}
+                            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
+                          >
+                            {isAiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            <span>{activeTabConfig.buttonLabel}</span>
+                          </button>
                         )}
                       </div>
                     )}

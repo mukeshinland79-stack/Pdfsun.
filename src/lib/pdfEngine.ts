@@ -2387,51 +2387,76 @@ export async function imageToExcel(
     };
   }
 
-  if (onProgress) onProgress(10, "Uploading & Initializing OCR...");
+  if (onProgress) onProgress(10, "Uploading & Initializing Multi-Page OCR...");
 
-  const wb = XLSX.utils.book_new();
   let totalRows = 0;
   let aggregatedPreviewRows: string[][] = [];
   let lastAnalysis: SmartDocumentAnalysis | undefined;
+  const additionalSheets: Array<{ sheetName: string; matrix: any[][] }> = [];
+  let firstGrid: string[][] = [];
 
   for (let i = 0; i < fileList.length; i++) {
     const f = fileList[i];
-    const baseProgress = 15 + Math.round((i / fileList.length) * 65);
+    const baseProgress = 15 + Math.round((i / fileList.length) * 70);
 
     if (onProgress) onProgress(baseProgress, `Processing OCR on image ${i + 1} of ${fileList.length}...`);
 
     const analysis = await analyzeDocumentStructure(f, mode, (p, msg) => {
-      if (onProgress) onProgress(Math.min(90, baseProgress + Math.round((p / 100) * 20)), msg);
+      if (onProgress) onProgress(Math.min(90, baseProgress + Math.round((p / 100) * 15)), msg);
     });
     lastAnalysis = analysis;
-
     totalRows += analysis.primaryTableMatrix.length;
-    if (aggregatedPreviewRows.length === 0) {
+
+    if (i === 0) {
+      firstGrid = analysis.primaryTableMatrix;
       aggregatedPreviewRows = analysis.primaryTableMatrix;
     } else {
+      const sheetName = `Doc_${i + 1}_${f.name.replace(/\.[^/.]+$/, "")}`.slice(0, 31).replace(/[:\/\\?*\[\]]/g, "_");
+      additionalSheets.push({
+        sheetName,
+        matrix: analysis.primaryTableMatrix,
+      });
       aggregatedPreviewRows = [...aggregatedPreviewRows, ...analysis.primaryTableMatrix.slice(1)];
     }
-
-    const singleWb = XLSX.read(
-      (await convertToSmartExcel(analysis, f.name, "xlsx")).bytes,
-      { type: "array" }
-    );
-    const sheetName = `Doc_${i + 1}_${f.name.replace(/\.[^/.]+$/, "")}`.slice(0, 31);
-    XLSX.utils.book_append_sheet(wb, singleWb.Sheets[singleWb.SheetNames[0]], sheetName);
   }
 
-  if (onProgress) onProgress(90, "Applying column auto-fit & packing spreadsheet...");
+  if (onProgress) onProgress(90, "Applying column auto-fit & styling workbook...");
 
-  const bookType = outputFormat === "csv" ? "csv" : "xlsx";
-  const outBuffer = XLSX.write(wb, { bookType, type: "array" });
   const baseName = fileList[0]?.name.replace(/\.[^/.]+$/, "") || "PDFSun_Excel_Extraction";
-  const fileName = `${baseName}.${outputFormat}`;
+
+  if (outputFormat === "csv") {
+    const csvContent = aggregatedPreviewRows
+      .map((r) =>
+        r
+          .map((c) => {
+            const str = String(c ?? "");
+            return str.includes(",") || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
+          })
+          .join(",")
+      )
+      .join("\r\n");
+
+    if (onProgress) onProgress(100, "Download ready");
+    return {
+      bytes: new TextEncoder().encode("\uFEFF" + csvContent),
+      fileName: `${baseName}.csv`,
+      rowCount: totalRows,
+      previewRows: aggregatedPreviewRows,
+      analysis: lastAnalysis,
+    };
+  }
+
+  const { generateEnterpriseExcel } = await import("./enterpriseExcelGenerator");
+  const bytes = await generateEnterpriseExcel(firstGrid, {
+    sheetName: `Doc_1_${fileList[0].name.replace(/\.[^/.]+$/, "")}`.slice(0, 31).replace(/[:\/\\?*\[\]]/g, "_"),
+    additionalSheets,
+  });
 
   if (onProgress) onProgress(100, "Download ready");
 
   return {
-    bytes: new Uint8Array(outBuffer),
-    fileName,
+    bytes,
+    fileName: `${baseName}.xlsx`,
     rowCount: totalRows,
     previewRows: aggregatedPreviewRows,
     analysis: lastAnalysis,
