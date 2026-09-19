@@ -11,22 +11,32 @@
   "categories": ["utilities", "productivity", "office", "business"],
   "icons": [
     {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
       "src": "/favicon.svg",
       "type": "image/svg+xml",
       "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-192.svg",
-      "type": "image/svg+xml",
+      "src": "/android-chrome-192x192.png",
+      "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.svg",
-      "type": "image/svg+xml",
+      "src": "/android-chrome-512x512.png",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
     }
   ]
 }

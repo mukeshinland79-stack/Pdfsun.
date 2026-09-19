@@ -230,7 +230,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.active && data.subscription) {
+        if ((data.active || data.isPro || data.status === "Plan Activated" || data.status === "active") && data.subscription) {
           setUserSubscription(data.subscription);
           if (data.subscription.plan_id) {
             setActivePlanId(data.subscription.plan_id);
@@ -938,7 +938,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                               <span>{t("pricing.planActivated", "PLAN ACTIVATED")}</span>
                             </div>
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 tracking-normal normal-case">
-                              {plan.id === "flexi" ? "Lifetime Credits Active" : `Expires: ${expiresDateStr}`}
+                              {plan.id === "flexi" ? `Flex Pass (7 Days) • Expires: ${expiresDateStr}` : `Expires: ${expiresDateStr}`}
                             </span>
                           </div>
                         ) : (
@@ -968,7 +968,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                             </p>
 
                             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
-                              {plan.id === "flexi" ? "Status: Active Lifetime Top-Up" : `Expires / Renews: ${expiresDateStr}`}
+                              {plan.id === "flexi" ? `Status: Active Flex Pass (7 Days) • Expires: ${expiresDateStr}` : `Expires / Renews: ${expiresDateStr}`}
                             </p>
                           </div>
                         </div>

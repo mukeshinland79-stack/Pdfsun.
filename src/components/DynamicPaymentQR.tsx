@@ -46,12 +46,15 @@ export const DynamicPaymentQR: React.FC<DynamicPaymentQRProps> = ({
       const url = new URL(base);
       if (userEmail) {
         url.searchParams.set("email", userEmail);
+        url.searchParams.set("notes[user_id]", userEmail);
+        url.searchParams.set("notes[email]", userEmail);
+        url.searchParams.set("notes[plan_id]", product.internalProductId);
       }
       return url.toString();
     } catch {
       return base;
     }
-  }, [product.razorpayPaymentLink, userEmail]);
+  }, [product.razorpayPaymentLink, product.internalProductId, userEmail]);
 
   const handleCopyLink = () => {
     if (!paymentUrl) return;

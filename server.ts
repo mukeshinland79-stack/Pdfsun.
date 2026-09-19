@@ -2029,18 +2029,43 @@ app.all("/api/user/subscription", (req, res) => {
         success: true,
         userId: "",
         status: "inactive",
+        active: false,
         isPro: false,
+        planName: "Free Forever",
+        billingCycle: "Free",
+        trueAmountPaid: "₹0",
+        transactionId: "",
         subscription: null,
       });
     }
 
     const { subscription, isActive } = getUserSubscription(userId);
+    const userTxs = getUserTransactions(userId);
+    const latestCompletedTx = userTxs.find((t) => t.status === "COMPLETED" || t.status === "CAPTURED");
+
+    const planName = subscription?.plan_name || latestCompletedTx?.planName || "Free Forever";
+    const trueAmountPaid = latestCompletedTx ? `₹${latestCompletedTx.amountINR}` : "₹0";
+    const transactionId = latestCompletedTx?.id || subscription?.payment_id || "";
+    const billingCycle = subscription?.plan_id === "flexi"
+      ? "7-Day Flex Pass"
+      : subscription?.plan_id === "pro-monthly"
+      ? "Monthly"
+      : subscription?.plan_id?.includes("year") || subscription?.plan_id?.includes("enterprise")
+      ? "Yearly"
+      : "Free";
 
     res.json({
       success: true,
       userId,
-      status: subscription ? subscription.status : "inactive",
+      active: isActive,
+      status: isActive ? "Plan Activated" : subscription ? subscription.status : "inactive",
       isPro: isActive,
+      planName,
+      billingCycle,
+      trueAmountPaid,
+      transactionId,
+      activatedOn: subscription?.activated_at ? subscription.activated_at.split("T")[0] : null,
+      expiryDate: subscription?.expires_at ? subscription.expires_at.split("T")[0] : null,
       subscription: subscription || null,
     });
   } catch (err: any) {
