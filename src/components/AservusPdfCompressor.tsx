@@ -446,27 +446,27 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
       className="compressor-container w-full max-w-4xl mx-auto mt-0 mb-4 relative"
     >
       {/* Modal / Container Shell with Dark Luxury & Orange Glow */}
-      <div className="relative rounded-3xl bg-slate-950 text-slate-100 border border-slate-800 shadow-2xl overflow-hidden transition-all duration-300">
+      <div className="tool-card-wrapper relative rounded-3xl bg-[var(--bg-secondary,#1e293b)] text-[var(--text-primary,#ffffff)] border border-[var(--border-color,rgba(255,255,255,0.1))] shadow-2xl overflow-hidden transition-all duration-300">
         
         {/* Glow backdrop decorative accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 bg-orange-500/10 blur-3xl pointer-events-none rounded-full" />
 
         {/* Top Header Bar */}
-        <div className="relative z-10 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md px-5 sm:px-8 py-4 flex items-center justify-between">
+        <div className="relative z-10 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#1e293b)]/90 backdrop-blur-md px-5 sm:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-tr from-orange-600 to-amber-500 p-2 rounded-xl shadow-lg shadow-orange-500/20">
-              <Zap className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-tr from-[#f4511e] to-[#f59e0b] p-2 rounded-xl shadow-lg shadow-orange-500/20 text-white">
+              <Zap className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-white">
-                  Pdfsun<span className="text-orange-500">.in</span>
+                <span className="text-lg font-extrabold tracking-tight text-[var(--text-primary,#ffffff)]">
+                  Pdfsun<span className="text-[var(--accent-orange,#ff5722)]">.in</span>
                 </span>
-                <span className="px-2 py-0.5 text-[11px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full">
+                <span className="brand-engine-badge">
                   Aservus Engine
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
+              <p className="text-[11px] text-[var(--text-secondary,#94a3b8)] hidden sm:block">
                 Ultra-fast 100% Client-Side In-Browser Compression
               </p>
             </div>
@@ -474,8 +474,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Privacy Badge */}
-            <div className="hidden sm:flex items-center text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-3 py-1.5 rounded-full font-medium">
-              <ShieldCheck className="w-4 h-4 mr-1.5 text-emerald-400 shrink-0" />
+            <div className="hidden sm:flex items-center privacy-status-badge">
+              <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
               <span>Zero Server Upload</span>
             </div>
 
@@ -564,7 +564,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
               <button
                 type="button"
-                className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold px-7 py-3 rounded-2xl shadow-xl shadow-orange-600/30 hover:shadow-orange-600/50 transition-all duration-200 text-sm inline-flex items-center space-x-2.5 active:scale-95"
+                className="btn-primary btn-select-pdf text-sm active:scale-95"
               >
                 <FolderOpen className="w-4 h-4" />
                 <span>Select PDF File</span>
@@ -641,10 +641,10 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                           else if (kb <= 500) setSelectedLevel("recommended");
                           else setSelectedLevel("low");
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                        className={`target-size-chip ${
                           isSelected
-                            ? "bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/30"
-                            : "bg-slate-900 text-slate-300 border-slate-800 hover:border-orange-500/50 hover:text-white"
+                            ? "active"
+                            : ""
                         }`}
                       >
                         {label}
@@ -960,7 +960,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               <button
                 type="button"
                 onClick={startCompression}
-                className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl shadow-orange-600/30 hover:shadow-orange-600/50 transition-all duration-200 flex items-center justify-center space-x-2.5 text-base active:scale-98 cursor-pointer"
+                className="w-full btn-primary btn-run-tool py-4 px-6 text-base"
               >
                 <Cpu className="w-5 h-5" />
                 <span>Compress PDF Now (Aservus Engine)</span>

@@ -1496,21 +1496,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
-      <div className="relative rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+      <div className="tool-card-wrapper active-workspace-card relative rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all bg-[var(--bg-secondary,#1e293b)] text-[var(--text-primary,#ffffff)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
         {/* Glow backdrop decorative accent matching Compress PDF */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 bg-orange-500/10 blur-3xl pointer-events-none rounded-full" />
 
         {/* Workspace Header */}
-        <div className="relative z-10 px-6 py-4 bg-[var(--bg-surface,#111114)]/90 backdrop-blur-md border-b border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-between">
+        <div className="relative z-10 px-6 py-4 bg-[var(--bg-surface,#1e293b)]/90 backdrop-blur-md border-b border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-orange-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#f4511e] to-[#f59e0b] text-white flex items-center justify-center font-bold text-sm shadow-md shadow-orange-500/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               {tool.id === "image-to-excel" ? (
-                <h1 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
+                <h1 className="text-lg font-black text-[var(--text-primary,#ffffff)] flex items-center space-x-2 flex-wrap gap-1">
                   <span>Free Online Image to Excel Converter (AI-Powered Table OCR)</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
+                  <span className="brand-engine-badge">
                     PDFSun Engine
                   </span>
 
@@ -1529,9 +1529,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   </button>
                 </h1>
               ) : (
-                <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2 flex-wrap gap-1">
+                <h2 className="text-lg font-black text-[var(--text-primary,#ffffff)] flex items-center space-x-2 flex-wrap gap-1">
                   <span>{translatedToolName}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold uppercase tracking-wider shadow-xs">
+                  <span className="brand-engine-badge">
                     PDFSun Engine
                   </span>
 
@@ -2603,42 +2603,42 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
             {tool.id === "crop-pdf" && (
               <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Custom Crop Margins (mm)</label>
+                <label className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">Custom Crop Margins (mm)</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div>
-                    <span className="text-[10px] text-slate-500">Top</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)]">Top</span>
                     <input
                       type="number"
                       value={cropMargins.top}
                       onChange={(e) => setCropMargins((p) => ({ ...p, top: Number(e.target.value) }))}
-                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                      className="tool-form-control w-full px-2.5 py-1.5 rounded-xl text-xs"
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500">Bottom</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)]">Bottom</span>
                     <input
                       type="number"
                       value={cropMargins.bottom}
                       onChange={(e) => setCropMargins((p) => ({ ...p, bottom: Number(e.target.value) }))}
-                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                      className="tool-form-control w-full px-2.5 py-1.5 rounded-xl text-xs"
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500">Left</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)]">Left</span>
                     <input
                       type="number"
                       value={cropMargins.left}
                       onChange={(e) => setCropMargins((p) => ({ ...p, left: Number(e.target.value) }))}
-                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                      className="tool-form-control w-full px-2.5 py-1.5 rounded-xl text-xs"
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500">Right</span>
+                    <span className="text-[10px] text-[var(--text-muted,#64748b)]">Right</span>
                     <input
                       type="number"
                       value={cropMargins.right}
                       onChange={(e) => setCropMargins((p) => ({ ...p, right: Number(e.target.value) }))}
-                      className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                      className="tool-form-control w-full px-2.5 py-1.5 rounded-xl text-xs"
                     />
                   </div>
                 </div>
@@ -4684,21 +4684,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         </div>
 
         {/* Workspace Footer Actions */}
-        <div className="px-6 py-4 bg-[var(--bg-surface,#111114)] border-t border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-wrap items-center justify-between gap-3 text-[var(--text-primary,#f8fafc)]">
+        <div className="px-6 py-4 bg-[var(--bg-surface,#1e293b)] border-t border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-wrap items-center justify-between gap-3 text-[var(--text-primary,#ffffff)]">
           <button
             onClick={isProcessing ? handleCancelProcess : onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
+            className="btn-secondary action-btn-secondary text-xs"
           >
             {isProcessing ? "Cancel Operation" : "Cancel"}
           </button>
 
           {/* Compact Smart Actions Bar */}
-          <div className="flex items-center space-x-1.5 bg-[var(--bg-elevated,#16161a)] p-1 rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
+          <div className="flex items-center space-x-1.5 bg-[var(--bg-elevated,#334155)]/80 p-1 rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
             {/* Star Rating & Reviews Trigger */}
             <button
               type="button"
               onClick={() => setShowReviewModal(true)}
-              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1 transition"
+              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#475569)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#ffffff)] text-xs font-bold flex items-center space-x-1 transition"
               title="View & write 5-star user reviews"
             >
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
@@ -4715,7 +4715,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
                 hasLiked
                   ? "bg-amber-500/20 text-amber-400"
-                  : "hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
+                  : "hover:bg-[var(--bg-elevated-hover,#475569)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#ffffff)]"
               }`}
               title="Like this tool"
             >
@@ -4729,7 +4729,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setShowShareModal(true)}
-              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold flex items-center space-x-1.5 transition"
+              className="px-2.5 py-1 rounded-xl hover:bg-[var(--bg-elevated-hover,#475569)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#ffffff)] text-xs font-bold flex items-center space-x-1.5 transition"
               title="Share this tool"
             >
               <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
@@ -4740,7 +4740,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           <button
             onClick={executeProcess}
             disabled={isProcessing || isLocked || isValidating}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/20 hover:opacity-95 disabled:opacity-50 transition flex items-center space-x-2 cursor-pointer"
+            className="btn-primary btn-run-tool text-xs disabled:opacity-50 transition flex items-center space-x-2 cursor-pointer"
           >
             {isProcessing || isLocked ? (
               <>

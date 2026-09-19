@@ -10,7 +10,9 @@ body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  background-color: var(--bg-primary, #0B0F19);
+  background-color: var(--bg-primary, #0f172a);
+  font-family: var(--font-family, 'Inter', sans-serif);
+  color: var(--text-primary, #ffffff);
 }
 
 #root {
@@ -20,7 +22,9 @@ body {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-primary, #0B0F19);
+  background-color: var(--bg-primary, #0f172a);
+  font-family: var(--font-family, 'Inter', sans-serif);
+  color: var(--text-primary, #ffffff);
 }
 
 .main-wrapper {
@@ -34,49 +38,81 @@ body {
 }
 
 :root {
-  /* PDFSun Design Tokens - Shared across all tools and modals */
-  --bg-primary: #0a0a0f;
-  --bg-surface: #111114;
-  --bg-elevated: #16161a;
-  --bg-elevated-hover: #1f1f26;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  /* =========================================================
+     PDFSun Centralized Global Theme Variables (Design Tokens)
+     ========================================================= */
+  --bg-primary: #0f172a;       /* Main dark background */
+  --bg-secondary: #1e293b;     /* Card/Tool container background */
+  --accent-orange: #ff5722;    /* Brand accent / highlight color */
+  --text-primary: #ffffff;     /* Main text */
+  --text-secondary: #94a3b8;   /* Subtitle / muted text */
+  --border-radius: 12px;       /* Consistent border radius */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+  /* Aliases & Semantic Tokens for Tool Components */
+  --bg-surface: #1e293b;
+  --bg-elevated: #334155;
+  --bg-elevated-hover: #475569;
   --text-muted: #64748b;
   --border-color: rgba(255, 255, 255, 0.1);
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-focus: #f97316;
-  --accent-color: #f97316;
-  --accent-hover: #ea580c;
-  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
-  --dropzone-bg: #111114;
+  --border-focus: var(--accent-orange);
+  --accent-color: var(--accent-orange);
+  --accent-hover: #f4511e;
+  --accent-gradient: linear-gradient(135deg, #f4511e 0%, #ff5722 50%, #f59e0b 100%);
+  --dropzone-bg: #1e293b;
   --dropzone-border: rgba(255, 255, 255, 0.15);
-  --dropzone-hover-bg: rgba(249, 115, 22, 0.08);
-  --dropzone-hover-border: #f97316;
-  --input-bg: #111114;
+  --dropzone-hover-bg: rgba(255, 87, 34, 0.08);
+  --dropzone-hover-border: var(--accent-orange);
+  --input-bg: #0f172a;
   --input-border: rgba(255, 255, 255, 0.15);
 }
 
 .dark,
 .aurora-theme {
-  --bg-primary: #0a0a0f;
-  --bg-surface: #111114;
-  --bg-elevated: #16161a;
-  --bg-elevated-hover: #1f1f26;
-  --text-primary: #f8fafc;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --accent-orange: #ff5722;
+  --text-primary: #ffffff;
   --text-secondary: #94a3b8;
+  --border-radius: 12px;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+  --bg-surface: #1e293b;
+  --bg-elevated: #334155;
+  --bg-elevated-hover: #475569;
   --text-muted: #64748b;
   --border-color: rgba(255, 255, 255, 0.1);
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-focus: #f97316;
-  --accent-color: #f97316;
-  --accent-hover: #ea580c;
-  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
-  --dropzone-bg: #111114;
+  --border-focus: var(--accent-orange);
+  --accent-color: var(--accent-orange);
+  --accent-hover: #f4511e;
+  --accent-gradient: linear-gradient(135deg, #f4511e 0%, #ff5722 50%, #f59e0b 100%);
+  --dropzone-bg: #1e293b;
   --dropzone-border: rgba(255, 255, 255, 0.15);
-  --dropzone-hover-bg: rgba(249, 115, 22, 0.08);
-  --dropzone-hover-border: #f97316;
-  --input-bg: #111114;
+  --dropzone-hover-bg: rgba(255, 87, 34, 0.08);
+  --dropzone-hover-border: var(--accent-orange);
+  --input-bg: #0f172a;
   --input-border: rgba(255, 255, 255, 0.15);
+}
+
+/* Apply Primary Brand Canvas */
+body, 
+.tool-page-wrapper,
+#pdfsun-tool-wrapper,
+.main-tool-wrapper {
+  background-color: var(--bg-primary);
+  font-family: var(--font-family);
+  color: var(--text-primary);
+}
+
+/* Tool Main Card Component */
+.tool-card-wrapper,
+.tool-card-container,
+.active-workspace-card {
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Light Theme reactive fallback if user explicitly switches to light mode */
@@ -573,6 +609,187 @@ html.aurora-theme .aurora-glass {
   margin-bottom: 0 !important;
   min-height: auto;
   line-height: normal;
+}
+
+/* =========================================================
+   STANDARDIZED BUTTON & COMPONENT DESIGN SYSTEM
+   ========================================================= */
+
+/* Primary Action Buttons (Select PDF File, Compress PDF, Run Tool) */
+.btn-primary,
+.action-btn-primary,
+.btn-select-pdf,
+.btn-run-tool {
+  background: linear-gradient(135deg, #f4511e 0%, #ff5722 50%, #f59e0b 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--border-radius) !important;
+  padding: 0.75rem 1.5rem !important;
+  box-shadow: 0 10px 25px -5px rgba(255, 87, 34, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.625rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+.btn-primary:hover,
+.action-btn-primary:hover,
+.btn-select-pdf:hover,
+.btn-run-tool:hover {
+  background: linear-gradient(135deg, #ff5722 0%, #ff7043 50%, #fbbf24 100%) !important;
+  box-shadow: 0 15px 30px -5px rgba(255, 87, 34, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active,
+.action-btn-primary:active,
+.btn-select-pdf:active,
+.btn-run-tool:active {
+  transform: scale(0.98);
+}
+
+/* Standardized Secondary Action Buttons */
+.btn-secondary,
+.action-btn-secondary {
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  border-radius: var(--border-radius) !important;
+  padding: 0.625rem 1.25rem !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.15s ease-in-out !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  cursor: pointer !important;
+}
+
+.btn-secondary:hover,
+.action-btn-secondary:hover {
+  background-color: var(--bg-elevated-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Standardized Target Size / Utility Chips */
+.utility-chip,
+.target-size-chip {
+  padding: 0.375rem 0.75rem !important;
+  border-radius: var(--border-radius) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  transition: all 0.15s ease-in-out !important;
+  border: 1px solid var(--border-color) !important;
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer !important;
+}
+
+.utility-chip:hover,
+.target-size-chip:hover {
+  border-color: rgba(255, 87, 34, 0.5) !important;
+  color: var(--text-primary) !important;
+  background-color: var(--bg-elevated) !important;
+}
+
+.utility-chip.active,
+.target-size-chip.active,
+.utility-chip[aria-checked="true"],
+.target-size-chip[aria-checked="true"] {
+  background-color: var(--accent-orange) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-orange) !important;
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.35) !important;
+}
+
+/* Tool Workspace & Modal Container Background Uniformity */
+#pdfsun-tool-wrapper {
+  background-color: rgba(15, 23, 42, 0.96) !important;
+  color: var(--text-primary) !important;
+}
+
+.tool-card-wrapper,
+.tool-card-container,
+#pdfsun-compressor-box > div,
+.active-workspace-card {
+  background-color: var(--bg-secondary) !important;
+  border-radius: var(--border-radius) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Tool Input & Form Control Standardization */
+#pdfsun-tool-wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+#pdfsun-tool-wrapper select,
+#pdfsun-tool-wrapper textarea,
+.compressor-container input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.compressor-container select,
+.compressor-container textarea,
+.tool-form-control {
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--border-radius) !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+#pdfsun-tool-wrapper input:focus,
+#pdfsun-tool-wrapper select:focus,
+#pdfsun-tool-wrapper textarea:focus,
+.compressor-container input:focus,
+.compressor-container select:focus,
+.compressor-container textarea:focus,
+.tool-form-control:focus {
+  outline: none !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 2px rgba(255, 87, 34, 0.25) !important;
+}
+
+/* Uniform WebAssembly, GDPR, and Sandbox Badges */
+.wasm-status-badge,
+.privacy-status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  padding: 0.25rem 0.625rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.brand-engine-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  padding: 0.125rem 0.5rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  background-color: rgba(255, 87, 34, 0.15) !important;
+  color: #ff7043 !important;
+  border: 1px solid rgba(255, 87, 34, 0.3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Multi-Language & Dynamic Route Consistency (?lang=ta, ?lang=hi, etc.) */
+[lang],
+[data-lang],
+html[lang],
+body[data-lang],
+[dir="rtl"],
+[dir="ltr"] {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
 }
 
 
