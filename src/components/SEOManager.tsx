@@ -403,6 +403,25 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     };
   } else {
     // Catalog ItemList Schema indexing ALL PDF tools for Rich Catalog Search Snippets
+    breadcrumbsSchema = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": `${baseUrl}/`,
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "PDF Tools",
+          "item": `${baseUrl}/#tools`,
+        },
+      ],
+    };
+
     catalogItemListSchema = {
       "@context": "https://schema.org",
       "@type": "ItemList",

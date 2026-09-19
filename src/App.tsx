@@ -45,6 +45,7 @@ import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
 import { ReturningVisitorBar } from "./components/ReturningVisitorBar";
+import { BreadcrumbNav } from "./components/BreadcrumbNav";
 import { CollapsibleSectionsHub } from "./components/CollapsibleSectionsHub";
 import { BlogPage } from "./components/BlogPage";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
@@ -1053,6 +1054,28 @@ export default function App() {
               onOpenHistory={() => setHistoryModalOpen(true)}
             />
 
+            {/* Semantic Breadcrumb Navigation with Schema.org Structured Data (Google Rich Snippets & Internal Linking) */}
+            <BreadcrumbNav
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                setSearchQuery("");
+                document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery("")}
+              onGoHome={() => {
+                setSelectedCategory("all");
+                setSearchQuery("");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              onSelectTool={handleSelectTool}
+              onOpenPricing={handleOpenPricing}
+              onOpenBlog={handleNavigateBlog}
+              activeTool={activeTool}
+              baseUrl="https://pdfsun.in"
+            />
+
             {/* PDF Tools Filterable Grid (Front-and-Center, iLovePDF Style) */}
             <ToolGrid
               favorites={favorites}
@@ -1129,12 +1152,12 @@ export default function App() {
       {activeTool && (
         <div
           id="pdfsun-tool-wrapper"
-          className="main-tool-wrapper compressor-container fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-start min-h-screen"
+          className="site-outer-canvas main-tool-wrapper fixed inset-0 z-50 overflow-y-auto bg-[#0b0f19] text-[#1e293b] flex flex-col items-center justify-start min-h-screen py-4 sm:py-8 px-2 sm:px-4"
         >
           {/* Dynamic Tool Header Banner (Flush with dark canvas, zero extraneous margin, responsive) */}
           {activePseoPage && (
             <div
-              className="tool-header-banner w-full max-w-4xl mx-auto px-4 sm:px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between gap-3 shrink-0"
+              className="tool-header-banner w-full max-w-5xl mx-auto px-4 sm:px-6 py-2.5 bg-slate-900/90 border border-slate-800/80 rounded-2xl mb-4 text-xs text-slate-300 flex items-center justify-between gap-3 shrink-0 shadow-lg"
               data-lang-banner="true"
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -1154,7 +1177,7 @@ export default function App() {
           )}
 
           {/* Main Tool Container (Flush top alignment, zero margin) */}
-          <div className="w-full max-w-4xl flex flex-col items-center justify-start flex-1 px-2 sm:px-4">
+          <div className="w-full max-w-5xl flex flex-col items-center justify-start flex-1 px-2 sm:px-4">
             <div className="w-full flex items-center justify-center">
               {activeTool.id === "remove-watermark" ? (
                 <RemoveWatermarkTool

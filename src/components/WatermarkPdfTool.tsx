@@ -254,21 +254,21 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden my-4 transition-all">
+    <div className="main-tool-card w-full max-w-6xl mx-auto bg-white text-slate-800 rounded-[20px] shadow-2xl border border-slate-200/80 overflow-hidden my-4 transition-all">
       {/* Tool Header */}
-      <div className="flex items-center justify-between p-5 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)]">
+      <header className="tool-card-header flex items-center justify-between p-5 border-b border-slate-100 bg-white/95">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
             <Stamp className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)]">Watermark PDF Studio</h2>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <h2 className="text-lg font-black text-slate-900">Watermark PDF Studio</h2>
+              <span className="pill-badge-orange px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-orange-100 text-orange-700 border border-orange-200">
                 Text & Logo
               </span>
             </div>
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
+            <p className="text-xs text-slate-500">
               Stamp custom text or brand logos with live preview, angle, opacity & layout controls
             </p>
           </div>
@@ -278,34 +278,34 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition"
             title="Close workspace"
           >
             <X className="w-5 h-5" />
           </button>
         )}
-      </div>
+      </header>
 
       {/* Main Studio Body */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6 md:p-8 bg-white">
         {!file ? (
           /* File Upload Dropzone */
           <div
             {...getRootProps()}
-            className={`p-10 rounded-3xl border-2 border-dashed transition-all text-center cursor-pointer ${
+            className={`drag-drop-zone p-8 sm:p-10 rounded-[12px] border-2 border-dashed transition-all text-center cursor-pointer ${
               isDragActive
-                ? "border-amber-500 bg-amber-500/10 scale-[0.99]"
-                : "border-[var(--border-color,rgba(255,255,255,0.15))] hover:border-amber-500 bg-[var(--bg-surface,#111114)]"
+                ? "border-orange-500 bg-orange-50 scale-[0.99]"
+                : "border-slate-300 hover:border-orange-500 bg-[#f8fafc] hover:bg-[#fffbeb]"
             }`}
           >
             <input {...getInputProps()} />
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-4 border border-orange-100">
               <UploadCloud className="w-8 h-8" />
             </div>
-            <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)] mb-1">
+            <h3 className="text-base font-bold text-slate-900 mb-1">
               Drop your PDF file here, or browse
             </h3>
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)] max-w-sm mx-auto mb-4">
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
               Supports multi-page documents up to 250MB. Processed securely in your browser.
             </p>
             <button
@@ -319,24 +319,24 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
           /* File Uploaded - Split Workspace (Controls & Live Preview) */
           <div className="space-y-6">
             {/* Top Bar: File Info & Re-upload button */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center space-x-3 overflow-hidden">
-                <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 font-bold">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 font-bold">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="truncate">
-                  <p className="text-xs font-bold text-[var(--text-primary,#f8fafc)] truncate max-w-md">
+                  <p className="text-xs font-bold text-slate-800 truncate max-w-md">
                     {file.name}
                   </p>
-                  <p className="text-[10px] text-[var(--text-muted,#64748b)] font-mono">
+                  <p className="text-[10px] text-slate-500 font-mono">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB • {pdfPageCount > 0 ? `${pdfPageCount} pages` : "PDF File"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-2">
-                <label className="px-3 py-1.5 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.15))] text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated,#16161a)] cursor-pointer transition flex items-center space-x-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 text-orange-400" />
+                <label className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer transition flex items-center space-x-1.5 bg-white">
+                  <RefreshCw className="w-3.5 h-3.5 text-orange-500" />
                   <span>Change File</span>
                   <input
                     type="file"
@@ -357,7 +357,7 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
             {/* Studio Split Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column: Watermark Controls (5 Cols) */}
-              <div className="lg:col-span-5 space-y-5 p-5 rounded-3xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+              <div className="lg:col-span-5 space-y-5 p-5 rounded-2xl bg-slate-50 border border-slate-200">
                 {/* Mode Selector */}
                 <div className="flex items-center p-1 bg-[var(--bg-primary,#0a0a0f)] rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
                   <button

@@ -312,6 +312,28 @@
     }
     </script>
 
+    <!-- 4. Schema.org BreadcrumbList for Search Engine Internal Navigation -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://pdfsun.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "PDF Tools",
+          "item": "https://pdfsun.in/#tools"
+        }
+      ]
+    }
+    </script>
+
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0B0F19" />
@@ -325,6 +347,23 @@
     <noscript>
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; color: #1e293b;">
         <header style="border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+          <nav aria-label="Breadcrumb" style="margin-bottom: 12px; font-size: 13px;">
+            <ol itemscope itemtype="https://schema.org/BreadcrumbList" style="list-style: none; padding: 0; margin: 0; display: flex; gap: 8px;">
+              <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <a itemprop="item" href="https://pdfsun.in/" style="color: #ea580c; text-decoration: none;">
+                  <span itemprop="name">Home</span>
+                </a>
+                <meta itemprop="position" content="1" />
+              </li>
+              <li aria-hidden="true" style="color: #94a3b8;">/</li>
+              <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <a itemprop="item" href="https://pdfsun.in/#tools" style="color: #2563eb; text-decoration: none;">
+                  <span itemprop="name">PDF Tools</span>
+                </a>
+                <meta itemprop="position" content="2" />
+              </li>
+            </ol>
+          </nav>
           <h1 style="font-size: 28px; color: #0f172a; margin-bottom: 8px;">PDFSun (pdfsun.in) - 100% Private In-Browser PDF Tools &amp; AI Document Workspace</h1>
           <p style="font-size: 16px; color: #475569;">Fast, secure, client-side WebAssembly utilities to merge, split, compress, edit, convert, and analyze PDF documents with zero server uploads.</p>
         </header>
