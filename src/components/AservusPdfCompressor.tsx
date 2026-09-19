@@ -441,7 +441,10 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto my-3 relative">
+    <div
+      id="pdfsun-compressor-box"
+      className="compressor-container w-full max-w-4xl mx-auto mt-0 mb-4 relative"
+    >
       {/* Modal / Container Shell with Dark Luxury & Orange Glow */}
       <div className="relative rounded-3xl bg-slate-950 text-slate-100 border border-slate-800 shadow-2xl overflow-hidden transition-all duration-300">
         

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
+import { ShieldCheck } from "lucide-react";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
 import { ToolGrid } from "./components/ToolGrid";
@@ -1126,75 +1127,104 @@ export default function App() {
 
       {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 md:p-6 flex flex-col items-center justify-start min-h-screen">
+        <div
+          id="pdfsun-tool-wrapper"
+          className="main-tool-wrapper compressor-container fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-start min-h-screen"
+        >
+          {/* Dynamic Tool Header Banner (Flush with dark canvas, zero extraneous margin, responsive) */}
           {activePseoPage && (
-            <div className="w-full max-w-5xl mb-3 mt-2">
-              <PSEOLandingBanner
-                pseoPage={activePseoPage}
-                onSelectTool={handleSelectTool}
-                onSelectPseoSize={handleSelectPseoSize}
-              />
+            <div
+              className="tool-header-banner w-full max-w-4xl mx-auto px-4 sm:px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between gap-3 shrink-0"
+              data-lang-banner="true"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  {activePseoPage.region || "Global"} • GDPR Compliant
+                </span>
+                <span className="truncate font-medium text-slate-200 text-xs hidden sm:inline">
+                  {activePseoPage.headline || activePseoPage.seoTitle}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 text-[11px] text-emerald-400 font-medium">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>100% In-Browser Sandbox</span>
+              </div>
             </div>
           )}
 
-          <div className="w-full flex items-center justify-center">
-            {activeTool.id === "remove-watermark" ? (
-              <RemoveWatermarkTool
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : activeTool.id === "watermark-pdf" ? (
-              <WatermarkPdfTool
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
-              <ViewPdfMetadataTool
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
-              <EditPdfMetadataTool
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : activeTool.id === "share-pdfsun" ? (
-              <SharePdfSunModal
-                isOpen={true}
-                onClose={handleCloseTool}
-              />
-            ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
-              <ProtectPdfTool
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : activeTool.id === "compress-pdf" ? (
-              <AservusPdfCompressor
-                initialFile={activeToolFiles[0] || null}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : activeTool.isAi ? (
-              <AIChatWorkspace
-                tool={activeTool}
-                initialFiles={activeToolFiles}
-                onClose={handleCloseTool}
-                onAddHistory={addHistory}
-              />
-            ) : (
-              <ActiveToolWorkspace
-                tool={activeTool}
-                initialFiles={activeToolFiles}
-                activeToolFiles={activeToolFiles}
-                onClose={handleCloseTool}
-                onSelectTool={handleSelectTool}
-                onAddHistory={addHistory}
-              />
+          {/* Main Tool Container (Flush top alignment, zero margin) */}
+          <div className="w-full max-w-4xl flex flex-col items-center justify-start flex-1 px-2 sm:px-4">
+            <div className="w-full flex items-center justify-center">
+              {activeTool.id === "remove-watermark" ? (
+                <RemoveWatermarkTool
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : activeTool.id === "watermark-pdf" ? (
+                <WatermarkPdfTool
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
+                <ViewPdfMetadataTool
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
+                <EditPdfMetadataTool
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : activeTool.id === "share-pdfsun" ? (
+                <SharePdfSunModal
+                  isOpen={true}
+                  onClose={handleCloseTool}
+                />
+              ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
+                <ProtectPdfTool
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : activeTool.id === "compress-pdf" ? (
+                <AservusPdfCompressor
+                  initialFile={activeToolFiles[0] || null}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : activeTool.isAi ? (
+                <AIChatWorkspace
+                  tool={activeTool}
+                  initialFiles={activeToolFiles}
+                  onClose={handleCloseTool}
+                  onAddHistory={addHistory}
+                />
+              ) : (
+                <ActiveToolWorkspace
+                  tool={activeTool}
+                  initialFiles={activeToolFiles}
+                  activeToolFiles={activeToolFiles}
+                  onClose={handleCloseTool}
+                  onSelectTool={handleSelectTool}
+                  onAddHistory={addHistory}
+                />
+              )}
+            </div>
+
+            {/* Below-the-Fold Rich Educational, How-To, Intent, and FAQ Section */}
+            {activePseoPage && (
+              <div className="w-full max-w-4xl mx-auto px-1 sm:px-2 pb-12 pt-6">
+                <PSEOLandingBanner
+                  pseoPage={activePseoPage}
+                  onSelectTool={handleSelectTool}
+                  onSelectPseoSize={handleSelectPseoSize}
+                />
+              </div>
             )}
           </div>
         </div>

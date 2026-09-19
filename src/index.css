@@ -530,5 +530,50 @@ html.aurora-theme .aurora-glass {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* =========================================================
+   TOOL SECTION CONTAINER & COMPRESSOR SEAMLESS LAYOUT RESET
+   ========================================================= */
+
+/* Main Header Height & Overflow Alignment */
+#main-header {
+  height: auto;
+  max-height: 4.5rem;
+  overflow: visible;
+}
+
+@media (max-width: 640px) {
+  #main-header {
+    max-height: none;
+  }
+}
+
+/* Tool Section Parent Container Reset - Flush with header, no unwanted top margin */
+#pdfsun-tool-wrapper,
+.main-tool-wrapper, 
+.compressor-container {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Eliminate dynamic space injection above the dark canvas */
+.tool-header-banner {
+  display: flex !important;
+  align-items: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Localized / Tamil / translated UI dynamic banner stability (?lang=ta) */
+.tool-header-banner[data-lang-banner="true"],
+.lang-banner,
+[data-lang-banner="true"] {
+  display: flex !important;
+  align-items: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  min-height: auto;
+  line-height: normal;
+}
+
 
 

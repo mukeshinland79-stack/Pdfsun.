@@ -72,11 +72,11 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 mt-0 pt-0">
       {/* ============================================================ */}
       {/* 1. ABOVE-THE-FOLD (ATF) HERO & PRE-SET CONFIGURATION CARD     */}
       {/* ============================================================ */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-7 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 text-slate-100 border border-slate-800 p-5 sm:p-7 shadow-sm">
         {/* Top Badges Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 mb-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -131,9 +131,9 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
       {/* ============================================================ */}
       {/* 2. BELOW-THE-FOLD (BTF) SECTION A: DYNAMIC HOW-TO GUIDE      */}
       {/* ============================================================ */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs">
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-4 flex items-center gap-2">
-          <Sliders className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      <div className="rounded-2xl bg-slate-900/95 text-slate-100 border border-slate-800 p-5 sm:p-6 shadow-xs">
+        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight mb-4 flex items-center gap-2">
+          <Sliders className="w-5 h-5 text-blue-400" />
           {isCompressionTool
             ? `How to Compress a PDF File to Less Than ${targetSizeDisplay}`
             : `How to Use ${pseoPage.headline}`}
@@ -143,20 +143,20 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
           {pseoPage.howToSteps.map((step, idx) => (
             <div
               key={idx}
-              className="relative flex flex-col p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 space-y-2"
+              className="relative flex flex-col p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <span className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                   {step.position || idx + 1}
                 </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Step {step.position || idx + 1}
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-white">
                 {step.name}
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-300 leading-relaxed">
                 {step.text}
               </p>
             </div>
@@ -168,21 +168,21 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
       {/* 3. BELOW-THE-FOLD SECTION B: USE-CASE INTENT MATCHING BLOCK  */}
       {/* ============================================================ */}
       {pseoPage.intentBlockText && (
-        <div className="rounded-2xl bg-linear-to-br from-amber-500/10 via-blue-500/5 to-slate-50 dark:from-amber-950/30 dark:via-blue-950/20 dark:to-slate-900 border border-amber-300/60 dark:border-amber-700/50 p-5 sm:p-6 shadow-xs">
+        <div className="rounded-2xl bg-slate-900/95 border border-amber-500/30 p-5 sm:p-6 shadow-xs">
           <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-amber-500/20 dark:bg-amber-400/20 text-amber-700 dark:text-amber-300 shrink-0">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
               {getIntentIcon()}
             </div>
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
                   Target Use-Case Intent
                 </span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-200">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   Optimal for {targetSizeDisplay} Limit
                 </span>
               </div>
-              <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+              <p className="text-sm text-slate-200 leading-relaxed font-medium">
                 {pseoPage.intentBlockText}
               </p>
             </div>
@@ -194,9 +194,9 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
       {/* 4. BELOW-THE-FOLD SECTION C: DYNAMIC FAQ SECTION (FAQPage)   */}
       {/* ============================================================ */}
       {pseoPage.customFaqs && pseoPage.customFaqs.length > 0 && (
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="rounded-2xl bg-slate-900/95 text-slate-100 border border-slate-800 p-5 sm:p-6 shadow-xs space-y-4">
+          <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-blue-400" />
             Frequently Asked Questions ({targetSizeDisplay})
           </h2>
 
@@ -206,12 +206,12 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
               return (
                 <div
                   key={idx}
-                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden transition"
+                  className="rounded-xl border border-slate-800 bg-slate-850/60 overflow-hidden transition"
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                    className="w-full px-4 py-3.5 text-left flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition"
+                    className="w-full px-4 py-3.5 text-left flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-slate-200 hover:text-blue-400 transition"
                   >
                     <span>{faq.question}</span>
                     {isOpen ? (
@@ -221,7 +221,7 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
                     )}
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-4 pt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-900/50">
+                    <div className="px-4 pb-4 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800 bg-slate-900/80">
                       {faq.answer}
                     </div>
                   )}
@@ -235,12 +235,12 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
       {/* ============================================================ */}
       {/* 5. BELOW-THE-FOLD SECTION D: SMART INTERNAL CROSS-LINKING   */}
       {/* ============================================================ */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-5">
+      <div className="rounded-2xl bg-slate-900/95 text-slate-100 border border-slate-800 p-5 sm:p-6 shadow-xs space-y-5">
         {/* Compress PDF to Other Target Sizes */}
         {isCompressionTool && (
           <div className="space-y-3">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-blue-400" />
               Compress PDF to Other Target Sizes:
             </span>
             <div className="flex flex-wrap gap-2">
@@ -256,7 +256,7 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                       isCurrent
                         ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 border-slate-200 dark:border-slate-700"
+                        : "bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700"
                     }`}
                   >
                     Compress to {sizeStr.toUpperCase()}
@@ -269,8 +269,8 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
 
         {/* Related Tools */}
         {crossLinkedTools.length > 0 && (
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="pt-4 border-t border-slate-800 space-y-3">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-500" />
               Related PDF Utilities:
             </span>
@@ -280,7 +280,7 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
                   key={t.id}
                   type="button"
                   onClick={() => onSelectTool(t)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition shadow-2xs"
                 >
                   <span>{t.name}</span>
                   <ArrowRight className="w-3 h-3 opacity-60 group-hover:opacity-100" />
