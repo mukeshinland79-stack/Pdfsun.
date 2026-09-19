@@ -662,7 +662,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       <span><strong>Expiry Date:</strong> {planExpiryText}</span>
                     </span>
                     <span className="text-slate-400">•</span>
-                    <span className="text-emerald-400 font-semibold">68+ PDF Utilities Enabled</span>
+                    <span className="text-emerald-400 font-semibold">66+ PDF Utilities Enabled</span>
                   </div>
                 </div>
 
