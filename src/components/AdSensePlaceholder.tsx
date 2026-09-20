@@ -20,15 +20,44 @@ export const AdSensePlaceholder: React.FC<AdSensePlaceholderProps> = ({
   className = "",
 }) => {
   const adRef = useRef<HTMLModElement | null>(null);
+  const pushedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
+    if (pushedRef.current) return;
+
+    const pushAd = () => {
+      try {
+        if (typeof window === "undefined" || !adRef.current) return;
+
+        // Check if this specific ins element already has an ad or is initialized
+        const status = adRef.current.getAttribute("data-adsbygoogle-status");
+        if (status || adRef.current.innerHTML.trim().length > 0) {
+          pushedRef.current = true;
+          return;
+        }
+
+        // Verify that this specific element is in the DOM and uninitialized
+        const unfilledIns = Array.from(
+          document.querySelectorAll("ins.adsbygoogle:not([data-adsbygoogle-status])")
+        );
+        const isTargetUnfilled = unfilledIns.some(
+          (el) => el === adRef.current && el.innerHTML.trim().length === 0
+        );
+
+        if (!isTargetUnfilled) {
+          return;
+        }
+
+        pushedRef.current = true;
         ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+      } catch {
+        // Silently handle any AdSense auto-ad race condition or ad-blocker interference
       }
-    } catch (e) {
-      // Ignore if AdBlocker or Auto-Ads already handled this
-    }
+    };
+
+    // Small microtask delay to allow DOM mounting & attribute stabilization
+    const timer = setTimeout(pushAd, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

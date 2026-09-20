@@ -32,6 +32,34 @@ export default defineConfig(() => {
       host: '0.0.0.0',
       hmr: process.env.DISABLE_HMR === 'true' ? false : true,
     },
+    build: {
+      target: 'esnext',
+      cssCodeSplit: true,
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-helmet-async')) {
+                return 'vendor-core';
+              }
+              if (id.includes('i18next') || id.includes('react-i18next')) {
+                return 'vendor-i18n';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('pdf-lib') || id.includes('pdfjs-dist')) {
+                return 'vendor-pdf-engines';
+              }
+              if (id.includes('motion')) {
+                return 'vendor-motion';
+              }
+            }
+          },
+        },
+      },
+    },
   };
 });
 

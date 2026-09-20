@@ -73,8 +73,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <Lock className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-400 block font-bold text-xs truncate">100% In-Browser Privacy</span>
-                <span className="text-[11px] text-slate-400 block truncate">Zero Server Uploads</span>
+                <span className="text-emerald-400 block font-bold text-xs truncate">
+                  {t("footer.inBrowserPrivacy", t("badges.privacyTitle", "100% In-Browser Privacy"))}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("footer.zeroUploads", t("badges.noStorage", "Zero Server Uploads"))}
+                </span>
               </div>
             </div>
 
@@ -84,8 +88,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-400 block font-bold text-xs truncate">Enterprise Security</span>
-                <span className="text-[11px] text-slate-400 block truncate">ISO 27001 &amp; GDPR Compliant</span>
+                <span className="text-emerald-400 block font-bold text-xs truncate">
+                  {t("footer.enterpriseSecurity", "Enterprise Security")}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("footer.isoGdpr", "ISO 27001 & GDPR Compliant")}
+                </span>
               </div>
             </div>
 
@@ -95,8 +103,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <CreditCard className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-blue-400 block font-bold text-xs truncate">Razorpay Verified</span>
-                <span className="text-[11px] text-slate-400 block truncate">UPI &amp; Cards Supported</span>
+                <span className="text-blue-400 block font-bold text-xs truncate">
+                  {t("footer.razorpayVerified", "Razorpay Verified")}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("footer.upiCards", "UPI & Cards Supported")}
+                </span>
               </div>
             </div>
 
@@ -111,9 +123,13 @@ export const Footer: React.FC<FooterProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
-                  <span className="text-amber-400 font-bold text-xs truncate">Ultra Fast Speed</span>
+                  <span className="text-amber-400 font-bold text-xs truncate">
+                    {t("footer.ultraFast", t("badges.ultraFast", "Ultra Fast Speed"))}
+                  </span>
                 </div>
-                <span className="text-[11px] text-slate-400 block truncate">Instant WebAssembly Engine</span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("footer.wasmEngine", "Instant WebAssembly Engine")}
+                </span>
               </div>
             </div>
 
@@ -134,7 +150,7 @@ export const Footer: React.FC<FooterProps> = ({
             </p>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Merge, split, compress, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.
+              {t("footer.tagline", "Merge, split, compress, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.")}
             </p>
 
             {/* Clean Action Row & Micro Status */}
@@ -145,12 +161,12 @@ export const Footer: React.FC<FooterProps> = ({
                 className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-bold transition-colors cursor-pointer shadow-xs"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Brand Kit</span>
+                <span>{t("footer.brandGuidelines", "Brand Kit")}</span>
               </button>
 
               <div className="flex items-center space-x-1.5 text-emerald-400 font-medium">
                 <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span className="text-[11px]">100% Private &amp; In-Browser Processing</span>
+                <span className="text-[11px]">{t("footer.securityEncrypted", "100% Private & In-Browser Processing")}</span>
               </div>
             </div>
           </div>
@@ -338,7 +354,7 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Support Highlight Box */}
             <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs hover:border-amber-500/50 transition-all space-y-1">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold block">Customer Support</span>
+              <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t("footer.support", "Customer Support")}</span>
               <div className="flex items-center space-x-2">
                 <Mail className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <button
@@ -354,7 +370,7 @@ export const Footer: React.FC<FooterProps> = ({
             {/* Social Icons Row */}
             <div className="pt-1">
               <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-2">
-                Community
+                {t("footer.social", "Community")}
               </span>
               <div className="flex items-center space-x-2">
                 <a
@@ -421,12 +437,12 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Left Side: Ownership & Credits */}
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
             <span className="text-sm">🇮🇳</span>
-            <span className="font-semibold text-slate-200">Proudly Made in India</span>
+            <span className="font-semibold text-slate-200">{t("footer.madeInIndia", "Proudly Made in India")}</span>
             <span className="text-slate-600">•</span>
-            <span>© {new Date().getFullYear()} <strong className="text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} <strong className="text-slate-200 font-bold">PDFSun</strong>. {t("footer.rights", "All rights reserved.")}</span>
             <span className="text-slate-600">•</span>
             <span className="text-slate-400">
-              Designed &amp; Engineered by <span className="text-slate-200 font-semibold">Mukesh Kalonia</span>
+              {t("footer.developedBy", "Designed & Engineered by")} <span className="text-slate-200 font-semibold">Mukesh Kalonia</span>
             </span>
           </div>
 
@@ -434,7 +450,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 font-medium text-xs shadow-sm shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-slate-300 font-medium">
-              Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant
+              {t("footer.complianceFull", "Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant")}
             </span>
           </div>
 

@@ -5,7 +5,7 @@ import { FAQS } from "../data/toolsData";
 import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 import { PSEOLandingPage } from "../data/pSEOData";
 import { getLocalizedToolFAQs, buildFaqJsonLd, ToolFAQ } from "../lib/toolFaqHelper";
-import { useLanguage } from "../lib/i18n";
+import { useLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n";
 import { HIGH_INTENT_LOCALES } from "../lib/seoGenerator";
 
 export interface SEOManagerProps {
@@ -504,37 +504,55 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
       )}
 
-      {/* Global 30-Language & Multi-Tier High-Intent Hreflang Tags (Tier-1: US, UK, CA, AU, DE, FR; Tier-2: LATAM, ME; Tier-3: IN) */}
-      {HIGH_INTENT_LOCALES.map((loc) => {
-        const targetPath = pseoPage
-          ? `${baseUrl}/${pseoPage.slug}`
-          : isPricingActive
-          ? `${baseUrl}/pricing`
-          : isTodayInHistoryActive
-          ? `${baseUrl}/today-in-history`
-          : activeTool
-          ? `${baseUrl}/${activeTool.slug}`
-          : `${baseUrl}/`;
+      {/* Full Multilingual Hreflang Tags: High Intent Locales, Indian Regional, & Global Languages */}
+      {(() => {
+        // Collect all distinct language codes and hreflang codes
+        const emittedHreflang = new Set<string>();
+        const links: React.ReactNode[] = [];
 
-        const langParam = loc.lang !== "en" ? `?lang=${loc.lang}` : loc.code !== "en-US" ? `?gl=${loc.country.toLowerCase()}` : "";
-        const href = `${targetPath}${langParam}`;
+        // 1. High-Intent Regional Locales (e.g. en-US, en-GB, hi-IN, ar-SA, etc.)
+        HIGH_INTENT_LOCALES.forEach((loc) => {
+          const targetPath = pseoPage
+            ? `${baseUrl}/${pseoPage.slug}`
+            : isPricingActive
+            ? `${baseUrl}/pricing`
+            : isTodayInHistoryActive
+            ? `${baseUrl}/today-in-history`
+            : activeTool
+            ? `${baseUrl}/${activeTool.slug}`
+            : `${baseUrl}/`;
 
-        return (
-          <link
-            key={loc.code}
-            rel="alternate"
-            hrefLang={loc.hreflang}
-            href={href}
-          />
-        );
-      })}
-      {TOP_30_LANGUAGES.filter((lang) => !HIGH_INTENT_LOCALES.some((l) => l.hreflang.toLowerCase() === lang.hreflang.toLowerCase())).map((lang) => (
-        <link
-          key={lang.code}
-          rel="alternate"
-          hrefLang={lang.hreflang}
-          href={
-            pseoPage
+          const langParam = loc.lang !== "en" ? `?lang=${loc.lang}` : loc.code !== "en-US" ? `?gl=${loc.country.toLowerCase()}` : "";
+          const href = `${targetPath}${langParam}`;
+          emittedHreflang.add(loc.hreflang.toLowerCase());
+
+          links.push(
+            <link
+              key={loc.code}
+              rel="alternate"
+              hrefLang={loc.hreflang}
+              href={href}
+            />
+          );
+        });
+
+        // 2. All Supported Languages from i18n & Global History
+        const allLangs = [
+          ...SUPPORTED_LANGUAGES.map((l) => ({
+            code: l.code,
+            hreflang: l.code === "zh-CN" ? "zh-Hans" : l.code === "zh-TW" ? "zh-Hant" : l.code,
+          })),
+          ...TOP_30_LANGUAGES.map((l) => ({
+            code: l.code,
+            hreflang: l.hreflang,
+          })),
+        ];
+
+        allLangs.forEach((lang) => {
+          const key = lang.hreflang.toLowerCase();
+          if (!emittedHreflang.has(key)) {
+            emittedHreflang.add(key);
+            const targetHref = pseoPage
               ? `${baseUrl}/${pseoPage.slug}?lang=${lang.code}`
               : isPricingActive
               ? `${baseUrl}/pricing?lang=${lang.code}`
@@ -542,10 +560,21 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
               ? `${baseUrl}/today-in-history?lang=${lang.code}`
               : activeTool
               ? `${baseUrl}/${activeTool.slug}?lang=${lang.code}`
-              : `${baseUrl}/?lang=${lang.code}`
+              : `${baseUrl}/?lang=${lang.code}`;
+
+            links.push(
+              <link
+                key={lang.code + "-" + lang.hreflang}
+                rel="alternate"
+                hrefLang={lang.hreflang}
+                href={targetHref}
+              />
+            );
           }
-        />
-      ))}
+        });
+
+        return links;
+      })()}
       <link
         rel="alternate"
         hrefLang="x-default"

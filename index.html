@@ -5,9 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, interactive-widget=resizes-content" />
     <title>PDFSun - Free Online PDF Tools | Merge, Split, Compress &amp; Edit PDFs</title>
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4189458265489554"
-     crossorigin="anonymous"></script>
+    <!-- Resource Hints & DNS Prefetches for Core Web Vitals (FCP/LCP/INP) -->
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+    <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Google AdSense (Deferred post-load to protect INP and eliminate initial blocking) -->
+    <script>
+      function initAdSense() {
+        if (window.__adsenseLoaded) return;
+        window.__adsenseLoaded = true;
+        var adsScript = document.createElement('script');
+        adsScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4189458265489554';
+        adsScript.async = true;
+        adsScript.crossOrigin = 'anonymous';
+        document.head.appendChild(adsScript);
+      }
+      if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initAdSense);
+      } else {
+        initAdSense();
+      }
+    </script>
 
     <!-- Google Analytics 4 (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKEKHR7SK8"></script>
@@ -92,8 +114,8 @@
     <meta name="twitter:description" content="Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun." />
     <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
 
-    <!-- Razorpay Standard Checkout JS (Pop-up Modal & UPI QR Code) -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+    <!-- Razorpay Standard Checkout JS (Deferred so it does not block FCP or INP) -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 
     <!-- Global Style Sheet -->
     <link rel="stylesheet" href="/style.css" />
