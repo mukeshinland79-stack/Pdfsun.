@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, Component, ErrorInfo, ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { ShieldCheck } from "lucide-react";
 import { Header } from "./components/Header";
@@ -37,7 +37,6 @@ import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
-import { TodayInHistoryBanner } from "./components/TodayInHistoryBanner";
 import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
 import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
@@ -53,7 +52,7 @@ import { GeoDetectionResult } from "./types/history";
 import { InactivityWarningModal } from "./components/InactivityWarningModal";
 import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
-import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserRole, UserProfile, AdminSettings, AdminUserAccount, DUAL_OWNER_EMAILS } from "./types";
+import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserProfile, AdminSettings, AdminUserAccount } from "./types";
 import { ALL_TOOLS } from "./data/toolsData";
 import { matchPSEORoute, PSEOLandingPage, generateCompressSizePseoPage } from "./data/pSEOData";
 import { useAuth } from "./hooks/useAuth";
@@ -66,15 +65,90 @@ import { resolvePaymentProduct } from "./config/paymentProducts";
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
 
-export default function App() {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+// -------------------------------------------------------------
+// Desktop Blank Screen Fix: Global Safety Error Boundary Component
+// -------------------------------------------------------------
+class SafeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("PDFSun Desktop Render Error:", error, errorInfo);
+  }
+
+  handleReload = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          backgroundColor: '#0b0f19',
+          color: '#ffffff',
+          padding: '24px',
+          fontFamily: 'sans-serif',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '12px' }}>
+            PDF Engine Desktop Render Guard
+          </h2>
+          <p style={{ color: '#94a3b8', marginBottom: '20px', maxWidth: '400px' }}>
+            A temporary desktop script error occurred. Click reload to recover your active session.
+          </p>
+          <button
+            onClick={this.handleReload}
+            style={{
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Reload PDF Tools
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function MainApp() {
   const { currentLanguage, setLanguage } = useLanguage();
   // Ref to track initial page load to skip transition on first render
   const isInitialMount = useRef(true);
   // Ref to track theme initialization status
   const themeInitialized = useRef(false);
 
-  // Enhanced Multi-Theme State (System Auto, Light, Dark, Eye Protection, Aurora Glass)
+  // Enhanced Multi-Theme State
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "dark";
     const savedEye = localStorage.getItem("pdfsun_eye_protection");
     if (savedEye === "true") return "eye-protection";
 
@@ -87,6 +161,7 @@ export default function App() {
 
   // Sync with System preference setting state
   const [syncWithSystem, setSyncWithSystem] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
     const savedSync = localStorage.getItem("pdfsun_sync_system");
     if (savedSync !== null) {
       return savedSync === "true";
@@ -125,7 +200,6 @@ export default function App() {
 
     let timer: NodeJS.Timeout | undefined;
 
-    // Ref-based check for theme initialization
     if (!themeInitialized.current) {
       themeInitialized.current = true;
       updateClasses(themeMode);
@@ -142,14 +216,10 @@ export default function App() {
           });
           if (vt) {
             if (vt.ready && typeof vt.ready.catch === "function") {
-              vt.ready.catch(() => {
-                // Ignore view transition abort/ready errors gracefully
-              });
+              vt.ready.catch(() => {});
             }
             if (vt.finished && typeof vt.finished.catch === "function") {
-              vt.finished.catch(() => {
-                // Ignore view transition abort/finished errors gracefully
-              });
+              vt.finished.catch(() => {});
             }
           }
         } catch (e) {
@@ -179,7 +249,6 @@ export default function App() {
     };
   }, [themeMode, syncWithSystem]);
 
-  // Dedicated system theme media query listener effect with strict dependency control & cleanup
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
 
@@ -190,7 +259,6 @@ export default function App() {
 
       const nextTheme: ThemeMode = e.matches ? "dark" : "light";
       setThemeMode((prevTheme) => {
-        // Prevent recursive state update if the theme is already updated
         if (prevTheme === nextTheme) return prevTheme;
         if (syncWithSystem || prevTheme === "system") {
           return nextTheme;
@@ -214,7 +282,6 @@ export default function App() {
     };
   }, [syncWithSystem, themeMode]);
 
-  // Unified Auth & Session Engine (Single Source of Truth with Multi-Tab Sync)
   const {
     currentRole,
     userProfile,
@@ -233,7 +300,6 @@ export default function App() {
     syncSubscription,
   } = useAuth();
 
-  // Instant real-time Pro unlock handler without page reload
   const handleInstantProUnlock = useCallback((planName?: string) => {
     const plan = planName || localStorage.getItem("pdfsun_user_plan_v1") || "Pro Sun Monthly";
     try {
@@ -267,7 +333,6 @@ export default function App() {
     }
   }, [userProfile, currentRole, handleSelectRole, syncSubscription]);
 
-  // User Accounts State with persistent Admin Permission control
   const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
     try {
       const saved = localStorage.getItem("pdfsun_user_accounts");
@@ -330,7 +395,6 @@ export default function App() {
     saveUserAccounts([account, ...userAccounts]);
   };
 
-  // Admin Settings state
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
     siteName: "PDF Sun",
     domainName: "https://www.pdfsun.in",
@@ -343,11 +407,9 @@ export default function App() {
     aiModelVersion: "gemini-3.8-flash",
   });
 
-  // Category & Filter state
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Favorites state
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("pdfsun_favorites") || '["merge-pdf", "ai-chat-pdf", "compress-pdf"]');
@@ -365,7 +427,6 @@ export default function App() {
     });
   };
 
-  // Recent History Log State
   const [history, setHistory] = useState<ToolHistoryItem[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("pdfsun_history") || "[]");
@@ -387,12 +448,10 @@ export default function App() {
     localStorage.removeItem("pdfsun_history");
   };
 
-  // Active Tool Selection Workspace
   const [activeTool, setActiveTool] = useState<ToolItem | null>(null);
   const [activeToolFiles, setActiveToolFiles] = useState<File[]>([]);
   const [activePseoPage, setActivePseoPage] = useState<PSEOLandingPage | null>(null);
 
-  // Modals state
   const [activePolicy, setActivePolicy] = useState<PolicyType | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [sharePdfSunModalOpen, setSharePdfSunModalOpen] = useState(false);
@@ -437,7 +496,6 @@ export default function App() {
     }
   }, []);
 
-  // Dedicated Blog & Knowledge Base View State
   const [blogViewActive, setBlogViewActive] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname;
@@ -491,12 +549,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-      // Geo & Language Auto-detection & URL Routing for Today in History & pSEO & Tool Deep-links & Dedicated Pricing Page
       const syncRouteWithLocation = () => {
+        if (typeof window === "undefined") return;
         const params = new URLSearchParams(window.location.search);
         const currentPath = window.location.pathname;
 
-        // 1. Language sub-path / query parameter detection and dynamic synchronization
         const pathParts = currentPath.split("/").filter(Boolean);
         let detectedLang: string | null = null;
         let effectivePath = currentPath;
@@ -527,7 +584,6 @@ export default function App() {
           setLanguage(detectedLang);
         }
 
-        // 2. Dedicated Blog & Knowledge Base routing (/blog, /blog/:slug)
         const isBlogRoute =
           effectivePath === "/blog" ||
           effectivePath.startsWith("/blog/") ||
@@ -604,7 +660,6 @@ export default function App() {
           return;
         }
 
-        // Check for Programmatic SEO (pSEO) targeted landing pages
         const matchedPseo = matchPSEORoute(effectivePath) || (params.get("pseo") ? matchPSEORoute(params.get("pseo")!) : null);
         if (matchedPseo) {
           setActivePseoPage(matchedPseo);
@@ -617,7 +672,6 @@ export default function App() {
           return;
         }
 
-        // Check for standard direct tool route (e.g. /merge-pdf or /tool/merge-pdf or ?tool=merge-pdf)
         const toolParam = params.get("tool") || params.get("toolId");
         let matchedSlug = toolParam;
         if (!matchedSlug && effectivePath && effectivePath !== "/") {
@@ -626,7 +680,6 @@ export default function App() {
         }
 
         if (matchedSlug) {
-          // Canonical OCR tool consolidation: ensure all OCR slugs resolve to canonical AI OCR
           if (matchedSlug === "ocr-pdf" || matchedSlug === "ocr-image-to-text") {
             matchedSlug = "ai-ocr";
           }
@@ -650,7 +703,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Restricted Admin & Auth Routing with Hidden Gateway & Strict RBAC Authentication Wall
     if (typeof window !== "undefined" && !authLoading) {
       const params = new URLSearchParams(window.location.search);
       const pathname = window.location.pathname.toLowerCase();
@@ -735,7 +787,6 @@ export default function App() {
         setPaymentSuccessModalOpen(true);
         trackGAPaymentSuccess(resolvedProduct.internalProductId, paymentId, resolvedProduct.displayPriceINR, "INR");
 
-        // Clean query parameters & pathname from URL to prevent infinite refresh loops
         try {
           const cleanPath = isPaymentPath ? "/" : window.location.pathname;
           window.history.replaceState({}, document.title, cleanPath);
@@ -746,7 +797,6 @@ export default function App() {
     }
   }, []);
 
-  // Keyboard Shortcuts Manager Hook for custom power-user keybindings
   const {
     shortcuts,
     shortcutsEnabled,
@@ -791,11 +841,12 @@ export default function App() {
       setContactModalOpen(false);
       setSitemapModalOpen(false);
       setActivePolicy(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     },
   });
 
-  // Usage Analytics hook
   const { trackToolUsage } = useUsageAnalytics();
 
   const handleCloseTool = useCallback(() => {
@@ -808,7 +859,6 @@ export default function App() {
   }, [currentLanguage]);
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
-    // Canonical OCR Consolidation: ensure legacy ocr-pdf and ocr-image-to-text resolve directly to ai-ocr
     const canonicalTool =
       tool.id === "ocr-pdf" || tool.id === "ocr-image-to-text" || tool.slug === "ocr-pdf" || tool.slug === "ocr-image-to-text"
         ? ALL_TOOLS.find((t) => t.id === "ai-ocr") || tool
@@ -816,7 +866,6 @@ export default function App() {
 
     trackToolUsage(canonicalTool.id);
 
-    // If futuristic studio tool is selected, launch Future AI Studio with corresponding tab
     const futureTools = ["ai-voice-reader", "voice-to-pdf", "quantum-preflight-hud", "macro-automator"];
     if (futureTools.includes(canonicalTool.id) || futureTools.includes(canonicalTool.slug)) {
       let tab: FutureStudioTab = "voice-reader";
@@ -858,7 +907,9 @@ export default function App() {
     if (compressTool) {
       setActiveTool(compressTool);
     }
-    window.history.pushState({}, "", `/${generated.slug}`);
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", `/${generated.slug}`);
+    }
   };
 
   const handleOpenAuthModal = (mode: "customer" | "owner" = "customer") => {
@@ -871,11 +922,9 @@ export default function App() {
     setUserDashboardOpen(false);
     setHistoryModalOpen(false);
     setAuthModalOpen(false);
-    // Explicitly execute full session revocation, cookie clearance & provider token cleanup
     await rawLogout();
   }, [rawLogout]);
 
-  // Inactivity Auto-Logout & Session Preservation System
   const {
     showWarningModal,
     remainingSeconds,
@@ -899,7 +948,6 @@ export default function App() {
     setAdminPanelOpen(true);
   };
 
-  // Pagination state tracking for SEO rel=prev/next tags
   const [gridPagination, setGridPagination] = useState({ page: 1, totalPages: 1 });
 
   const handleGridPageChange = useCallback((page: number, totalPages: number) => {
@@ -909,7 +957,6 @@ export default function App() {
     });
   }, []);
 
-  // Dynamic SEO Helmet variables
   const pageTitle = activeTool
     ? `${activeTool.name} - Free Online PDF Tool | PDFSun`
     : "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
@@ -927,7 +974,6 @@ export default function App() {
   const twitterTitle = pageTitle;
   const twitterDescription = pageDescription;
 
-  // Calculate dynamic up to 5 Google AdSense placement containers based on page density & viewport
   const adPlacements = calculateAdPlacements(
     ALL_TOOLS.length,
     activeTool !== null,
@@ -937,7 +983,6 @@ export default function App() {
 
   return (
     <div className="main-wrapper min-h-screen bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
-      {/* Dynamic SEO JSON-LD Structured Data Management for Rich Search Snippets */}
       <SEOManager
         activeTool={activeTool}
         tools={ALL_TOOLS}
@@ -950,7 +995,6 @@ export default function App() {
         pseoPage={activePseoPage}
       />
 
-      {/* Dynamic SEO Head Management (BlogPage manages its own metadata when active) */}
       {!blogViewActive && (
         <Helmet>
           <title>{pageTitle}</title>
@@ -962,7 +1006,6 @@ export default function App() {
           <link rel="canonical" href={canonicalUrl} />
           <link rel="icon" href="/favicon.ico" />
 
-          {/* Open Graph / Social Sharing */}
           <meta property="og:type" content="website" />
           <meta property="og:url" content={canonicalUrl} />
           <meta property="og:title" content={ogTitle} />
@@ -970,7 +1013,6 @@ export default function App() {
           <meta property="og:image" content="https://pdfsun.in/og-image.png" />
           <meta property="og:site_name" content="PDFSun" />
 
-          {/* Twitter Card */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={twitterTitle} />
           <meta name="twitter:description" content={twitterDescription} />
@@ -978,7 +1020,6 @@ export default function App() {
         </Helmet>
       )}
 
-      {/* Sticky Top Header */}
       <Header
         darkMode={darkMode}
         setDarkMode={handleSetDarkMode}
@@ -1010,7 +1051,9 @@ export default function App() {
           setActiveTool(null);
           setSelectedCategory("all");
           setSearchQuery("");
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         }}
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
         onOpenShareModal={() => setSharePdfSunModalOpen(true)}
@@ -1027,7 +1070,6 @@ export default function App() {
         }}
       />
 
-      {/* Main Hero Dropzone & Search Section OR Dedicated Blog Portal */}
       <main className="content-area flex-1">
         {blogViewActive ? (
           <BlogPage
@@ -1048,13 +1090,11 @@ export default function App() {
               onOpenSearch={() => setSearchModalOpen(true)}
             />
 
-            {/* Returning Visitor Session Recovery Bar (1-Click Local Privacy Resume) */}
             <ReturningVisitorBar
               onSelectTool={handleSelectTool}
               onOpenHistory={() => setHistoryModalOpen(true)}
             />
 
-            {/* Semantic Breadcrumb Navigation with Schema.org Structured Data (Google Rich Snippets & Internal Linking) */}
             <BreadcrumbNav
               selectedCategory={selectedCategory}
               onSelectCategory={(cat) => {
@@ -1067,7 +1107,9 @@ export default function App() {
               onGoHome={() => {
                 setSelectedCategory("all");
                 setSearchQuery("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                if (typeof window !== "undefined") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
               }}
               onSelectTool={handleSelectTool}
               onOpenPricing={handleOpenPricing}
@@ -1076,7 +1118,6 @@ export default function App() {
               baseUrl="https://pdfsun.in"
             />
 
-            {/* PDF Tools Filterable Grid (Front-and-Center, iLovePDF Style) */}
             <ToolGrid
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
@@ -1088,12 +1129,10 @@ export default function App() {
               onPageChange={handleGridPageChange}
             />
 
-            {/* Placement 1: Sub-Tools AdSense Banner */}
             {adPlacements.some((p) => p.id === "hero-sub-ad") && (
               <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
             )}
 
-            {/* Distraction Isolation: Secondary Modules in Collapsible Sections Hub */}
             <CollapsibleSectionsHub
               childrenAiSection={
                 <div className="space-y-4">
@@ -1128,7 +1167,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Enterprise Clean Footer */}
       <Footer
         onOpenPolicy={(p) => setActivePolicy(p)}
         onOpenAllTools={() => {
@@ -1148,13 +1186,11 @@ export default function App() {
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
       />
 
-      {/* Interactive Active Tool Workspace Modals */}
       {activeTool && (
         <div
           id="pdfsun-tool-wrapper"
           className="site-outer-canvas main-tool-wrapper fixed inset-0 z-50 overflow-y-auto bg-[#0b0f19] text-[#1e293b] flex flex-col items-center justify-start min-h-screen py-4 sm:py-8 px-2 sm:px-4"
         >
-          {/* Dynamic Tool Header Banner (Flush with dark canvas, zero extraneous margin, responsive) */}
           {activePseoPage && (
             <div
               className="tool-header-banner w-full max-w-5xl mx-auto px-4 sm:px-6 py-2.5 bg-slate-900/90 border border-slate-800/80 rounded-2xl mb-4 text-xs text-slate-300 flex items-center justify-between gap-3 shrink-0 shadow-lg"
@@ -1176,7 +1212,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Main Tool Container (Flush top alignment, zero margin) */}
           <div className="w-full max-w-5xl flex flex-col items-center justify-start flex-1 px-2 sm:px-4">
             <div className="w-full flex items-center justify-center">
               {activeTool.id === "remove-watermark" ? (
@@ -1239,7 +1274,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Below-the-Fold Rich Educational, How-To, Intent, and FAQ Section */}
             {activePseoPage && (
               <div className="w-full max-w-4xl mx-auto px-1 sm:px-2 pb-12 pt-6">
                 <PSEOLandingBanner
@@ -1253,7 +1287,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Authentication & Role Selection Modal */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
@@ -1266,7 +1299,6 @@ export default function App() {
         }}
       />
 
-      {/* Admin Panel Modal for Owner (Mukesh Kalonia & Mukesh Inland) & Authorized Admins */}
       {adminPanelOpen && (
         <ProtectedAdminWrapper
           canAccessAdmin={canAccessAdmin}
@@ -1277,8 +1309,8 @@ export default function App() {
             setAuthModalInitialMode("owner");
             setAuthModalOpen(true);
             if (
-              window.location.pathname === "/admin" ||
-              window.location.pathname.startsWith("/admin/")
+              typeof window !== "undefined" &&
+              (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/"))
             ) {
               window.history.replaceState({}, document.title, "/");
             }
@@ -1289,8 +1321,8 @@ export default function App() {
             onClose={() => {
               setAdminPanelOpen(false);
               if (
-                window.location.pathname === "/admin" ||
-                window.location.pathname.startsWith("/admin/")
+                typeof window !== "undefined" &&
+                (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/"))
               ) {
                 window.history.replaceState({}, document.title, "/");
               }
@@ -1309,7 +1341,6 @@ export default function App() {
         </ProtectedAdminWrapper>
       )}
 
-      {/* User Dashboard Modal */}
       {userProfile && userDashboardOpen && (
         <UserDashboard
           isOpen={userDashboardOpen}
@@ -1328,7 +1359,6 @@ export default function App() {
         />
       )}
 
-      {/* User Profile Picture Upload & Cropper Modal */}
       {userProfile && (
         <ProfileAvatarModal
           isOpen={avatarModalOpen}
@@ -1343,7 +1373,6 @@ export default function App() {
         />
       )}
 
-      {/* Dedicated Standalone "Pricing Plans" Page / Full Modal */}
       <PricingSection
         isOpen={pricingModalOpen}
         onClose={handleClosePricing}
@@ -1352,16 +1381,12 @@ export default function App() {
         userProfile={userProfile}
       />
 
-      {/* Blog & Knowledge Base Modal */}
       <BlogModal isOpen={blogModalOpen} onClose={() => setBlogModalOpen(false)} />
 
-      {/* Contact & Support Modal */}
       <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
 
-      {/* Dynamic sitemap.xml SEO Generator Modal */}
       <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
 
-      {/* Payment Success Redirect Modal */}
       <PaymentSuccessModal
         isOpen={paymentSuccessModalOpen}
         onClose={() => setPaymentSuccessModalOpen(false)}
@@ -1374,10 +1399,8 @@ export default function App() {
         }}
       />
 
-      {/* Policies & Help Modals */}
       <PolicyModals policy={activePolicy} onClose={() => setActivePolicy(null)} />
 
-      {/* Recent History Modal */}
       <RecentHistoryModal
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
@@ -1385,7 +1408,6 @@ export default function App() {
         onClearHistory={clearHistory}
       />
 
-      {/* Global Tool Search Modal (Ctrl+K) */}
       <SearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
@@ -1393,7 +1415,6 @@ export default function App() {
         favorites={favorites}
       />
 
-      {/* Keyboard Shortcuts Dialog */}
       <KeyboardShortcutsModal
         isOpen={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
@@ -1404,7 +1425,6 @@ export default function App() {
         onResetToDefaults={resetToDefaults}
       />
 
-      {/* Inactivity Security Warning Modal */}
       <InactivityWarningModal
         isOpen={showWarningModal}
         remainingSeconds={remainingSeconds}
@@ -1412,19 +1432,16 @@ export default function App() {
         onLogoutNow={() => executeSecureLogout("manual_logout")}
       />
 
-      {/* Share PDFSun Modal */}
       <SharePdfSunModal
         isOpen={sharePdfSunModalOpen}
         onClose={() => setSharePdfSunModalOpen(false)}
       />
 
-      {/* Customer-Facing Install PDFSun App Modal & Multi-Platform Guide */}
       <InstallAppModal
         isOpen={installAppModalOpen}
         onClose={() => setInstallAppModalOpen(false)}
       />
 
-      {/* Owner Dynamic CMS & Translations Editor Modal */}
       {cmsModalOpen && (
         <ProtectedAdminWrapper
           canAccessAdmin={canAccessAdmin}
@@ -1443,7 +1460,6 @@ export default function App() {
         </ProtectedAdminWrapper>
       )}
 
-      {/* Geo-Adaptive Multilingual Today in History Interactive Hub */}
       <TodayInHistoryModal
         isOpen={todayInHistoryOpen}
         onClose={() => setTodayInHistoryOpen(false)}
@@ -1452,7 +1468,6 @@ export default function App() {
         onSelectTool={handleSelectTool}
       />
 
-      {/* 2026 Future AI Studio: Neural Voice Reader, Live Dictation, Pre-Flight HUD & Macro Automator */}
       <FuturePdfStudioModal
         isOpen={futureStudioOpen}
         onClose={() => setFutureStudioOpen(false)}
@@ -1461,8 +1476,16 @@ export default function App() {
         onAddHistory={addHistory}
       />
 
-      {/* Global Toast Error Notifications */}
       <GlobalErrorToast />
     </div>
+  );
+}
+
+// Global Safety Wrapper Export
+export default function App() {
+  return (
+    <SafeErrorBoundary>
+      <MainApp />
+    </SafeErrorBoundary>
   );
 }
