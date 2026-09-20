@@ -481,29 +481,29 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl border border-[var(--border-color,rgba(255,255,255,0.1))] shadow-2xl overflow-hidden flex flex-col min-h-[85vh]">
+    <div className="w-full max-w-7xl mx-auto bg-white text-slate-900 rounded-[20px] border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col min-h-[85vh]">
       {/* Top Header */}
-      <div className="px-6 py-4 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)]/80 flex items-center justify-between flex-wrap gap-3">
+      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center space-x-3">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-secondary,#94a3b8)] hover:text-orange-500 transition shadow-2xs"
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-orange-600 transition shadow-2xs cursor-pointer"
             title="Back to Tools"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)] flex items-center space-x-2">
-                <Wand2 className="w-5 h-5 text-orange-500" />
+              <h2 className="text-lg font-black text-slate-900 flex items-center space-x-2">
+                <Wand2 className="w-5 h-5 text-orange-600" />
                 <span>Advanced Watermark Removal Engine</span>
               </h2>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs">
+              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs">
                 3-Tier Scrubbing
               </span>
             </div>
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
+            <p className="text-xs text-slate-500">
               {file ? file.name : "Upload a PDF document to purge watermarks, stamps & logos"}
             </p>
           </div>
@@ -512,12 +512,12 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
         {file && (
           <div className="flex items-center space-x-2">
             {/* Page Navigation */}
-            <div className="flex items-center space-x-1.5 bg-[var(--bg-elevated,#16161a)] px-3 py-1.5 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.1))] text-xs font-bold text-[var(--text-primary,#f8fafc)]">
+            <div className="flex items-center space-x-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-1 rounded hover:bg-[var(--bg-elevated-hover,#1f1f26)] disabled:opacity-30"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -528,29 +528,29 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(pdfPageCount, p + 1))}
                 disabled={currentPage === pdfPageCount}
-                className="p-1 rounded hover:bg-[var(--bg-elevated-hover,#1f1f26)] disabled:opacity-30"
+                className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
             {/* Zoom Controls */}
-            <div className="flex items-center space-x-1 bg-[var(--bg-elevated,#16161a)] p-1 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
+            <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setZoomScale((z) => Math.max(0.7, z - 0.2))}
-                className="p-1.5 rounded-lg text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated-hover,#1f1f26)]"
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)] px-1 font-mono">
+              <span className="text-[11px] font-bold text-slate-700 px-1 font-mono">
                 {Math.round(zoomScale * 100)}%
               </span>
               <button
                 type="button"
                 onClick={() => setZoomScale((z) => Math.min(2.5, z + 0.2))}
-                className="p-1.5 rounded-lg text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated-hover,#1f1f26)]"
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
                 title="Zoom In"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -565,7 +565,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                 setCleanedPreviewDataUrl(null);
                 setShowCompareSlider(false);
               }}
-              className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition"
+              className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition cursor-pointer"
             >
               Change File
             </button>
@@ -582,7 +582,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
             className={`w-full max-w-2xl p-10 rounded-3xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center space-y-4 ${
               isDragActive
                 ? "border-orange-500 bg-orange-500/10 scale-[1.01]"
-                : "border-[var(--dropzone-border,rgba(255,255,255,0.15))] bg-[var(--dropzone-bg,#111114)] hover:border-orange-500 hover:bg-orange-500/5"
+                : "border-slate-300 bg-slate-50 hover:border-orange-500 hover:bg-orange-50/50"
             }`}
           >
             <input {...getInputProps()} />
@@ -590,10 +590,10 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
               <UploadCloud className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[var(--text-primary,#f8fafc)]">
+              <h3 className="text-base font-extrabold text-slate-900">
                 Drag & Drop PDF file to Remove Watermark
               </h3>
-              <p className="text-xs text-[var(--text-secondary,#94a3b8)] mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Supports digital PDFs, scanned documents, image-layer stamps, and flattened watermarks
               </p>
             </div>
@@ -606,23 +606,23 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
         /* Workspace Split Layout: Preview Canvas (Left) + Removal Sidebar (Right) */
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
           {/* Left Panel: Live Preview Canvas Workspace */}
-          <div className="lg:col-span-7 bg-[var(--bg-primary,#0a0a0f)] p-4 relative flex flex-col items-center justify-center overflow-auto min-h-[450px]">
+          <div className="lg:col-span-7 bg-slate-100 p-4 relative flex flex-col items-center justify-center overflow-auto min-h-[450px]">
             {/* Top Canvas Toolbar Mode Indicator */}
             <div className="absolute top-3 left-3 z-20 flex items-center space-x-2">
-              <span className="px-2.5 py-1 rounded-xl bg-[var(--bg-surface,#111114)]/90 backdrop-blur-md text-[var(--text-primary,#f8fafc)] text-[11px] font-bold shadow-md flex items-center space-x-1.5 border border-[var(--border-color,rgba(255,255,255,0.1))]">
+              <span className="px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-slate-800 text-[11px] font-bold shadow-md flex items-center space-x-1.5 border border-slate-200">
                 {isEyedropperActive ? (
                   <>
-                    <Pipette className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <Pipette className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                     <span>Eyedropper Mode: Click Watermark Color</span>
                   </>
                 ) : isAreaSelectActive ? (
                   <>
-                    <Square className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                    <Square className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
                     <span>Area Selection: Click & Drag Box</span>
                   </>
                 ) : (
                   <>
-                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Live Page Preview</span>
                   </>
                 )}
@@ -632,7 +632,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCompareSlider(false)}
-                  className="px-2.5 py-1 rounded-xl bg-orange-500 text-white text-[11px] font-bold shadow-md hover:bg-orange-600 transition flex items-center space-x-1"
+                  className="px-2.5 py-1 rounded-xl bg-orange-500 text-white text-[11px] font-bold shadow-md hover:bg-orange-600 transition flex items-center space-x-1 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   <span>Exit Split Preview</span>
@@ -643,7 +643,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
             {/* Hover Color Tooltip for Eyedropper */}
             {isEyedropperActive && hoverColorInfo && (
               <div
-                className="pointer-events-none fixed z-50 px-2 py-1 rounded-lg bg-[var(--bg-surface,#111114)] text-[var(--text-primary,#f8fafc)] text-[10px] font-mono font-bold shadow-xl flex items-center space-x-1.5 border border-[var(--border-color,rgba(255,255,255,0.1))] transform -translate-x-1/2 -translate-y-8"
+                className="pointer-events-none fixed z-50 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-mono font-bold shadow-xl flex items-center space-x-1.5 border border-slate-700 transform -translate-x-1/2 -translate-y-8"
                 style={{
                   left: `${hoverColorInfo.x + containerRef.current?.getBoundingClientRect().left!}px`,
                   top: `${hoverColorInfo.y + containerRef.current?.getBoundingClientRect().top!}px`,
@@ -663,7 +663,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
             {/* Canvas Container Frame */}
             <div
               ref={containerRef}
-              className="relative rounded-2xl overflow-hidden shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] bg-white max-w-full my-auto transition-transform"
+              className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-white max-w-full my-auto transition-transform"
             >
               <canvas
                 ref={canvasRef}
@@ -728,22 +728,22 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* Render Loading Spinner */}
               {isRenderingPage && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
-                  <RefreshCw className="w-7 h-7 text-orange-500 animate-spin" />
+                <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center">
+                  <RefreshCw className="w-7 h-7 text-orange-600 animate-spin" />
                 </div>
               )}
             </div>
           </div>
 
           {/* Right Panel: Removal Controls Sidebar */}
-          <div className="lg:col-span-5 p-6 bg-[var(--bg-surface,#111114)] border-t lg:border-t-0 lg:border-l border-[var(--border-color,rgba(255,255,255,0.1))] flex flex-col justify-between space-y-6 overflow-y-auto">
+          <div className="lg:col-span-5 p-6 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col justify-between space-y-6 overflow-y-auto">
             <div className="space-y-5">
               {/* 3-Tier Removal Method Tabs */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-[var(--text-muted,#64748b)] block">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500 block">
                   Select Watermark Removal Method
                 </label>
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--bg-elevated,#16161a)] rounded-2xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200">
                   <button
                     type="button"
                     onClick={() => {
@@ -751,10 +751,10 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                       setIsEyedropperActive(false);
                       setIsAreaSelectActive(false);
                     }}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 ${
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 cursor-pointer ${
                       activeMethod === "auto"
-                        ? "bg-[var(--bg-surface,#111114)] text-orange-400 shadow-xs border border-[var(--border-color,rgba(255,255,255,0.1))]"
-                        : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
+                        ? "bg-white text-orange-600 shadow-xs border border-slate-200 font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     <Wand2 className="w-4 h-4" />
@@ -767,10 +767,10 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                       setActiveMethod("color");
                       setIsAreaSelectActive(false);
                     }}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 ${
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 cursor-pointer ${
                       activeMethod === "color"
-                        ? "bg-[var(--bg-surface,#111114)] text-amber-400 shadow-xs border border-[var(--border-color,rgba(255,255,255,0.1))]"
-                        : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
+                        ? "bg-white text-amber-600 shadow-xs border border-slate-200 font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     <Pipette className="w-4 h-4" />
@@ -784,10 +784,10 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                       setIsEyedropperActive(false);
                       setIsAreaSelectActive(true);
                     }}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 ${
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center space-y-1 cursor-pointer ${
                       activeMethod === "area"
-                        ? "bg-[var(--bg-surface,#111114)] text-blue-400 shadow-xs border border-[var(--border-color,rgba(255,255,255,0.1))]"
-                        : "text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
+                        ? "bg-white text-blue-600 shadow-xs border border-slate-200 font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     <Square className="w-4 h-4" />
@@ -798,30 +798,30 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* METHOD 1 CONTROLS: Vector & Text Layer Scrubbing */}
               {activeMethod === "auto" && (
-                <div className="space-y-4 p-4 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] animate-in fade-in">
-                  <div className="flex items-center space-x-2 text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                    <Wand2 className="w-4 h-4 text-orange-500" />
+                <div className="space-y-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 animate-in fade-in">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-900">
+                    <Wand2 className="w-4 h-4 text-orange-600" />
                     <span>Vector & Text Layer Scrubbing (For Digital PDFs)</span>
                   </div>
-                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                  <p className="text-[11px] text-slate-500">
                     Strips transparent background streams, draft stamps, and repeated watermark text strings directly from the PDF DOM.
                   </p>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
+                    <label className="text-[11px] font-bold text-slate-700">
                       Watermark Keywords to Purge
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {keywords.map((kw) => (
                         <span
                           key={kw}
-                          className="px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-400 text-[10px] font-extrabold flex items-center space-x-1 border border-orange-500/20"
+                          className="px-2 py-0.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-extrabold flex items-center space-x-1 border border-orange-200"
                         >
                           <span>{kw}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveKeyword(kw)}
-                            className="hover:text-rose-400"
+                            className="hover:text-rose-600 cursor-pointer"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -836,12 +836,12 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                         onChange={(e) => setCustomKeywordInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAddKeyword()}
                         placeholder="Add custom watermark keyword (e.g. COMPANY_NAME)"
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs text-[var(--text-primary,#f8fafc)]"
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                       />
                       <button
                         type="button"
                         onClick={handleAddKeyword}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-primary,#f8fafc)] text-xs font-bold hover:bg-orange-600 hover:text-white transition"
+                        className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-800 text-xs font-bold hover:bg-orange-600 hover:text-white transition cursor-pointer"
                       >
                         Add
                       </button>
@@ -849,9 +849,9 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                       <span>Opacity Scrub Threshold</span>
-                      <span className="font-mono text-[var(--text-primary,#f8fafc)]">{Math.round(opacityThreshold * 100)}%</span>
+                      <span className="font-mono text-slate-900 font-extrabold">{Math.round(opacityThreshold * 100)}%</span>
                     </div>
                     <input
                       type="range"
@@ -860,7 +860,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                       step="0.05"
                       value={opacityThreshold}
                       onChange={(e) => setOpacityThreshold(parseFloat(e.target.value))}
-                      className="w-full accent-orange-500"
+                      className="w-full accent-orange-500 cursor-pointer"
                     />
                   </div>
                 </div>
@@ -868,20 +868,20 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* METHOD 2 CONTROLS: Color Tolerance & Luminance Filter */}
               {activeMethod === "color" && (
-                <div className="space-y-4 p-4 rounded-2xl bg-amber-950/20 border border-amber-900/50 animate-in fade-in">
+                <div className="space-y-4 p-4 rounded-2xl bg-amber-50/70 border border-amber-200 animate-in fade-in">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                      <Pipette className="w-4 h-4 text-amber-500" />
+                    <div className="flex items-center space-x-2 text-xs font-bold text-amber-950">
+                      <Pipette className="w-4 h-4 text-amber-600" />
                       <span>Color Tolerance Filter (For Scanned PDFs)</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setIsEyedropperActive(!isEyedropperActive)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
                         isEyedropperActive
                           ? "bg-amber-500 text-white shadow-md animate-pulse"
-                          : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:text-[var(--text-primary,#f8fafc)]"
+                          : "bg-white text-slate-700 border border-slate-200 hover:text-amber-600"
                       }`}
                     >
                       <Pipette className="w-3.5 h-3.5" />
@@ -889,16 +889,16 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     </button>
                   </div>
 
-                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                  <p className="text-[11px] text-amber-800/80">
                     Processes the page canvas pixel-by-pixel, converting matching watermark RGB colors to white.
                   </p>
 
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
+                      <label className="text-[11px] font-bold text-slate-700">
                         Selected Color
                       </label>
-                      <div className="flex items-center space-x-2 p-1.5 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))]">
+                      <div className="flex items-center space-x-2 p-1.5 rounded-xl bg-white border border-slate-200">
                         <input
                           type="color"
                           value={selectedColorHex}
@@ -908,16 +908,16 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                           }}
                           className="w-8 h-8 rounded-lg cursor-pointer p-0.5 border-0 bg-transparent"
                         />
-                        <span className="text-xs font-mono font-bold text-[var(--text-primary,#f8fafc)]">
+                        <span className="text-xs font-mono font-bold text-slate-900">
                           {selectedColorHex}
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                         <span>Tolerance</span>
-                        <span className="font-mono text-[var(--text-primary,#f8fafc)]">{colorTolerance}%</span>
+                        <span className="font-mono text-slate-900 font-extrabold">{colorTolerance}%</span>
                       </div>
                       <input
                         type="range"
@@ -925,7 +925,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                         max="80"
                         value={colorTolerance}
                         onChange={(e) => setColorTolerance(Number(e.target.value))}
-                        className="w-full accent-amber-500"
+                        className="w-full accent-amber-500 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -934,20 +934,20 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* METHOD 3 CONTROLS: Manual Erase Region Bounding Box */}
               {activeMethod === "area" && (
-                <div className="space-y-4 p-4 rounded-2xl bg-blue-950/20 border border-blue-900/50 animate-in fade-in">
+                <div className="space-y-4 p-4 rounded-2xl bg-blue-50/70 border border-blue-200 animate-in fade-in">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                      <Square className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center space-x-2 text-xs font-bold text-blue-950">
+                      <Square className="w-4 h-4 text-blue-600" />
                       <span>Manual Area Region Bounding Box</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setIsAreaSelectActive(!isAreaSelectActive)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
                         isAreaSelectActive
                           ? "bg-blue-600 text-white shadow-md animate-pulse"
-                          : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-secondary,#94a3b8)] border border-[var(--border-color,rgba(255,255,255,0.1))] hover:text-[var(--text-primary,#f8fafc)]"
+                          : "bg-white text-slate-700 border border-slate-200 hover:text-blue-600"
                       }`}
                     >
                       <Square className="w-3.5 h-3.5" />
@@ -955,25 +955,25 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     </button>
                   </div>
 
-                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                  <p className="text-[11px] text-blue-800/80">
                     Draw a rectangle box over logo stamps or watermark patterns to apply a clean white erase mask.
                   </p>
 
                   {areaBox ? (
-                    <div className="p-3 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] flex items-center justify-between text-xs font-mono text-[var(--text-primary,#f8fafc)]">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-xs font-mono text-slate-900 shadow-2xs">
                       <span>
                         Box: X {areaBox.xPercent}%, Y {areaBox.yPercent}%, W {areaBox.widthPercent}%, H {areaBox.heightPercent}%
                       </span>
                       <button
                         type="button"
                         onClick={() => setAreaBox(null)}
-                        className="text-rose-400 hover:underline text-[11px] font-sans font-bold"
+                        className="text-rose-600 hover:underline text-[11px] font-sans font-bold cursor-pointer"
                       >
                         Clear Box
                       </button>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-[var(--bg-elevated,#16161a)]/60 border border-dashed border-[var(--border-color,rgba(255,255,255,0.15))] text-center text-[11px] text-[var(--text-muted,#64748b)]">
+                    <div className="p-3 rounded-xl bg-white border border-dashed border-slate-300 text-center text-[11px] text-slate-500">
                       Click "Draw Box on PDF" and drag mouse on the preview canvas to define erase zone.
                     </div>
                   )}
@@ -982,39 +982,39 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* Target Page Scope */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-[var(--text-muted,#64748b)] block">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500 block">
                   Target Page Scope
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] cursor-pointer text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]">
+                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer text-xs font-bold text-slate-700 hover:text-slate-900 hover:border-slate-300">
                     <input
                       type="radio"
                       name="pageScope"
                       checked={pageTargetScope === "all"}
                       onChange={() => setPageTargetScope("all")}
-                      className="text-orange-500 focus:ring-orange-500"
+                      className="text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
                     <span>All Pages</span>
                   </label>
 
-                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] cursor-pointer text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]">
+                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer text-xs font-bold text-slate-700 hover:text-slate-900 hover:border-slate-300">
                     <input
                       type="radio"
                       name="pageScope"
                       checked={pageTargetScope === "current"}
                       onChange={() => setPageTargetScope("current")}
-                      className="text-orange-500 focus:ring-orange-500"
+                      className="text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
                     <span>Current Page #{currentPage}</span>
                   </label>
 
-                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] cursor-pointer text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]">
+                  <label className="flex items-center space-x-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer text-xs font-bold text-slate-700 hover:text-slate-900 hover:border-slate-300">
                     <input
                       type="radio"
                       name="pageScope"
                       checked={pageTargetScope === "range"}
                       onChange={() => setPageTargetScope("range")}
-                      className="text-orange-500 focus:ring-orange-500"
+                      className="text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
                     <span>Custom Range</span>
                   </label>
@@ -1026,22 +1026,22 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     value={customPageRange}
                     onChange={(e) => setCustomPageRange(e.target.value)}
                     placeholder="e.g. 1-3, 5, 8-10"
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-mono text-[var(--text-primary,#f8fafc)]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 )}
               </div>
             </div>
 
             {/* Action Buttons & Results Panel */}
-            <div className="space-y-3 pt-4 border-t border-[var(--border-color,rgba(255,255,255,0.1))]">
+            <div className="space-y-3 pt-4 border-t border-slate-200">
               {/* Progress Bar */}
               {isProcessing && (
                 <div className="space-y-1.5 animate-in fade-in">
-                  <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600">
                     <span>{statusMessage}</span>
-                    <span className="font-mono text-[var(--text-primary,#f8fafc)]">{progress}%</span>
+                    <span className="font-mono text-slate-900 font-extrabold">{progress}%</span>
                   </div>
-                  <div className="w-full h-2 bg-[var(--bg-elevated,#16161a)] rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-300"
                       style={{ width: `${progress}%` }}
@@ -1056,9 +1056,9 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                   type="button"
                   onClick={handleGeneratePreview}
                   disabled={isProcessing || isPreviewing}
-                  className="py-3 px-4 bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-primary,#f8fafc)] rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 border border-[var(--border-color,rgba(255,255,255,0.1))] shadow-xs disabled:opacity-50"
+                  className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 border border-slate-200 shadow-2xs disabled:opacity-50 cursor-pointer"
                 >
-                  <Eye className="w-4 h-4 text-orange-500" />
+                  <Eye className="w-4 h-4 text-orange-600" />
                   <span>Preview Changes</span>
                 </button>
 
@@ -1066,7 +1066,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                   type="button"
                   onClick={handleRemoveWatermarkProcess}
                   disabled={isProcessing}
-                  className="py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl text-xs font-extrabold shadow-lg hover:shadow-orange-500/20 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl text-xs font-extrabold shadow-md hover:shadow-orange-500/20 transition flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Wand2 className="w-4 h-4" />
                   <span>Remove Watermark & Download</span>
@@ -1075,13 +1075,13 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
 
               {/* Success Result & Download Panel */}
               {downloadReady && (
-                <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800 space-y-3 animate-in fade-in">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3 animate-in fade-in">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-xs font-extrabold text-emerald-300">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <div className="flex items-center space-x-2 text-xs font-extrabold text-emerald-800">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                       <span>Watermark Removed Successfully!</span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-400">
+                    <span className="text-[10px] font-mono text-emerald-700 font-bold">
                       {(downloadReady.data.byteLength / 1024 / 1024).toFixed(2)} MB
                     </span>
                   </div>
@@ -1090,7 +1090,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     <button
                       type="button"
                       onClick={handleDownload}
-                      className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-md transition flex items-center justify-center space-x-2"
+                      className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-md transition flex items-center justify-center space-x-2 cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                       <span>Download Clean PDF</span>
@@ -1099,7 +1099,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowQrCodeModal(!showQrCodeModal)}
-                      className="py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1"
+                      className="py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer shadow-2xs"
                       title="Mobile Transfer QR Code"
                     >
                       <QrCode className="w-4 h-4" />
@@ -1109,7 +1109,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowShareModal(true)}
-                      className="py-2.5 px-3 bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[var(--text-primary,#f8fafc)] rounded-xl text-xs font-bold hover:bg-[var(--bg-elevated-hover,#1f1f26)] transition"
+                      className="py-2.5 px-3 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition cursor-pointer shadow-2xs"
                       title="Share File Link"
                     >
                       <Share2 className="w-4 h-4" />
@@ -1134,7 +1134,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
                         setPurgedMessage(true);
                         setTimeout(() => setPurgedMessage(false), 3000);
                       }}
-                      className="text-[11px] text-rose-400 hover:underline font-bold flex items-center space-x-1"
+                      className="text-[11px] text-rose-600 hover:underline font-bold flex items-center space-x-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Purge Memory File Now</span>
@@ -1144,7 +1144,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
               )}
 
               {purgedMessage && (
-                <div className="text-center text-xs font-bold text-emerald-400 animate-in fade-in">
+                <div className="text-center text-xs font-bold text-emerald-600 animate-in fade-in">
                   File memory purged for 100% privacy!
                 </div>
               )}

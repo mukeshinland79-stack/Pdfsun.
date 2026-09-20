@@ -723,53 +723,53 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in">
-      <div className="bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl max-w-6xl w-full h-[92vh] shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[#0b0f19]/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto animate-in fade-in">
+      <div className="main-tool-card bg-white text-slate-800 rounded-[20px] max-w-6xl w-full h-[92vh] shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden flex flex-col">
         {/* Workspace Top Navigation Bar */}
-        <div className="px-6 py-4 bg-[var(--bg-surface,#111114)] border-b border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center justify-between">
+        <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-400 p-0.5 shadow-md flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-amber-400" />
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-orange-500" />
               </div>
             </div>
             <div>
               <div className="flex items-center space-x-2 flex-wrap gap-1">
                 {/* Canonical Name Synchronized Header Title */}
-                <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)]">
+                <h2 className="text-lg font-bold text-slate-900">
                   {activeTabConfig.canonicalName}
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold uppercase">
                   {activeTabConfig.badge}
                 </span>
                 {/* Dynamic Header-Embedded Rating Badge */}
                 <button
                   type="button"
                   onClick={() => setShowReviewModal(true)}
-                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold transition ml-1"
+                  className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold transition ml-1"
                   title="View user reviews and ratings"
                 >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
                   <span>{currentToolRating.avgRating.toFixed(1)}</span>
-                  <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                  <span className="text-[10px] text-slate-500 font-normal">
                     ({currentToolRating.totalRatings.toLocaleString()})
                   </span>
                 </button>
               </div>
-              <p className="text-xs text-[var(--text-secondary,#94a3b8)]">PDFSun Unified AI Document Suite</p>
+              <p className="text-xs text-slate-500">PDFSun Unified AI Document Suite</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
             {/* Social Proof & Share Buttons */}
-            <div className="hidden sm:flex items-center space-x-1.5 bg-[var(--bg-elevated,#16161a)] p-1 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.1))] mr-1">
+            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 mr-1">
               <button
                 type="button"
                 onClick={handleToggleLike}
                 className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 transition ${
                   hasLiked
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)]"
+                    ? "bg-amber-100 text-amber-700"
+                    : "hover:bg-slate-200/60 text-slate-600"
                 }`}
                 title="Like this AI tool"
               >
@@ -777,12 +777,12 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 <span>{likeCount}</span>
               </button>
 
-              <div className="w-px h-3.5 bg-[var(--border-color,rgba(255,255,255,0.1))]" />
+              <div className="w-px h-3.5 bg-slate-200" />
 
               <button
                 type="button"
                 onClick={() => setShowShareModal(true)}
-                className="px-2 py-1 rounded-lg hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] text-xs font-bold flex items-center space-x-1 transition"
+                className="px-2 py-1 rounded-lg hover:bg-slate-200/60 text-slate-600 text-xs font-bold flex items-center space-x-1 transition"
                 title="Share this tool"
               >
                 <Share2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
@@ -794,10 +794,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             <button
               onClick={copyToClipboard}
               disabled={!hasValidOutput}
-              className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] transition text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1 border border-[var(--border-color,rgba(255,255,255,0.1))]"
+              className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1 border border-slate-200"
               title="Copy output text to clipboard"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-amber-400" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-amber-600" />}
               <span>{copied ? "Copied" : "Copy Result"}</span>
             </button>
 
@@ -805,7 +805,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             <button
               onClick={exportAsPdf}
               disabled={!hasValidOutput}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 shadow-md"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 transition text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 shadow-sm"
               title="Download structured output as PDF"
             >
               <Download className="w-3.5 h-3.5" />
@@ -815,7 +815,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             {/* Close Modal */}
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition ml-1"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition ml-1"
               title="Close Workspace"
             >
               <X className="w-5 h-5" />
@@ -824,7 +824,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         </div>
 
         {/* AI Canonical Tabs Bar */}
-        <div className="px-6 py-2.5 bg-[var(--bg-surface,#111114)] border-b border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2 overflow-x-auto text-xs font-bold scrollbar-none">
+        <div className="px-6 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center space-x-2 overflow-x-auto text-xs font-bold scrollbar-none">
           {AI_TABS_CONFIG.map((tConfig) => {
             const IconComponent = tConfig.icon;
             const isActive = activeTab === tConfig.id;
@@ -838,8 +838,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition duration-150 text-xs ${
                   isActive
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold shadow-md scale-100 ring-2 ring-orange-400/40"
-                    : "border border-white/10 bg-white/[0.03] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] hover:border-white/20 hover:bg-white/[0.06] font-medium opacity-65 hover:opacity-100"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-xs scale-100 ring-2 ring-orange-400/40"
+                    : "border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-100 font-medium"
                 }`}
               >
                 <IconComponent className="w-3.5 h-3.5 shrink-0" />
@@ -864,27 +864,27 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         ) : (
           <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
             {/* Left Column: File Drop & Text Preview */}
-            <div className="md:col-span-4 p-4 border-r border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)] flex flex-col space-y-3 overflow-y-auto">
+            <div className="md:col-span-4 p-4 border-r border-slate-200 bg-slate-50/60 flex flex-col space-y-3 overflow-y-auto">
               {/* Document Picker */}
               <div
                 {...getRootProps()}
-                className={`p-4 rounded-2xl border text-center relative group cursor-pointer transition ${
+                className={`p-4 rounded-2xl border-2 border-dashed text-center relative group cursor-pointer transition ${
                   isDragReject
-                    ? "border-rose-500 bg-rose-500/10 scale-[1.01]"
+                    ? "border-rose-500 bg-rose-50 scale-[1.01]"
                     : isDragAccept
-                    ? "border-emerald-500 bg-emerald-500/10 scale-[1.01] ring-2 ring-emerald-500/20"
+                    ? "border-emerald-500 bg-emerald-50 scale-[1.01] ring-2 ring-emerald-500/20"
                     : isDragActive
-                    ? "border-orange-500 bg-orange-500/10 scale-[1.01] ring-2 ring-orange-500/20"
-                    : "bg-[var(--bg-elevated,#16161a)] border-[var(--border-color,rgba(255,255,255,0.1))] hover:border-orange-500"
+                    ? "border-orange-500 bg-orange-50 scale-[1.01] ring-2 ring-orange-500/20"
+                    : "bg-white border-slate-300 hover:border-orange-500 hover:bg-amber-50/30"
                 }`}
               >
                 <input {...getInputProps()} />
                 <UploadCloud
                   className={`w-7 h-7 mx-auto mb-1 transition-transform ${
-                    isDragActive ? "text-orange-500 scale-125 animate-bounce" : "text-orange-400"
+                    isDragActive ? "text-orange-500 scale-125 animate-bounce" : "text-orange-500"
                   }`}
                 />
-                <div className="text-xs font-bold text-[var(--text-primary,#f8fafc)] truncate">
+                <div className="text-xs font-bold text-slate-900 truncate">
                   {isDragActive
                     ? isDragReject
                       ? "File type not supported"
@@ -893,31 +893,31 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                     ? file.name
                     : "Upload Document for AI"}
                 </div>
-                <p className="text-[10px] text-[var(--text-muted,#64748b)] mt-0.5">
+                <p className="text-[10px] text-slate-500 mt-0.5">
                   {activeTab === "ocr" ? "PDF, Scanned Photos, PNG, JPG, WEBP" : "PDF, DOCX, TXT supported"}
                 </p>
               </div>
 
               {/* Status Badge */}
-              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.06))] text-[11px]">
-                <span className="text-[var(--text-muted,#64748b)] font-medium">Source Status</span>
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px]">
+                <span className="text-slate-500 font-medium">Source Status</span>
                 <span className="flex items-center space-x-1 font-bold">
                   {documentText.trim().length > 0 ? (
                     <>
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span className="text-emerald-600">
                         {documentText.length} chars (~{documentText.split(/\s+/).filter(Boolean).length} words)
                       </span>
                     </>
                   ) : (
-                    <span className="text-amber-400">No Document Loaded</span>
+                    <span className="text-amber-600">No Document Loaded</span>
                   )}
                 </span>
               </div>
 
               {/* Extracted Document Text Preview */}
               <div className="flex-1 flex flex-col min-h-[220px]">
-                <div className="flex items-center justify-between text-[11px] font-bold text-[var(--text-muted,#64748b)] uppercase tracking-wider mb-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   <span>Extracted Document Text</span>
                   {isExtractingText && <RefreshCw className="w-3 h-3 animate-spin text-orange-500" />}
                 </div>
@@ -925,16 +925,16 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   value={documentText}
                   onChange={(e) => setDocumentText(e.target.value)}
                   placeholder="No document loaded. Upload a PDF or paste text here to analyze with AI..."
-                  className="flex-1 w-full p-3 rounded-2xl bg-[var(--bg-elevated,#16161a)] text-xs text-[var(--text-secondary,#94a3b8)] font-mono border border-[var(--border-color,rgba(255,255,255,0.1))] focus:outline-none focus:border-orange-500 resize-none leading-relaxed"
+                  className="flex-1 w-full p-3 rounded-xl bg-white text-xs text-slate-800 font-mono border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none leading-relaxed"
                 />
               </div>
             </div>
 
             {/* Right Column: Interactive Gemini AI Console */}
-            <div className="md:col-span-8 flex flex-col h-full bg-[var(--bg-primary,#0a0a0f)] overflow-hidden">
+            <div className="md:col-span-8 flex flex-col h-full bg-white overflow-hidden">
               {/* Standardized 5-Stage Tool Execution Pipeline Indicator */}
-              <div className="px-4 py-2 border-b border-[var(--border-color,rgba(255,255,255,0.08))] bg-[var(--bg-surface,#111114)] shrink-0">
-                <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.06))] text-[11px]">
+              <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px]">
                   {[
                     { key: "ingestion", label: "1. File Ingestion" },
                     { key: "extraction", label: "2. Text Extraction" },
@@ -955,16 +955,16 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                         key={stageItem.key}
                         className={`flex items-center space-x-1 font-semibold transition-all ${
                           isCurrent
-                            ? "text-amber-400 font-bold"
+                            ? "text-orange-600 font-bold"
                             : isPast
-                            ? "text-emerald-400"
-                            : "text-[var(--text-muted,#64748b)] opacity-50"
+                            ? "text-emerald-600"
+                            : "text-slate-400 opacity-60"
                         }`}
                       >
                         {isPast ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         ) : isCurrent ? (
-                          <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                          <RefreshCw className="w-3.5 h-3.5 text-orange-500 animate-spin shrink-0" />
                         ) : (
                           <div className="w-2.5 h-2.5 rounded-full border border-current opacity-60 shrink-0" />
                         )}
@@ -981,13 +981,13 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
                     {chatMessages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center shadow-inner">
+                        <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center shadow-inner border border-orange-200">
                           <Bot className="w-7 h-7" />
                         </div>
-                        <h3 className="text-base font-extrabold text-[var(--text-primary,#f8fafc)]">
+                        <h3 className="text-base font-bold text-slate-900">
                           Ask Gemini 3.8 Flash Anything About This Document
                         </h3>
-                        <p className="text-xs text-[var(--text-muted,#64748b)] max-w-md leading-relaxed">
+                        <p className="text-xs text-slate-500 max-w-md leading-relaxed">
                           {activeTabConfig.emptyGuidance}
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center pt-2 max-w-lg">
@@ -1002,7 +1002,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                               onClick={() => {
                                 setChatInput(prompt);
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-[11px] text-[var(--text-secondary,#94a3b8)] hover:text-white transition"
+                              className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] text-slate-600 hover:text-slate-900 transition"
                             >
                               &ldquo;{prompt}&rdquo;
                             </button>
@@ -1023,14 +1023,14 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                           <div
                             className={`max-w-[82%] p-4 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                               msg.role === "user"
-                                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium shadow-md"
-                                : "bg-[var(--bg-elevated,#16161a)] text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))]"
+                                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium shadow-xs"
+                                : "bg-slate-50 text-slate-800 border border-slate-200"
                             }`}
                           >
                             {msg.content}
                           </div>
                           {msg.role === "user" && (
-                            <div className="w-8 h-8 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-slate-700 text-white flex items-center justify-center shrink-0">
                               <User className="w-4 h-4" />
                             </div>
                           )}
@@ -1039,7 +1039,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                     )}
 
                     {isAiLoading && (
-                      <div className="flex items-center space-x-2 text-xs text-orange-400 font-bold p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                      <div className="flex items-center space-x-2 text-xs text-orange-700 font-bold p-3 bg-amber-50 border border-amber-200 rounded-xl">
                         <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
                         <span>Gemini 3.8 Flash is analyzing document and formulating response...</span>
                       </div>
@@ -1047,19 +1047,19 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   </div>
 
                   {/* Chat Input Field */}
-                  <div className="pt-3 border-t border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-2">
+                  <div className="pt-3 border-t border-slate-200 flex items-center space-x-2">
                     <input
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
                       placeholder="Ask any question about your document..."
-                      className="flex-1 px-4 py-2.5 rounded-2xl bg-[var(--input-bg,#111114)] text-xs font-medium text-[var(--text-primary,#f8fafc)] border border-[var(--input-border,rgba(255,255,255,0.15))] focus:outline-none focus:border-orange-500"
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 text-xs font-medium text-slate-800 border border-slate-200 focus:outline-none focus:border-orange-500 focus:bg-white"
                     />
                     <button
                       onClick={handleSendChat}
                       disabled={isAiLoading || !chatInput.trim()}
-                      className="p-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white disabled:opacity-40 hover:opacity-90 transition shadow-md flex items-center justify-center"
+                      className="p-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white disabled:opacity-40 hover:opacity-90 transition shadow-xs flex items-center justify-center"
                     >
                       <Send className="w-4 h-4" />
                     </button>
@@ -1073,15 +1073,15 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   {isAiLoading ? (
                     <div className="flex flex-col items-center space-y-3">
                       <RefreshCw className="w-9 h-9 text-orange-500 animate-spin" />
-                      <p className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">
+                      <p className="text-xs font-bold text-slate-600">
                         Gemini AI is generating active recall flashcards...
                       </p>
                     </div>
                   ) : flashcards.length > 0 ? (
                     <div className="w-full max-w-lg space-y-4 text-center">
-                      <div className="flex items-center justify-between text-xs font-bold text-[var(--text-muted,#64748b)] uppercase tracking-wider">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
                         <span>Flashcard Deck</span>
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-extrabold">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold border border-amber-200">
                           {activeFlashcardIdx + 1} of {flashcards.length}
                         </span>
                       </div>
@@ -1089,12 +1089,12 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       {/* Interactive Flippable Flashcard */}
                       <div
                         onClick={() => setShowFlashcardAnswer(!showFlashcardAnswer)}
-                        className="w-full min-h-[240px] p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-transparent border-2 border-orange-500/30 flex flex-col items-center justify-center cursor-pointer shadow-xl hover:scale-[1.01] transition duration-200"
+                        className="w-full min-h-[240px] p-6 rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50/50 to-white border-2 border-orange-200 flex flex-col items-center justify-center cursor-pointer shadow-md hover:shadow-lg transition duration-200"
                       >
                         <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-orange-500 text-white mb-3 shadow-xs">
                           {showFlashcardAnswer ? "Answer (Click to see Question)" : "Question (Click to flip)"}
                         </span>
-                        <p className="text-sm font-bold text-[var(--text-primary,#f8fafc)] leading-relaxed max-w-md">
+                        <p className="text-sm font-bold text-slate-800 leading-relaxed max-w-md">
                           {showFlashcardAnswer
                             ? flashcards[activeFlashcardIdx].answer
                             : flashcards[activeFlashcardIdx].question}
@@ -1109,7 +1109,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                             setShowFlashcardAnswer(false);
                           }}
                           disabled={activeFlashcardIdx === 0}
-                          className="px-4 py-2 rounded-xl bg-[var(--bg-elevated,#16161a)] text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-1"
+                          className="px-4 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 border border-slate-200 flex items-center space-x-1"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
                           <span>Previous</span>
@@ -1117,7 +1117,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
                         <button
                           onClick={() => setShowFlashcardAnswer(!showFlashcardAnswer)}
-                          className="px-4 py-2 rounded-xl bg-orange-500/20 text-orange-400 text-xs font-bold border border-orange-500/30 flex items-center space-x-1 hover:bg-orange-500/30 transition"
+                          className="px-4 py-2 rounded-xl bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200 flex items-center space-x-1 hover:bg-orange-100 transition"
                         >
                           <RotateCw className="w-3.5 h-3.5" />
                           <span>Flip Card</span>
@@ -1129,7 +1129,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                             setShowFlashcardAnswer(false);
                           }}
                           disabled={activeFlashcardIdx === flashcards.length - 1}
-                          className="px-4 py-2 rounded-xl bg-[var(--bg-elevated,#16161a)] text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] disabled:opacity-30 border border-[var(--border-color,rgba(255,255,255,0.1))] flex items-center space-x-1"
+                          className="px-4 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 border border-slate-200 flex items-center space-x-1"
                         >
                           <span>Next</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -1139,7 +1139,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       <div className="pt-2">
                         <button
                           onClick={() => runAiFeature("flashcards")}
-                          className="text-xs text-[var(--text-muted,#64748b)] hover:text-orange-400 font-bold underline"
+                          className="text-xs text-slate-500 hover:text-orange-600 font-bold underline"
                         >
                           Regenerate deck
                         </button>
@@ -1148,17 +1148,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   ) : (
                     /* Flashcards Empty State with Direct CTA */
                     <div className="text-center max-w-md space-y-4">
-                      <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center mx-auto shadow-inner">
+                      <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto shadow-inner border border-orange-200">
                         <Layers className="w-7 h-7" />
                       </div>
-                      <h3 className="text-base font-extrabold text-[var(--text-primary,#f8fafc)]">
+                      <h3 className="text-base font-bold text-slate-900">
                         Generate Active Recall Flashcards
                       </h3>
-                      <p className="text-xs text-[var(--text-muted,#64748b)] leading-relaxed">
+                      <p className="text-xs text-slate-500 leading-relaxed">
                         {activeTabConfig.emptyGuidance}
                       </p>
                       {aiError && (
-                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400 flex items-center space-x-2">
+                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center space-x-2">
                           <AlertCircle className="w-4 h-4 shrink-0" />
                           <span>{aiError}</span>
                         </div>
@@ -1166,7 +1166,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       <button
                         onClick={() => runAiFeature("flashcards")}
                         disabled={isAiLoading || !documentText.trim()}
-                        className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
+                        className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
                       >
                         {isAiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         <span>Generate Study Flashcards</span>
@@ -1182,11 +1182,11 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   {/* Top Bar for Translate Language Selection */}
                   {activeTab === "translate" && (
                     <div className="flex items-center space-x-3 pb-1 flex-wrap gap-2">
-                      <label className="text-xs font-bold text-[var(--text-secondary,#94a3b8)]">Target Language:</label>
+                      <label className="text-xs font-bold text-slate-600">Target Language:</label>
                       <select
                         value={targetLanguage}
                         onChange={(e) => setTargetLanguage(e.target.value)}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated,#16161a)] text-xs font-bold text-[var(--text-primary,#f8fafc)] border border-[var(--border-color,rgba(255,255,255,0.1))] focus:outline-none focus:border-orange-500"
+                        className="px-3 py-1.5 rounded-xl bg-slate-50 text-xs font-bold text-slate-800 border border-slate-200 focus:outline-none focus:border-orange-500"
                       >
                         <option value="Hindi">Hindi (हिंदी)</option>
                         <option value="English">English</option>
@@ -1215,7 +1215,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       <button
                         onClick={() => runAiFeature("translate")}
                         disabled={isAiLoading || !documentText.trim()}
-                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-xs hover:opacity-95 transition disabled:opacity-40 flex items-center space-x-1.5"
+                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-xs hover:opacity-95 transition disabled:opacity-40 flex items-center space-x-1.5"
                       >
                         {isAiLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                         <span>{isAiLoading ? "Translating..." : "Translate Document"}</span>
@@ -1225,10 +1225,10 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
                   {/* Output Header with Action Status */}
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted,#64748b)] flex items-center space-x-2">
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-2">
                       <span>{activeTabConfig.canonicalName} Output</span>
                       {currentOutput && (
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
                           Ready ({currentOutput.length} chars)
                         </span>
                       )}
@@ -1238,7 +1238,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       <button
                         onClick={() => runAiFeature(activeTab)}
                         disabled={isAiLoading}
-                        className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center space-x-1"
+                        className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center space-x-1"
                       >
                         <RotateCw className="w-3 h-3" />
                         <span>Regenerate</span>
@@ -1248,18 +1248,18 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
                   {/* Error Notification Banner */}
                   {aiError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400 flex items-center space-x-2">
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{aiError}</span>
                     </div>
                   )}
 
                   {/* Content Panel: Empty State with Direct CTA OR Formatted Markdown Result */}
-                  <div className="flex-1 overflow-y-auto p-5 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-xs text-[var(--text-primary,#f8fafc)] leading-relaxed font-sans scrollbar-thin">
+                  <div className="flex-1 overflow-y-auto p-5 rounded-2xl bg-slate-50/70 border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans scrollbar-thin">
                     {isAiLoading ? (
-                      <div className="h-full flex flex-col items-center justify-center space-y-3 text-[var(--text-muted,#64748b)]">
+                      <div className="h-full flex flex-col items-center justify-center space-y-3 text-slate-500">
                         <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
-                        <span className="font-bold text-sm text-[var(--text-primary,#f8fafc)]">
+                        <span className="font-bold text-sm text-slate-900">
                           Gemini 3.8 Flash Processing...
                         </span>
                         <span className="text-xs max-w-sm text-center">
@@ -1271,14 +1271,14 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                     ) : (
                       /* Tool-Specific Empty State with Prominent One-Click Action */
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-orange-500 border border-amber-200 flex items-center justify-center mx-auto shadow-inner">
                           <activeTabConfig.icon className="w-7 h-7" />
                         </div>
                         <div className="space-y-1">
-                          <h3 className="text-base font-extrabold text-[var(--text-primary,#f8fafc)]">
+                          <h3 className="text-base font-bold text-slate-900">
                             {activeTabConfig.canonicalName}
                           </h3>
-                          <p className="text-xs text-[var(--text-muted,#64748b)] max-w-md leading-relaxed">
+                          <p className="text-xs text-slate-500 max-w-md leading-relaxed">
                             {activeTabConfig.emptyGuidance}
                           </p>
                         </div>
@@ -1287,12 +1287,12 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                           <div className="space-y-2">
                             <button
                               onClick={() => openDropzone()}
-                              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition flex items-center space-x-2 mx-auto"
+                              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md hover:from-orange-600 hover:to-amber-600 transition flex items-center space-x-2 mx-auto"
                             >
                               <UploadCloud className="w-4 h-4" />
                               <span>Upload Document for {activeTabConfig.canonicalName}</span>
                             </button>
-                            <p className="text-[11px] text-[var(--text-muted,#64748b)]">
+                            <p className="text-[11px] text-slate-500">
                               Upload a PDF, document, or scanned file to extract and analyze.
                             </p>
                           </div>
@@ -1300,7 +1300,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                           <button
                             onClick={() => runAiFeature(activeTab)}
                             disabled={isAiLoading}
-                            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
+                            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
                           >
                             {isAiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                             <span>{activeTabConfig.buttonLabel}</span>
@@ -1328,18 +1328,18 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
       {/* Reviews & Feedback Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] space-y-4 relative max-h-[88vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-3">
+        <div className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white text-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center space-x-2">
                 <Star className="w-5 h-5 fill-amber-400 text-amber-500 shrink-0" />
-                <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)] truncate">
+                <h3 className="text-base font-bold text-slate-900 truncate">
                   User Reviews & Ratings for {activeTabConfig.canonicalName}
                 </h3>
               </div>
               <button
                 onClick={() => setShowReviewModal(false)}
-                className="p-1.5 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>

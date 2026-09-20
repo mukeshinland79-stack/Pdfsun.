@@ -383,26 +383,26 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 text-slate-800">
       {/* 1. Feature Banner & Quick Action Header */}
-      <div className="px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs">
+      <div className="px-5 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-400 p-0.5 shadow-sm flex items-center justify-center shrink-0">
-            <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[10px] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-400 p-0.5 shadow-xs flex items-center justify-center shrink-0">
+            <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
               <Briefcase className="w-5 h-5 text-orange-500" />
             </div>
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-base font-black text-slate-900 tracking-tight">
                 Resume Ready
               </h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 flex items-center space-x-1">
-                <CheckCircle2 className="w-3 h-3 shrink-0" />
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 flex items-center space-x-1">
+                <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-600" />
                 <span>ATS Compatible</span>
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+            <p className="text-xs text-slate-500 line-clamp-1">
               Turn your information into a professional, job-ready resume.
             </p>
           </div>
@@ -413,7 +413,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => setShowInputModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 text-xs font-bold transition flex items-center space-x-1.5"
+            className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
           >
             <FileUp className="w-3.5 h-3.5" />
             <span>Upload / Import Bio</span>
@@ -425,16 +425,16 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
               setCurrentStep("ats-check");
               runAtsAudit();
             }}
-            className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700"
+            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200 cursor-pointer"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>ATS Audit {atsAudit ? `(${atsAudit.score}/100)` : ""}</span>
           </button>
 
           <button
             type="button"
             onClick={handleDownloadDocx}
-            className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-xs font-bold transition flex items-center space-x-1.5"
+            className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
             title="Download formatted Microsoft Word .docx document"
           >
             <FileCode className="w-3.5 h-3.5" />
@@ -444,7 +444,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition flex items-center space-x-1.5"
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download PDF</span>
@@ -453,7 +453,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
           <button
             type="button"
             onClick={handlePrint}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition cursor-pointer border border-slate-200"
             title="Print Resume"
           >
             <Printer className="w-4 h-4" />
@@ -462,7 +462,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
       </div>
 
       {/* 2. Sequential 5-Step Workflow Progress Bar */}
-      <div className="px-4 sm:px-6 py-2 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 overflow-x-auto text-xs font-bold scrollbar-none">
+      <div className="px-4 sm:px-6 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto text-xs font-bold scrollbar-none">
         <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
           {/* Step 1: Extraction */}
           <button
@@ -471,18 +471,18 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition cursor-pointer ${
               currentStep === "extraction"
                 ? "bg-orange-500 text-white shadow-xs font-black"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/80"
+                : "text-slate-600 hover:bg-slate-200/70"
             }`}
           >
             <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-              currentStep === "extraction" ? "bg-white text-orange-600" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              currentStep === "extraction" ? "bg-white text-orange-600" : "bg-slate-200 text-slate-700"
             }`}>1</span>
             <FileUp className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden md:inline">1. Extraction</span>
             <span className="md:hidden">Extract</span>
           </button>
 
-          <span className="text-slate-300 dark:text-slate-700">→</span>
+          <span className="text-slate-300">→</span>
 
           {/* Step 2: Template Selection */}
           <button
@@ -491,18 +491,18 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition cursor-pointer ${
               currentStep === "templates"
                 ? "bg-orange-500 text-white shadow-xs font-black"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/80"
+                : "text-slate-600 hover:bg-slate-200/70"
             }`}
           >
             <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-              currentStep === "templates" ? "bg-white text-orange-600" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              currentStep === "templates" ? "bg-white text-orange-600" : "bg-slate-200 text-slate-700"
             }`}>2</span>
             <Layers className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden md:inline">2. Template Selection</span>
             <span className="md:hidden">Templates</span>
           </button>
 
-          <span className="text-slate-300 dark:text-slate-700">→</span>
+          <span className="text-slate-300">→</span>
 
           {/* Step 3: Live Editing */}
           <button
@@ -511,18 +511,18 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition cursor-pointer ${
               currentStep === "editing"
                 ? "bg-orange-500 text-white shadow-xs font-black"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/80"
+                : "text-slate-600 hover:bg-slate-200/70"
             }`}
           >
             <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-              currentStep === "editing" ? "bg-white text-orange-600" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              currentStep === "editing" ? "bg-white text-orange-600" : "bg-slate-200 text-slate-700"
             }`}>3</span>
             <Edit3 className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden md:inline">3. Live Editing</span>
             <span className="md:hidden">Edit</span>
           </button>
 
-          <span className="text-slate-300 dark:text-slate-700">→</span>
+          <span className="text-slate-300">→</span>
 
           {/* Step 4: ATS Check */}
           <button
@@ -534,18 +534,18 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition cursor-pointer ${
               currentStep === "ats-check"
                 ? "bg-orange-500 text-white shadow-xs font-black"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/80"
+                : "text-slate-600 hover:bg-slate-200/70"
             }`}
           >
             <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-              currentStep === "ats-check" ? "bg-white text-orange-600" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              currentStep === "ats-check" ? "bg-white text-orange-600" : "bg-slate-200 text-slate-700"
             }`}>4</span>
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden md:inline">4. ATS Check {atsAudit ? `(${atsAudit.score}/100)` : ""}</span>
             <span className="md:hidden">ATS</span>
           </button>
 
-          <span className="text-slate-300 dark:text-slate-700">→</span>
+          <span className="text-slate-300">→</span>
 
           {/* Step 5: Export */}
           <button
@@ -554,11 +554,11 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition cursor-pointer ${
               currentStep === "export"
                 ? "bg-orange-500 text-white shadow-xs font-black"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/80"
+                : "text-slate-600 hover:bg-slate-200/70"
             }`}
           >
             <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-              currentStep === "export" ? "bg-white text-orange-600" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              currentStep === "export" ? "bg-white text-orange-600" : "bg-slate-200 text-slate-700"
             }`}>5</span>
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden md:inline">5. Export</span>
@@ -569,13 +569,13 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
         {/* Live Status & Style Pill */}
         <div className="flex items-center space-x-2 shrink-0">
           {aiActionMessage && (
-            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold animate-pulse flex items-center space-x-1">
+            <span className="text-[11px] text-amber-600 font-semibold animate-pulse flex items-center space-x-1">
               <Sparkles className="w-3 h-3" />
               <span>{aiActionMessage}</span>
             </span>
           )}
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-            Style: <span className="text-orange-600 dark:text-orange-400">{selectedStyle.toUpperCase()}</span>
+          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs">
+            Style: <span className="text-orange-600 font-black">{selectedStyle.toUpperCase()}</span>
           </span>
         </div>
       </div>
@@ -583,13 +583,13 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
       {/* 3. Main Workspace Grid: Split Editor (Left) & Real-Time Preview (Right) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
         {/* LEFT COLUMN: Controls / Editor / AI Tools / ATS Audit */}
-        <div className="lg:col-span-5 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-y-auto p-4 space-y-4">
+        <div className="lg:col-span-5 border-r border-slate-200 bg-white flex flex-col overflow-y-auto p-4 space-y-4">
           
           {/* STEP 1: EXTRACTION & BIO IMPORT */}
           {currentStep === "extraction" && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1.5">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 mb-1 flex items-center space-x-1.5">
                   <FileUp className="w-4 h-4 text-orange-500" />
                   <span>Step 1: Document Extraction & Bio Import</span>
                 </h3>
@@ -1462,14 +1462,14 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
         </div>
 
         {/* RIGHT COLUMN: Real-Time Live Preview Document Stage */}
-        <div className="lg:col-span-7 bg-slate-200 dark:bg-slate-950 p-4 sm:p-6 flex flex-col items-center justify-start overflow-y-auto relative">
+        <div className="lg:col-span-7 bg-slate-100 p-4 sm:p-6 flex flex-col items-center justify-start overflow-y-auto relative">
           {/* Zoom & Quick Controls Bar */}
           <div className="w-full max-w-2xl flex items-center justify-between mb-3 px-1">
-            <div className="flex items-center space-x-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center space-x-1.5 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-slate-200 shadow-xs">
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.max(70, z - 10))}
-                className="text-xs font-bold text-slate-600 dark:text-slate-300 px-1.5 hover:text-orange-500"
+                className="text-xs font-bold text-slate-600 px-1.5 hover:text-orange-500 cursor-pointer"
               >
                 -
               </button>
@@ -1477,7 +1477,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.min(130, z + 10))}
-                className="text-xs font-bold text-slate-600 dark:text-slate-300 px-1.5 hover:text-orange-500"
+                className="text-xs font-bold text-slate-600 px-1.5 hover:text-orange-500 cursor-pointer"
               >
                 +
               </button>
@@ -1487,7 +1487,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={handleCopyText}
-                className="px-2.5 py-1 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-300 dark:border-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:text-orange-500 transition flex items-center space-x-1 shadow-xs"
+                className="px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 text-[11px] font-bold text-slate-700 hover:text-orange-500 transition flex items-center space-x-1 shadow-xs cursor-pointer"
               >
                 {copiedNotification ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedNotification ? "Copied!" : "Copy Text"}</span>
@@ -1723,19 +1723,19 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
 
       {/* 4. Import / Raw Bio Modal */}
       {showInputModal && (
-        <div className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-slate-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FileUp className="w-5 h-5 text-orange-500" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-bold text-slate-900">
                   Import Resume or Bio Details
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowInputModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 text-xs font-bold"
+                className="text-slate-400 hover:text-slate-600 p-1 text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -1746,7 +1746,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
             </p>
 
             {/* File Drop Area */}
-            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-center relative hover:border-orange-500 transition cursor-pointer">
+            <div className="p-4 rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/40 text-center relative hover:border-orange-500 transition cursor-pointer">
               <input
                 type="file"
                 accept=".pdf,.docx,.txt"
@@ -1758,15 +1758,15 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
               <FileUp className="w-6 h-6 text-orange-500 mx-auto mb-1" />
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              <div className="text-xs font-bold text-slate-800">
                 Drop your PDF or DOCX resume here
               </div>
-              <div className="text-[10px] text-slate-400">or click to browse from device</div>
+              <div className="text-[10px] text-slate-500">or click to browse from device</div>
             </div>
 
             {/* Paste raw bio text */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
                 Or Paste Details / Raw Bio:
               </label>
               <textarea
@@ -1774,12 +1774,12 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
                 value={rawBioText}
                 onChange={(e) => setRawBioText(e.target.value)}
                 placeholder="e.g. John Doe, Senior Frontend Developer with 5 years experience at Acme Inc..."
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 outline-none focus:border-orange-500"
               />
             </div>
 
             {parsingStatus && (
-              <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 flex items-center space-x-1.5">
+              <div className="text-xs font-semibold text-orange-600 flex items-center space-x-1.5">
                 <RefreshCw className={`w-3.5 h-3.5 ${isParsing ? "animate-spin" : ""}`} />
                 <span>{parsingStatus}</span>
               </div>
@@ -1792,7 +1792,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
                   setResumeData(DEFAULT_RESUME_DATA);
                   setShowInputModal(false);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer border border-slate-200"
               >
                 Load Sample Profile
               </button>
@@ -1800,7 +1800,7 @@ export const ResumeReadyWorkspace: React.FC<ResumeReadyWorkspaceProps> = ({
                 type="button"
                 disabled={isParsing || !rawBioText.trim()}
                 onClick={() => handleParseResume(rawBioText)}
-                className="px-4 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold shadow-md hover:bg-orange-600 transition disabled:opacity-40"
+                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-xs hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-40 cursor-pointer"
               >
                 {isParsing ? "Organizing..." : "Extract & Generate"}
               </button>

@@ -228,23 +228,23 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-[var(--bg-primary,#0a0a0f)] text-[var(--text-primary,#f8fafc)] rounded-3xl shadow-2xl border border-[var(--border-color,rgba(255,255,255,0.1))] overflow-hidden my-4 transition-all">
+    <div className="main-tool-card w-full max-w-5xl mx-auto bg-white text-slate-800 rounded-[20px] shadow-2xl border border-slate-200/80 overflow-hidden my-4 transition-all">
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-[var(--border-color,rgba(255,255,255,0.1))] bg-[var(--bg-surface,#111114)]">
+      <header className="tool-card-header flex items-center justify-between p-5 border-b border-slate-100 bg-white/95">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shadow-xs">
             <Info className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-black text-[var(--text-primary,#f8fafc)]">
+              <h2 className="text-lg font-black text-slate-900">
                 View & Edit PDF Metadata
               </h2>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <span className="pill-badge-orange px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-orange-100 text-orange-700 border border-orange-200">
                 PDF Document Properties
               </span>
             </div>
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
+            <p className="text-xs text-slate-500">
               Inspect and edit internal PDF properties like Title, Author, Subject, Keywords & Producer
             </p>
           </div>
@@ -254,39 +254,39 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-[var(--text-muted,#64748b)] hover:text-[var(--text-primary,#f8fafc)] hover:bg-[var(--bg-elevated,#16161a)] transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
             title="Close workspace"
           >
             <X className="w-5 h-5" />
           </button>
         )}
-      </div>
+      </header>
 
       {/* Main Studio Area */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6 md:p-8 bg-white">
         {!file ? (
           /* Dropzone */
           <div
             {...getRootProps()}
-            className={`p-10 rounded-3xl border-2 border-dashed transition-all text-center cursor-pointer ${
+            className={`drag-drop-zone p-8 sm:p-10 rounded-[12px] border-2 border-dashed transition-all text-center cursor-pointer ${
               isDragActive
-                ? "border-blue-500 bg-blue-500/10 scale-[0.99]"
-                : "border-[var(--border-color,rgba(255,255,255,0.15))] hover:border-blue-500 bg-[var(--bg-surface,#111114)]"
+                ? "border-orange-500 bg-orange-50 scale-[0.99]"
+                : "border-slate-300 hover:border-orange-500 bg-[#f8fafc] hover:bg-[#fffbeb]"
             }`}
           >
             <input {...getInputProps()} />
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-3 border border-orange-100">
               <UploadCloud className="w-8 h-8" />
             </div>
-            <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)] mb-1">
+            <h3 className="text-base font-bold text-slate-900 mb-1">
               Select or drop a PDF file to view metadata
             </h3>
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)] max-w-sm mx-auto mb-4">
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
               Inspect document properties and modify metadata attributes securely in your browser.
             </p>
             <button
               type="button"
-              className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs transition shadow-md"
+              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition shadow-xs cursor-pointer"
             >
               Browse PDF File
             </button>
@@ -295,16 +295,16 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
           /* Workspace layout when file loaded */
           <div className="space-y-6">
             {/* Top Bar: File Info Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center space-x-3 overflow-hidden">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 font-bold">
+                <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 font-bold border border-orange-200">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="truncate">
-                  <p className="text-xs font-extrabold text-[var(--text-primary,#f8fafc)] truncate max-w-md">
+                  <p className="text-xs font-extrabold text-slate-800 truncate max-w-md">
                     {file.name}
                   </p>
-                  <div className="flex items-center space-x-3 text-[11px] text-[var(--text-muted,#64748b)] font-mono mt-0.5">
+                  <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-mono mt-0.5">
                     <span>{formatFileSize(file.size)}</span>
                     {originalMetadata?.pageCount && (
                       <span>• {originalMetadata.pageCount} pages</span>
@@ -314,8 +314,8 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
               </div>
 
               <div className="flex items-center space-x-2">
-                <label className="px-3 py-1.5 rounded-xl border border-[var(--border-color,rgba(255,255,255,0.15))] text-xs font-bold text-[var(--text-secondary,#94a3b8)] hover:bg-[var(--bg-elevated,#16161a)] cursor-pointer transition flex items-center space-x-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                <label className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer transition flex items-center space-x-1.5 shadow-2xs">
+                  <RefreshCw className="w-3.5 h-3.5 text-orange-500" />
                   <span>Choose Another File</span>
                   <input
                     type="file"
@@ -331,15 +331,14 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                 </label>
               </div>
             </div>
-
             {/* Split Grid: Form Controls (Left) & Read-Only Specs (Right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column: Form Inputs (7 Cols) */}
-              <div className="lg:col-span-7 space-y-4 p-5 rounded-3xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.1))]">
-                <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.1))] pb-3">
+              <div className="lg:col-span-7 space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <div className="flex items-center space-x-2">
-                    <Edit className="w-4 h-4 text-blue-400" />
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-primary,#f8fafc)]">
+                    <Edit className="w-4 h-4 text-orange-500" />
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
                       Edit Document Properties
                     </h3>
                   </div>
@@ -347,16 +346,16 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                     <button
                       type="button"
                       onClick={handleResetOriginal}
-                      className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)] hover:text-white underline"
+                      className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer"
                       title="Restore metadata from original file"
                     >
                       Reset to Original
                     </button>
-                    <span className="text-[var(--text-muted,#64748b)]">•</span>
+                    <span className="text-slate-300">•</span>
                     <button
                       type="button"
                       onClick={handleClearFields}
-                      className="text-[11px] font-bold text-red-400 hover:text-red-300 underline"
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
                       title="Clear all text fields"
                     >
                       Clear All
@@ -366,8 +365,8 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
 
                 {isLoadingMetadata ? (
                   <div className="py-12 text-center space-y-3">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-400" />
-                    <p className="text-xs font-bold text-[var(--text-muted,#64748b)]">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orange-500" />
+                    <p className="text-xs font-bold text-slate-500">
                       Reading document metadata headers...
                     </p>
                   </div>
@@ -375,81 +374,81 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                   <div className="space-y-3.5">
                     {/* Title */}
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
                         <span className="flex items-center space-x-1.5">
-                          <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                          <BookOpen className="w-3.5 h-3.5 text-orange-500" />
                           <span>Title</span>
                         </span>
-                        <span className="text-[10px] text-[var(--text-muted,#64748b)]">Document title</span>
+                        <span className="text-[10px] text-slate-500">Document title</span>
                       </label>
                       <input
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="e.g. Annual Financial Review 2026"
-                        className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                       />
                     </div>
 
                     {/* Author */}
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
                         <span className="flex items-center space-x-1.5">
-                          <User className="w-3.5 h-3.5 text-blue-400" />
+                          <User className="w-3.5 h-3.5 text-orange-500" />
                           <span>Author</span>
                         </span>
-                        <span className="text-[10px] text-[var(--text-muted,#64748b)]">Creator or organization</span>
+                        <span className="text-[10px] text-slate-500">Creator or organization</span>
                       </label>
                       <input
                         type="text"
                         value={author}
                         onChange={(e) => setAuthor(e.target.value)}
                         placeholder="e.g. Jane Doe / Acme Corp"
-                        className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                       />
                     </div>
 
                     {/* Subject */}
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
                         <span className="flex items-center space-x-1.5">
-                          <Info className="w-3.5 h-3.5 text-blue-400" />
+                          <Info className="w-3.5 h-3.5 text-orange-500" />
                           <span>Subject</span>
                         </span>
-                        <span className="text-[10px] text-[var(--text-muted,#64748b)]">Short summary topic</span>
+                        <span className="text-[10px] text-slate-500">Short summary topic</span>
                       </label>
                       <input
                         type="text"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
                         placeholder="e.g. Corporate Finance & Auditing"
-                        className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                       />
                     </div>
 
                     {/* Keywords */}
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
                         <span className="flex items-center space-x-1.5">
-                          <Tag className="w-3.5 h-3.5 text-blue-400" />
+                          <Tag className="w-3.5 h-3.5 text-orange-500" />
                           <span>Keywords</span>
                         </span>
-                        <span className="text-[10px] text-[var(--text-muted,#64748b)]">Comma-separated</span>
+                        <span className="text-[10px] text-slate-500">Comma-separated</span>
                       </label>
                       <input
                         type="text"
                         value={keywords}
                         onChange={(e) => setKeywords(e.target.value)}
                         placeholder="e.g. audit, finance, report, 2026, confidential"
-                        className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                       />
                     </div>
 
                     {/* Creator & Producer (Grid) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center space-x-1.5">
-                          <Cpu className="w-3.5 h-3.5 text-blue-400" />
+                        <label className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                          <Cpu className="w-3.5 h-3.5 text-orange-500" />
                           <span>Creator Application</span>
                         </label>
                         <input
@@ -457,13 +456,13 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                           value={creator}
                           onChange={(e) => setCreator(e.target.value)}
                           placeholder="e.g. Adobe InDesign / PDFSun"
-                          className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none"
+                          className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none"
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-[var(--text-primary,#f8fafc)] flex items-center space-x-1.5">
-                          <Layers className="w-3.5 h-3.5 text-blue-400" />
+                        <label className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                          <Layers className="w-3.5 h-3.5 text-orange-500" />
                           <span>PDF Producer</span>
                         </label>
                         <input
@@ -471,7 +470,7 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                           value={producer}
                           onChange={(e) => setProducer(e.target.value)}
                           placeholder="e.g. PDFSun Studio Engine"
-                          className="w-full px-3.5 py-2 rounded-xl bg-[var(--input-bg,#111114)] border border-[var(--input-border,rgba(255,255,255,0.15))] text-xs font-semibold text-[var(--text-primary,#f8fafc)] focus:outline-none"
+                          className="tool-input-soft w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -482,7 +481,7 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                         type="button"
                         onClick={handleSaveMetadata}
                         disabled={isProcessing}
-                        className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 hover:brightness-105 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center space-x-2"
+                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white font-extrabold text-sm shadow-md shadow-orange-500/25 hover:brightness-105 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center space-x-2 cursor-pointer"
                       >
                         {isProcessing ? (
                           <>
@@ -504,64 +503,64 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
               {/* Right Column: File Properties & Download (5 Cols) */}
               <div className="lg:col-span-5 space-y-4">
                 {/* File Technical Metadata Summary Card */}
-                <div className="p-5 rounded-3xl bg-[var(--bg-surface,#111114)] text-white space-y-4 shadow-xl border border-[var(--border-color,rgba(255,255,255,0.1))]">
-                  <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.08))] pb-3">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center space-x-1.5">
-                      <ShieldCheck className="w-4 h-4" />
+                <div className="p-5 rounded-2xl bg-slate-50 text-slate-800 space-y-4 shadow-2xs border border-slate-200">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
+                      <ShieldCheck className="w-4 h-4 text-orange-500" />
                       <span>Document Information</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px]">
+                    <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-mono text-[10px] font-bold">
                       Inspection
                     </span>
                   </div>
 
                   <div className="space-y-2.5 text-xs">
-                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-color,rgba(255,255,255,0.08))]">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium">Original Title:</span>
-                      <span className="font-semibold text-[var(--text-secondary,#94a3b8)] truncate max-w-[180px]">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
+                      <span className="text-slate-500 font-medium">Original Title:</span>
+                      <span className="font-semibold text-slate-700 truncate max-w-[180px]">
                         {originalMetadata?.title || "Not set"}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-color,rgba(255,255,255,0.08))]">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium">Original Author:</span>
-                      <span className="font-semibold text-[var(--text-secondary,#94a3b8)] truncate max-w-[180px]">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
+                      <span className="text-slate-500 font-medium">Original Author:</span>
+                      <span className="font-semibold text-slate-700 truncate max-w-[180px]">
                         {originalMetadata?.author || "Not set"}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-color,rgba(255,255,255,0.08))]">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium">Total Page Count:</span>
-                      <span className="font-mono font-bold text-amber-400">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
+                      <span className="text-slate-500 font-medium">Total Page Count:</span>
+                      <span className="font-mono font-bold text-orange-600">
                         {originalMetadata?.pageCount || 1} pages
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-color,rgba(255,255,255,0.08))]">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium">File Size:</span>
-                      <span className="font-mono text-[var(--text-secondary,#94a3b8)]">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
+                      <span className="text-slate-500 font-medium">File Size:</span>
+                      <span className="font-mono text-slate-700 font-medium">
                         {originalMetadata?.fileSize
                           ? formatFileSize(originalMetadata.fileSize)
                           : formatFileSize(file.size)}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-color,rgba(255,255,255,0.08))]">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium flex items-center space-x-1">
-                        <Calendar className="w-3 h-3 text-[var(--text-muted,#64748b)]" />
+                    <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
+                      <span className="text-slate-500 font-medium flex items-center space-x-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
                         <span>Created Date:</span>
                       </span>
-                      <span className="font-mono text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                      <span className="font-mono text-[11px] text-slate-600">
                         {formatDate(originalMetadata?.creationDate)}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[var(--text-muted,#64748b)] font-medium flex items-center space-x-1">
-                        <Clock className="w-3 h-3 text-[var(--text-muted,#64748b)]" />
+                      <span className="text-slate-500 font-medium flex items-center space-x-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
                         <span>Last Modified:</span>
                       </span>
-                      <span className="font-mono text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                      <span className="font-mono text-[11px] text-slate-600">
                         {formatDate(originalMetadata?.modificationDate)}
                       </span>
                     </div>
@@ -570,15 +569,15 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
 
                 {/* Ready to Download Output Box */}
                 {downloadReady && (
-                  <div className="p-5 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 space-y-3 animate-fade-in">
+                  <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3 animate-fade-in shadow-xs">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 text-emerald-400">
-                        <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      <div className="flex items-center space-x-2 text-emerald-800">
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
                         <span className="text-sm font-extrabold">Metadata Updated Successfully!</span>
                       </div>
                     </div>
 
-                    <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
+                    <p className="text-xs text-slate-600">
                       Internal header properties updated. Download your new PDF file below.
                     </p>
 
@@ -586,7 +585,7 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                       <button
                         type="button"
                         onClick={handleDownload}
-                        className="flex-1 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center space-x-2"
+                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 cursor-pointer"
                       >
                         <Download className="w-4 h-4" />
                         <span>Download Updated PDF</span>
@@ -595,9 +594,9 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowShareModal(true)}
-                        className="py-3 px-4 rounded-2xl bg-[var(--bg-elevated,#16161a)] border border-[var(--border-color,rgba(255,255,255,0.1))] text-white font-bold text-xs hover:bg-[var(--bg-elevated-hover,#1f1f26)] transition flex items-center space-x-1.5"
+                        className="py-3 px-4 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
                       >
-                        <Share2 className="w-4 h-4 text-blue-400" />
+                        <Share2 className="w-4 h-4 text-orange-500" />
                         <span>Share</span>
                       </button>
                     </div>

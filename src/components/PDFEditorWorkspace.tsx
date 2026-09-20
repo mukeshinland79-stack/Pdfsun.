@@ -1174,43 +1174,43 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
   const activePages = pagesMeta.filter((p) => !p.isDeleted);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100 font-sans select-none overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0b0f19] text-slate-800 font-sans select-none overflow-hidden">
       {/* 1. Top Global Navigation & Tool Header */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0">
+      <header className="h-16 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0 shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-tr from-amber-500 to-rose-500 rounded-xl shadow-lg shadow-amber-500/20">
+          <div className="p-2 bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-400 rounded-xl shadow-md">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="font-bold text-base tracking-tight text-white flex items-center">
+              <h2 className="font-bold text-base tracking-tight text-slate-900 flex items-center">
                 PDFSun Advanced Editor
-                <span className="ml-2 text-xs font-semibold px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                <span className="ml-2 text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full">
                   PRO SUITE
                 </span>
               </h2>
             </div>
-            <p className="text-xs text-slate-400 truncate max-w-xs md:max-w-md">{file.name}</p>
+            <p className="text-xs text-slate-500 truncate max-w-xs md:max-w-md">{file.name}</p>
           </div>
         </div>
 
         {/* Global Action Bar */}
         <div className="flex items-center space-x-2">
           {/* Zoom Controls */}
-          <div className="hidden sm:flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
+          <div className="hidden sm:flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200">
             <button
               onClick={() => setScale((s) => Math.max(0.6, s - 0.2))}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-200/70 rounded-lg text-slate-600 hover:text-slate-900"
               title="Zoom Out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-xs font-mono px-2 text-slate-300">
+            <span className="text-xs font-mono px-2 text-slate-700 font-semibold">
               {Math.round(scale * 100)}%
             </span>
             <button
               onClick={() => setScale((s) => Math.min(2.4, s + 0.2))}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-200/70 rounded-lg text-slate-600 hover:text-slate-900"
               title="Zoom In"
             >
               <ZoomIn className="w-4 h-4" />
@@ -1218,17 +1218,17 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
           </div>
 
           {/* Undo / Redo */}
-          <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
+          <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200">
             <button
               onClick={handleUndo}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-200/70 rounded-lg text-slate-600 hover:text-slate-900"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="w-4 h-4" />
             </button>
             <button
               onClick={handleRedo}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-200/70 rounded-lg text-slate-600 hover:text-slate-900"
               title="Redo (Ctrl+Y)"
             >
               <Redo2 className="w-4 h-4" />
@@ -1239,7 +1239,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
           <button
             onClick={handleSaveAndExport}
             disabled={isExporting}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
           >
             {isExporting ? (
               <>
@@ -1257,7 +1257,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
           {/* Close Window */}
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition"
+            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-700 transition"
             title="Exit Editor"
           >
             <X className="w-5 h-5" />
@@ -1266,14 +1266,14 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       </header>
 
       {/* 2. Secondary Contextual Toolbar */}
-      <nav aria-label="Editor Tools" className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between overflow-x-auto shrink-0 gap-2">
+      <nav aria-label="Editor Tools" className="h-14 bg-slate-50/90 border-b border-slate-200 px-4 flex items-center justify-between overflow-x-auto shrink-0 gap-2">
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
           <button
             onClick={() => setActiveTool("select")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "select"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <MousePointer className="w-4 h-4" />
@@ -1284,8 +1284,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("pen")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "pen"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <Pen className="w-4 h-4" />
@@ -1296,11 +1296,11 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("highlighter")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "highlighter"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
-            <Highlighter className="w-4 h-4 text-yellow-400" />
+            <Highlighter className="w-4 h-4 text-amber-500" />
             <span>{t("editor.highlight", "Highlight")}</span>
           </button>
 
@@ -1308,8 +1308,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("text")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "text"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <Type className="w-4 h-4" />
@@ -1320,8 +1320,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("rect")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "rect"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <Square className="w-4 h-4" />
@@ -1332,8 +1332,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("circle")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "circle"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <Circle className="w-4 h-4" />
@@ -1344,8 +1344,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("arrow")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "arrow"
-                ? "bg-amber-500 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
             <ArrowRight className="w-4 h-4" />
@@ -1356,35 +1356,35 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             onClick={() => setActiveTool("redact")}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               activeTool === "redact"
-                ? "bg-rose-600 text-white shadow"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800"
+                ? "bg-rose-600 text-white shadow-xs font-bold"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
             }`}
           >
-            <Lock className="w-4 h-4 text-rose-400" />
+            <Lock className="w-4 h-4 text-rose-500" />
             <span>{t("editor.redact", "Redact")}</span>
           </button>
 
           <button
             onClick={() => setShowStampModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer"
           >
-            <Stamp className="w-4 h-4 text-amber-400" />
+            <Stamp className="w-4 h-4 text-amber-500" />
             <span>{t("editor.stamp", "Stamp")}</span>
           </button>
 
           <button
             onClick={() => setShowSignatureModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer"
           >
-            <Pen className="w-4 h-4 text-sky-400" />
+            <Pen className="w-4 h-4 text-blue-500" />
             <span>{t("editor.sign", "Sign")}</span>
           </button>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-800 cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer"
           >
-            <ImageIcon className="w-4 h-4 text-emerald-400" />
+            <ImageIcon className="w-4 h-4 text-emerald-500" />
             <span>{t("editor.insertImage", "Insert Image")}</span>
           </button>
           <input
@@ -1398,7 +1398,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
 
         {/* Color Palette & Stroke Controls */}
         <div className="flex items-center space-x-2 shrink-0">
-          <div className="flex items-center space-x-1 bg-slate-800/90 p-1 rounded-lg border border-slate-700">
+          <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200">
             {PRESET_COLORS.map((c) => (
               <button
                 key={c.value}
@@ -1406,25 +1406,25 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                 style={{ backgroundColor: c.value }}
                 className={`w-5 h-5 rounded-full border transition transform ${
                   selectedColor === c.value
-                    ? "scale-110 border-white ring-2 ring-amber-500/50"
-                    : "border-slate-600 hover:scale-105"
+                    ? "scale-110 border-white ring-2 ring-orange-500"
+                    : "border-slate-300 hover:scale-105"
                 }`}
                 title={c.name}
               />
             ))}
           </div>
 
-          <div className="flex items-center space-x-1 bg-slate-800/90 p-1 rounded-lg border border-slate-700">
+          <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => handleRotatePage("ccw")}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900"
               title="Rotate 90° Counter-Clockwise"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={() => handleRotatePage("cw")}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900"
               title="Rotate 90° Clockwise"
             >
               <RotateCw className="w-4 h-4" />
@@ -1437,15 +1437,15 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       <div className="flex-1 flex overflow-hidden">
         {/* Left Page Thumbnails & Organizer Sidebar */}
         {showThumbnailsSidebar && (
-          <aside className="w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col shrink-0">
-            <div className="p-3 border-b border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center">
-                <Layers className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+          <aside className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
+            <div className="p-3 border-b border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 flex items-center">
+                <Layers className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
                 Pages ({activePages.length})
               </span>
               <button
                 onClick={() => handleInsertBlankPage(currentPageIndex)}
-                className="text-xs font-semibold px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded flex items-center space-x-1"
+                className="text-xs font-semibold px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg flex items-center space-x-1 shadow-xs cursor-pointer"
                 title="Insert Blank Page"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1464,12 +1464,12 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                     onClick={() => setCurrentPageIndex(idx)}
                     className={`group relative p-2 rounded-xl border transition cursor-pointer flex flex-col items-center ${
                       isSelected
-                        ? "bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/20"
-                        : "bg-slate-800/40 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600"
+                        ? "bg-amber-50 border-orange-500 ring-2 ring-orange-500/20"
+                        : "bg-white border-slate-200 hover:border-slate-300 shadow-xs"
                     }`}
                   >
                     {/* Thumbnail box */}
-                    <div className="w-full aspect-[3/4] bg-white rounded shadow flex items-center justify-center relative overflow-hidden">
+                    <div className="w-full aspect-[3/4] bg-white rounded shadow-xs border border-slate-100 flex items-center justify-center relative overflow-hidden">
                       <span className="text-xs font-bold text-slate-400 font-mono">
                         Page {idx + 1}
                       </span>
@@ -1481,7 +1481,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                     </div>
 
                     <div className="w-full flex items-center justify-between mt-2 px-1">
-                      <span className="text-xs font-medium text-slate-300">Page {idx + 1}</span>
+                      <span className="text-xs font-medium text-slate-700">Page {idx + 1}</span>
 
                       {/* Quick page actions */}
                       <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition">
@@ -1490,7 +1490,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                             e.stopPropagation();
                             handleDuplicatePage(idx);
                           }}
-                          className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white"
+                          className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800"
                           title="Duplicate Page"
                         >
                           <Copy className="w-3 h-3" />
@@ -1500,7 +1500,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                             e.stopPropagation();
                             handleDeletePage(idx);
                           }}
-                          className="p-1 hover:bg-rose-500/20 rounded text-rose-400"
+                          className="p-1 hover:bg-rose-50 rounded text-rose-500"
                           title="Delete Page"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -1517,11 +1517,11 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         {/* Center Canvas Viewport */}
         <main
           ref={viewportContainerRef}
-          className="flex-1 bg-slate-950 flex flex-col items-center justify-start p-6 overflow-auto relative"
+          className="flex-1 bg-slate-900/95 flex flex-col items-center justify-start p-6 overflow-auto relative"
         >
           {loading ? (
             <div className="flex flex-col items-center justify-center my-auto space-y-4">
-              <RotateCw className="w-8 h-8 text-amber-400 animate-spin" />
+              <RotateCw className="w-8 h-8 text-orange-400 animate-spin" />
               <p className="text-sm font-medium text-slate-300">{loadingMessage}</p>
             </div>
           ) : (
@@ -1553,14 +1553,14 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                     left: activeTextInput.x * scale,
                     top: activeTextInput.y * scale,
                   }}
-                  className="absolute z-20 bg-slate-900 border border-amber-500 rounded-lg p-2 shadow-2xl flex flex-col space-y-2 min-w-[220px]"
+                  className="absolute z-20 bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xl flex flex-col space-y-2 min-w-[240px]"
                 >
                   <textarea
                     autoFocus
                     value={typedTextValue}
                     onChange={(e) => setTypedTextValue(e.target.value)}
                     placeholder="Type your text annotation..."
-                    className="w-full bg-slate-800 text-white text-sm p-2 rounded border border-slate-700 outline-none resize-none"
+                    className="w-full bg-slate-50 text-slate-900 text-sm p-2 rounded-lg border border-slate-200 outline-none resize-none focus:border-orange-500"
                     rows={2}
                   />
                   <div className="flex items-center justify-between pt-1">
@@ -1568,7 +1568,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                       <select
                         value={fontFamily}
                         onChange={(e) => setFontFamily(e.target.value as any)}
-                        className="bg-slate-800 text-xs text-slate-200 rounded px-1.5 py-1 border border-slate-700"
+                        className="bg-slate-50 text-xs text-slate-700 rounded-lg px-1.5 py-1 border border-slate-200"
                       >
                         <option value="Helvetica">Helvetica</option>
                         <option value="Times">Times</option>
@@ -1577,7 +1577,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                       <select
                         value={textSize}
                         onChange={(e) => setTextSize(Number(e.target.value))}
-                        className="bg-slate-800 text-xs text-slate-200 rounded px-1.5 py-1 border border-slate-700"
+                        className="bg-slate-50 text-xs text-slate-700 rounded-lg px-1.5 py-1 border border-slate-200"
                       >
                         <option value={12}>12px</option>
                         <option value={14}>14px</option>
@@ -1590,13 +1590,13 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => setActiveTextInput(null)}
-                        className="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                        className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleCommitText}
-                        className="px-2.5 py-1 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded"
+                        className="px-2.5 py-1 text-xs bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-lg shadow-xs"
                       >
                         Add
                       </button>
@@ -1609,24 +1609,24 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         </main>
 
         {/* Right Settings & Document Properties Panel */}
-        <aside className="w-72 bg-slate-900/95 border-l border-slate-800 p-4 flex flex-col space-y-5 shrink-0 overflow-y-auto">
+        <aside className="w-72 bg-slate-50 border-l border-slate-200 p-4 flex flex-col space-y-5 shrink-0 overflow-y-auto">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center mb-3">
-              <Settings className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center mb-3">
+              <Settings className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
               Document Properties
             </h3>
-            <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 space-y-2 text-xs">
+            <div className="bg-white rounded-xl p-3 border border-slate-200 space-y-2 text-xs shadow-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Total Pages:</span>
-                <span className="font-semibold text-white">{activePages.length}</span>
+                <span className="text-slate-500">Total Pages:</span>
+                <span className="font-semibold text-slate-900">{activePages.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Current Page:</span>
-                <span className="font-semibold text-amber-400">{currentPageIndex + 1}</span>
+                <span className="text-slate-500">Current Page:</span>
+                <span className="font-semibold text-orange-600">{currentPageIndex + 1}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">File Size:</span>
-                <span className="font-semibold text-slate-300">
+                <span className="text-slate-500">File Size:</span>
+                <span className="font-semibold text-slate-700">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </span>
               </div>
@@ -1635,43 +1635,43 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
 
           {/* Watermark Section */}
           <div>
-            <h4 className="text-xs font-bold text-slate-300 mb-2">Watermark Overlay</h4>
+            <h4 className="text-xs font-bold text-slate-700 mb-2">Watermark Overlay</h4>
             <input
               type="text"
               value={watermarkText}
               onChange={(e) => setWatermarkText(e.target.value)}
               placeholder="e.g. CONFIDENTIAL / DRAFT"
-              className="w-full bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 focus:border-amber-500 outline-none"
+              className="w-full bg-white text-slate-900 text-xs px-3 py-2 rounded-lg border border-slate-200 focus:border-orange-500 outline-none shadow-xs"
             />
           </div>
 
           {/* Page Numbering Option */}
           <div>
-            <label className="flex items-center space-x-2 text-xs font-medium text-slate-300 cursor-pointer">
+            <label className="flex items-center space-x-2 text-xs font-medium text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={includePageNumbers}
                 onChange={(e) => setIncludePageNumbers(e.target.checked)}
-                className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/20"
+                className="rounded border-slate-300 text-orange-500 focus:ring-orange-500/20"
               />
               <span>Include Page Numbers (Bottom Footer)</span>
             </label>
           </div>
 
           {/* Shortcuts Reference */}
-          <div className="mt-auto bg-slate-800/40 p-3 rounded-xl border border-slate-700/40 text-xs text-slate-400 space-y-1.5">
-            <div className="font-bold text-slate-300 text-[11px] mb-1">Keyboard Shortcuts:</div>
+          <div className="mt-auto bg-white p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1.5 shadow-xs">
+            <div className="font-bold text-slate-800 text-[11px] mb-1">Keyboard Shortcuts:</div>
             <div className="flex justify-between">
               <span>Undo</span>
-              <kbd className="bg-slate-700 px-1.5 py-0.5 rounded text-[10px] text-white">Ctrl+Z</kbd>
+              <kbd className="bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] text-slate-700 font-mono">Ctrl+Z</kbd>
             </div>
             <div className="flex justify-between">
               <span>Redo</span>
-              <kbd className="bg-slate-700 px-1.5 py-0.5 rounded text-[10px] text-white">Ctrl+Y</kbd>
+              <kbd className="bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] text-slate-700 font-mono">Ctrl+Y</kbd>
             </div>
             <div className="flex justify-between">
               <span>Save & Export</span>
-              <kbd className="bg-slate-700 px-1.5 py-0.5 rounded text-[10px] text-white">
+              <kbd className="bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] text-slate-700 font-mono">
                 Ctrl+S
               </kbd>
             </div>
@@ -1682,15 +1682,15 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       {/* 4. Stamp Selection Modal */}
       {showStampModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl text-slate-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white flex items-center">
-                <Stamp className="w-5 h-5 mr-2 text-amber-400" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center">
+                <Stamp className="w-5 h-5 mr-2 text-orange-500" />
                 Select Stamp
               </h3>
               <button
                 onClick={() => setShowStampModal(false)}
-                className="p-1 text-slate-400 hover:text-white"
+                className="p-1 text-slate-400 hover:text-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1701,7 +1701,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
                   key={st.label}
                   onClick={() => handleInsertStamp(st.label, st.color)}
                   style={{ borderColor: st.color, color: st.color }}
-                  className="py-3 px-4 rounded-xl border-2 font-bold text-sm tracking-wider hover:scale-105 active:scale-95 transition bg-slate-800/40"
+                  className="py-3 px-4 rounded-xl border-2 font-bold text-sm tracking-wider hover:scale-105 active:scale-95 transition bg-slate-50"
                 >
                   {st.label}
                 </button>
@@ -1714,20 +1714,20 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       {/* 5. Draw Signature Modal */}
       {showSignatureModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl text-slate-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white flex items-center">
-                <Pen className="w-5 h-5 mr-2 text-sky-400" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center">
+                <Pen className="w-5 h-5 mr-2 text-orange-500" />
                 Draw E-Signature
               </h3>
               <button
                 onClick={() => setShowSignatureModal(false)}
-                className="p-1 text-slate-400 hover:text-white"
+                className="p-1 text-slate-400 hover:text-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="bg-white rounded-xl overflow-hidden border border-slate-300">
+            <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-inner">
               <canvas
                 ref={signatureCanvasRef}
                 width={380}
@@ -1741,20 +1741,20 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
             <div className="flex items-center justify-between mt-4">
               <button
                 onClick={handleClearSignature}
-                className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-lg"
+                className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg border border-slate-200"
               >
                 Clear
               </button>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setShowSignatureModal(false)}
-                  className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleApplySignature}
-                  className="px-4 py-1.5 text-xs bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow"
+                  className="px-4 py-1.5 text-xs bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-lg shadow-xs"
                 >
                   Apply Signature
                 </button>
