@@ -13,22 +13,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Google AdSense (Deferred post-load to protect INP and eliminate initial blocking) -->
+    <!-- Google AdSense (Deferred post-DOMContentLoaded to protect INP and eliminate initial blocking) -->
     <script>
-      function initAdSense() {
-        if (window.__adsenseLoaded) return;
-        window.__adsenseLoaded = true;
+      window.addEventListener('DOMContentLoaded', function() {
         var adsScript = document.createElement('script');
         adsScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4189458265489554';
         adsScript.async = true;
         adsScript.crossOrigin = 'anonymous';
         document.head.appendChild(adsScript);
-      }
-      if (document.readyState === 'loading') {
-        window.addEventListener('DOMContentLoaded', initAdSense);
-      } else {
-        initAdSense();
-      }
+      });
     </script>
 
     <!-- Google Analytics 4 (GA4) -->

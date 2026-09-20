@@ -31,8 +31,6 @@ if (typeof window !== 'undefined') {
       s.includes('googleadservices') ||
       s.includes('clarity.ms') ||
       s.includes('pagead2') ||
-      s.includes('adsbygoogle') ||
-      s.includes('tagerror') ||
       s.includes('failed to fetch') ||
       s.includes('load failed') ||
       s.includes('networkerror when attempting to fetch resource')
