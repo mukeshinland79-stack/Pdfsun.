@@ -1,0 +1,42 @@
+{
+  "name": "PDFSun - Free Online PDF Tools",
+  "short_name": "PDFSun",
+  "description": "Fast, secure, client-side PDF tools & document converter. Merge, Compress, Edit, Convert, and AI Chat with PDFs anywhere.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0F19",
+  "theme_color": "#2563EB",
+  "categories": ["utilities", "productivity", "office", "business"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ]
+}
