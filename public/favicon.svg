@@ -1,20 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fb923c" />
-      <stop offset="100%" stop-color="#ea580c" />
+    <!-- Brand Blue Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0066FF" />
+      <stop offset="100%" stop-color="#0047BA" />
     </linearGradient>
-    <linearGradient id="docGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#f8fafc" />
+    <!-- Folded Corner Gradient -->
+    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <!-- Golden Sun Gradient -->
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF566" />
+      <stop offset="100%" stop-color="#FFB300" />
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#sunGrad)" />
-  <g transform="translate(14, 12)">
-    <path d="M6 0h16l12 12v26a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" fill="url(#docGrad)" opacity="0.95" />
-    <path d="M22 0v12h12" fill="#fdba74" opacity="0.8" />
-    <rect x="8" y="18" width="20" height="3" rx="1.5" fill="#ea580c" />
-    <rect x="8" y="24" width="16" height="3" rx="1.5" fill="#f97316" />
-    <rect x="8" y="30" width="12" height="3" rx="1.5" fill="#fb923c" />
-  </g>
+
+  <!-- Clean Circular Brand Icon Badge with inline #0066FF -->
+  <circle cx="32" cy="32" r="31" fill="url(#bgGrad)" />
+  <circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(255, 255, 255, 0.3)" stroke-width="1" />
+
+  <!-- Rising Sun Accent Behind Document -->
+  <circle cx="43" cy="21" r="9" fill="url(#sunGrad)" opacity="0.95" />
+
+  <!-- Main Crisp White Folded PDF Document -->
+  <path d="M 21 16 C 19 16, 18 17.5, 18 19.5 L 18 45.5 C 18 47.5, 19 49, 21 49 L 41 49 C 43 49, 44 47.5, 44 45.5 L 44 24 L 36 16 Z" fill="#FFFFFF" />
+
+  <!-- Fold Corner -->
+  <path d="M 36 16 L 44 24 L 38 24 C 36.8 24, 36 23.2, 36 22 Z" fill="url(#foldGrad)" />
+
+  <!-- Document Lines (Brand Blue) -->
+  <rect x="23" y="27" width="14" height="2.5" rx="1.25" fill="#0066FF" />
+  <rect x="23" y="33" width="16" height="2.5" rx="1.25" fill="#2563EB" />
+  <rect x="23" y="39" width="10" height="2.5" rx="1.25" fill="#60A5FA" />
+
+  <!-- Sparkle Accent -->
+  <circle cx="25" cy="21" r="1.5" fill="#0066FF" />
 </svg>

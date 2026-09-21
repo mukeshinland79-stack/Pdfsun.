@@ -1,3 +1,26 @@
+# Favicon & Manifest Sovereign Cache Invalidation (v3.0 Blue Production)
+/favicon.ico
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+
+/favicon.svg
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/site.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/manifest+json
+  X-Content-Type-Options: nosniff
+
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/manifest+json
+  X-Content-Type-Options: nosniff
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Static Sitemaps & Robots.txt Headers
 /sitemap.xml
   Content-Type: application/xml; charset=utf-8

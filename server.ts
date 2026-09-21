@@ -222,24 +222,70 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static Favicon and Brand Asset Handlers
-app.get(["/favicon.ico", "/favicon.svg"], (_req, res) => {
-  const faviconPath = path.join(process.cwd(), "public", "favicon.svg");
-  if (fs.existsSync(faviconPath)) {
-    res.setHeader("Content-Type", "image/svg+xml");
-    return res.sendFile(faviconPath);
+// Static Favicon and Brand Asset Handlers (v3.0 Blue Production Sovereign Purge)
+app.get("/favicon.ico", (_req, res) => {
+  const icoPath = path.join(process.cwd(), "public", "favicon.ico");
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.setHeader("Content-Type", "image/x-icon");
+  if (fs.existsSync(icoPath)) {
+    return res.sendFile(icoPath);
   }
-  res.setHeader("Content-Type", "image/svg+xml");
-  res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#f97316"/><text x="32" y="42" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
+  const svgPath = path.join(process.cwd(), "public", "favicon.svg");
+  if (fs.existsSync(svgPath)) {
+    return res.sendFile(svgPath);
+  }
+  res.status(404).end();
 });
 
-app.get(["/icon-192.png", "/icon-512.png", "/og-image.png"], (_req, res) => {
-  const iconPath = path.join(process.cwd(), "public", "favicon.svg");
-  if (fs.existsSync(iconPath)) {
-    res.setHeader("Content-Type", "image/svg+xml");
-    return res.sendFile(iconPath);
+app.get("/favicon.svg", (_req, res) => {
+  const faviconPath = path.join(process.cwd(), "public", "favicon.svg");
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.setHeader("Content-Type", "image/svg+xml");
+  if (fs.existsSync(faviconPath)) {
+    return res.sendFile(faviconPath);
   }
-  res.status(200).send("");
+  res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><circle cx="32" cy="32" r="30" fill="#0066FF"/><text x="32" y="42" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
+});
+
+app.get(["/site.webmanifest", "/manifest.json"], (req, res) => {
+  const filename = req.path.includes("site.webmanifest") ? "site.webmanifest" : "manifest.json";
+  const manifestPath = path.join(process.cwd(), "public", filename);
+  res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  if (fs.existsSync(manifestPath)) {
+    return res.sendFile(manifestPath);
+  }
+  res.status(404).end();
+});
+
+app.get("/sw.js", (_req, res) => {
+  const swPath = path.join(process.cwd(), "public", "sw.js");
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  if (fs.existsSync(swPath)) {
+    return res.sendFile(swPath);
+  }
+  res.status(404).end();
+});
+
+app.get(["/icon-192.png", "/icon-512.png", "/android-chrome-192x192.png", "/android-chrome-512x512.png", "/logo.png", "/og-image.png", "/apple-touch-icon.png", "/apple-touch-icon-180x180.png", "/favicon-16x16.png", "/favicon-32x32.png", "/favicon-48x48.png"], (req, res) => {
+  const cleanName = path.basename(req.path);
+  let filePath = path.join(process.cwd(), "public", cleanName);
+  if (!fs.existsSync(filePath)) {
+    if (cleanName.includes("192")) filePath = path.join(process.cwd(), "public", "android-chrome-192x192.png");
+    else if (cleanName.includes("512")) filePath = path.join(process.cwd(), "public", "android-chrome-512x512.png");
+    else filePath = path.join(process.cwd(), "public", "logo.png");
+  }
+  res.setHeader("Content-Type", "image/png");
+  if (req.query.v) {
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  } else {
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  }
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  res.status(404).end();
 });
 
 // Trailing Slash Normalization (HTTP 307 preserves POST method and body payload)

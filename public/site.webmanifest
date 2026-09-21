@@ -7,34 +7,34 @@
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0B0F19",
-  "theme_color": "#2563EB",
+  "theme_color": "#0066FF",
   "categories": ["utilities", "productivity", "office", "business"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "16x16 32x32 48x48",
+      "src": "/favicon.ico?v=3.0_blue_prod",
+      "sizes": "16x16 32x32 48x48 64x64",
       "type": "image/x-icon"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.svg?v=3.0_blue_prod",
       "type": "image/svg+xml",
       "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
       "purpose": "any"
     },
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/android-chrome-192x192.png?v=3.0_blue_prod",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/android-chrome-512x512.png?v=3.0_blue_prod",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     },
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/apple-touch-icon.png?v=3.0_blue_prod",
       "type": "image/png",
       "sizes": "180x180"
     }

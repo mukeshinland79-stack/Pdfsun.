@@ -1,9 +1,19 @@
-// PDFSun Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'pdfsun-v2';
+// PDFSun Progressive Web App (PWA) Service Worker - Sovereign Cache Invalidation v3.0 Blue
+const CACHE_NAME = 'pdfsun-v3-blue';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/site.webmanifest?v=3.0_blue_prod',
+  '/manifest.json',
+  '/favicon.ico?v=3.0_blue_prod',
+  '/favicon.svg?v=3.0_blue_prod',
+  '/favicon-16x16.png?v=3.0_blue_prod',
+  '/favicon-32x32.png?v=3.0_blue_prod',
+  '/favicon-48x48.png?v=3.0_blue_prod',
+  '/apple-touch-icon.png?v=3.0_blue_prod',
+  '/android-chrome-192x192.png?v=3.0_blue_prod',
+  '/android-chrome-512x512.png?v=3.0_blue_prod',
+  '/logo.png?v=3.0_blue_prod'
 ];
 
 // Detect development or preview environment
@@ -20,21 +30,21 @@ self.addEventListener('install', (event) => {
   }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[PDFSun SW] Pre-caching app shell');
+      console.log('[PDFSun SW v3.0] Pre-caching app shell & blue brand assets');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event - Clean up stale caches & claim clients immediately
+// Activate Event - Sovereign Automated Cache Purge Protocol for legacy caches & claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((name) => {
-          if (isDev || name !== CACHE_NAME) {
-            console.log('[PDFSun SW] Purging cache:', name);
-            return caches.delete(name);
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('[PDFSun SW v3.0] Purging legacy cache:', cache);
+            return caches.delete(cache);
           }
         })
       );
@@ -121,7 +131,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for static assets (images, WASM, fonts)
+  // Network-first strategy for static assets
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -144,4 +154,3 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
-
