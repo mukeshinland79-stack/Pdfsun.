@@ -266,11 +266,33 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* ZONE 1: BRAND LOGO */}
           <div className="flex items-center shrink-0">
-            <PDFSunLogo
-              layout="horizontal"
-              size="md"
-              onClick={onGoHome}
-            />
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                onGoHome?.();
+              }}
+              className="flex items-center gap-2 focus:outline-none"
+              aria-label="PDFSun - Your Smart Document Companion"
+            >
+              <picture className="h-9 w-auto flex items-center">
+                <source media="(prefers-color-scheme: dark)" srcSet="/logo-dark.svg?v=5.0_master_brand" />
+                <img 
+                  src="/logo-light.svg?v=5.0_master_brand" 
+                  alt="PDFSun - Your Smart Document Companion" 
+                  className="h-9 w-auto object-contain dark:hidden"
+                  width="180"
+                  height="36"
+                />
+                <img 
+                  src="/logo-dark.svg?v=5.0_master_brand" 
+                  alt="PDFSun - Your Smart Document Companion" 
+                  className="h-9 w-auto object-contain hidden dark:block"
+                  width="180"
+                  height="36"
+                />
+              </picture>
+            </a>
           </div>
 
           {/* ZONE 2: CENTER RESPONSIVE GLOBAL SEARCH BAR */}

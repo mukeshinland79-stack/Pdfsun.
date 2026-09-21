@@ -1,19 +1,22 @@
-// PDFSun Progressive Web App (PWA) Service Worker - Sovereign Cache Invalidation v3.0 Blue
-const CACHE_NAME = 'pdfsun-v3-blue';
+// PDFSun Progressive Web App (PWA) Service Worker - Master Brand Cache Purge Protocol (v5.0)
+const CACHE_NAME = 'pdfsun-master-brand-v5.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/site.webmanifest?v=3.0_blue_prod',
+  '/logo-light.svg?v=5.0_master_brand',
+  '/logo-dark.svg?v=5.0_master_brand',
+  '/logo-stacked.svg?v=5.0_master_brand',
+  '/site.webmanifest?v=5.0_master_brand',
   '/manifest.json',
-  '/favicon.ico?v=3.0_blue_prod',
-  '/favicon.svg?v=3.0_blue_prod',
-  '/favicon-16x16.png?v=3.0_blue_prod',
-  '/favicon-32x32.png?v=3.0_blue_prod',
-  '/favicon-48x48.png?v=3.0_blue_prod',
-  '/apple-touch-icon.png?v=3.0_blue_prod',
-  '/android-chrome-192x192.png?v=3.0_blue_prod',
-  '/android-chrome-512x512.png?v=3.0_blue_prod',
-  '/logo.png?v=3.0_blue_prod'
+  '/favicon.ico?v=5.0_master_brand',
+  '/favicon.svg?v=5.0_master_brand',
+  '/favicon-16x16.png?v=5.0_master_brand',
+  '/favicon-32x32.png?v=5.0_master_brand',
+  '/favicon-48x48.png?v=5.0_master_brand',
+  '/apple-touch-icon.png?v=5.0_master_brand',
+  '/android-chrome-192x192.png?v=5.0_master_brand',
+  '/android-chrome-512x512.png?v=5.0_master_brand',
+  '/logo.png?v=5.0_master_brand'
 ];
 
 // Detect development or preview environment
@@ -30,7 +33,7 @@ self.addEventListener('install', (event) => {
   }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[PDFSun SW v3.0] Pre-caching app shell & blue brand assets');
+      console.log('[PDFSun SW v5.0] Pre-caching app shell & master brand assets');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
@@ -43,7 +46,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('[PDFSun SW v3.0] Purging legacy cache:', cache);
+            console.log('[PDFSun SW v5.0] Purging legacy cache:', cache);
             return caches.delete(cache);
           }
         })

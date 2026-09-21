@@ -82,6 +82,13 @@ export const PDFSunBrandShowcaseModal: React.FC<PDFSunBrandShowcaseModalProps> =
 
   const colors = [
     {
+      name: "Official Brand Blue",
+      hex: "#0052FF",
+      rgb: "rgb(0, 82, 255)",
+      role: "Official Primary Brand Color, Master Vector Icon & PWA Theme",
+      bgClass: "bg-[#0052FF]",
+    },
+    {
       name: "Primary Deep Navy",
       hex: "#0B3D91",
       rgb: "rgb(11, 61, 145)",

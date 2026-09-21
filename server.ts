@@ -244,7 +244,23 @@ app.get("/favicon.svg", (_req, res) => {
   if (fs.existsSync(faviconPath)) {
     return res.sendFile(faviconPath);
   }
-  res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><circle cx="32" cy="32" r="30" fill="#0066FF"/><text x="32" y="42" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
+  res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><circle cx="32" cy="32" r="30" fill="#0052FF"/><text x="32" y="42" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
+});
+
+// Official Master Brand SVGs (v5.0 Master Brand Kit)
+app.get(["/logo-light.svg", "/logo-dark.svg", "/logo-stacked.svg", "/icon-512.svg", "/icon-192.svg"], (req, res) => {
+  const cleanName = path.basename(req.path);
+  const filePath = path.join(process.cwd(), "public", cleanName);
+  res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
+  if (req.query.v) {
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  } else {
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  }
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  res.status(404).end();
 });
 
 app.get(["/site.webmanifest", "/manifest.json"], (req, res) => {

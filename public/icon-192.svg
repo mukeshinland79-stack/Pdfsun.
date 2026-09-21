@@ -1,48 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg512" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0066FF" />
-      <stop offset="50%" stop-color="#004FD6" />
-      <stop offset="100%" stop-color="#0B2B6E" />
+    <linearGradient id="pwaBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0052FF" />
+      <stop offset="60%" stop-color="#003EC4" />
+      <stop offset="100%" stop-color="#00237A" />
     </linearGradient>
-    <linearGradient id="sun512" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="pwaSun" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFF566" />
-      <stop offset="60%" stop-color="#FFC107" />
+      <stop offset="50%" stop-color="#FFC107" />
       <stop offset="100%" stop-color="#FF9800" />
     </linearGradient>
-    <linearGradient id="doc512" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="100%" stop-color="#F1F5F9" />
-    </linearGradient>
-    <linearGradient id="fold512" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="pwaFold" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#93C5FD" />
       <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
-    <filter id="shadow512" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#002970" flood-opacity="0.45" />
+    <filter id="pwaShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#001B5E" flood-opacity="0.45" />
     </filter>
   </defs>
 
-  <!-- Solid Opaque Background for Apple Touch & Android Chrome -->
-  <rect width="512" height="512" rx="128" fill="url(#bg512)" />
+  <!-- Solid Opaque Brand Squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#pwaBg)" />
   <rect width="508" height="508" x="2" y="2" rx="126" fill="none" stroke="rgba(255, 255, 255, 0.25)" stroke-width="4" />
 
   <!-- Rising Sun Accent -->
-  <circle cx="340" cy="170" r="76" fill="url(#sun512)" opacity="0.95" />
-  <circle cx="340" cy="170" r="100" fill="url(#sun512)" opacity="0.25" />
+  <circle cx="340" cy="170" r="76" fill="url(#pwaSun)" opacity="0.95" />
+  <circle cx="340" cy="170" r="100" fill="url(#pwaSun)" opacity="0.25" />
 
   <!-- Main Crisp White Folded Document -->
-  <g filter="url(#shadow512)">
-    <path d="M 160 120 C 140 120, 130 134, 130 154 L 130 360 C 130 380, 140 394, 160 394 L 320 394 C 340 394, 350 380, 350 360 L 350 188 L 282 120 Z" fill="url(#doc512)" />
+  <g filter="url(#pwaShadow)">
+    <path d="M 160 120 C 140 120, 130 134, 130 154 L 130 360 C 130 380, 140 394, 160 394 L 320 394 C 340 394, 350 380, 350 360 L 350 188 L 282 120 Z" fill="#FFFFFF" />
     <!-- Fold Corner -->
-    <path d="M 282 120 L 350 188 L 298 188 C 288 188, 282 182, 282 172 Z" fill="url(#fold512)" />
+    <path d="M 282 120 L 350 188 L 298 188 C 288 188, 282 182, 282 172 Z" fill="url(#pwaFold)" />
 
     <!-- Document Lines -->
-    <rect x="172" y="214" width="112" height="20" rx="10" fill="#0066FF" />
+    <rect x="172" y="214" width="112" height="20" rx="10" fill="#0052FF" />
     <rect x="172" y="258" width="136" height="20" rx="10" fill="#2563EB" />
     <rect x="172" y="302" width="90" height="20" rx="10" fill="#60A5FA" />
 
-    <!-- Star / Sparkle Icon -->
-    <circle cx="188" cy="164" r="12" fill="#0066FF" />
+    <!-- Sparkle Star -->
+    <circle cx="188" cy="164" r="12" fill="#0052FF" />
   </g>
 </svg>
