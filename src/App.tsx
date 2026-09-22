@@ -820,6 +820,22 @@ function MainApp() {
               <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
             )}
 
+            {/* ========================================================================= */}
+            {/* UNIVERSAL DAILY CHRONICLE & TECHNICAL INTELLIGENCE HUB (100% PUBLIC/UNGATED) */}
+            {/* ========================================================================= */}
+            <section
+              id="daily-chronicle-section"
+              aria-label="Daily Chronicle & Technical Intelligence"
+              className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5"
+            >
+              <EngineChroniclesHub
+                geoResult={geoResult}
+                onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+                onNavigateArticle={handleNavigateArticle}
+                onNavigateBlog={handleNavigateBlog}
+              />
+            </section>
+
             <CollapsibleSectionsHub
               childrenAiSection={
                 <div className="space-y-4">
@@ -829,12 +845,6 @@ function MainApp() {
               }
               childrenChroniclesSection={
                 <div className="space-y-6">
-                  <EngineChroniclesHub
-                    geoResult={geoResult}
-                    onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-                    onNavigateArticle={handleNavigateArticle}
-                    onNavigateBlog={handleNavigateBlog}
-                  />
                   <PdfSunArticleSection
                     showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
                     onNavigateArticle={handleNavigateArticle}

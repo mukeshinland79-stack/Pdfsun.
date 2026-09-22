@@ -75,7 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { name: t("pdfToWord", "PDF to Word"), toolId: "pdf-to-word", icon: FileText },
     { name: t("chatWithPdf", "AI Chat with PDF"), toolId: "ai-chat-pdf", icon: Sparkles },
     { name: t("aiSummary", "AI Summary"), toolId: "ai-pdf-summary", icon: Zap },
-    { name: "Resume Ready", toolId: "ai-resume-builder", icon: FileText },
+    { name: t("tools.ai-resume-builder.name", "AI Resume Builder"), toolId: "ai-resume-builder", icon: FileText },
   ];
 
   return (
@@ -92,23 +92,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span>All PDF engines running at maximum speed</span>
+            <span>{t("hero.allEnginesFast", "All PDF engines running at maximum speed")}</span>
           </div>
 
           {/* Badge 1: 100% Client-Side Privacy */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold">100% Client-Side Privacy</span>
+            <span className="font-bold">{t("badges.privacyTitle", "100% Client-Side Privacy")}</span>
             <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-normal">Files Never Leave Your Browser</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-normal">{t("badges.privacySub", "Files Never Leave Your Browser")}</span>
           </div>
 
           {/* Badge 2: Offline Ready */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-            <span className="font-bold">Lightning Fast</span>
+            <span className="font-bold">{t("badges.ultraFast", "Lightning Fast")}</span>
             <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
-            <span className="text-slate-600 dark:text-slate-400 font-normal">Works 100% Offline</span>
+            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.noStorageDesc", "Works 100% Offline")}</span>
           </div>
 
           {/* Badge 3: 66+ Free Online PDF & Document Tools */}
@@ -116,7 +116,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <span className="font-bold">{t("badges.tools50", "66+ Free Online PDF & Document Tools")}</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
-            <span className="text-slate-500 dark:text-slate-400 font-normal">Client Sandboxed</span>
+            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.clientSandboxed", "Client Sandboxed")}</span>
           </div>
 
           {/* Dynamic Counter Component Badge */}
@@ -125,7 +125,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="font-semibold text-orange-600 dark:text-orange-400">Serving 66+ High-Speed Document Engines</span>
+            <span className="font-semibold text-orange-600 dark:text-orange-400">{t("badges.utilitiesTitle", "Serving 66+ High-Speed Document Engines")}</span>
           </div>
         </div>
 

@@ -385,7 +385,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               }`}
               title="Auto-load tools as you scroll"
             >
-              Lazy Load
+              {t("toolkit.lazyLoad", "Lazy Load")}
             </button>
             <button
               type="button"
@@ -399,7 +399,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               }`}
               title="Paginated view mode"
             >
-              Paged
+              {t("toolkit.paged", "Paged")}
             </button>
           </div>
 
@@ -538,19 +538,19 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
                 <>
                   <div ref={sentinelRef} className="h-6 w-full flex items-center justify-center">
                     <span className="text-xs font-medium text-slate-400 animate-pulse">
-                      Scroll to lazy-load more tools...
+                      {t("toolkit.scrollMore", "Scroll to lazy-load more tools...")}
                     </span>
                   </div>
                   <button
                     onClick={() => setVisibleCount((prev) => Math.min(filteredTools.length, prev + 16))}
-                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition"
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
                   >
-                    Load More Tools ({filteredTools.length - visibleCount} remaining)
+                    {t("toolkit.loadMore", "Load More Tools ({{count}} remaining)", { count: filteredTools.length - visibleCount })}
                   </button>
                 </>
               ) : (
                 <div className="text-xs text-slate-400 font-medium">
-                  Showing all {filteredTools.length} tools
+                  {t("toolkit.showingAll", "Showing all {{count}} tools", { count: filteredTools.length })}
                 </div>
               )}
             </div>
@@ -563,7 +563,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
               className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800"
             >
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400" aria-current="page">
-                PDF Sun - Page <span className="text-orange-500 font-black">{currentPage}</span> of {totalPages} ({filteredTools.length} total tools)
+                PDF Sun - {t("toolkit.pageOf", "Page {{current}} of {{total}} ({{count}} total tools)", { current: currentPage, total: totalPages, count: filteredTools.length })}
               </div>
               <div className="flex items-center space-x-1.5 flex-wrap justify-center" role="navigation" aria-label="Pagination pages">
                 <button
@@ -576,7 +576,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
                   }}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500"
                 >
-                  Previous
+                  {t("toolkit.previous", "Previous")}
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
@@ -607,7 +607,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
                   }}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500"
                 >
-                  Next
+                  {t("toolkit.next", "Next")}
                 </button>
               </div>
             </nav>
@@ -616,16 +616,16 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       ) : (
         <div className="py-16 text-center space-y-3 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
           <Filter className="w-10 h-10 text-slate-400 mx-auto" />
-          <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">No matching tools found</h3>
-          <p className="text-xs text-slate-400">Try searching with a different keyword like "merge", "split", "AI", or "word".</p>
+          <h3 className="text-base font-bold text-slate-700 dark:text-slate-200">{t("toolkit.noToolsFound", "No matching tools found")}</h3>
+          <p className="text-xs text-slate-400">{t("toolkit.tryDifferentSearch", 'Try searching with a different keyword like "merge", "split", "AI", or "word".')}</p>
           <button
             onClick={() => {
               setSearchQuery("");
               setSelectedCategory("all");
             }}
-            className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md hover:bg-orange-600 transition"
+            className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md hover:bg-orange-600 transition cursor-pointer"
           >
-            Clear Filters
+            {t("toolkit.clearFilters", "Clear Filters")}
           </button>
         </div>
       )}

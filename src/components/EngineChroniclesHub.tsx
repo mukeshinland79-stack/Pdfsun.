@@ -23,6 +23,7 @@ import { GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
+import { useLanguage } from "../lib/i18n";
 
 export interface EngineChroniclesHubProps {
   geoResult: GeoDetectionResult;
@@ -37,6 +38,9 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
   onNavigateArticle,
   onNavigateBlog,
 }) => {
+  const { currentLanguage, t } = useLanguage();
+  const effectiveLang = currentLanguage || geoResult.detectedLanguage?.code || "en";
+
   const [featuredHeadline, setFeaturedHeadline] = useState<string>(
     "Historic Global Milestones & Groundbreaking Inventions"
   );
@@ -51,7 +55,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
     const loadData = () => {
       const now = new Date();
       lastLoadedDay = now.getDate();
-      fetchDayInHistory(now, geoResult.detectedLanguage?.code || "en", geoResult.detectedCountryCode || "IN").then(
+      fetchDayInHistory(now, effectiveLang, geoResult.detectedCountryCode || "IN").then(
         (data) => {
           if (isMounted && data) {
             setFeaturedHeadline(data.featuredHeadline || "Historic Global Milestones & Groundbreaking Inventions");
@@ -87,13 +91,13 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [geoResult.detectedLanguage?.code, geoResult.detectedCountryCode]);
+  }, [effectiveLang, geoResult.detectedCountryCode]);
 
   const handleExportQuickPdf = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const data = await fetchDayInHistory(
       new Date(),
-      geoResult.detectedLanguage?.code || "en",
+      effectiveLang,
       geoResult.detectedCountryCode || "IN"
     );
     if (data) {
@@ -101,7 +105,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
     }
   };
 
-  const langCode = geoResult.detectedLanguage?.code || "en";
+  const langCode = effectiveLang;
 
   return (
     <div
@@ -114,10 +118,10 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
         <div className="flex items-center space-x-2">
           <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-            Chronicles &amp; Technical Intelligence Hub
+            {t("chronicles.title", "Chronicles & Technical Intelligence Hub")}
           </span>
           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-cyan-400 border border-cyan-500/30">
-            3 Core Pillars
+            {t("chronicles.threePillars", "3 Core Pillars")}
           </span>
         </div>
 
@@ -132,7 +136,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
           >
-            All Pillars (3)
+            {t("chronicles.allPillars", "All Pillars (3)")}
           </button>
           <button
             type="button"
@@ -143,7 +147,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
           >
-            Daily History
+            {t("chronicles.dailyHistory", "Daily History")}
           </button>
           <button
             type="button"
@@ -154,7 +158,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
           >
-            Engineering Insights
+            {t("chronicles.engineeringInsights", "Engineering Insights")}
           </button>
           <button
             type="button"
@@ -165,7 +169,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
           >
-            Productivity Hacks
+            {t("chronicles.productivityHacks", "Productivity Hacks")}
           </button>
         </div>
       </div>
@@ -254,10 +258,10 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 type="button"
                 onClick={handleExportQuickPdf}
                 className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold border border-white/10 transition flex items-center space-x-1.5 cursor-pointer"
-                title="Download printable study worksheet PDF"
+                title={t("chronicles.exportPdfTitle", "Download printable study worksheet PDF")}
               >
                 <Download className="w-3.5 h-3.5 text-amber-400" />
-                <span>Export PDF</span>
+                <span>{t("chronicles.exportPdf", "Export PDF")}</span>
               </button>
 
               <button
@@ -265,7 +269,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 onClick={onOpenHistoryModal}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center space-x-1.5 transition group-hover:scale-102 cursor-pointer"
               >
-                <span>Explore</span>
+                <span>{t("chronicles.explore", "Explore")}</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[3] group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
