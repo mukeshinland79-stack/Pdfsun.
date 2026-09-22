@@ -3,6 +3,32 @@ import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data
 import { formatLocalizedHistoryDate, COUNTRY_META_MAP, TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 /**
+ * Utility to guarantee strictly unique keys across all history event and birthday items
+ */
+function ensureUniqueHistoryIds(data: DayInHistoryData): DayInHistoryData {
+  if (!data) return data;
+  const seenIds = new Set<string>();
+  const sanitizeList = (list?: any[]) => {
+    if (!Array.isArray(list)) return [];
+    return list.map((item, idx) => {
+      let id = item.id || `item-${idx}`;
+      if (seenIds.has(id)) {
+        id = `${id}-${idx}`;
+      }
+      seenIds.add(id);
+      return { ...item, id };
+    });
+  };
+
+  return {
+    ...data,
+    events: sanitizeList(data.events),
+    births: sanitizeList(data.births),
+    discoveries: sanitizeList(data.discoveries)
+  };
+}
+
+/**
  * Service to fetch and provide rich Day in History data with client persistence and internet updates
  */
 export async function fetchDayInHistory(
@@ -27,7 +53,7 @@ export async function fetchDayInHistory(
           // Revalidate in background if cached > 6 hours
           const cachedTime = parsed.generatedAt ? new Date(parsed.generatedAt).getTime() : 0;
           if (Date.now() - cachedTime < 6 * 60 * 60 * 1000) {
-            return parsed;
+            return ensureUniqueHistoryIds(parsed);
           }
         }
       }
@@ -52,12 +78,13 @@ export async function fetchDayInHistory(
     if (res.ok) {
       const data = await res.json();
       if (data && data.events && data.events.length > 0) {
+        const sanitizedData = ensureUniqueHistoryIds(data);
         try {
-          localStorage.setItem(localCacheKey, JSON.stringify(data));
+          localStorage.setItem(localCacheKey, JSON.stringify(sanitizedData));
         } catch {
           // Quota exceeded or private browsing
         }
-        return data;
+        return sanitizedData;
       }
     }
   } catch (e) {
@@ -72,7 +99,7 @@ export async function fetchDayInHistory(
 
   if (fallbackEntry && fallbackEntry.events && fallbackEntry.events.length > 0) {
     const countryMatches = fallbackEntry.events.some((e) => e.countryCode === countryCode);
-    return {
+    return ensureUniqueHistoryIds({
       dateString: formattedDateStr,
       month,
       day,
@@ -102,7 +129,7 @@ export async function fetchDayInHistory(
         author: "Alexis de Tocqueville",
         context: "Historian & Political Philosopher"
       }
-    };
+    });
   }
 
   // 3. Dynamic algorithmic fallback for all 365 days
@@ -110,7 +137,7 @@ export async function fetchDayInHistory(
   algorithmic.formattedDate = formattedDateStr;
   algorithmic.dateString = formattedDateStr;
   algorithmic.isGlobalFallback = true;
-  return algorithmic;
+  return ensureUniqueHistoryIds(algorithmic);
 }
 
 /**

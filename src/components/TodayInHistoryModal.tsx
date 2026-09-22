@@ -27,6 +27,9 @@ import {
   CalendarDays,
   Loader2,
   RefreshCw,
+  ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { DayInHistoryData, SupportedLanguage, HistoryEventItem } from "../types/history";
@@ -38,7 +41,8 @@ import {
 import {
   getHistoryText,
   MONTH_NAMES,
-  DAYS_IN_MONTH
+  DAYS_IN_MONTH,
+  generateAlgorithmicDayInHistory
 } from "../data/historyData";
 import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
@@ -85,10 +89,18 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     return initialCountryCode;
   });
 
-  const [historyData, setHistoryData] = useState<DayInHistoryData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [historyData, setHistoryData] = useState<DayInHistoryData | null>(() => {
+    try {
+      const now = new Date();
+      return generateAlgorithmicDayInHistory(now.getMonth() + 1, now.getDate(), "IN", "en");
+    } catch {}
+    return null;
+  });
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<"all" | "milestone" | "birth" | "invention" | "country-spotlight">("all");
+  const [selectedDetailEvent, setSelectedDetailEvent] = useState<HistoryEventItem | null>(null);
+  const [copiedEventText, setCopiedEventText] = useState(false);
 
   // Quiz state
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -356,7 +368,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   return (
     <div
       id="today-in-history-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-fadeIn"
       role="dialog"
       aria-modal="true"
       aria-labelledby="today-in-history-heading"
@@ -649,7 +661,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
           )}
 
           {historyData && (
-            <div className={`space-y-6 transition-opacity duration-150 ${loading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+            <div className={`space-y-6 transition-opacity duration-150 ${loading ? "opacity-80" : "opacity-100"}`}>
               {/* FEATURED HEADLINE BANNER & COUNTRY STATUS BADGE */}
               <div className="relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-500/20 shadow-sm space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -765,10 +777,20 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               {/* EVENTS LIST GRID */}
               {allEventsList.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {allEventsList.map((item) => (
+                  {allEventsList.map((item, idx) => (
                     <div
-                      key={item.id}
-                      className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:border-blue-400/60 transition shadow-2xs space-y-2 flex flex-col justify-between group"
+                      key={`${item.id}-${idx}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedDetailEvent(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedDetailEvent(item);
+                        }
+                      }}
+                      className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/20 dark:hover:bg-slate-800 transition-all duration-200 space-y-2 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
+                      title="Click to view full historical details and verified source"
                     >
                       <div>
                         {/* Year & Tag Header */}
@@ -782,8 +804,8 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         </div>
 
                         {/* Event Title */}
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {item.headline}
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-start justify-between gap-2">
+                          <span>{item.headline}</span>
                         </h4>
 
                         {/* Description */}
@@ -799,21 +821,23 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         </p>
                       )}
 
-                      {/* Display-Only Source Reference (Strictly Plain Text • Not Clickable) */}
-                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 select-text cursor-default">
+                      {/* Interactive Source Reference & Click-to-Expand Indicator */}
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 select-none">
                         <div className="flex items-center space-x-1.5 min-w-0">
                           <span className="text-blue-500 dark:text-blue-400 font-bold shrink-0">◉</span>
                           <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
                             Source: {item.sourceName || "Wikimedia Foundation"}
                           </span>
-                          <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
-                            • {item.sourceDomain || "wikimedia.org"}
-                          </span>
                         </div>
 
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                          {item.verificationStatus || "VERIFIED"}
-                        </span>
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {item.verificationStatus || "VERIFIED"}
+                          </span>
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 opacity-90 group-hover:underline">
+                            Details →
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -997,6 +1021,93 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* INTERACTIVE EVENT DETAIL DIALOG (Accessible to all guests & users) */}
+      {selectedDetailEvent && (
+        <div
+          id="history-event-detail-backdrop"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setSelectedDetailEvent(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            id="history-event-detail-modal"
+            className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 sm:p-7 space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-sm shadow-xs">
+                  {selectedDetailEvent.year}
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                  {selectedDetailEvent.tag || selectedDetailEvent.category}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDetailEvent(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                aria-label="Close details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-snug">
+              {selectedDetailEvent.headline}
+            </h3>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+              <p>{selectedDetailEvent.description}</p>
+              {selectedDetailEvent.significance && (
+                <p className="text-xs italic text-blue-600 dark:text-blue-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <strong>Historical Impact:</strong> {selectedDetailEvent.significance}
+                </p>
+              )}
+            </div>
+
+            {/* Source & Actions */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
+                <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="truncate">
+                  Verified via <strong>{selectedDetailEvent.sourceName || "Wikimedia Foundation"}</strong>
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `${selectedDetailEvent.year}: ${selectedDetailEvent.headline} - ${selectedDetailEvent.description}`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedEventText(true);
+                    setTimeout(() => setCopiedEventText(false), 2000);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  {copiedEventText ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedEventText ? "Copied!" : "Copy Story"}</span>
+                </button>
+
+                {selectedDetailEvent.wikipediaUrl && (
+                  <a
+                    href={selectedDetailEvent.wikipediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                  >
+                    <span>Wikipedia</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

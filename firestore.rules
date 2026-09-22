@@ -102,6 +102,27 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
     }
+
+    // Daily Knowledge Hub & Today in History (100% Public Read Access for all visitors, guests & users)
+    match /daily_history/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    match /history_events/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    match /knowledge_hub/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
+    match /daily_chronicles/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
   }
 }
 

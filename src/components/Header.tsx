@@ -302,32 +302,8 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Chronicle, Pricing, Install, Language, Theme & Auth/Profile) */}
+          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Install, Pricing, Language, Theme & Auth/Profile) */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
-            {/* Daily Chronicle Universal Public Quick Access */}
-            {onOpenTodayInHistory && (
-              <button
-                type="button"
-                id="header-nav-chronicle-btn"
-                onClick={() => {
-                  const el = document.getElementById("daily-chronicle-section");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
-                  } else {
-                    onOpenTodayInHistory();
-                  }
-                }}
-                className="h-9 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-cyan-500/15 hover:text-cyan-700 dark:hover:text-cyan-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-cyan-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
-                title={t("nav.dailyChronicle", "Today in History & Daily Chronicle")}
-                aria-label="Daily Chronicle"
-              >
-                <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-                <span className="hidden xl:inline whitespace-nowrap font-bold">
-                  {t("nav.dailyChronicle", "Daily Chronicle")}
-                </span>
-              </button>
-            )}
-
             {/* Install App Direct Button (Customer-Facing PWA Install) */}
             <button
               type="button"

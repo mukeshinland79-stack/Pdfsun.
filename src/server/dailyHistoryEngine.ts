@@ -664,7 +664,7 @@ export async function getVerifiedDailyHistory(options: {
     const birthSourceMeta = determineSourceMetadata(raw.text, pageDesc, "birth");
 
     parsedBirths.push({
-      id: `birth-${month}-${day}-${raw.year || i}`,
+      id: `birth-${month}-${day}-${raw.year || i}-${i}`,
       year: raw.year || "Historical",
       headline: cleanPersonName,
       title: cleanPersonName,

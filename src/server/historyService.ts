@@ -39,14 +39,27 @@ function computeDateInTimezone(tz?: string, countryCode: string = "IN"): { month
 
 /**
  * Express router for Today in History & Daily Knowledge Hub API
+ * 100% UNGATED & PUBLIC ACCESS FOR ALL GUESTS, VISITORS & USERS
  */
 export const historyRouter = express.Router();
 
+// Permissive public access middleware for knowledge hub
+historyRouter.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 /**
- * GET /api/history/today
+ * GET /api/history/today (also aliased to /feed, /events, /knowledge)
  * Main endpoint fetching real verified historical events from public internet APIs (Wikimedia)
+ * Completely ungated for all guests and authenticated users alike.
  */
-historyRouter.get("/today", async (req, res) => {
+historyRouter.get(["/today", "/feed", "/events", "/knowledge"], async (req, res) => {
   try {
     const country = ((req.query.country as string) || "IN").toUpperCase();
     const lang = ((req.query.lang as string) || "en").toLowerCase();
