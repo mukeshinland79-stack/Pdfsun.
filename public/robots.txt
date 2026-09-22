@@ -1,6 +1,15 @@
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
 Disallow: /api/admin/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
 
 Sitemap: https://pdfsun.in/sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-blog.xml

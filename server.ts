@@ -284,7 +284,21 @@ app.get("/sw.js", (_req, res) => {
   res.status(404).end();
 });
 
-app.get(["/icon-192.png", "/icon-512.png", "/android-chrome-192x192.png", "/android-chrome-512x512.png", "/logo.png", "/og-image.png", "/apple-touch-icon.png", "/apple-touch-icon-180x180.png", "/favicon-16x16.png", "/favicon-32x32.png", "/favicon-48x48.png"], (req, res) => {
+app.get([
+  "/icon-192.png",
+  "/icon-512.png",
+  "/android-chrome-192x192.png",
+  "/android-chrome-512x512.png",
+  "/logo.png",
+  "/og-image.png",
+  "/apple-touch-icon.png",
+  "/apple-touch-icon-180x180.png",
+  "/favicon-16x16.png",
+  "/favicon-32x32.png",
+  "/favicon-48x48.png",
+  "/favicon-96x96.png",
+  "/favicon-192x192.png"
+], (req, res) => {
   const cleanName = path.basename(req.path);
   let filePath = path.join(process.cwd(), "public", cleanName);
   if (!fs.existsSync(filePath)) {
@@ -3819,7 +3833,16 @@ app.get("/robots.txt", (req, res) => {
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
   res.send(`User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
 Disallow: /api/admin/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
 
 Sitemap: https://pdfsun.in/sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-blog.xml
