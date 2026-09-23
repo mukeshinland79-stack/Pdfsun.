@@ -3854,9 +3854,20 @@ app.get("/robots.txt", (req, res) => {
   res.send(`User-agent: *
 Allow: /
 Allow: /assets/
-Allow: /favicon.ico
-Allow: /favicon-*.png
-Allow: /apple-touch-icon.png
+Allow: /favicon*
+Allow: /apple-touch*
+Allow: /android-chrome*
+Allow: /*.png
+Allow: /*.svg
+Allow: /*.ico
+Disallow: /api/admin/
+
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /favicon*
+Allow: /apple-touch*
+Allow: /android-chrome*
 Allow: /*.png
 Allow: /*.svg
 Allow: /*.ico
@@ -3865,9 +3876,9 @@ Disallow: /api/admin/
 User-agent: Googlebot-Image
 Allow: /
 Allow: /assets/
-Allow: /favicon.ico
-Allow: /favicon-*.png
-Allow: /apple-touch-icon.png
+Allow: /favicon*
+Allow: /apple-touch*
+Allow: /android-chrome*
 Allow: /*.png
 Allow: /*.svg
 Allow: /*.ico

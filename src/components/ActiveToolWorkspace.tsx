@@ -392,6 +392,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     return getToolFAQs(tool);
   }, [tool]);
 
+  // Compute Related Tools for Smart Navigation Bar
+  const relatedTools = React.useMemo(() => {
+    const sameCat = ALL_TOOLS.filter((t) => t.id !== tool.id && t.category === tool.category);
+    const popular = ALL_TOOLS.filter((t) => t.id !== tool.id && t.isPopular && !sameCat.some((sc) => sc.id === t.id));
+    return [...sameCat, ...popular].slice(0, 5);
+  }, [tool.id, tool.category]);
+
   // Extended Tool Options States (Master Schema)
   const [mergePagesToCopy, setMergePagesToCopy] = useState("all");
   const [mergeAddNumbers, setMergeAddNumbers] = useState(false);
@@ -1639,6 +1646,39 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               {t("workspace.supportsFormat", `Supports ${tool.supportedInput.join(", ")} • Up to 100MB per file • Real-time header validation`)}
             </p>
+          </div>
+
+          {/* Prominent Security & Trust Badges (Client-Side WASM Zero-Knowledge Security) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className="flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-950 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold leading-tight">100% Encrypted</div>
+                <div className="text-[10px] text-blue-700 leading-tight mt-0.5">End-to-end memory isolation</div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-emerald-950 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <HardDrive className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold leading-tight">No Server Uploads</div>
+                <div className="text-[10px] text-emerald-700 leading-tight mt-0.5">Files never leave your device</div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/80 text-indigo-950 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold leading-tight">Private & Secure</div>
+                <div className="text-[10px] text-indigo-700 leading-tight mt-0.5">Sub-second local WASM engine</div>
+              </div>
+            </div>
           </div>
 
           {/* Validation Warning / Error Banner */}
@@ -4630,6 +4670,47 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </section>
           )}
 
+          {/* Universal 3-Step Visual Guide for All Tools */}
+          {tool.id !== "image-to-excel" && (
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  How to Use {tool.name} in 3 Simple Steps
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">1</span>
+                    <span>Upload Documents</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Select or drag & drop {tool.supportedInput.length > 0 ? tool.supportedInput.join(", ") : "your"} files into the secure dropzone.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">2</span>
+                    <span>Configure & Process</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Fine-tune options or click "{tool.name}" to process locally via WASM in milliseconds.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">3</span>
+                    <span>Instant Safe Download</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Download your optimized {tool.outputFormat} file directly. Ephemeral processing guarantees total privacy.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Collapsible In-Tool FAQ Section for Long-Tail SEO and User Guidance */}
           {toolFAQs && toolFAQs.length > 0 && (
             <div className="faq-accordion-section pt-4 border-t border-slate-200 space-y-2.5">
@@ -4681,6 +4762,54 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Related Tools Smart Navigation Bar */}
+          {relatedTools.length > 0 && (
+            <div className="related-tools-section pt-4 border-t border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs font-bold text-slate-900">
+                    Related Tools & Next Steps
+                  </h3>
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Boost your workflow
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                {relatedTools.map((relTool) => (
+                  <button
+                    key={relTool.id}
+                    type="button"
+                    onClick={() => {
+                      if (onSelectTool) {
+                        onSelectTool(relTool, downloadReady ? [new File([downloadReady.data], downloadReady.fileName, { type: downloadReady.mimeType })] : files);
+                      }
+                    }}
+                    className="group p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 bg-white hover:bg-blue-50/40 text-left transition flex flex-col justify-between space-y-1.5 shadow-2xs hover:shadow-xs"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider">
+                        {relTool.outputFormat}
+                      </span>
+                      {relTool.badge && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                          {relTool.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-xs text-slate-800 group-hover:text-blue-700 truncate w-full">
+                      {relTool.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 group-hover:text-slate-600 line-clamp-1">
+                      {relTool.description}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}

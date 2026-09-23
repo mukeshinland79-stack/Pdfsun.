@@ -504,6 +504,28 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
       )}
 
+      {/* Standard Global Base Language Hreflangs (en, es, fr, de, hi, x-default) for Worldwide Ranking */}
+      {["en", "es", "fr", "de", "hi"].map((baseLang) => {
+        const targetPath = pseoPage
+          ? `${baseUrl}/${pseoPage.slug}`
+          : isPricingActive
+          ? `${baseUrl}/pricing`
+          : isTodayInHistoryActive
+          ? `${baseUrl}/today-in-history`
+          : activeTool
+          ? `${baseUrl}/${activeTool.slug}`
+          : `${baseUrl}/`;
+        const href = baseLang === "en" ? targetPath : `${targetPath}?lang=${baseLang}`;
+        return (
+          <link
+            key={`std-base-${baseLang}`}
+            rel="alternate"
+            hrefLang={baseLang}
+            href={href}
+          />
+        );
+      })}
+
       {/* Global 30-Language & Multi-Tier High-Intent Hreflang Tags (Tier-1: US, UK, CA, AU, DE, FR; Tier-2: LATAM, ME; Tier-3: IN) */}
       {HIGH_INTENT_LOCALES.map((loc) => {
         const targetPath = pseoPage
