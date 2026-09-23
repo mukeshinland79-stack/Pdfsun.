@@ -222,10 +222,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static Favicon and Brand Asset Handlers (v3.0 Blue Production Sovereign Purge)
-app.get("/favicon.ico", (_req, res) => {
+// Static Favicon and Brand Asset Handlers (v6.0 Blue Production Sovereign Purge)
+app.get(["/favicon.ico", "/assets/favicon.ico"], (_req, res) => {
   const icoPath = path.join(process.cwd(), "public", "favicon.ico");
-  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.setHeader("Content-Type", "image/x-icon");
   if (fs.existsSync(icoPath)) {
     return res.sendFile(icoPath);
@@ -237,12 +237,17 @@ app.get("/favicon.ico", (_req, res) => {
   res.status(404).end();
 });
 
-app.get("/favicon.svg", (_req, res) => {
-  const faviconPath = path.join(process.cwd(), "public", "favicon.svg");
-  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-  res.setHeader("Content-Type", "image/svg+xml");
+app.get(["/favicon.svg", "/assets/favicon.svg", "/logo-blue.svg", "/assets/logo-blue.svg"], (_req, res) => {
+  const cleanName = path.basename(_req.path);
+  const faviconPath = path.join(process.cwd(), "public", cleanName);
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
   if (fs.existsSync(faviconPath)) {
     return res.sendFile(faviconPath);
+  }
+  const defaultSvg = path.join(process.cwd(), "public", "favicon.svg");
+  if (fs.existsSync(defaultSvg)) {
+    return res.sendFile(defaultSvg);
   }
   res.send(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><circle cx="32" cy="32" r="30" fill="#0052FF"/><text x="32" y="42" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`);
 });
@@ -252,22 +257,18 @@ app.get(["/logo-light.svg", "/logo-dark.svg", "/logo-stacked.svg", "/icon-512.sv
   const cleanName = path.basename(req.path);
   const filePath = path.join(process.cwd(), "public", cleanName);
   res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-  if (req.query.v) {
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  } else {
-    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-  }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   if (fs.existsSync(filePath)) {
     return res.sendFile(filePath);
   }
   res.status(404).end();
 });
 
-app.get(["/site.webmanifest", "/manifest.json"], (req, res) => {
+app.get(["/site.webmanifest", "/manifest.json", "/assets/site.webmanifest", "/assets/manifest.json"], (req, res) => {
   const filename = req.path.includes("site.webmanifest") ? "site.webmanifest" : "manifest.json";
   const manifestPath = path.join(process.cwd(), "public", filename);
-  res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.setHeader("Content-Type", filename.endsWith(".webmanifest") ? "application/manifest+json; charset=utf-8" : "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
   if (fs.existsSync(manifestPath)) {
     return res.sendFile(manifestPath);
   }
@@ -297,26 +298,45 @@ app.get([
   "/favicon-32x32.png",
   "/favicon-48x48.png",
   "/favicon-96x96.png",
-  "/favicon-192x192.png"
+  "/favicon-144x144.png",
+  "/favicon-192x192.png",
+  "/favicon-512x512.png",
+  "/assets/icon-192.png",
+  "/assets/icon-512.png",
+  "/assets/android-chrome-192x192.png",
+  "/assets/android-chrome-512x512.png",
+  "/assets/logo.png",
+  "/assets/og-image.png",
+  "/assets/apple-touch-icon.png",
+  "/assets/apple-touch-icon-180x180.png",
+  "/assets/favicon-16x16.png",
+  "/assets/favicon-32x32.png",
+  "/assets/favicon-48x48.png",
+  "/assets/favicon-96x96.png",
+  "/assets/favicon-144x144.png",
+  "/assets/favicon-192x192.png",
+  "/assets/favicon-512x512.png"
 ], (req, res) => {
   const cleanName = path.basename(req.path);
   let filePath = path.join(process.cwd(), "public", cleanName);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(process.cwd(), "public", "assets", cleanName);
+  }
   if (!fs.existsSync(filePath)) {
     if (cleanName.includes("192")) filePath = path.join(process.cwd(), "public", "android-chrome-192x192.png");
     else if (cleanName.includes("512")) filePath = path.join(process.cwd(), "public", "android-chrome-512x512.png");
     else filePath = path.join(process.cwd(), "public", "logo.png");
   }
   res.setHeader("Content-Type", "image/png");
-  if (req.query.v) {
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  } else {
-    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-  }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   if (fs.existsSync(filePath)) {
     return res.sendFile(filePath);
   }
   res.status(404).end();
 });
+
+// Mount /assets static directory for any additional asset resolution
+app.use("/assets", express.static(path.join(process.cwd(), "public/assets"), { maxAge: "365d", immutable: true }));
 
 // Trailing Slash Normalization (HTTP 307 preserves POST method and body payload)
 app.use((req, res, next) => {
@@ -3833,16 +3853,24 @@ app.get("/robots.txt", (req, res) => {
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
   res.send(`User-agent: *
 Allow: /
+Allow: /assets/
 Allow: /favicon.ico
 Allow: /favicon-*.png
 Allow: /apple-touch-icon.png
+Allow: /*.png
+Allow: /*.svg
+Allow: /*.ico
 Disallow: /api/admin/
 
 User-agent: Googlebot-Image
 Allow: /
+Allow: /assets/
 Allow: /favicon.ico
 Allow: /favicon-*.png
 Allow: /apple-touch-icon.png
+Allow: /*.png
+Allow: /*.svg
+Allow: /*.ico
 
 Sitemap: https://pdfsun.in/sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-blog.xml

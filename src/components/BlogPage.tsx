@@ -251,7 +251,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             url: "https://pdfsun.in",
             logo: {
               "@type": "ImageObject",
-              url: "https://pdfsun.in/brand/logo.svg",
+              url: "https://pdfsun.in/assets/favicon-512x512.png",
             },
           },
           articleSection: activePost.category,

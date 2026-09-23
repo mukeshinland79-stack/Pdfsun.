@@ -27,6 +27,7 @@ import {
   ChevronRight,
   ChevronLeft,
   RotateCw,
+  Trash2,
 } from "lucide-react";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { extractTextFromPdfFile, textToPdf, downloadFile, fileToBase64 } from "../lib/pdfEngine";
@@ -37,6 +38,7 @@ import { FreeLimitPaywallModal } from "./FreeLimitPaywallModal";
 import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
 import { FormattedMarkdown } from "./FormattedMarkdown";
 import { useToolRatings } from "../hooks/useToolRatings";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -171,6 +173,10 @@ function getInitialTab(toolItem: ToolItem): AiTabId {
   return "chat";
 }
 
+const SESSION_CACHE_KEY_TEXT = "pdfsun_ai_document_text";
+const SESSION_CACHE_KEY_CHAT = "pdfsun_ai_chat_history";
+const SESSION_CACHE_KEY_OUTPUTS = "pdfsun_ai_outputs";
+
 export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   tool,
   initialFiles = [],
@@ -178,7 +184,13 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   onAddHistory,
 }) => {
   const [file, setFile] = useState<File | null>(initialFiles[0] || null);
-  const [documentText, setDocumentText] = useState<string>("");
+  const [documentText, setDocumentText] = useState<string>(() => {
+    try {
+      return localStorage.getItem(SESSION_CACHE_KEY_TEXT) || "";
+    } catch {
+      return "";
+    }
+  });
   const [isExtractingText, setIsExtractingText] = useState<boolean>(false);
 
   // Active Tab state (synced with tool prop)
@@ -192,20 +204,70 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [pipelineStage, setPipelineStage] = useState<PipelineStage>("idle");
 
   // Per-tool cached outputs (switching tabs retains generated output, flashcards, metadata)
-  const [toolOutputs, setToolOutputs] = useState<Record<string, ToolOutputState>>({});
+  const [toolOutputs, setToolOutputs] = useState<Record<string, ToolOutputState>>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_CACHE_KEY_OUTPUTS);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [activeFlashcardIdx, setActiveFlashcardIdx] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
 
   // Chat state (multi-turn conversation memory)
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_CACHE_KEY_CHAT);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Execution states
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState("Hindi");
+  const [targetAudience, setTargetAudience] = useState("beginner");
   const [copied, setCopied] = useState(false);
+
+  // Auto-save session state to localStorage
+  useEffect(() => {
+    try {
+      if (documentText) {
+        localStorage.setItem(SESSION_CACHE_KEY_TEXT, documentText);
+      } else {
+        localStorage.removeItem(SESSION_CACHE_KEY_TEXT);
+      }
+    } catch (e) {
+      console.warn("Could not cache document text:", e);
+    }
+  }, [documentText]);
+
+  useEffect(() => {
+    try {
+      if (chatMessages.length > 0) {
+        localStorage.setItem(SESSION_CACHE_KEY_CHAT, JSON.stringify(chatMessages.slice(-50)));
+      } else {
+        localStorage.removeItem(SESSION_CACHE_KEY_CHAT);
+      }
+    } catch (e) {
+      console.warn("Could not cache chat messages:", e);
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
+    try {
+      if (Object.keys(toolOutputs).length > 0) {
+        localStorage.setItem(SESSION_CACHE_KEY_OUTPUTS, JSON.stringify(toolOutputs));
+      }
+    } catch (e) {
+      console.warn("Could not cache tool outputs:", e);
+    }
+  }, [toolOutputs]);
 
   // Restore cached tool state when activeTab changes
   useEffect(() => {
@@ -366,7 +428,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         body = { documentText };
       } else if (featureTab === "explain") {
         endpoint = "/api/ai/explain";
-        body = { documentText, targetAudience: "beginner" };
+        body = { documentText, targetAudience: targetAudience || "beginner" };
       } else if (featureTab === "ocr") {
         endpoint = "/api/ai/ocr";
         if (file) {
@@ -712,6 +774,21 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     return Boolean(currentOutput && currentOutput.trim().length > 0);
   }, [isAiLoading, pipelineStage, isExtractingText, activeTab, flashcards.length, chatMessages.length, currentOutput]);
 
+  const handleClearDocument = useCallback(() => {
+    setFile(null);
+    setDocumentText("");
+    try {
+      localStorage.removeItem(SESSION_CACHE_KEY_TEXT);
+    } catch {}
+  }, []);
+
+  const handleClearChat = useCallback(() => {
+    setChatMessages([]);
+    try {
+      localStorage.removeItem(SESSION_CACHE_KEY_CHAT);
+    } catch {}
+  }, []);
+
   const handleToggleLike = () => {
     if (hasLiked) {
       setHasLiked(false);
@@ -823,35 +900,93 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
           </div>
         </div>
 
-        {/* AI Canonical Tabs Bar */}
-        <div className="px-6 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center space-x-2 overflow-x-auto text-xs font-bold scrollbar-none">
-          {AI_TABS_CONFIG.map((tConfig) => {
-            const IconComponent = tConfig.icon;
-            const isActive = activeTab === tConfig.id;
+        {/* 2. Isolated Tool Navigation Header (Tabs Bar) with Stacking Context & Responsive Scroll */}
+        <nav
+          aria-label="AI Document Tools"
+          className="relative z-20 shrink-0 w-full bg-slate-50 border-b border-slate-200 px-3 sm:px-6 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent"
+        >
+          <div className="flex items-center gap-1.5 min-w-max">
+            {AI_TABS_CONFIG.map((tConfig) => {
+              const IconComponent = tConfig.icon;
+              const isActive = activeTab === tConfig.id;
 
-            return (
-              <button
-                key={tConfig.id}
-                onClick={() => {
-                  setActiveTab(tConfig.id);
-                  setAiError(null);
-                }}
-                className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition duration-150 text-xs ${
-                  isActive
-                    ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-xs scale-100 ring-2 ring-orange-400/40"
-                    : "border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-100 font-medium"
-                }`}
-              >
-                <IconComponent className="w-3.5 h-3.5 shrink-0" />
-                <span>{tConfig.canonicalName}</span>
-                {tConfig.id === "ocr" && (
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase ml-0.5">
-                    PRO
-                  </span>
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tConfig.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tConfig.id);
+                    setAiError(null);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition duration-150 text-xs shrink-0 ${
+                    isActive
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-xs scale-100 ring-2 ring-orange-400/40"
+                      : "border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-100 font-medium"
+                  }`}
+                >
+                  <IconComponent className="w-3.5 h-3.5 shrink-0" />
+                  <span>{tConfig.canonicalName}</span>
+                  {tConfig.id === "ocr" && (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase ml-0.5 shadow-2xs">
+                      PRO
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* 3. Dedicated 5-Stage Execution Pipeline Breadcrumb Strip (Completely decoupled from Tabs Bar) */}
+        <div className="relative z-10 shrink-0 w-full bg-slate-100/90 border-b border-slate-200 px-3 sm:px-6 py-1.5 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-max text-[11px]">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mr-0.5 flex items-center gap-1 shrink-0">
+              <Zap className="w-3 h-3 text-orange-500" />
+              Pipeline:
+            </span>
+            {[
+              { key: "ingestion", label: "1. File Ingestion", shortLabel: "1. Ingestion" },
+              { key: "extraction", label: "2. Text Extraction", shortLabel: "2. Extraction" },
+              { key: "invocation", label: "3. Gemini AI Invocation", shortLabel: "3. AI Invocation" },
+              { key: "streaming", label: "4. Stream Rendering", shortLabel: "4. Stream" },
+              { key: "completed", label: "5. Action Enablement", shortLabel: "5. Ready" },
+            ].map((stageItem, idx, arr) => {
+              const isCurrent = pipelineStage === stageItem.key;
+              const isPast =
+                (stageItem.key === "ingestion" && ["extraction", "invocation", "streaming", "completed"].includes(pipelineStage)) ||
+                (stageItem.key === "extraction" && ["invocation", "streaming", "completed"].includes(pipelineStage)) ||
+                (stageItem.key === "invocation" && ["streaming", "completed"].includes(pipelineStage)) ||
+                (stageItem.key === "streaming" && pipelineStage === "completed") ||
+                (stageItem.key === "completed" && pipelineStage === "completed");
+
+              return (
+                <React.Fragment key={stageItem.key}>
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-xs transition-all shrink-0 ${
+                      isCurrent
+                        ? "bg-orange-50 border-orange-300 text-orange-700 font-bold shadow-2xs"
+                        : isPast
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold"
+                        : "bg-white/80 border-slate-200 text-slate-400 font-medium opacity-75"
+                    }`}
+                  >
+                    {isPast ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    ) : isCurrent ? (
+                      <RefreshCw className="w-3.5 h-3.5 text-orange-500 animate-spin shrink-0" />
+                    ) : (
+                      <div className="w-2 h-2 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span className="hidden sm:inline">{stageItem.label}</span>
+                    <span className="sm:hidden">{stageItem.shortLabel}</span>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
 
         {/* Workspace Content Grid */}
@@ -862,9 +997,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             onAddHistory={onAddHistory}
           />
         ) : (
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden min-h-0 relative w-full">
             {/* Left Column: File Drop & Text Preview */}
-            <div className="md:col-span-4 p-4 border-r border-slate-200 bg-slate-50/60 flex flex-col space-y-3 overflow-y-auto">
+            <div className="md:col-span-4 p-3.5 sm:p-4 border-r border-slate-200 bg-slate-50/60 flex flex-col space-y-3 overflow-y-auto min-h-0 min-w-0 scrollbar-thin">
               {/* Document Picker */}
               <div
                 {...getRootProps()}
@@ -896,6 +1031,19 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 <p className="text-[10px] text-slate-500 mt-0.5">
                   {activeTab === "ocr" ? "PDF, Scanned Photos, PNG, JPG, WEBP" : "PDF, DOCX, TXT supported"}
                 </p>
+                {file && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearDocument();
+                    }}
+                    className="mt-2 text-[10px] text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200 inline-flex items-center space-x-1"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    <span>Remove file</span>
+                  </button>
+                )}
               </div>
 
               {/* Status Badge */}
@@ -916,10 +1064,30 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
               </div>
 
               {/* Extracted Document Text Preview */}
-              <div className="flex-1 flex flex-col min-h-[220px]">
+              <div className="flex-1 flex flex-col min-h-[200px]">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  <span>Extracted Document Text</span>
-                  {isExtractingText && <RefreshCw className="w-3 h-3 animate-spin text-orange-500" />}
+                  <span className="flex items-center gap-1.5">
+                    <span>Extracted Document Text</span>
+                    {documentText.trim().length > 0 && (
+                      <span className="text-[9px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 lowercase">
+                        auto-saved
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    {isExtractingText && <RefreshCw className="w-3 h-3 animate-spin text-orange-500" />}
+                    {documentText.trim().length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearDocument}
+                        className="text-[10px] text-slate-400 hover:text-rose-600 transition flex items-center space-x-1"
+                        title="Clear document text"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                        <span>Clear</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <textarea
                   value={documentText}
@@ -931,55 +1099,29 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
             </div>
 
             {/* Right Column: Interactive Gemini AI Console */}
-            <div className="md:col-span-8 flex flex-col h-full bg-white overflow-hidden">
-              {/* Standardized 5-Stage Tool Execution Pipeline Indicator */}
-              <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
-                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px]">
-                  {[
-                    { key: "ingestion", label: "1. File Ingestion" },
-                    { key: "extraction", label: "2. Text Extraction" },
-                    { key: "invocation", label: "3. Gemini API Invocation" },
-                    { key: "streaming", label: "4. Stream Rendering" },
-                    { key: "completed", label: "5. Action Enablement" },
-                  ].map((stageItem) => {
-                    const isCurrent = pipelineStage === stageItem.key;
-                    const isPast =
-                      (stageItem.key === "ingestion" && ["extraction", "invocation", "streaming", "completed"].includes(pipelineStage)) ||
-                      (stageItem.key === "extraction" && ["invocation", "streaming", "completed"].includes(pipelineStage)) ||
-                      (stageItem.key === "invocation" && ["streaming", "completed"].includes(pipelineStage)) ||
-                      (stageItem.key === "streaming" && pipelineStage === "completed") ||
-                      (stageItem.key === "completed" && pipelineStage === "completed");
-
-                    return (
-                      <div
-                        key={stageItem.key}
-                        className={`flex items-center space-x-1 font-semibold transition-all ${
-                          isCurrent
-                            ? "text-orange-600 font-bold"
-                            : isPast
-                            ? "text-emerald-600"
-                            : "text-slate-400 opacity-60"
-                        }`}
-                      >
-                        {isPast ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        ) : isCurrent ? (
-                          <RefreshCw className="w-3.5 h-3.5 text-orange-500 animate-spin shrink-0" />
-                        ) : (
-                          <div className="w-2.5 h-2.5 rounded-full border border-current opacity-60 shrink-0" />
-                        )}
-                        <span className="hidden xl:inline">{stageItem.label}</span>
-                        <span className="xl:hidden">{stageItem.label.split(". ")[1]?.split(" ")[0]}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* TAB 1: AI Chat with PDF */}
-              {activeTab === "chat" && (
-                <div className="flex-1 flex flex-col h-full p-4 overflow-hidden">
-                  <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-                    {chatMessages.length === 0 ? (
+            <div className="md:col-span-8 flex flex-col h-full bg-white overflow-hidden min-h-0 min-w-0 relative">
+              <ErrorBoundary>
+                {/* TAB 1: AI Chat with PDF */}
+                {activeTab === "chat" && (
+                  <div className="flex-1 flex flex-col h-full p-4 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+                      {chatMessages.length > 0 && (
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-1 sticky top-0 bg-white/95 backdrop-blur-xs z-10">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            {chatMessages.length} message{chatMessages.length === 1 ? "" : "s"} in session
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleClearChat}
+                            className="text-[11px] font-medium text-slate-400 hover:text-rose-600 transition flex items-center space-x-1"
+                            title="Clear conversation history"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Clear chat</span>
+                          </button>
+                        </div>
+                      )}
+                      {chatMessages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                         <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center shadow-inner border border-orange-200">
                           <Bot className="w-7 h-7" />
@@ -1223,6 +1365,32 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                     </div>
                   )}
 
+                  {/* Top Bar for Explain Target Audience Selection */}
+                  {activeTab === "explain" && (
+                    <div className="flex items-center space-x-3 pb-1 flex-wrap gap-2">
+                      <label className="text-xs font-bold text-slate-600">Explain For:</label>
+                      <select
+                        value={targetAudience}
+                        onChange={(e) => setTargetAudience(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-50 text-xs font-bold text-slate-800 border border-slate-200 focus:outline-none focus:border-orange-500"
+                      >
+                        <option value="beginner">Beginner / Layman (Everyday Analogies)</option>
+                        <option value="highschool">High School Student (Clear Concepts)</option>
+                        <option value="executive">Executive / C-Suite (Key Decisions & Impact)</option>
+                        <option value="technical">Technical Specialist (Deep Technical Details)</option>
+                      </select>
+
+                      <button
+                        onClick={() => runAiFeature("explain")}
+                        disabled={isAiLoading || !documentText.trim()}
+                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-xs hover:opacity-95 transition disabled:opacity-40 flex items-center space-x-1.5"
+                      >
+                        {isAiLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{isAiLoading ? "Simplifying..." : "Explain Concept"}</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Output Header with Action Status */}
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-2">
@@ -1311,6 +1479,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   </div>
                 </div>
               )}
+              </ErrorBoundary>
             </div>
           </div>
         )}

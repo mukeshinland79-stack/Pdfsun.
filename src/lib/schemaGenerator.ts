@@ -146,7 +146,7 @@ export function buildWebSiteSchema(baseUrl: string = "https://pdfsun.in") {
       "@id": `${baseUrl}/#organization`,
       "name": "PDFSun",
       "url": baseUrl,
-      "logo": `${baseUrl}/og-image.png`,
+      "logo": `${baseUrl}/assets/favicon-512x512.png`,
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -171,9 +171,9 @@ export function buildOrganizationSchema(baseUrl: string = "https://pdfsun.in") {
     "url": baseUrl,
     "logo": {
       "@type": "ImageObject",
-      "url": `${baseUrl}/og-image.png`,
-      "width": "1200",
-      "height": "630",
+      "url": `${baseUrl}/assets/favicon-512x512.png`,
+      "width": "512",
+      "height": "512",
     },
     "founder": {
       "@type": "Person",

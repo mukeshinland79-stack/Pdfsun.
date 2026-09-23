@@ -51,7 +51,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       "@type": "Organization",
       "name": "PDFSun",
       "url": baseUrl,
-      "logo": `${baseUrl}/og-image.png`,
+      "logo": `${baseUrl}/assets/favicon-512x512.png`,
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -69,7 +69,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "@type": "Organization",
     "name": "PDFSun",
     "url": baseUrl,
-    "logo": `${baseUrl}/og-image.png`,
+    "logo": `${baseUrl}/assets/favicon-512x512.png`,
     "sameAs": [],
   };
 
@@ -107,7 +107,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       "@type": "Organization",
       "name": "PDFSun",
       "url": baseUrl,
-      "logo": `${baseUrl}/og-image.png`
+      "logo": `${baseUrl}/assets/favicon-512x512.png`
     }
   };
 
