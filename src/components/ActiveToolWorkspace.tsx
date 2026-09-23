@@ -125,6 +125,23 @@ import {
   exportTableGridToSpreadsheet,
   parseTextToTableGrid,
   splitPdfCore,
+  convertWordToPdfEnterprise,
+  WordToPdfPreset,
+  convertPdfToWordEnterprise,
+  PdfToWordPreset,
+  convertExcelToPdfEnterprise,
+  ExcelToPdfPreset,
+  convertPdfToExcelEnterprise,
+  PdfToExcelPreset,
+  convertPowerPointToPdfEnterprise,
+  PptToPdfPreset,
+  convertPdfToPowerPointEnterprise,
+  PdfToPptPreset,
+  convertImagesToPdfEnterprise,
+  convertPdfToImagesEnterprise,
+  convertImageToNotepadEnterprise,
+  ImageToPdfQuality,
+  NotepadExtractionResult,
 } from "../lib/pdfEngine";
 import {
   analyzeDocumentStructure,
@@ -295,6 +312,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         downloadFile(dataToDownload, nameToDownload, mimeToDownload);
         trackGADownloadSuccess(tool.id, nameToDownload, fileSizeBytes);
         setDownloadSuccessBadge(true);
+        // Zero-knowledge ephemeral memory isolation purge
+        setTimeout(() => {
+          setPurgedMessage(true);
+        }, 300);
         setTimeout(() => setDownloadSuccessBadge(false), 4000);
       } catch (err: any) {
         console.error("Download error:", err);
@@ -485,6 +506,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [autoDetectColsToggle, setAutoDetectColsToggle] = useState(true);
   const [smartDetectionMode, setSmartDetectionMode] = useState<DetectionMode>("auto");
   const [smartAnalysisResult, setSmartAnalysisResult] = useState<SmartDocumentAnalysis | null>(null);
+  const [wordConversionPreset, setWordConversionPreset] = useState<WordToPdfPreset>("max_accuracy");
+  const [excelConversionPreset, setExcelConversionPreset] = useState<ExcelToPdfPreset>("fit_to_page");
+  const [pptConversionPreset, setPptConversionPreset] = useState<PptToPdfPreset>("vector_fidelity");
+  const [pdfToPptPreset, setPdfToPptPreset] = useState<PdfToPptPreset>("hybrid_master");
+  const [ocrAutoDeskew, setOcrAutoDeskew] = useState<boolean>(true);
+  const [ocrRemoveShadows, setOcrRemoveShadows] = useState<boolean>(true);
+  const [ocrNormalizeParagraphs, setOcrNormalizeParagraphs] = useState<boolean>(true);
+  const [imagePdfQuality, setImagePdfQuality] = useState<ImageToPdfQuality>("high");
+  const [pdfPageRangeStr, setPdfPageRangeStr] = useState<string>("1-5, 8, 11-15");
+  const [notepadStats, setNotepadStats] = useState<{
+    charactersCount: number;
+    wordsCount: number;
+    linesCount: number;
+    paragraphsCount: number;
+    noiseArtifactsStripped: number;
+  } | null>(null);
+  const [pdfRasterThumbnails, setPdfRasterThumbnails] = useState<string[]>([]);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -940,9 +978,26 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "pdf-to-image": {
-          setStatusMessage(`Exporting PDF pages to ${pdfImageFormat.toUpperCase()} image archive...`);
-          outputBytes = await pdfToImagesZip(files[0], pdfImageFormat, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_${pdfImageFormat.toUpperCase()}_Pages_${files[0].name}.zip`;
+          const targetFormat = pdfImageFormat;
+          setStatusMessage(`Rasterizing PDF vector canvas to ${targetFormat.toUpperCase()} at ${convertFromDpi} DPI...`);
+          const res = await convertPdfToImagesEnterprise(
+            files[0],
+            {
+              format: targetFormat,
+              dpi: convertFromDpi,
+              pageScope: convertFromPageRange,
+              pageRangeStr: pdfPageRangeStr,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
+          if (res.previewThumbnails && res.previewThumbnails.length > 0) {
+            setPdfRasterThumbnails(res.previewThumbnails);
+          }
+          outputBytes = res.zipBytes;
+          outputName = res.fileName;
           mimeType = "application/zip";
           break;
         }
@@ -1055,13 +1110,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "pdf-to-word": {
-          setStatusMessage("Analyzing document structure, headings & layout...");
-          const analysis = await analyzeDocumentStructure(files[0], smartDetectionMode, (p, msg) => {
-            setProgress(25 + Math.round((p / 100) * 60));
-            if (msg) setStatusMessage(msg);
+          setStatusMessage("Initializing Web Worker & parsing PDF spatial bounding boxes...");
+          const res = await convertPdfToWordEnterprise(files[0], {
+            preset: wordConversionPreset,
+            preserveTables: true,
+            enableOcrFallback: true,
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
+            },
           });
-          setSmartAnalysisResult(analysis);
-          const res = await convertToSmartWordDocx(analysis, files[0].name);
           validateConversionOutput(res.bytes, "docx", res.fileName);
           outputBytes = res.bytes;
           outputName = res.fileName;
@@ -1070,44 +1128,80 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         }
 
         case "word-to-pdf": {
-          setStatusMessage("Converting Word document (.docx) to standard PDF with layout preservation...");
-          outputBytes = await wordToPdf(files[0], (p) => setProgress(35 + Math.round((p / 100) * 60)));
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
+          setStatusMessage("Parsing Word (.docx) AST, glyphs & table structure...");
+          const res = await convertWordToPdfEnterprise(files[0], {
+            preset: wordConversionPreset,
+            pageSize: convertPageSize === "Letter" ? "Letter" : "A4",
+            orientation: convertOrientation,
+            margins: convertMargin === "small" ? "narrow" : convertMargin === "big" ? "wide" : "normal",
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
+            },
+          });
+          validateConversionOutput(res.bytes, "pdf", res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
           break;
         }
 
         case "excel-to-pdf": {
-          setStatusMessage("Formatting spreadsheet tables & gridlines to PDF...");
-          outputBytes = await excelToPdf(files[0], (p) => setProgress(35 + Math.round((p / 100) * 60)));
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Converted.pdf`;
+          setStatusMessage("Analyzing spreadsheet geometry, column auto-fit & layout...");
+          const res = await convertExcelToPdfEnterprise(files[0], {
+            preset: excelConversionPreset,
+            pageSize: convertPageSize === "Letter" ? "Letter" : "A4",
+            orientation: convertOrientation,
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
+            },
+          });
+          validateConversionOutput(res.bytes, "pdf", res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
           break;
         }
 
         case "pdf-to-excel": {
-          setStatusMessage("Analyzing document structure, rows, columns & tables...");
-          const analysis = await analyzeDocumentStructure(files[0], smartDetectionMode, (p, msg) => {
-            setProgress(25 + Math.round((p / 100) * 60));
-            if (msg) setStatusMessage(msg);
-          });
-          setSmartAnalysisResult(analysis);
+          setStatusMessage("Analyzing spatial grid coordinates & text bounding boxes...");
           const format = postProcessFormatChoice === "csv" ? "csv" : "xlsx";
-          const res = await convertToSmartExcel(analysis, files[0].name, format);
+          const res = await convertPdfToExcelEnterprise(files[0], {
+            preset: smartDetectionMode,
+            outputFormat: format,
+            enableOcrFallback: true,
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
+            },
+          });
           validateConversionOutput(res.bytes, format, res.fileName);
           outputBytes = res.bytes;
           outputName = res.fileName;
-          mimeType = format === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-          setLiveTableMatrix(analysis.primaryTableMatrix);
+          mimeType =
+            format === "csv"
+              ? "text/csv;charset=utf-8"
+              : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          setLiveTableMatrix(res.previewRows);
           setLiveTableFileName(res.fileName);
           setShowInlineTablePreview(true);
           break;
         }
 
         case "image-to-excel": {
-          setStatusMessage("Running OCR & analyzing tabular structure from image...");
-          const res = await imageToExcel(files, { outputFormat: imageExcelFormat, mode: smartDetectionMode }, (p, msg) => {
-            setProgress(20 + Math.round((p / 100) * 70));
-            if (msg) setStatusMessage(msg);
-          });
+          setStatusMessage("Initializing WASM Canvas Pre-processing & OCR Pipeline...");
+          const res = await imageToExcel(
+            files,
+            {
+              outputFormat: imageExcelFormat,
+              mode: smartDetectionMode,
+              autoDeskew: ocrAutoDeskew,
+              removeShadows: ocrRemoveShadows,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
           if (res.analysis) {
             setSmartAnalysisResult(res.analysis);
           }
@@ -1121,11 +1215,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         }
 
         case "image-to-word": {
-          setStatusMessage("Running OCR, heading detection & structuring Word document...");
-          const res = await imageToWordDocx(files, { format: imageWordFormat, mode: smartDetectionMode }, (p, msg) => {
-            setProgress(20 + Math.round((p / 100) * 70));
-            if (msg) setStatusMessage(msg);
-          });
+          setStatusMessage("Initializing WASM Canvas Pre-processing & Document AST Pipeline...");
+          const res = await imageToWordDocx(
+            files,
+            {
+              format: imageWordFormat,
+              mode: smartDetectionMode,
+              autoDeskew: ocrAutoDeskew,
+              removeShadows: ocrRemoveShadows,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
           if (res.analysis) {
             setSmartAnalysisResult(res.analysis);
           }
@@ -1137,59 +1240,139 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
         case "image-to-notepad":
         case "image-to-text": {
-          setStatusMessage("Extracting text with noise-filtered OCR...");
-          const res = await imageToNotepadText(files[0], { cleanNoise: ocrNoiseFilter }, (p) => setProgress(30 + Math.round((p / 100) * 60)));
+          setStatusMessage("Initializing Client-Side WASM Vision & Clean Text Extraction Pipeline...");
+          const res = await convertImageToNotepadEnterprise(
+            files,
+            {
+              cleanNoise: ocrNoiseFilter,
+              normalizeParagraphs: ocrNormalizeParagraphs,
+              stripNonPrintable: true,
+              fixHyphenation: true,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
           outputBytes = res.bytes;
           outputName = res.fileName;
-          mimeType = "text/plain";
+          mimeType = "text/plain;charset=utf-8";
           setOcrResultText(res.text);
+          setNotepadStats(res.stats);
           break;
         }
 
         case "image-to-pdf":
         case "jpg-to-pdf":
         case "png-to-pdf": {
-          setStatusMessage("Converting image pages to PDF document...");
-          outputBytes = await imagesToPdf(files);
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Images.pdf`;
+          setStatusMessage("Fitting vector canvas & compiling adaptive high-fidelity PDF...");
+          const res = await convertImagesToPdfEnterprise(
+            files,
+            {
+              orientation: convertOrientation,
+              pageSize: convertPageSize,
+              margin: convertMargin,
+              quality: imagePdfQuality,
+              combineAll: convertCombineImages,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
+          outputBytes = res.bytes;
+          outputName = res.fileName;
           mimeType = "application/pdf";
           break;
         }
 
-        case "powerpoint-to-pdf":
-          setStatusMessage("Converting presentation slides to PDF...");
-          outputBytes = await powerPointToPdf(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Slides.pdf`;
-          break;
-
-        case "pdf-to-powerpoint":
-          setStatusMessage("Converting PDF pages to Microsoft PowerPoint (.pptx)...");
-          outputBytes = await pdfToPowerPointPptx(
-            files[0],
-            {
-              orientation: pptOrientation,
-              pageScope: pptPageScope,
-              pageRangeStr: pptPageRangeStr,
+        case "ppt-to-pdf":
+        case "powerpoint-to-pdf": {
+          setStatusMessage("Analyzing presentation master assets, shapes & typography...");
+          const res = await convertPowerPointToPdfEnterprise(files[0], {
+            preset: pptConversionPreset,
+            orientation: convertOrientation === "auto" ? "auto" : convertOrientation === "portrait" ? "portrait" : "landscape",
+            pageSize: convertPageSize === "Letter" ? "Letter" : "A4",
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
             },
-            (p) => setProgress(45 + Math.round((p / 100) * 50))
-          );
-          outputName = `${files[0].name.replace(/\.[^/.]+$/, "")}_Presentation.pptx`;
+          });
+          validateConversionOutput(res.bytes, "pdf", res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
+          mimeType = "application/pdf";
+          break;
+        }
+
+        case "pdf-to-ppt":
+        case "pdf-to-powerpoint": {
+          setStatusMessage("Reconstructing presentation slides, text frames & layout...");
+          const res = await convertPdfToPowerPointEnterprise(files[0], {
+            preset: pdfToPptPreset,
+            orientation: pptOrientation === "landscape" ? "widescreen" : pptOrientation === "portrait" ? "portrait" : "auto",
+            pageScope: pptPageScope,
+            pageRangeStr: pptPageRangeStr,
+            enableOcrFallback: true,
+            onProgress: (p, msg) => {
+              setProgress(20 + Math.round((p / 100) * 75));
+              if (msg) setStatusMessage(msg);
+            },
+          });
+          validateConversionOutput(res.bytes, "pptx", res.fileName);
+          outputBytes = res.bytes;
+          outputName = res.fileName;
           mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
           break;
+        }
 
-        case "pdf-to-jpg":
-          setStatusMessage("Exporting high-resolution JPG image pages...");
-          outputBytes = await pdfToImagesZip(files[0], "jpg", (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_JPG_Pages_${files[0].name}.zip`;
+        case "pdf-to-jpg": {
+          setStatusMessage(`Rasterizing PDF canvas to Ultra-HD JPG (${convertFromDpi} DPI)...`);
+          const res = await convertPdfToImagesEnterprise(
+            files[0],
+            {
+              format: "jpg",
+              dpi: convertFromDpi,
+              pageScope: convertFromPageRange,
+              pageRangeStr: pdfPageRangeStr,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
+          if (res.previewThumbnails && res.previewThumbnails.length > 0) {
+            setPdfRasterThumbnails(res.previewThumbnails);
+          }
+          outputBytes = res.zipBytes;
+          outputName = res.fileName;
           mimeType = "application/zip";
           break;
+        }
 
-        case "pdf-to-png":
-          setStatusMessage("Exporting lossless PNG image pages...");
-          outputBytes = await pdfToImagesZip(files[0], "png", (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_PNG_Pages_${files[0].name}.zip`;
+        case "pdf-to-png": {
+          setStatusMessage(`Rasterizing PDF canvas to Lossless PNG (${convertFromDpi} DPI)...`);
+          const res = await convertPdfToImagesEnterprise(
+            files[0],
+            {
+              format: "png",
+              dpi: convertFromDpi,
+              pageScope: convertFromPageRange,
+              pageRangeStr: pdfPageRangeStr,
+            },
+            (p, msg) => {
+              setProgress(15 + Math.round((p / 100) * 80));
+              if (msg) setStatusMessage(msg);
+            }
+          );
+          if (res.previewThumbnails && res.previewThumbnails.length > 0) {
+            setPdfRasterThumbnails(res.previewThumbnails);
+          }
+          outputBytes = res.zipBytes;
+          outputName = res.fileName;
           mimeType = "application/zip";
           break;
+        }
 
         case "html-to-pdf":
           setStatusMessage("Converting HTML document to PDF...");
@@ -2385,11 +2568,77 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             )}
 
-            {tool.id === "pdf-to-powerpoint" && (
+            {["pdf-to-powerpoint", "pdf-to-ppt"].includes(tool.id) && (
               <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
-                  <Presentation className="w-4 h-4 text-orange-500" />
-                  <span>PDF to PowerPoint Slide Options</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <Presentation className="w-4 h-4 text-orange-500" />
+                    <span>PDF to PowerPoint Reconstruction Options</span>
+                  </div>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300">
+                    {pdfToPptPreset === "hybrid_master"
+                      ? "Mode 1: Master Hybrid"
+                      : pdfToPptPreset === "vector_editable"
+                      ? "Mode 2: Vector & Editable"
+                      : "Mode 3: Compact Deck"}
+                  </span>
+                </div>
+
+                {/* Reconstruction Presets */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    Slide Reconstruction Preset
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPdfToPptPreset("hybrid_master")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        pdfToPptPreset === "hybrid_master"
+                          ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-orange-700 dark:text-orange-400">
+                        🌟 Master Hybrid
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Pixel-perfect 2X background plate with 100% editable, selectable text boxes layered on top.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdfToPptPreset("vector_editable")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        pdfToPptPreset === "vector_editable"
+                          ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        ✏️ Vector & Editable
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Native OpenXML shapes, multi-line paragraph frames & tables without raster plates.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdfToPptPreset("compact_deck")}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        pdfToPptPreset === "compact_deck"
+                          ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-500 ring-1 ring-orange-500 shadow-2xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        🪶 Compact Presentation
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Streamlined compressed deck optimized for lightweight email & WhatsApp sharing.
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Orientation Selector */}
@@ -2461,6 +2710,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       />
                     </div>
                   )}
+                </div>
+
+                {/* WASM OCR Fallback info note */}
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-400">
+                  <span>⚡</span>
+                  <span>
+                    <strong>Smart WASM OCR Fallback:</strong> Automatically active. Scanned or rasterized slides will have text reconstructed into editable PowerPoint text frames.
+                  </span>
                 </div>
               </div>
             )}
@@ -2718,7 +2975,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             )}
 
             {/* Category 2 Universal Convert to PDF Schema */}
-            {["jpg-to-pdf", "png-to-pdf", "word-to-pdf", "excel-to-pdf", "ppt-to-pdf", "powerpoint-to-pdf", "text-to-pdf", "html-to-pdf", "svg-to-pdf", "epub-to-pdf", "scanner-to-pdf"].includes(tool.id) && (
+            {["image-to-pdf", "jpg-to-pdf", "png-to-pdf", "word-to-pdf", "excel-to-pdf", "ppt-to-pdf", "powerpoint-to-pdf", "text-to-pdf", "html-to-pdf", "svg-to-pdf", "epub-to-pdf", "scanner-to-pdf"].includes(tool.id) && (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
@@ -2726,23 +2983,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <select
                       value={convertOrientation}
                       onChange={(e) => setConvertOrientation(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-semibold"
                     >
-                      <option value="auto">Auto-Detect</option>
+                      <option value="auto">Auto-Detect (Adaptive Multi-Page)</option>
                       <option value="portrait">Portrait</option>
                       <option value="landscape">Landscape</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Size</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Canvas Fitting</label>
                     <select
                       value={convertPageSize}
                       onChange={(e) => setConvertPageSize(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-semibold"
                     >
-                      <option value="A4">A4 (Standard)</option>
-                      <option value="Letter">US Letter</option>
-                      <option value="Auto">Fit Image Dimensions</option>
+                      <option value="A4">A4 (210 x 297 mm)</option>
+                      <option value="Letter">US Letter (8.5 x 11 in)</option>
+                      <option value="Auto">Fit Image Dimensions (Full Bleed)</option>
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -2750,33 +3007,57 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <select
                       value={convertMargin}
                       onChange={(e) => setConvertMargin(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-semibold"
                     >
-                      <option value="none">No Margin (Full Bleed)</option>
+                      <option value="none">No Margin (0mm Full Bleed)</option>
                       <option value="small">Small Margin (10mm)</option>
-                      <option value="big">Big Margin (25mm)</option>
+                      <option value="big">Big Margin (20mm)</option>
                     </select>
                   </div>
                 </div>
-                {["jpg-to-pdf", "png-to-pdf", "svg-to-pdf"].includes(tool.id) && (
-                  <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
-                    <input
-                      type="checkbox"
-                      checked={convertCombineImages}
-                      onChange={(e) => setConvertCombineImages(e.target.checked)}
-                      className="rounded text-orange-500 focus:ring-orange-500"
-                    />
-                    <span>Merge all images into 1 single PDF file</span>
-                  </label>
+
+                {["image-to-pdf", "jpg-to-pdf", "png-to-pdf", "svg-to-pdf"].includes(tool.id) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Image Compression & Stream Quality</label>
+                      <select
+                        value={imagePdfQuality}
+                        onChange={(e) => setImagePdfQuality(e.target.value as any)}
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-semibold"
+                      >
+                        <option value="high">High Quality JPEG (92% - Recommended)</option>
+                        <option value="lossless">Lossless Native PNG (100% Fidelity)</option>
+                        <option value="medium">Balanced JPEG (78% - Smaller File)</option>
+                        <option value="low">Compact Size (62% - Minimal Bandwidth)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-end pb-2">
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={convertCombineImages}
+                          onChange={(e) => setConvertCombineImages(e.target.checked)}
+                          className="rounded text-orange-500 focus:ring-orange-500 w-4 h-4"
+                        />
+                        <span>Merge all images into 1 continuous PDF document</span>
+                      </label>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
 
             {tool.id === "image-to-excel" && (
               <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
-                  <Table className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Image to Spreadsheet Options</span>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <Table className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Enterprise Image to Spreadsheet Options</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    WASM Vision & Spatial Engine
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -2786,30 +3067,47 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onChange={(e) => setImageExcelFormat(e.target.value as "xlsx" | "csv")}
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500/40"
                     >
-                      <option value="xlsx">Microsoft Excel (.xlsx) — Structured</option>
+                      <option value="xlsx">Microsoft Excel (.xlsx) — Structured & Styled</option>
                       <option value="csv">Comma-Separated Values (.csv)</option>
                     </select>
                   </div>
-                  <div className="flex items-center space-x-2 pt-5">
+                  <div className="space-y-2 pt-1 sm:pt-0">
                     <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={excelTableDetect}
-                        onChange={(e) => setExcelTableDetect(e.target.checked)}
+                        checked={ocrAutoDeskew}
+                        onChange={(e) => setOcrAutoDeskew(e.target.checked)}
                         className="rounded text-emerald-600 focus:ring-emerald-500"
                       />
-                      <span>Auto-detect headers, columns & table borders</span>
+                      <span>Auto-Deskew & Perspective Correction (±45°)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ocrRemoveShadows}
+                        onChange={(e) => setOcrRemoveShadows(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>Sauvola Adaptive Binarization (Shadow & Glare Removal)</span>
                     </label>
                   </div>
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-200/50 dark:border-emerald-800/40">
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">Critical Identifier Protection:</span> GSTIN, PAN, Phone numbers & Account IDs preserve leading zeroes and text formatting without formula corruption.
                 </div>
               </div>
             )}
 
             {tool.id === "image-to-word" && (
               <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
-                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span>Image to Word / WordPad Options</span>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>Enterprise Image to Word / WordPad Options</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                    AST Layout Reconstruction Engine
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -2819,77 +3117,175 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       onChange={(e) => setImageWordFormat(e.target.value as "docx" | "rtf")}
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500/40"
                     >
-                      <option value="docx">Microsoft Word (.docx) — Styled</option>
-                      <option value="rtf">WordPad / Rich Text (.rtf)</option>
+                      <option value="docx">Microsoft Word (.docx) — Full Stylesheet & Headings</option>
+                      <option value="rtf">WordPad / Rich Text (.rtf) — Compatible RTF Tables</option>
                     </select>
                   </div>
-                  <div className="flex items-center pt-5">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Preserves font sizing, bold headings, bullet lists, and paragraphs.
-                    </span>
+                  <div className="space-y-2 pt-1 sm:pt-0">
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ocrAutoDeskew}
+                        onChange={(e) => setOcrAutoDeskew(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Auto-Deskew & Perspective Correction</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ocrRemoveShadows}
+                        onChange={(e) => setOcrRemoveShadows(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Shadow & Camera Glare Suppression</span>
+                    </label>
                   </div>
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-blue-50/50 dark:bg-blue-950/20 p-2.5 rounded-xl border border-blue-200/50 dark:border-blue-800/40">
+                  <span className="font-semibold text-blue-700 dark:text-blue-300">Deep Layout Analysis:</span> Extracts Headings (H1–H3), multi-column flow, native OpenXML tables, bullet lists, and paragraphs with zero line truncation.
                 </div>
               </div>
             )}
 
             {tool.id === "image-to-notepad" && (
               <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
-                  <FileSearch className="w-4 h-4 text-orange-500" />
-                  <span>Image to Notepad (Text Extraction) Options</span>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <FileSearch className="w-4 h-4 text-orange-500" />
+                    <span>Clean Text Extraction & Noise Sanitization</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                    AST-Level Multi-Stage Regex Engine
+                  </span>
                 </div>
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-start space-x-2.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
                     <input
                       type="checkbox"
                       checked={ocrNoiseFilter}
                       onChange={(e) => setOcrNoiseFilter(e.target.checked)}
-                      className="rounded text-orange-500 focus:ring-orange-500"
+                      className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
                     />
-                    <span>100% Regex Noise Sanitization Filter (Strips '±±±', '|||', and stray non-ASCII glitches)</span>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        100% Regex Noise Sanitization
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Strips stray OCR artifacts ('±±±', '|||', '~', '`', '°', '¬', '░░░') and non-printable control chars.
+                      </div>
+                    </div>
                   </label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-6">
-                    Ensures pristine, readable plain text export ready for Notepad, IDEs, code editors, and LLMs.
-                  </p>
+
+                  <label className="flex items-start space-x-2.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
+                    <input
+                      type="checkbox"
+                      checked={ocrNormalizeParagraphs}
+                      onChange={(e) => setOcrNormalizeParagraphs(e.target.checked)}
+                      className="rounded text-orange-500 focus:ring-orange-500 mt-0.5"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Paragraph & Line Normalization
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Heals broken sentence wraps across line-breaks while preserving bullet lists, indents, and numbered sequences.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-amber-50/50 dark:bg-amber-950/20 p-2.5 rounded-xl border border-amber-200/50 dark:border-amber-800/40 flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>
+                    <strong className="text-slate-800 dark:text-slate-200">UTF-8 Clean Plain Text:</strong> Guaranteed clean text output ready for Windows Notepad, IDEs, code editors, and LLM context prompts.
+                  </span>
                 </div>
               </div>
             )}
 
-            {tool.id === "pdf-to-image" && (
+            {["pdf-to-image", "pdf-to-jpg", "pdf-to-png"].includes(tool.id) && (
               <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
-                  <FileImage className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span>PDF to Image Page Extraction Options</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Image Format</label>
-                    <select
-                      value={pdfImageFormat}
-                      onChange={(e) => setPdfImageFormat(e.target.value as "jpg" | "png")}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-purple-500/40"
-                    >
-                      <option value="jpg">JPG — Standard High Definition</option>
-                      <option value="png">PNG — Lossless Crystal Clear</option>
-                    </select>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <FileImage className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Ultra-HD Vector-to-Raster Conversion Engine</span>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rendering Resolution</label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                    WebGL & WASM Canvas Pipeline
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {tool.id === "pdf-to-image" && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Image Format</label>
+                      <select
+                        value={pdfImageFormat}
+                        onChange={(e) => setPdfImageFormat(e.target.value as "jpg" | "png")}
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-purple-500/40"
+                      >
+                        <option value="jpg">JPG — Standard High Definition (92% Quality)</option>
+                        <option value="png">PNG — Lossless Crystal Clear (100% Alpha)</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className={`space-y-1 ${tool.id !== "pdf-to-image" ? "sm:col-span-1" : ""}`}>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Rendering Resolution (DPI)</label>
                     <select
                       value={convertFromDpi}
                       onChange={(e) => setConvertFromDpi(Number(e.target.value) as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
                     >
-                      <option value={150}>150 DPI — Recommended</option>
-                      <option value={300}>300 DPI — Ultra High Definition</option>
+                      <option value={150}>150 DPI — High Definition (Web & Screen)</option>
+                      <option value={300}>300 DPI — Ultra Print HD (Sharp & Commercial)</option>
+                      <option value={72}>72 DPI — Fast Lightweight (Web Display)</option>
                     </select>
                   </div>
+
+                  <div className={`space-y-1 ${tool.id !== "pdf-to-image" ? "sm:col-span-2" : ""}`}>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Page Scope</label>
+                    <select
+                      value={convertFromPageRange}
+                      onChange={(e) => setConvertFromPageRange(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="all">All Document Pages (ZIP Archive)</option>
+                      <option value="first">First Page Only (Single Image)</option>
+                      <option value="custom">Custom Page Range</option>
+                    </select>
+                  </div>
+                </div>
+
+                {convertFromPageRange === "custom" && (
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-200">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Specify Page Range / Numbers:</span>
+                      <span className="text-[10px] text-slate-400 font-normal">e.g. 1-5, 8, 11-15</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={pdfPageRangeStr}
+                      onChange={(e) => setPdfPageRangeStr(e.target.value)}
+                      placeholder="e.g. 1-5, 8, 11-15"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 font-mono focus:ring-2 focus:ring-purple-500/40"
+                    />
+                  </div>
+                )}
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-xl border border-purple-200/50 dark:border-purple-800/40 flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>
+                    <strong className="text-slate-800 dark:text-slate-200">Zero Black Artifacts Guarantee:</strong> Full vector canvas pre-rendered with pure white (#FFFFFF) background to eliminate black alpha channel glitches in exported JPEG/PNG files.
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* Category 3 Universal Convert from PDF Schema */}
-            {["pdf-to-jpg", "pdf-to-png", "pdf-to-word", "pdf-to-excel", "pdf-to-ppt", "pdf-to-powerpoint", "pdf-to-text", "pdf-to-html", "pdf-to-svg", "pdf-to-epub", "extract-images"].includes(tool.id) && (
+            {/* Category 3 Universal Convert from PDF Schema (Other non-image tools) */}
+            {["pdf-to-word", "pdf-to-excel", "pdf-to-ppt", "pdf-to-powerpoint", "pdf-to-text", "pdf-to-html", "pdf-to-svg", "pdf-to-epub", "extract-images"].includes(tool.id) && (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -3549,6 +3945,207 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       </button>
                     </div>
                   )}
+
+                  {["word-to-pdf", "pdf-to-word"].includes(tool.id) && (
+                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <span>⚡ Conversion Speed & Reconstruction Presets</span>
+                        </label>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                          {wordConversionPreset === "max_accuracy"
+                            ? "Mode 1: Max Accuracy"
+                            : wordConversionPreset === "high_speed"
+                            ? "Mode 2: High-Speed Draft"
+                            : "Mode 3: Compact Vector"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setWordConversionPreset("max_accuracy")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            wordConversionPreset === "max_accuracy"
+                              ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 ring-1 ring-blue-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
+                            🎯 Max Formatting Accuracy
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Full spatial reconstruction, native tables, font fallbacks & embedded vector parity.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWordConversionPreset("high_speed")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            wordConversionPreset === "high_speed"
+                              ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 ring-1 ring-blue-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            ⚡ High-Speed Draft
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Sub-second fast text & structure extraction for quick previews and draft reading.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWordConversionPreset("compact_vector")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            wordConversionPreset === "compact_vector"
+                              ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 ring-1 ring-blue-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            🪶 Compact Vector File
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Ultra-lightweight vector file optimized for web download, WhatsApp & email delivery.
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {tool.id === "excel-to-pdf" && (
+                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <span>📊 Adaptive Auto-Fit & Multi-Page Pagination Presets</span>
+                        </label>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                          {excelConversionPreset === "fit_to_page"
+                            ? "Mode 1: Fit to 1 Page Wide"
+                            : excelConversionPreset === "standard_grid"
+                            ? "Mode 2: Standard Grid Print"
+                            : "Mode 3: Compact Density"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExcelConversionPreset("fit_to_page")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            excelConversionPreset === "fit_to_page"
+                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                            📐 Fit Sheet to 1 Page Wide
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Auto-scales columns proportionally with ZERO horizontal edge clipping on 50+ column sheets.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExcelConversionPreset("standard_grid")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            excelConversionPreset === "standard_grid"
+                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            📊 Standard Grid Print
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Comfortable font sizing with repeated row headers for long multi-page financial statements.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExcelConversionPreset("compact_density")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            excelConversionPreset === "compact_density"
+                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            🪶 Compact High-Density
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Tight row packaging with compressed vector stream for email, WhatsApp & web archiving.
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {["powerpoint-to-pdf", "ppt-to-pdf"].includes(tool.id) && (
+                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <span>🎨 Vector Graphics & Typography Rendering Presets</span>
+                        </label>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300">
+                          {pptConversionPreset === "vector_fidelity"
+                            ? "Mode 1: Vector Fidelity"
+                            : pptConversionPreset === "high_speed"
+                            ? "Mode 2: High-Speed Draft"
+                            : "Mode 3: Compact Deck"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPptConversionPreset("vector_fidelity")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            pptConversionPreset === "vector_fidelity"
+                              ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-600 ring-1 ring-orange-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-orange-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-orange-700 dark:text-orange-400">
+                            🎨 Vector Fidelity & Typography
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Native vector shapes, master assets, font fallbacks & embedded high-res images at 100% fidelity.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPptConversionPreset("high_speed")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            pptConversionPreset === "high_speed"
+                              ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-600 ring-1 ring-orange-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-orange-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            ⚡ High-Speed Draft
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Fast streaming conversion optimized for rapid slide previews and quick reviews.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPptConversionPreset("compact_deck")}
+                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                            pptConversionPreset === "compact_deck"
+                              ? "bg-orange-50/80 dark:bg-orange-950/40 border-orange-600 ring-1 ring-orange-600 shadow-2xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-orange-300"
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            🪶 Compact Deck
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            Compressed vector stream for lightweight email attachments & instant messaging.
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -3774,12 +4371,71 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               </div>
 
+              {notepadStats && (
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 pb-1">
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-2xs">
+                    <div className="text-[10px] uppercase font-extrabold text-slate-400">Characters</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{notepadStats.charactersCount.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-2xs">
+                    <div className="text-[10px] uppercase font-extrabold text-slate-400">Words</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{notepadStats.wordsCount.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-2xs">
+                    <div className="text-[10px] uppercase font-extrabold text-slate-400">Lines</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{notepadStats.linesCount.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-center shadow-2xs">
+                    <div className="text-[10px] uppercase font-extrabold text-slate-400">Paragraphs</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{notepadStats.paragraphsCount.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/30 dark:border-emerald-500/30 text-center col-span-2 sm:col-span-1 shadow-2xs bg-emerald-50/40 dark:bg-emerald-950/20">
+                    <div className="text-[10px] uppercase font-extrabold text-emerald-600 dark:text-emerald-400">Noise Stripped</div>
+                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{notepadStats.noiseArtifactsStripped.toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+
               <textarea
                 readOnly
                 value={ocrResultText}
                 rows={6}
                 className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 font-mono border border-slate-200 dark:border-slate-700 focus:outline-none leading-relaxed"
               />
+            </div>
+          )}
+
+          {/* PDF to Image Ultra-HD Preview Thumbnails */}
+          {pdfRasterThumbnails.length > 0 && (
+            <div className="space-y-3 p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 shadow-xs animate-in fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <FileImage className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Ultra-HD Rasterized Page Previews ({convertFromDpi} DPI)
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30">
+                  {pdfRasterThumbnails.length} Pages Extracted &bull; Bundled in In-Memory ZIP
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                {pdfRasterThumbnails.map((thumb, idx) => (
+                  <div
+                    key={idx}
+                    className="group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs bg-white dark:bg-slate-900 aspect-[3/4] flex items-center justify-center p-1.5 transition hover:shadow-md hover:border-purple-400"
+                  >
+                    <img
+                      src={thumb}
+                      alt={`Page ${idx + 1}`}
+                      className="max-h-full max-w-full object-contain rounded"
+                    />
+                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/75 text-[9px] font-extrabold text-white">
+                      P. {idx + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

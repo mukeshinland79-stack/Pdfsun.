@@ -20,6 +20,7 @@ import { jsPDF } from "jspdf";
 import mammoth from "mammoth";
 import { sanitizeOcrText } from "./pdfEngine";
 import { generateEnterpriseExcel, verifyTableStructure, ensurePaddedMatrix } from "./enterpriseExcelGenerator";
+import { convertWordToPdfEnterprise } from "./enterpriseWordToPdfEngine";
 
 // Configure pdfjs worker if available in browser
 if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
@@ -1370,88 +1371,12 @@ export async function convertWordToPdfSmart(
   file: File,
   onProgress?: (percent: number, msg: string) => void
 ): Promise<{ bytes: Uint8Array; fileName: string }> {
-  if (onProgress) onProgress(20, "Extracting Word document text & structure...");
-
-  const arrayBuffer = await file.arrayBuffer();
-  let text = "";
-
-  try {
-    const result = await mammoth.extractRawText({ arrayBuffer });
-    text = result.value || "";
-  } catch (err) {
-    console.warn("Mammoth extraction fallback:", err);
-    text = await file.text();
-  }
-
-  if (!text.trim()) {
-    throw new Error(`The Word document "${file.name}" contains no readable text content.`);
-  }
-
-  if (onProgress) onProgress(60, "Formatting clean PDF layout & vector pages...");
-
-  const doc = new jsPDF({ format: "a4", unit: "mm" });
-  const lines = text.split("\n");
-  let y = 20;
-  const pageHeight = 280;
-
-  // Title
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text(file.name.replace(/\.[^/.]+$/, ""), 15, y);
-  y += 10;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      y += 4;
-      continue;
-    }
-
-    if (y > pageHeight) {
-      doc.addPage();
-      y = 20;
-    }
-
-    const isHeading =
-      trimmed.length < 50 && (/^[A-Z0-9\s:_-]+$/.test(trimmed) || COMMON_SECTION_HEADINGS.some((h) => trimmed.toUpperCase().includes(h)));
-
-    if (isHeading) {
-      y += 3;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(15, 23, 42);
-      doc.text(trimmed, 15, y);
-      y += 6;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-    } else {
-      // Word wrap
-      const wrapped = doc.splitTextToSize(trimmed, 180);
-      for (const wLine of wrapped) {
-        if (y > pageHeight) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(wLine, 15, y);
-        y += 5;
-      }
-    }
-  }
-
-  const baseName = file.name.replace(/\.[^/.]+$/, "") || "PDFSun_Word_Doc";
-  const pdfBytes = new Uint8Array(doc.output("arraybuffer"));
-
-  if (onProgress) onProgress(100, "PDF conversion complete");
-
-  return {
-    bytes: pdfBytes,
-    fileName: `${baseName}_Converted.pdf`,
-  };
+  return await convertWordToPdfEnterprise(file, {
+    preset: "max_accuracy",
+    onProgress: (p, msg) => {
+      if (onProgress) onProgress(p, msg);
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1566,7 +1491,7 @@ export async function convertExcelToPdfSmart(
 
 export function validateConversionOutput(
   bytes: Uint8Array | string,
-  expectedFormat: "pdf" | "docx" | "xlsx" | "csv" | "txt",
+  expectedFormat: "pdf" | "docx" | "xlsx" | "pptx" | "csv" | "txt" | "rtf",
   fileName: string
 ): { isValid: boolean; byteLength: number; format: string } {
   if (!bytes) {
@@ -1576,7 +1501,7 @@ export function validateConversionOutput(
   const byteLength =
     bytes instanceof Uint8Array ? bytes.byteLength : typeof bytes === "string" ? bytes.length : 0;
 
-  if (byteLength < 100) {
+  if (byteLength < 50) {
     throw new Error(`Output validation failed: generated ${expectedFormat.toUpperCase()} file is truncated (${byteLength} bytes).`);
   }
 
@@ -1589,11 +1514,19 @@ export function validateConversionOutput(
       }
     }
 
-    // Check DOCX / XLSX Magic Bytes (PK\x03\x04 Zip Archive)
-    if (expectedFormat === "docx" || expectedFormat === "xlsx") {
+    // Check DOCX / XLSX / PPTX Magic Bytes (PK\x03\x04 Zip Archive)
+    if (expectedFormat === "docx" || expectedFormat === "xlsx" || expectedFormat === "pptx") {
       const isZipHeader = bytes[0] === 0x50 && bytes[1] === 0x4b;
       if (!isZipHeader) {
         throw new Error(`Output validation failed: output file is not a valid OpenXML ${expectedFormat.toUpperCase()} document.`);
+      }
+    }
+
+    // Check RTF Magic Header ({\rtf)
+    if (expectedFormat === "rtf") {
+      const header = String.fromCharCode(...bytes.slice(0, 5));
+      if (!header.startsWith("{\\rtf")) {
+        throw new Error(`Output validation failed: output file is not a valid RTF document.`);
       }
     }
   }

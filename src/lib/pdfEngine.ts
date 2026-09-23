@@ -35,8 +35,93 @@ import {
   isIdentifierField,
   parseNumericCell,
 } from "./smartDocumentEngine";
+import {
+  convertWordToPdfEnterprise,
+  WordToPdfPreset,
+  WordToPdfOptions,
+} from "./enterpriseWordToPdfEngine";
+import {
+  convertPdfToWordEnterprise,
+  PdfToWordPreset,
+  PdfToWordOptions,
+} from "./enterprisePdfToWordEngine";
+import {
+  convertExcelToPdfEnterprise,
+  ExcelToPdfPreset,
+  ExcelToPdfOptions,
+} from "./enterpriseExcelToPdfEngine";
+import {
+  convertPdfToExcelEnterprise,
+  PdfToExcelPreset,
+  PdfToExcelOptions,
+} from "./enterprisePdfToExcelEngine";
+import {
+  convertPowerPointToPdfEnterprise,
+  PptToPdfPreset,
+  PptToPdfOptions,
+} from "./enterprisePowerPointToPdfEngine";
+import {
+  convertPdfToPowerPointEnterprise,
+  PdfToPptPreset,
+  PdfToPowerPointOptions,
+} from "./enterprisePdfToPowerPointEngine";
+import {
+  convertImageToExcelEnterprise,
+  convertImageToWordEnterprise,
+  astToSmartDocumentAnalysis,
+  DocumentAST,
+} from "./enterpriseImageOcrEngine";
+import {
+  convertImageToNotepadEnterprise,
+  convertImagesToPdfEnterprise,
+  convertPdfToImagesEnterprise,
+  advancedAstRegexSanitize,
+  parsePageRangeString,
+  ImageToPdfOptions,
+  PdfToImageOptions,
+  NotepadSanitizeOptions,
+  NotepadExtractionResult,
+  PdfToImageResult,
+  PdfRasterDpi,
+  PdfRasterFormat,
+  PdfPageScope,
+  ImageToPdfOrientation,
+  ImageToPdfPageSize,
+  ImageToPdfMargin,
+  ImageToPdfQuality,
+} from "./enterpriseMediaEngine";
 
-export type { MergePdfOptions, SplitPdfOptions, SplitPdfOutput, SmartDocumentAnalysis, DetectionMode };
+export type {
+  MergePdfOptions,
+  SplitPdfOptions,
+  SplitPdfOutput,
+  SmartDocumentAnalysis,
+  DetectionMode,
+  WordToPdfPreset,
+  WordToPdfOptions,
+  PdfToWordPreset,
+  PdfToWordOptions,
+  ExcelToPdfPreset,
+  ExcelToPdfOptions,
+  PdfToExcelPreset,
+  PdfToExcelOptions,
+  PptToPdfPreset,
+  PptToPdfOptions,
+  PdfToPptPreset,
+  PdfToPowerPointOptions,
+  ImageToPdfOptions,
+  PdfToImageOptions,
+  NotepadSanitizeOptions,
+  NotepadExtractionResult,
+  PdfToImageResult,
+  PdfRasterDpi,
+  PdfRasterFormat,
+  PdfPageScope,
+  ImageToPdfOrientation,
+  ImageToPdfPageSize,
+  ImageToPdfMargin,
+  ImageToPdfQuality,
+};
 export {
   autoRepairPdfBytes,
   parsePagesToCopy,
@@ -50,6 +135,17 @@ export {
   convertToSmartWordDocx,
   convertWordToPdfSmart,
   convertExcelToPdfSmart,
+  convertWordToPdfEnterprise,
+  convertPdfToWordEnterprise,
+  convertExcelToPdfEnterprise,
+  convertPdfToExcelEnterprise,
+  convertPowerPointToPdfEnterprise,
+  convertPdfToPowerPointEnterprise,
+  convertImageToNotepadEnterprise,
+  convertImagesToPdfEnterprise,
+  convertPdfToImagesEnterprise,
+  advancedAstRegexSanitize,
+  parsePageRangeString,
   validateConversionOutput,
   isIdentifierField,
   parseNumericCell,
@@ -219,41 +315,25 @@ export async function rotatePdf(
   return resultBytes;
 }
 
-// 5. Images to PDF
+// 5. Images to PDF (Enterprise High-Fidelity Converter)
 export async function imagesToPdf(
   imageFiles: File[],
-  onProgress?: (percent: number) => void
+  optionsOrProgress?: ImageToPdfOptions | ((percent: number) => void),
+  onProgress?: (percent: number, step?: string) => void
 ): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-  const total = imageFiles.length;
+  let opts: ImageToPdfOptions = {};
+  let progressCb: ((percent: number, step?: string) => void) | undefined = onProgress;
 
-  for (let i = 0; i < total; i++) {
-    const imgFile = imageFiles[i];
-    const arrayBuffer = await fileToArrayBuffer(imgFile);
-    let image;
-
-    if (imgFile.type.includes("png")) {
-      image = await pdfDoc.embedPng(arrayBuffer);
-    } else {
-      image = await pdfDoc.embedJpg(arrayBuffer);
-    }
-
-    const page = pdfDoc.addPage([image.width, image.height]);
-    page.drawImage(image, {
-      x: 0,
-      y: 0,
-      width: image.width,
-      height: image.height,
-    });
-
-    if (onProgress) {
-      onProgress(Math.round(((i + 1) / total) * 90));
-    }
+  if (typeof optionsOrProgress === "function") {
+    progressCb = optionsOrProgress;
+  } else if (optionsOrProgress) {
+    opts = optionsOrProgress;
   }
 
-  const resultBytes = await pdfDoc.save();
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  const res = await convertImagesToPdfEnterprise(imageFiles, opts, (p, msg) => {
+    if (progressCb) progressCb(p, msg);
+  });
+  return res.bytes;
 }
 
 // 6. Watermark PDF
@@ -893,100 +973,95 @@ export function ensureValidFilename(fileName: string, mimeType: string = "applic
   return cleanName;
 }
 
-// 14. Real PDF to Word (.docx) Converter using Smart Document Engine
+// 14. Real PDF to Word (.docx) Converter using Enterprise Engine
 export async function pdfToWordDocx(
   file: File,
   onProgress?: (percent: number) => void,
   mode: DetectionMode = "auto"
 ): Promise<Uint8Array> {
-  const analysis = await analyzeDocumentStructure(file, mode, (p) => {
-    if (onProgress) onProgress(p);
+  const res = await convertPdfToWordEnterprise(file, {
+    preset: "max_accuracy",
+    preserveTables: true,
+    enableOcrFallback: true,
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
   });
-  const res = await convertToSmartWordDocx(analysis, file.name);
   validateConversionOutput(res.bytes, "docx", res.fileName);
   return res.bytes;
 }
 
-// 15. Real Word (.docx) to PDF Converter using Mammoth & jsPDF
+// 15. Real Word (.docx) to PDF Converter using Enterprise Engine
 export async function wordToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  const res = await convertWordToPdfSmart(file, (p) => {
-    if (onProgress) onProgress(p);
+  const res = await convertWordToPdfEnterprise(file, {
+    preset: "max_accuracy",
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
   });
   validateConversionOutput(res.bytes, "pdf", res.fileName);
   return res.bytes;
 }
 
-// 16. Real Excel (.xlsx / .csv) to PDF Converter using XLSX & jsPDF
+// 16. Real Excel (.xlsx / .csv) to PDF Converter using Enterprise Adaptive Engine
 export async function excelToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  const res = await convertExcelToPdfSmart(file, (p) => {
-    if (onProgress) onProgress(p);
+  const res = await convertExcelToPdfEnterprise(file, {
+    preset: "fit_to_page",
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
   });
   validateConversionOutput(res.bytes, "pdf", res.fileName);
   return res.bytes;
 }
 
-// 17. Real PDF to Excel (.xlsx) Converter using Smart Document Engine
+// 17. Real PDF to Excel (.xlsx) Converter using Enterprise Reconstruction Engine
 export async function pdfToExcelXlsx(
   file: File,
   onProgress?: (percent: number) => void,
   mode: DetectionMode = "auto"
 ): Promise<Uint8Array> {
-  const analysis = await analyzeDocumentStructure(file, mode, (p) => {
-    if (onProgress) onProgress(p);
+  const preset: PdfToExcelPreset = mode === "table" ? "table" : mode === "fields" ? "fields" : "auto";
+  const res = await convertPdfToExcelEnterprise(file, {
+    preset,
+    outputFormat: "xlsx",
+    enableOcrFallback: true,
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
   });
-  const res = await convertToSmartExcel(analysis, file.name, "xlsx");
   validateConversionOutput(res.bytes, "xlsx", res.fileName);
   return res.bytes;
 }
 
-// 18. Real PowerPoint (.pptx) to PDF Converter
+// 18. Real PowerPoint (.pptx) to PDF Converter using Enterprise OpenXML Engine
 export async function powerPointToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(30);
-  let text = "";
-  try {
-    text = await fileToText(file);
-  } catch {
-    text = `Presentation: ${file.name}`;
-  }
-
-  if (onProgress) onProgress(60);
-  const doc = new jsPDF({ orientation: "landscape" });
-  doc.setFontSize(18);
-  doc.text(file.name.replace(/\.[^/.]+$/, ""), 20, 25);
-  doc.setFontSize(12);
-  doc.text("Converted PowerPoint Presentation Slide Deck", 20, 35);
-
-  const lines = doc.splitTextToSize(text || "Slide content extracted cleanly from presentation.", 250);
-  let y = 50;
-  lines.forEach((line: string) => {
-    if (y > 180) {
-      doc.addPage();
-      y = 30;
-    }
-    doc.text(line, 20, y);
-    y += 8;
+  const res = await convertPowerPointToPdfEnterprise(file, {
+    preset: "vector_fidelity",
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
   });
-
-  if (onProgress) onProgress(90);
-  const bytes = new Uint8Array(doc.output("arraybuffer"));
-  if (onProgress) onProgress(100);
-  return bytes;
+  validateConversionOutput(res.bytes, "pdf", res.fileName);
+  return res.bytes;
 }
 
-// 19. Real PDF to PowerPoint (.pptx) Converter using pptxgenjs
+// 19. Real PDF to PowerPoint (.pptx) Converter using Enterprise Slide Reconstruction Engine
 export interface PdfToPptxOptions {
-  orientation?: "landscape" | "portrait";
+  preset?: PdfToPptPreset;
+  orientation?: "landscape" | "portrait" | "auto" | "widescreen" | "standard";
   pageScope?: "all" | "range";
   pageRangeStr?: string;
+  enableOcrFallback?: boolean;
 }
 
 export async function pdfToPowerPointPptx(
@@ -997,97 +1072,36 @@ export async function pdfToPowerPointPptx(
   const onProgress = typeof options === "function" ? options : onProgressCallback;
   const opts: PdfToPptxOptions = typeof options === "object" && options !== null ? options : {};
 
-  const orientation = opts.orientation || "landscape";
-  const pageScope = opts.pageScope || "all";
-  const pageRangeStr = opts.pageRangeStr || "";
+  const res = await convertPdfToPowerPointEnterprise(file, {
+    preset: opts.preset || "hybrid_master",
+    orientation: opts.orientation || "auto",
+    pageScope: opts.pageScope || "all",
+    pageRangeStr: opts.pageRangeStr || "",
+    enableOcrFallback: opts.enableOcrFallback !== false,
+    onProgress: (p) => {
+      if (onProgress) onProgress(p);
+    },
+  });
 
-  if (onProgress) onProgress(10);
-  const arrayBuffer = await fileToArrayBuffer(file);
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const totalPages = pdf.numPages;
-
-  let targetIndices: number[] = [];
-  if (pageScope === "range" && pageRangeStr.trim()) {
-    targetIndices = parseTargetPageIndices(pageRangeStr, totalPages);
-  } else {
-    targetIndices = Array.from({ length: totalPages }, (_, i) => i);
-  }
-
-  const pptx = new PptxGenJS();
-  if (orientation === "portrait") {
-    pptx.defineLayout({ name: "PORTRAIT_16x9", width: 7.5, height: 10.0 });
-    pptx.layout = "PORTRAIT_16x9";
-  } else {
-    pptx.layout = "LAYOUT_16x9";
-  }
-
-  for (let idx = 0; idx < targetIndices.length; idx++) {
-    const pageNum = targetIndices[idx] + 1;
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d");
-
-    if (ctx) {
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-      const imgDataUrl = canvas.toDataURL("image/png");
-      const slide = pptx.addSlide();
-      slide.addImage({
-        data: imgDataUrl,
-        x: 0,
-        y: 0,
-        w: "100%",
-        h: "100%",
-      });
-    }
-
-    if (onProgress) onProgress(10 + Math.round(((idx + 1) / targetIndices.length) * 75));
-  }
-
-  if (onProgress) onProgress(90);
-  const buffer = await pptx.write({ outputType: "arraybuffer" });
-  if (onProgress) onProgress(100);
-  return new Uint8Array(buffer as ArrayBuffer);
+  validateConversionOutput(res.bytes, "pptx", res.fileName);
+  return res.bytes;
 }
 
-// 20. Real PDF to Images ZIP Converter
+// 20. Real PDF to Images ZIP Converter (Enterprise Ultra-HD Rasterizer)
 export async function pdfToImagesZip(
   file: File,
-  format: "jpg" | "png" = "jpg",
-  onProgress?: (percent: number) => void
+  formatOrOptions: "jpg" | "png" | PdfToImageOptions = "jpg",
+  onProgress?: (percent: number, step?: string) => void
 ): Promise<Blob> {
-  if (onProgress) onProgress(10);
-  const arrayBuffer = await fileToArrayBuffer(file);
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const pageCount = pdf.numPages;
-  const zip = new JSZip();
-
-  const baseName = file.name.replace(/\.[^/.]+$/, "");
-
-  for (let i = 1; i <= pageCount; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d");
-
-    if (ctx) {
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-      const mimeType = format === "png" ? "image/png" : "image/jpeg";
-      const dataUrl = canvas.toDataURL(mimeType, 0.92);
-      const base64Data = dataUrl.split(",")[1];
-      zip.file(`${baseName}_page_${i}.${format}`, base64Data, { base64: true });
-    }
-
-    if (onProgress) onProgress(10 + Math.round((i / pageCount) * 85));
+  let opts: PdfToImageOptions = {};
+  if (typeof formatOrOptions === "string") {
+    opts = { format: formatOrOptions, dpi: 150 };
+  } else if (formatOrOptions) {
+    opts = formatOrOptions;
   }
 
-  const zipBlob = await zip.generateAsync({ type: "blob" });
-  if (onProgress) onProgress(100);
-  return zipBlob;
+  const res = await convertPdfToImagesEnterprise(file, opts, onProgress);
+  return res.zipBlob;
 }
 
 // 21. Real HTML / Webpage to PDF Converter
@@ -2357,7 +2371,7 @@ export function buildStructuredWorksheet(grid: string[][]): XLSX.WorkSheet {
 
 /**
  * Image to Excel (.xlsx / .csv) Converter
- * Auto-detects table layout, headers, rows, and exports clean structured spreadsheets.
+ * Powered by Enterprise Client-Side WASM Vision, 2D Spatial Coordinate Mapping & Critical Identifier Protection.
  */
 export async function imageToExcel(
   files: File | File[],
@@ -2365,58 +2379,79 @@ export async function imageToExcel(
     outputFormat?: "xlsx" | "csv";
     autoDetectTables?: boolean;
     mode?: DetectionMode;
+    autoDeskew?: boolean;
+    removeShadows?: boolean;
   },
   onProgress?: (percent: number, step?: string) => void
 ): Promise<{ bytes: Uint8Array; fileName: string; rowCount: number; previewRows: string[][]; analysis?: SmartDocumentAnalysis }> {
   const fileList = Array.isArray(files) ? files : [files];
   const outputFormat = options?.outputFormat || "xlsx";
-  const mode = options?.mode || "auto";
+  const mode = options?.mode || "table";
 
   if (fileList.length === 1) {
-    const analysis = await analyzeDocumentStructure(fileList[0], mode, (p, msg) => {
-      if (onProgress) onProgress(p, msg);
-    });
-    const res = await convertToSmartExcel(analysis, fileList[0].name, outputFormat);
-    validateConversionOutput(res.bytes, outputFormat, res.fileName);
+    const res = await convertImageToExcelEnterprise(
+      fileList[0],
+      {
+        format: outputFormat,
+        mode: (mode as any),
+        autoDeskew: options?.autoDeskew !== false,
+        removeShadows: options?.removeShadows !== false,
+      },
+      (p, msg) => {
+        if (onProgress) onProgress(p, msg);
+      }
+    );
+
+    const analysis = astToSmartDocumentAnalysis(res.ast);
     return {
       bytes: res.bytes,
       fileName: res.fileName,
-      rowCount: analysis.stats.rowsCount,
-      previewRows: analysis.primaryTableMatrix,
+      rowCount: res.rowCount,
+      previewRows: res.previewRows,
       analysis,
     };
   }
 
-  if (onProgress) onProgress(10, "Uploading & Initializing Multi-Page OCR...");
+  if (onProgress) onProgress(10, "Uploading & Initializing Multi-Image WASM OCR Pipeline...");
 
   let totalRows = 0;
   let aggregatedPreviewRows: string[][] = [];
-  let lastAnalysis: SmartDocumentAnalysis | undefined;
   const additionalSheets: Array<{ sheetName: string; matrix: any[][] }> = [];
   let firstGrid: string[][] = [];
+  let lastAst: DocumentAST | undefined;
 
   for (let i = 0; i < fileList.length; i++) {
     const f = fileList[i];
     const baseProgress = 15 + Math.round((i / fileList.length) * 70);
 
-    if (onProgress) onProgress(baseProgress, `Processing OCR on image ${i + 1} of ${fileList.length}...`);
+    if (onProgress) onProgress(baseProgress, `Processing OCR & 2D matrix on image ${i + 1} of ${fileList.length}...`);
 
-    const analysis = await analyzeDocumentStructure(f, mode, (p, msg) => {
-      if (onProgress) onProgress(Math.min(90, baseProgress + Math.round((p / 100) * 15)), msg);
-    });
-    lastAnalysis = analysis;
-    totalRows += analysis.primaryTableMatrix.length;
+    const res = await convertImageToExcelEnterprise(
+      f,
+      {
+        format: outputFormat,
+        mode: (mode as any),
+        autoDeskew: options?.autoDeskew !== false,
+        removeShadows: options?.removeShadows !== false,
+      },
+      (p, msg) => {
+        if (onProgress) onProgress(Math.min(90, baseProgress + Math.round((p / 100) * 15)), msg);
+      }
+    );
+
+    lastAst = res.ast;
+    totalRows += res.rowCount;
 
     if (i === 0) {
-      firstGrid = analysis.primaryTableMatrix;
-      aggregatedPreviewRows = analysis.primaryTableMatrix;
+      firstGrid = res.previewRows;
+      aggregatedPreviewRows = res.previewRows;
     } else {
       const sheetName = `Doc_${i + 1}_${f.name.replace(/\.[^/.]+$/, "")}`.slice(0, 31).replace(/[:\/\\?*\[\]]/g, "_");
       additionalSheets.push({
         sheetName,
-        matrix: analysis.primaryTableMatrix,
+        matrix: res.previewRows,
       });
-      aggregatedPreviewRows = [...aggregatedPreviewRows, ...analysis.primaryTableMatrix.slice(1)];
+      aggregatedPreviewRows = [...aggregatedPreviewRows, ...res.previewRows.slice(1)];
     }
   }
 
@@ -2430,7 +2465,9 @@ export async function imageToExcel(
         r
           .map((c) => {
             const str = String(c ?? "");
-            return str.includes(",") || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
+            return str.includes(",") || str.includes('"') || str.includes("\n")
+              ? `"${str.replace(/"/g, '""')}"`
+              : str;
           })
           .join(",")
       )
@@ -2442,7 +2479,7 @@ export async function imageToExcel(
       fileName: `${baseName}.csv`,
       rowCount: totalRows,
       previewRows: aggregatedPreviewRows,
-      analysis: lastAnalysis,
+      analysis: lastAst ? astToSmartDocumentAnalysis(lastAst) : undefined,
     };
   }
 
@@ -2459,13 +2496,13 @@ export async function imageToExcel(
     fileName: `${baseName}.xlsx`,
     rowCount: totalRows,
     previewRows: aggregatedPreviewRows,
-    analysis: lastAnalysis,
+    analysis: lastAst ? astToSmartDocumentAnalysis(lastAst) : undefined,
   };
 }
 
 /**
  * Image to Word / WordPad (.docx / .rtf) Converter
- * Extracts styled text, headings, and paragraph structures into editable Word documents.
+ * Powered by Unified Document AST, multi-column flow parsing, and native OpenXML / RTF stylesheets.
  */
 export async function imageToWordDocx(
   files: File | File[],
@@ -2473,6 +2510,8 @@ export async function imageToWordDocx(
     format?: "docx" | "rtf";
     styleHeadings?: boolean;
     mode?: DetectionMode;
+    autoDeskew?: boolean;
+    removeShadows?: boolean;
   },
   onProgress?: (percent: number, step?: string) => void
 ): Promise<{ bytes: Uint8Array; fileName: string; text: string; analysis?: SmartDocumentAnalysis }> {
@@ -2480,200 +2519,121 @@ export async function imageToWordDocx(
   const format = options?.format || "docx";
   const mode = options?.mode || "auto";
 
-  if (fileList.length === 1 && format === "docx") {
-    const analysis = await analyzeDocumentStructure(fileList[0], mode, (p, msg) => {
-      if (onProgress) onProgress(p, msg);
-    });
-    const res = await convertToSmartWordDocx(analysis, fileList[0].name);
-    validateConversionOutput(res.bytes, "docx", res.fileName);
+  if (fileList.length === 1) {
+    const res = await convertImageToWordEnterprise(
+      fileList[0],
+      {
+        format,
+        mode: (mode as any),
+        autoDeskew: options?.autoDeskew !== false,
+        removeShadows: options?.removeShadows !== false,
+      },
+      (p, msg) => {
+        if (onProgress) onProgress(p, msg);
+      }
+    );
+
+    const analysis = astToSmartDocumentAnalysis(res.ast);
     return {
       bytes: res.bytes,
       fileName: res.fileName,
-      text: analysis.fullText,
+      text: res.text,
       analysis,
     };
   }
 
-  if (onProgress) onProgress(10, "Uploading & Initializing OCR...");
+  if (onProgress) onProgress(10, "Uploading & Initializing Multi-Image WASM OCR Pipeline...");
 
-  const docParagraphs: Paragraph[] = [];
   let aggregatedText = "";
-
-  // Title Header
-  docParagraphs.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `PDFSun OCR Extraction — ${fileList[0]?.name || "Document"}`,
-          bold: true,
-          size: 32, // 16pt
-          color: "1E40AF",
-        }),
-      ],
-      spacing: { after: 300 },
-    })
-  );
+  const allNodes: any[] = [];
+  let lastAst: DocumentAST | undefined;
 
   for (let i = 0; i < fileList.length; i++) {
     const f = fileList[i];
     const baseProgress = 15 + Math.round((i / fileList.length) * 65);
 
-    if (onProgress) onProgress(baseProgress, `Processing OCR on image ${i + 1} of ${fileList.length}...`);
+    if (onProgress) onProgress(baseProgress, `Processing OCR & AST Layout on image ${i + 1} of ${fileList.length}...`);
 
-    let rawText = "";
-    try {
-      rawText = await ocrImageToText(f);
-    } catch (err) {
-      console.warn("OCR failure fallback:", err);
-      rawText = `[OCR Text for ${f.name}]`;
-    }
-
-    const cleanText = sanitizeOcrText(rawText);
-    aggregatedText += `\n\n=== Document: ${f.name} ===\n\n` + cleanText;
-
-    if (onProgress) onProgress(baseProgress + 10, "Structuring document headings & paragraphs...");
-
-    const lines = cleanText.split("\n").map((l) => l.trim()).filter(Boolean);
-
-    docParagraphs.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Image Source: ${f.name}`,
-            bold: true,
-            size: 24,
-            color: "3B82F6",
-          }),
-        ],
-        spacing: { before: 200, after: 120 },
-      })
+    const res = await convertImageToWordEnterprise(
+      f,
+      {
+        format,
+        mode: (mode as any),
+        autoDeskew: options?.autoDeskew !== false,
+        removeShadows: options?.removeShadows !== false,
+      },
+      (p, msg) => {
+        if (onProgress) onProgress(Math.min(85, baseProgress + Math.round((p / 100) * 15)), msg);
+      }
     );
 
-    for (const line of lines) {
-      const isHeading = line.length < 60 && (/^[A-Z0-9\s:_-]+$/.test(line) || line.endsWith(":"));
-      const isBullet = /^[-*•]\s/.test(line);
+    lastAst = res.ast;
+    aggregatedText += `\n\n=== Document ${i + 1}: ${f.name} ===\n\n` + res.text;
 
-      if (isHeading) {
-        docParagraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: line,
-                bold: true,
-                size: 26,
-                color: "0F172A",
-              }),
-            ],
-            spacing: { before: 180, after: 80 },
-          })
-        );
-      } else if (isBullet) {
-        docParagraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `• ${line.replace(/^[-*•]\s*/, "")}`,
-                size: 22,
-              }),
-            ],
-            spacing: { after: 80 },
-          })
-        );
-      } else {
-        docParagraphs.push(
-          new Paragraph({
-            children: [new TextRun({ text: line, size: 22 })],
-            spacing: { after: 120 },
-          })
-        );
-      }
-    }
+    allNodes.push({
+      type: "heading1",
+      text: `Document ${i + 1}: ${f.name}`,
+      style: { bold: true, fontSizePt: 16, alignment: "left" },
+    });
+    allNodes.push(...res.ast.nodes);
   }
 
-  if (onProgress) onProgress(85, "Packing Microsoft Word document...");
+  if (onProgress) onProgress(90, `Packing multi-document ${format.toUpperCase()} stream...`);
+
+  const combinedAst: DocumentAST = {
+    title: `PDFSun Batch OCR — ${fileList.length} Documents`,
+    nodes: allNodes,
+    fullText: aggregatedText,
+    primaryTableMatrix: lastAst?.primaryTableMatrix || [],
+    summaryFields: lastAst?.summaryFields || [],
+    metadata: {
+      columnsDetected: 1,
+      tablesDetected: allNodes.filter((n) => n.type === "table").length,
+      fieldsDetected: 0,
+      skewAngleApplied: 0,
+      upscaleFactor: 1,
+      processingTimeMs: 0,
+    },
+  };
+
+  const baseName = fileList[0]?.name.replace(/\.[^/.]+$/, "") || "PDFSun_Word_Doc";
+  const { generateWordDocxFromAst, generateRichTextFormatFromAst } = await import("./enterpriseImageOcrEngine");
 
   let resultBytes: Uint8Array;
-  const baseName = fileList[0]?.name.replace(/\.[^/.]+$/, "") || "PDFSun_Word_Doc";
+  let finalFileName: string;
 
   if (format === "rtf") {
-    // Generate Rich Text Format (.rtf)
-    const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl{\\f0 Calibri;}}\\f0\\fs24 ${aggregatedText.replace(/\n/g, "\\par\n")}}`;
-    resultBytes = new TextEncoder().encode(rtfContent);
+    const rtfRes = generateRichTextFormatFromAst(combinedAst, baseName);
+    resultBytes = rtfRes.bytes;
+    finalFileName = rtfRes.fileName;
   } else {
-    // Generate Microsoft Word (.docx)
-    const docxDoc = new DocxDocument({
-      sections: [
-        {
-          properties: {},
-          children: docParagraphs,
-        },
-      ],
-    });
-    const blob = await Packer.toBlob(docxDoc);
-    const buffer = await blob.arrayBuffer();
-    resultBytes = new Uint8Array(buffer);
+    const docxRes = await generateWordDocxFromAst(combinedAst, baseName);
+    resultBytes = docxRes.bytes;
+    finalFileName = docxRes.fileName;
   }
 
-  const fileName = `${baseName}.${format === "rtf" ? "rtf" : "docx"}`;
+  validateConversionOutput(resultBytes, format, finalFileName);
+
   if (onProgress) onProgress(100, "Download ready");
 
   return {
     bytes: resultBytes,
-    fileName,
+    fileName: finalFileName,
     text: aggregatedText,
+    analysis: lastAst ? astToSmartDocumentAnalysis(lastAst) : undefined,
   };
 }
 
 /**
- * Image to Notepad (.txt) Converter
- * Advanced noise-filtering OCR (strips garbage characters like "±±±", "|||", non-ASCII symbols).
+ * Image to Notepad (.txt) Converter (Enterprise Clean Text Extraction Engine)
+ * Advanced AST-level Regex Noise Filtering & Paragraph Normalization Pipeline.
  */
 export async function imageToNotepadText(
   files: File | File[],
-  options?: {
-    cleanNoise?: boolean;
-  },
+  options?: NotepadSanitizeOptions,
   onProgress?: (percent: number, step?: string) => void
-): Promise<{ bytes: Uint8Array; fileName: string; text: string }> {
-  const fileList = Array.isArray(files) ? files : [files];
-
-  if (onProgress) onProgress(10, "Uploading & Initializing OCR Engine...");
-
-  let fullSanitizedText = "";
-
-  for (let i = 0; i < fileList.length; i++) {
-    const f = fileList[i];
-    const baseProgress = 15 + Math.round((i / fileList.length) * 70);
-
-    if (onProgress) onProgress(baseProgress, `Processing OCR on image ${i + 1} of ${fileList.length}...`);
-
-    let rawText = "";
-    try {
-      rawText = await ocrImageToText(f);
-    } catch (err) {
-      console.warn("OCR extraction error, using fallback:", err);
-      rawText = `[Text from ${f.name}]`;
-    }
-
-    if (onProgress) onProgress(baseProgress + 10, "Applying 100% regex noise sanitization filter...");
-
-    const clean = sanitizeOcrText(rawText);
-    fullSanitizedText += (fullSanitizedText ? "\n\n" : "") + clean;
-  }
-
-  if (onProgress) onProgress(90, "Formatting clean Notepad text file...");
-
-  const baseName = fileList[0]?.name.replace(/\.[^/.]+$/, "") || "PDFSun_Clean_Text";
-  const fileName = `${baseName}.txt`;
-  const bytes = new TextEncoder().encode(fullSanitizedText);
-
-  if (onProgress) onProgress(100, "Download ready");
-
-  return {
-    bytes,
-    fileName,
-    text: fullSanitizedText,
-  };
+): Promise<NotepadExtractionResult> {
+  return convertImageToNotepadEnterprise(files, options, onProgress);
 }
 
 /**
