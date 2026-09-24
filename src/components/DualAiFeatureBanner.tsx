@@ -1,7 +1,10 @@
-import React from "react";
-import { Sparkles, Bot, Globe, ShieldCheck, Zap, ArrowRight, Cpu, Lock, FileText, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { Sparkles, Bot, Globe, ShieldCheck, Zap, ArrowRight, Cpu, Lock, FileText, CheckCircle2, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { SAAS_7_ICONS } from "./SaaSToolIcons";
+import { SaaSIconsShowcaseModal } from "./SaaSIconsShowcaseModal";
+import { SaaSToolNavigationBar } from "./SaaSToolNavigationBar";
 
 interface DualAiFeatureBannerProps {
   onSelectTool: (tool: ToolItem) => void;
@@ -12,12 +15,14 @@ export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
   onSelectTool,
   onOpenContactModal,
 }) => {
-  const handleLaunchAi = () => {
-    const aiTool = ALL_TOOLS.find((t) => t.slug === "ai-summary" || t.id === "ai-summary" || t.slug === "ai-chat");
+  const [showIconsModal, setShowIconsModal] = useState<boolean>(false);
+
+  const handleLaunchAi = (toolSlug = "ai-summary") => {
+    const aiTool = ALL_TOOLS.find((t) => t.slug === toolSlug || t.id === toolSlug) ||
+      ALL_TOOLS.find((t) => t.slug === "ai-summary" || t.id === "ai-summary" || t.slug === "ai-chat") ||
+      ALL_TOOLS[0];
     if (aiTool) {
       onSelectTool(aiTool);
-    } else if (ALL_TOOLS[0]) {
-      onSelectTool(ALL_TOOLS[0]);
     }
   };
 
@@ -83,7 +88,7 @@ export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
           {/* CTA Button */}
           <div>
             <button
-              onClick={handleLaunchAi}
+              onClick={() => handleLaunchAi()}
               className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg hover:shadow-blue-500/40 hover:scale-102 active:scale-98 transition duration-200 group-hover:from-blue-500 group-hover:to-cyan-400"
             >
               <span>Launch AI Assistant</span>
@@ -149,6 +154,48 @@ export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modern 2026 SaaS 7-Card Interactive Navigation Bar (Linear / Stripe / Vercel Aesthetic) */}
+      <div className="mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-1">
+          <div className="flex items-center space-x-2.5">
+            <span className="p-1.5 rounded-xl bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-500 text-white shadow-xs">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <div>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                PDFSun AI Document Engine Suite
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-extrabold uppercase">
+                  2026 SaaS Visual System
+                </span>
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Pure white #FFFFFF cards, 18px squircles, dynamic hover states, glowing purple halo, and floating tooltip pills
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowIconsModal(true)}
+            className="self-start sm:self-auto inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 text-xs font-bold transition shadow-2xs"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-purple-500" />
+            <span>8K Studio Mockup & Prompts</span>
+          </button>
+        </div>
+
+        <SaaSToolNavigationBar
+          onSelectTool={(slug) => handleLaunchAi(slug)}
+        />
+      </div>
+
+      {/* Modal Integration */}
+      <SaaSIconsShowcaseModal
+        isOpen={showIconsModal}
+        onClose={() => setShowIconsModal(false)}
+        onSelectTool={(slug) => handleLaunchAi(slug)}
+      />
     </section>
   );
 };

@@ -40,6 +40,17 @@ import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
 import { FormattedMarkdown } from "./FormattedMarkdown";
 import { useToolRatings } from "../hooks/useToolRatings";
 import { ErrorBoundary } from "./ErrorBoundary";
+import {
+  AiSummarySaaSIcon,
+  AiTranslateSaaSIcon,
+  AiNotesSaaSIcon,
+  AiFlashcardsSaaSIcon,
+  AiExplainSaaSIcon,
+  AiOcrSaaSIcon,
+  AiResumeSaaSIcon,
+  AiChatSaaSIcon,
+} from "./SaaSToolIcons";
+import { SaaSIconsShowcaseModal } from "./SaaSIconsShowcaseModal";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -81,7 +92,7 @@ interface AiTabConfig {
   id: AiTabId;
   canonicalName: string;
   buttonLabel: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   badge: string;
   description: string;
   shortTooltip: string;
@@ -93,7 +104,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "chat",
     canonicalName: "AI Chat with PDF",
     buttonLabel: "Send Message",
-    icon: MessageSquareText,
+    icon: AiChatSaaSIcon,
     badge: "Gemini 3.8 Flash",
     shortTooltip: "Chat interactively to ask questions, cross-examine clauses & cite pages",
     description: "Chat interactively with any uploaded document to ask questions, cross-examine clauses, and verify facts with full multi-turn conversational memory.",
@@ -103,7 +114,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "summary",
     canonicalName: "AI Document Summary",
     buttonLabel: "Generate AI Summary",
-    icon: Sparkles,
+    icon: AiSummarySaaSIcon,
     badge: "Executive Brief",
     shortTooltip: "Instantly generate executive summaries, key takeaways & structured outlines",
     description: "Summarize the document into: 1) Executive summary (3-5 sentences), 2) Key takeaways (bullet list), and 3) Structured outline.",
@@ -113,7 +124,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "translate",
     canonicalName: "AI Translate PDF",
     buttonLabel: "Translate Document",
-    icon: Languages,
+    icon: AiTranslateSaaSIcon,
     badge: "30+ Languages",
     shortTooltip: "Translate entire PDF documents into 30+ languages while preserving layout",
     description: "Translate document text into over 30 languages while preserving original document layout, headings, numbers, and bullet points.",
@@ -123,7 +134,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "notes",
     canonicalName: "AI Notes Generator",
     buttonLabel: "Generate AI Notes",
-    icon: BookOpen,
+    icon: AiNotesSaaSIcon,
     badge: "Smart Study",
     shortTooltip: "Instantly extract bulleted study notes, formulas, definitions & review tests",
     description: "Create structured study notes with key terms, definitions, formulas/concepts, callout highlights, and review questions from this document.",
@@ -133,7 +144,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "flashcards",
     canonicalName: "AI Flashcards",
     buttonLabel: "Generate Study Flashcards",
-    icon: Layers,
+    icon: AiFlashcardsSaaSIcon,
     badge: "Active Recall",
     shortTooltip: "Transform dense textbook pages into interactive flippable revision cards",
     description: "Automatically transform dense textbooks, lecture notes, and research papers into interactive study flashcards with flippable revision cards.",
@@ -143,7 +154,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "explain",
     canonicalName: "AI Explain PDF",
     buttonLabel: "Explain & Simplify Document",
-    icon: HelpCircle,
+    icon: AiExplainSaaSIcon,
     badge: "Plain Language",
     shortTooltip: "Break down complex technical, legal & financial jargon into simple terms",
     description: "One-click plain-language document breakdown. Translates complex technical, academic, and legal jargon into crystal-clear layman summaries.",
@@ -151,9 +162,9 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
   },
   {
     id: "ocr",
-    canonicalName: "AI OCR (Text Recognition)",
+    canonicalName: "AI OCR (Text Recognition PRO)",
     buttonLabel: "Run AI Vision OCR",
-    icon: ScanText,
+    icon: AiOcrSaaSIcon,
     badge: "Gemini Vision AI • Pro",
     shortTooltip: "Extract clean digital text from low-res scans, handwriting & image PDFs",
     description: "Recognize handwritten notes, complex multi-column layouts, scanned PDFs, and image documents using Gemini AI Vision with Tesseract fallback.",
@@ -163,7 +174,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "resume",
     canonicalName: "AI Resume Builder",
     buttonLabel: "Open Resume Builder",
-    icon: Briefcase,
+    icon: AiResumeSaaSIcon,
     badge: "ATS Scored",
     shortTooltip: "ATS score evaluation & instant executive resume rewriting for job seekers",
     description: "Analyze, score, and rewrite your resume into an ATS-optimized, professional PDF tailored for top employers with instant executive export.",
@@ -205,6 +216,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
   // Active Tab state (synced with tool prop)
   const [activeTab, setActiveTab] = useState<AiTabId>(() => getInitialTab(tool));
+  const [showSaaSIconsModal, setShowSaaSIconsModal] = useState<boolean>(false);
 
   useEffect(() => {
     setActiveTab(getInitialTab(tool));
@@ -877,6 +889,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
               </button>
             </div>
 
+            {/* SaaS 2026 Icon System Showcase Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowSaaSIconsModal(true)}
+              className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition shadow-2xs"
+              title="Inspect 2026 SaaS Vector Icon System & Midjourney Prompts"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>SaaS Icons 2026</span>
+            </button>
+
             {/* Copy Result Button (active only when output exists) */}
             <button
               onClick={copyToClipboard}
@@ -937,7 +960,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                         : "border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-orange-300 dark:hover:border-orange-500/40 hover:bg-orange-50/50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <IconComponent className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-500"}`} />
+                    <IconComponent size={16} className="shrink-0 transition-transform duration-200 group-hover:scale-110" />
                     <span>{tConfig.canonicalName}</span>
                     {isActive && (
                       <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs animate-pulse ml-0.5" />
@@ -1565,6 +1588,12 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         reason={paywallReason}
         fileSize={blockedFileSize}
         onOpenPricing={onClose}
+      />
+
+      {/* 2026 SaaS Icon Design System Modal */}
+      <SaaSIconsShowcaseModal
+        isOpen={showSaaSIconsModal}
+        onClose={() => setShowSaaSIconsModal(false)}
       />
     </div>
   );
