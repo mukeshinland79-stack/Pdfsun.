@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   RotateCw,
   Trash2,
+  MessageSquareText,
 } from "lucide-react";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { extractTextFromPdfFile, textToPdf, downloadFile, fileToBase64 } from "../lib/pdfEngine";
@@ -83,6 +84,7 @@ interface AiTabConfig {
   icon: React.ComponentType<{ className?: string }>;
   badge: string;
   description: string;
+  shortTooltip: string;
   emptyGuidance: string;
 }
 
@@ -91,8 +93,9 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     id: "chat",
     canonicalName: "AI Chat with PDF",
     buttonLabel: "Send Message",
-    icon: Bot,
+    icon: MessageSquareText,
     badge: "Gemini 3.8 Flash",
+    shortTooltip: "Chat interactively to ask questions, cross-examine clauses & cite pages",
     description: "Chat interactively with any uploaded document to ask questions, cross-examine clauses, and verify facts with full multi-turn conversational memory.",
     emptyGuidance: "Upload a document on the left, then ask questions below to interactively chat with your PDF using Gemini AI.",
   },
@@ -102,6 +105,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Generate AI Summary",
     icon: Sparkles,
     badge: "Executive Brief",
+    shortTooltip: "Instantly generate executive summaries, key takeaways & structured outlines",
     description: "Summarize the document into: 1) Executive summary (3-5 sentences), 2) Key takeaways (bullet list), and 3) Structured outline.",
     emptyGuidance: "Upload a document on the left, then click 'Generate AI Summary' to receive an executive brief, bulleted takeaways, and outline.",
   },
@@ -111,6 +115,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Translate Document",
     icon: Languages,
     badge: "30+ Languages",
+    shortTooltip: "Translate entire PDF documents into 30+ languages while preserving layout",
     description: "Translate document text into over 30 languages while preserving original document layout, headings, numbers, and bullet points.",
     emptyGuidance: "Upload a document, choose your target language from the dropdown, then click 'Translate Document' to generate a translated version.",
   },
@@ -120,6 +125,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Generate AI Notes",
     icon: BookOpen,
     badge: "Smart Study",
+    shortTooltip: "Instantly extract bulleted study notes, formulas, definitions & review tests",
     description: "Create structured study notes with key terms, definitions, formulas/concepts, callout highlights, and review questions from this document.",
     emptyGuidance: "Upload study materials or reports on the left, then click 'Generate AI Notes' to synthesize comprehensive notes and key takeaways.",
   },
@@ -129,6 +135,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Generate Study Flashcards",
     icon: Layers,
     badge: "Active Recall",
+    shortTooltip: "Transform dense textbook pages into interactive flippable revision cards",
     description: "Automatically transform dense textbooks, lecture notes, and research papers into interactive study flashcards with flippable revision cards.",
     emptyGuidance: "Upload lecture notes, articles, or chapters, then click 'Generate Study Flashcards' to build an interactive revision deck.",
   },
@@ -138,6 +145,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Explain & Simplify Document",
     icon: HelpCircle,
     badge: "Plain Language",
+    shortTooltip: "Break down complex technical, legal & financial jargon into simple terms",
     description: "One-click plain-language document breakdown. Translates complex technical, academic, and legal jargon into crystal-clear layman summaries.",
     emptyGuidance: "Upload complex contracts, research papers, or technical manuals, then click 'Explain & Simplify Document' for a plain-English breakdown.",
   },
@@ -147,6 +155,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Run AI Vision OCR",
     icon: ScanText,
     badge: "Gemini Vision AI • Pro",
+    shortTooltip: "Extract clean digital text from low-res scans, handwriting & image PDFs",
     description: "Recognize handwritten notes, complex multi-column layouts, scanned PDFs, and image documents using Gemini AI Vision with Tesseract fallback.",
     emptyGuidance: "Upload a scanned document, receipt, or photo, then click 'Run AI Vision OCR' to extract digital text and export a searchable document.",
   },
@@ -156,6 +165,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     buttonLabel: "Open Resume Builder",
     icon: Briefcase,
     badge: "ATS Scored",
+    shortTooltip: "ATS score evaluation & instant executive resume rewriting for job seekers",
     description: "Analyze, score, and rewrite your resume into an ATS-optimized, professional PDF tailored for top employers with instant executive export.",
     emptyGuidance: "Upload your existing resume to analyze your ATS score, improve formatting, and export an executive PDF tailored for top jobs.",
   },
@@ -903,35 +913,55 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
         {/* 2. Isolated Tool Navigation Header (Tabs Bar) with Stacking Context & Responsive Scroll */}
         <nav
           aria-label="AI Document Tools"
-          className="relative z-20 shrink-0 w-full bg-slate-50 border-b border-slate-200 px-3 sm:px-6 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent"
+          className="relative z-30 shrink-0 w-full bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2.5 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent snap-x snap-mandatory"
         >
-          <div className="flex items-center gap-1.5 min-w-max">
+          <div className="flex items-center gap-2 min-w-max">
             {AI_TABS_CONFIG.map((tConfig) => {
               const IconComponent = tConfig.icon;
               const isActive = activeTab === tConfig.id;
 
               return (
-                <button
-                  key={tConfig.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tConfig.id);
-                    setAiError(null);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl flex items-center space-x-1.5 whitespace-nowrap transition duration-150 text-xs shrink-0 ${
-                    isActive
-                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-xs scale-100 ring-2 ring-orange-400/40"
-                      : "border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-100 font-medium"
-                  }`}
-                >
-                  <IconComponent className="w-3.5 h-3.5 shrink-0" />
-                  <span>{tConfig.canonicalName}</span>
-                  {tConfig.id === "ocr" && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase ml-0.5 shadow-2xs">
-                      PRO
-                    </span>
-                  )}
-                </button>
+                <div key={tConfig.id} className="relative group shrink-0 snap-start">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-label={`${tConfig.canonicalName} - ${tConfig.shortTooltip}`}
+                    onClick={() => {
+                      setActiveTab(tConfig.id);
+                      setAiError(null);
+                    }}
+                    className={`relative px-3.5 py-2 rounded-xl flex items-center space-x-2 whitespace-nowrap transition-all duration-200 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 select-none ${
+                      isActive
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-md shadow-orange-500/25 ring-2 ring-orange-400/60 scale-[1.02]"
+                        : "border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-orange-300 dark:hover:border-orange-500/40 hover:bg-orange-50/50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <IconComponent className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-500"}`} />
+                    <span>{tConfig.canonicalName}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs animate-pulse ml-0.5" />
+                    )}
+                    {tConfig.id === "ocr" && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black uppercase ml-1 shadow-2xs">
+                        PRO
+                      </span>
+                    )}
+                    {tConfig.id === "resume" && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500 text-white font-black uppercase ml-1 shadow-2xs">
+                        ATS
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Interactive Micro-Tooltip on Hover & Focus */}
+                  <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-50 hidden group-hover:flex group-focus-within:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950/95 text-white text-[11px] font-medium shadow-2xl border border-slate-800/80 backdrop-blur-md whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+                    <span className="font-bold text-amber-400">{tConfig.canonicalName}</span>
+                    <span className="text-slate-400">•</span>
+                    <span className="text-slate-200">{tConfig.shortTooltip}</span>
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-950 rotate-45 border-t border-l border-slate-800/80" />
+                  </div>
+                </div>
               );
             })}
           </div>
