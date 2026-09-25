@@ -49,9 +49,9 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.",
     "publisher": {
       "@type": "Organization",
-      "name": "PDFSun",
+      "name": "PDF Sun PRO AI",
       "url": baseUrl,
-      "logo": `${baseUrl}/assets/favicon-512x512.png`,
+      "logo": `${baseUrl}/assets/logo-horizontal.png`,
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -67,9 +67,9 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "PDFSun",
+    "name": "PDF Sun PRO AI",
     "url": baseUrl,
-    "logo": `${baseUrl}/assets/favicon-512x512.png`,
+    "logo": `${baseUrl}/assets/logo-horizontal.png`,
     "sameAs": [],
   };
 
@@ -77,17 +77,17 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const webAppSchema = {
     "@context": "https://schema.org",
     "@type": ["WebApplication", "SoftwareApplication"],
-    "name": "PDFSun - Free Online PDF Tools",
+    "name": "PDF Sun PRO AI - Free Online PDF Tools",
     "url": baseUrl,
-    "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.",
+    "description": "PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "All (Web-based, Windows, macOS, Linux, iOS, Android)",
     "browserRequirements": "Requires HTML5 and WebAssembly compatible browser.",
-    "softwareVersion": "2.1.0",
+    "softwareVersion": "3.0.0",
     "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
     "featureList": [
-      "Merge multiple PDF files into one",
-      "Split and extract PDF pages",
+      "Merge multiple PDF files into one with extreme speed",
+      "Split and extract PDF pages instantly",
       "Compress PDF to 100KB, 200KB, 300KB, 500KB with sub-second speeds",
       "Convert PDF to Word, Excel, PowerPoint, JPG, PNG",
       "OCR Text Recognition directly in browser",
@@ -105,9 +105,9 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     },
     "author": {
       "@type": "Organization",
-      "name": "PDFSun",
+      "name": "PDF Sun PRO AI",
       "url": baseUrl,
-      "logo": `${baseUrl}/assets/favicon-512x512.png`
+      "logo": `${baseUrl}/assets/logo-horizontal.png`
     }
   };
 
@@ -487,14 +487,14 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       <meta property="og:description" content={helmetDesc} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content="website" />
-      <meta property="og:site_name" content="PDFSun" />
-      <meta property="og:image" content={`${baseUrl}/og-image.png`} />
+      <meta property="og:site_name" content="PDF Sun PRO AI" />
+      <meta property="og:image" content={`${baseUrl}/assets/logo-horizontal.png`} />
 
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={helmetTitle} />
       <meta name="twitter:description" content={helmetDesc} />
-      <meta name="twitter:image" content={`${baseUrl}/og-image.png`} />
+      <meta name="twitter:image" content={`${baseUrl}/assets/logo-horizontal.png`} />
 
       {/* Rel prev and next tags for paginated pages */}
       {currentPage && currentPage > 1 && (

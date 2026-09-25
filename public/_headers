@@ -1,4 +1,4 @@
-# Favicon & Manifest Sovereign Cache Invalidation (v3.0 Blue Production)
+# Favicon & Brand Asset Sovereign Cache Invalidation (PDF Sun PRO AI Blue Suite v6.0)
 /favicon.ico
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff
@@ -6,6 +6,56 @@
 /favicon.svg
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/logo-blue.svg
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/logo-light.svg
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/logo-dark.svg
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/assets/logo.svg
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/svg+xml
+  X-Content-Type-Options: nosniff
+
+/assets/favicon-48x48.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+
+/assets/favicon-96x96.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+
+/assets/favicon-144x144.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+
+/assets/favicon-192x192.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+
+/assets/pwa-512.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+
+/assets/logo-horizontal.png
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: image/png
   X-Content-Type-Options: nosniff
 
 /site.webmanifest

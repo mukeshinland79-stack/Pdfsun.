@@ -102,16 +102,16 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Card 4: Ultra Fast Speed */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-                <Zap className="w-4 h-4 stroke-[2.5] text-amber-400" />
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/20">
+                <Zap className="w-4 h-4 stroke-[2.5] text-cyan-400" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5">
                   <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                   </span>
-                  <span className="text-amber-400 font-bold text-xs truncate">Ultra Fast Speed</span>
+                  <span className="text-cyan-400 font-bold text-xs truncate">Ultra Fast Speed</span>
                 </div>
                 <span className="text-[11px] text-slate-400 block truncate">Instant WebAssembly Engine</span>
               </div>
@@ -129,7 +129,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="space-y-3">
             <PDFSunLogo layout="horizontal" size="md" theme="dark" showTagline={false} showProBadge={true} showDomain={false} />
             
-            <p className="text-[11px] font-semibold text-amber-400 font-mono tracking-wide">
+            <p className="text-[11px] font-semibold text-blue-400 font-mono tracking-wide">
               pdfsun.in • Your Smart Document Companion
             </p>
 

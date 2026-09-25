@@ -162,16 +162,16 @@ export function buildWebSiteSchema(baseUrl: string = "https://pdfsun.in") {
 /**
  * 2. Organization Schema
  */
-export function buildOrganizationSchema(baseUrl: string = "https://pdfsun.in") {
+export function buildOrganizationSchema(baseUrl: string = "https://www.pdfsun.in") {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${baseUrl}/#organization`,
-    "name": "PDFSun",
+    "name": "PDF Sun PRO AI",
     "url": baseUrl,
     "logo": {
       "@type": "ImageObject",
-      "url": `${baseUrl}/assets/favicon-512x512.png`,
+      "url": `${baseUrl}/assets/logo-horizontal.png`,
       "width": "512",
       "height": "512",
     },

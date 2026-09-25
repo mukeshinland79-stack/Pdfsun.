@@ -1,13 +1,13 @@
 {
-  "name": "PDFSun - Free Online PDF Tools",
-  "short_name": "PDFSun",
-  "description": "Your Smart Document Companion",
+  "name": "PDF Sun PRO AI - Your Smart Document Companion",
+  "short_name": "PDF Sun PRO AI",
+  "description": "PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0B0F19",
-  "theme_color": "#1A73E8",
+  "theme_color": "#0052FF",
   "categories": ["utilities", "productivity", "office", "business"],
   "icons": [
     {

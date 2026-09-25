@@ -354,7 +354,7 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
                 ? "text-slate-700"
                 : isMonoLight
                 ? "text-slate-200"
-                : "text-amber-600 dark:text-amber-400"
+                : "text-blue-600 dark:text-blue-400"
             }`}
           >
             Sun
@@ -366,7 +366,7 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
               className={`font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${currentSize.badge} ${
                 isMonoDark || isMonoLight
                   ? "border-current opacity-70"
-                  : "bg-gradient-to-r from-blue-500/10 to-amber-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-xs"
+                  : "bg-blue-600 text-white border-blue-500/40 shadow-xs"
               }`}
             >
               PRO AI

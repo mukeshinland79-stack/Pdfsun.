@@ -252,7 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <div
           id="scroll-progress-bar-fill"
-          className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 dark:from-amber-400 dark:via-orange-400 dark:to-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-150 ease-out"
+          className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-400 shadow-[0_0_8px_rgba(37,99,235,0.6)] transition-[width] duration-150 ease-out"
           style={{
             width: `${scrollProgress}%`,
           }}
