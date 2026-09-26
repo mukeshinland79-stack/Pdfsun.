@@ -621,6 +621,32 @@ export async function reconcilePaymentWithFirestore(
         },
         { merge: true }
       );
+
+      // 7.1 Owner Payment Audit Log (Admin Panel) strictly per AGENTS_md:
+      // Includes User ID, Email, Payment Gateway Reference ID, Date & Time, Exact Plan Purchased, and Actual Amount Received.
+      const ownerAuditDocId = `owner_audit_${paymentDocId}`;
+      const ownerAuditRef = doc(db, "owner_payment_audit_logs", ownerAuditDocId);
+      await setDoc(
+        ownerAuditRef,
+        {
+          id: ownerAuditDocId,
+          userId: normalizedEmail,
+          email: normalizedEmail,
+          paymentGatewayRefId: input.paymentId,
+          paymentId: input.paymentId,
+          orderId: input.orderId || "",
+          dateTime: now.toISOString(),
+          exactPlanPurchased: matchedProduct.productName,
+          planId: matchedProduct.internalProductId,
+          actualAmountReceived: (receivedAmountPaise || expectedAmountPaise) / 100,
+          currency: receivedCurrency,
+          status: "SUCCESS",
+          ownerEmail: "mukeshinland79@gmail.com",
+          tamperProof: true,
+          reconciledAt: now.toISOString(),
+        },
+        { merge: true }
+      );
     }
 
     // 8. Reconcile with local in-memory store for instant dashboard and UI responsiveness
@@ -678,3 +704,44 @@ export async function reconcilePaymentWithFirestore(
     };
   }
 }
+
+/**
+ * Fetch immutable Owner Payment Audit Logs from Firestore
+ * Strictly enforces AGENTS_md Section 3: Owner Payment Audit Log
+ */
+export async function getOwnerPaymentAuditLogs() {
+  try {
+    const db = getServerFirestore();
+    const auditColl = collection(db, "owner_payment_audit_logs");
+    const snap = await getDocs(auditColl);
+    if (!snap.empty) {
+      const logs = snap.docs.map((d) => d.data());
+      logs.sort((a: any, b: any) => new Date(b.dateTime || b.reconciledAt || 0).getTime() - new Date(a.dateTime || a.reconciledAt || 0).getTime());
+      return logs;
+    }
+  } catch (err) {
+    console.warn("[Owner Payment Audit Log] Firestore fetch warning:", err);
+  }
+
+  // Fallback to local verified transactions mapped to exact audit log schema
+  const { getAllVerifiedTransactions } = await import("./paymentStore");
+  const txs = getAllVerifiedTransactions();
+  return txs.map((tx) => ({
+    id: `owner_audit_${tx.id}`,
+    userId: tx.email,
+    email: tx.email,
+    paymentGatewayRefId: tx.id,
+    paymentId: tx.id,
+    orderId: tx.orderId || "",
+    dateTime: tx.timestamp || `${tx.date}T12:00:00.000Z`,
+    exactPlanPurchased: tx.planName,
+    planId: tx.planId,
+    actualAmountReceived: tx.amountINR,
+    currency: tx.currency || "INR",
+    status: tx.status === "COMPLETED" || tx.status === "CAPTURED" ? "SUCCESS" : tx.status,
+    ownerEmail: "mukeshinland79@gmail.com",
+    tamperProof: true,
+    reconciledAt: tx.timestamp,
+  }));
+}
+

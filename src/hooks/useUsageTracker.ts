@@ -2,10 +2,94 @@ import { useState, useEffect, useCallback } from "react";
 
 const USAGE_STORAGE_KEY = "pdfsun_usage_tracker_v1";
 const PRO_PLAN_KEY = "pdfsun_user_plan_v1";
-export const MAX_FREE_DAILY_DOWNLOADS = 3;
-export const MAX_FREE_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB in Bytes
-export const MAX_FREE_BATCH_FILES = 2; // Max 2 files for Free Users
-export const MAX_FREE_AI_QUERIES = 2; // Max 2 trial queries for AI/OCR per day
+const DATA_VOLUME_KEY = "pdfsun_data_volume_bytes_v1";
+const AI_QUERIES_KEY = "pdfsun_ai_query_count_v1";
+
+// Plan boundaries strictly respecting AGENTS_md:
+export const PLAN_LIMITS = {
+  free: {
+    planName: "Free Forever",
+    priceINR: 0,
+    maxFileSizeBytes: 15 * 1024 * 1024, // 15 MB
+    maxFileSizeMB: 15,
+    maxDailyOperations: 3,
+    maxBatchFiles: 2,
+    maxDailyAiQueries: 2,
+    isUnlimited: false,
+    durationText: "Free Forever (No Expiry)",
+  },
+  flexi: {
+    planName: "Flex Pass",
+    priceINR: 99,
+    maxFileSizeBytes: 500 * 1024 * 1024, // 500 MB
+    maxFileSizeMB: 500,
+    maxDailyOperations: Infinity, // Unlimited during 7 days
+    maxBatchFiles: 10,
+    maxDailyAiQueries: 50,
+    isUnlimited: true,
+    durationText: "Valid for 7 Days (Pay-as-you-go)",
+  },
+  "pro-monthly": {
+    planName: "Pro Sun Monthly",
+    priceINR: 199,
+    maxFileSizeBytes: 2048 * 1024 * 1024, // 2 GB
+    maxFileSizeMB: 2048,
+    maxDailyOperations: Infinity,
+    maxBatchFiles: 50,
+    maxDailyAiQueries: Infinity,
+    isUnlimited: true,
+    durationText: "Auto-renews Monthly (30 Days)",
+  },
+  "pro-yearly": {
+    planName: "Pro Sun Annual",
+    priceINR: 1499,
+    maxFileSizeBytes: 2048 * 1024 * 1024, // 2 GB
+    maxFileSizeMB: 2048,
+    maxDailyOperations: Infinity,
+    maxBatchFiles: 100,
+    maxDailyAiQueries: Infinity,
+    isUnlimited: true,
+    durationText: "Active for 1 Year (365 Days)",
+  },
+  enterprise: {
+    planName: "Enterprise Plan",
+    priceINR: 3999,
+    maxFileSizeBytes: 2048 * 1024 * 1024, // 2 GB
+    maxFileSizeMB: 2048,
+    maxDailyOperations: Infinity,
+    maxBatchFiles: 200,
+    maxDailyAiQueries: Infinity,
+    isUnlimited: true,
+    durationText: "5 User Seats (Priority Infrastructure)",
+  },
+  "enterprise-sso": {
+    planName: "Enterprise SSO Unlimited",
+    priceINR: 9999,
+    maxFileSizeBytes: 2048 * 1024 * 1024, // 2 GB
+    maxFileSizeMB: 2048,
+    maxDailyOperations: Infinity,
+    maxBatchFiles: 500,
+    maxDailyAiQueries: Infinity,
+    isUnlimited: true,
+    durationText: "20 Seats SSO (Unlimited Throughput)",
+  },
+  owner: {
+    planName: "👑 Super Admin (Owner)",
+    priceINR: 0,
+    maxFileSizeBytes: 4096 * 1024 * 1024, // 4 GB
+    maxFileSizeMB: 4096,
+    maxDailyOperations: Infinity,
+    maxBatchFiles: 1000,
+    maxDailyAiQueries: Infinity,
+    isUnlimited: true,
+    durationText: "Lifetime Super Admin Active (No Expiry)",
+  },
+};
+
+export const MAX_FREE_DAILY_DOWNLOADS = PLAN_LIMITS.free.maxDailyOperations;
+export const MAX_FREE_FILE_SIZE_BYTES = PLAN_LIMITS.free.maxFileSizeBytes;
+export const MAX_FREE_BATCH_FILES = PLAN_LIMITS.free.maxBatchFiles;
+export const MAX_FREE_AI_QUERIES = PLAN_LIMITS.free.maxDailyAiQueries;
 
 export interface UsageData {
   count: number;
@@ -23,32 +107,59 @@ export function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function useUsageTracker(isUserProOverride: boolean = false) {
-  const [isPro, setIsPro] = useState<boolean>(() => {
-    if (isUserProOverride) return true;
-    try {
-      const savedProfile = localStorage.getItem("pdfsun_user_profile");
-      if (savedProfile) {
-        const p = JSON.parse(savedProfile);
-        if (
-          p.role === "owner" ||
-          p.hasAdminAccess ||
-          p.isPro ||
-          (p.plan && p.plan.toLowerCase().includes("pro")) ||
-          (p.plan && p.plan.toLowerCase().includes("unlimited")) ||
-          (p.plan && p.plan.toLowerCase().includes("owner")) ||
-          (p.plan && p.plan.toLowerCase().includes("enterprise"))
-        ) {
-          return true;
-        }
+export function detectActivePlanTier(): keyof typeof PLAN_LIMITS {
+  if (typeof window === "undefined") return "free";
+  try {
+    const savedRole = localStorage.getItem("pdfsun_user_role");
+    if (savedRole === "owner") return "owner";
+
+    const savedProfile = localStorage.getItem("pdfsun_user_profile");
+    if (savedProfile) {
+      const p = JSON.parse(savedProfile);
+      const email = (p.email || "").toLowerCase().trim();
+      if (p.role === "owner" || email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") {
+        return "owner";
       }
-      const savedPlan = localStorage.getItem(PRO_PLAN_KEY);
-      const savedRole = localStorage.getItem("pdfsun_user_role");
-      return savedPlan === "pro" || savedPlan === "owner" || savedRole === "owner";
-    } catch {
-      return false;
+      const planStr = (p.plan || p.planId || "").toLowerCase();
+      if (planStr.includes("enterprise sso") || planStr.includes("enterprise-sso") || p.isSsoManaged) {
+        return "enterprise-sso";
+      }
+      if (planStr.includes("enterprise")) {
+        return "enterprise";
+      }
+      if (planStr.includes("annual") || planStr.includes("yearly") || planStr.includes("pro-yearly")) {
+        return "pro-yearly";
+      }
+      if (planStr.includes("monthly") || planStr.includes("pro sun monthly") || planStr.includes("pro-monthly")) {
+        return "pro-monthly";
+      }
+      if (planStr.includes("flex") || planStr.includes("pass") || planStr.includes("flexi")) {
+        return "flexi";
+      }
+      if (p.isPro || planStr.includes("pro")) {
+        return "pro-monthly";
+      }
     }
+
+    const savedPlan = (localStorage.getItem(PRO_PLAN_KEY) || "").toLowerCase();
+    if (savedPlan.includes("enterprise-sso")) return "enterprise-sso";
+    if (savedPlan.includes("enterprise")) return "enterprise";
+    if (savedPlan.includes("annual") || savedPlan.includes("yearly")) return "pro-yearly";
+    if (savedPlan.includes("flex")) return "flexi";
+    if (savedPlan === "pro" || savedPlan.includes("pro")) return "pro-monthly";
+    if (savedPlan === "owner") return "owner";
+  } catch {}
+  return "free";
+}
+
+export function useUsageTracker(isUserProOverride: boolean = false) {
+  const [activeTier, setActiveTier] = useState<keyof typeof PLAN_LIMITS>(() => {
+    if (isUserProOverride) return "pro-monthly";
+    return detectActivePlanTier();
   });
+
+  const currentPlan = PLAN_LIMITS[activeTier] || PLAN_LIMITS.free;
+  const isPro = activeTier !== "free";
 
   const [usage, setUsage] = useState<UsageData>(() => {
     const todayStr = getTodayDateString();
@@ -57,7 +168,6 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
       if (saved) {
         const parsed: UsageData = JSON.parse(saved);
         if (parsed.resetDate !== todayStr) {
-          // Counter reset for new 24h day
           const resetObj: UsageData = {
             count: 0,
             resetDate: todayStr,
@@ -78,24 +188,46 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
     };
     try {
       localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(initObj));
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
     return initObj;
+  });
+
+  // Track data volume processed
+  const [totalVolumeBytes, setTotalVolumeBytes] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(DATA_VOLUME_KEY);
+      if (saved) return Number(saved) || 0;
+    } catch {}
+    return 0;
+  });
+
+  // Track AI queries processed today
+  const [aiQueriesToday, setAiQueriesToday] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(AI_QUERIES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.resetDate === getTodayDateString()) {
+          return Number(parsed.count) || 0;
+        }
+      }
+    } catch {}
+    return 0;
   });
 
   const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
   const [paywallReason, setPaywallReason] = useState<PaywallReason>(null);
   const [blockedFileSize, setBlockedFileSize] = useState<number | undefined>(undefined);
 
-  // Sync pro state if override changes
+  // Sync active tier from localStorage or override
   useEffect(() => {
     if (isUserProOverride) {
-      setIsPro(true);
+      setActiveTier("pro-monthly");
+    } else {
+      setActiveTier(detectActivePlanTier());
     }
   }, [isUserProOverride]);
 
-  // Save changes to localStorage
   const saveUsage = (newUsage: UsageData) => {
     setUsage(newUsage);
     try {
@@ -104,6 +236,17 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
       console.error("Failed to save usage tracker:", e);
     }
   };
+
+  const recordDataVolume = useCallback((bytes: number) => {
+    if (!bytes || bytes <= 0) return;
+    setTotalVolumeBytes((prev) => {
+      const next = prev + bytes;
+      try {
+        localStorage.setItem(DATA_VOLUME_KEY, String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const triggerPaywall = useCallback((reason: PaywallReason, fileSize?: number) => {
     setPaywallReason(reason);
@@ -120,28 +263,26 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
   // Check if a file download/conversion can proceed
   const canProcessDownload = useCallback(
     (fileSizeBytes?: number): { allowed: boolean; reason?: "DAILY_LIMIT_REACHED" | "FILE_SIZE_EXCEEDED" } => {
-      if (isPro) {
-        return { allowed: true };
-      }
-
-      // Check file size cap (15 MB)
-      if (fileSizeBytes && fileSizeBytes > MAX_FREE_FILE_SIZE_BYTES) {
+      // Check file size limit according to active plan
+      if (fileSizeBytes && fileSizeBytes > currentPlan.maxFileSizeBytes) {
         return { allowed: false, reason: "FILE_SIZE_EXCEEDED" };
       }
 
-      // Check daily limit (3 max)
-      if (usage.count >= MAX_FREE_DAILY_DOWNLOADS) {
+      // Check daily operations limit
+      if (currentPlan.maxDailyOperations !== Infinity && usage.count >= currentPlan.maxDailyOperations) {
         return { allowed: false, reason: "DAILY_LIMIT_REACHED" };
       }
 
       return { allowed: true };
     },
-    [isPro, usage.count]
+    [currentPlan, usage.count]
   );
 
   // Increment usage count after successful download/conversion
-  const recordDownload = useCallback(() => {
-    if (isPro) return;
+  const recordDownload = useCallback((fileSizeBytes?: number) => {
+    if (fileSizeBytes) {
+      recordDataVolume(fileSizeBytes);
+    }
 
     const todayStr = getTodayDateString();
     const currentCount = usage.resetDate === todayStr ? usage.count : 0;
@@ -153,33 +294,31 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
     };
     saveUsage(newUsage);
 
-    // If reached max, notify user
-    if (newCount >= MAX_FREE_DAILY_DOWNLOADS) {
-      console.log("[UsageTracker] Daily limit reached (3/3). Next attempt will open Paywall.");
+    if (currentPlan.maxDailyOperations !== Infinity && newCount >= currentPlan.maxDailyOperations) {
+      console.log(`[UsageTracker] Daily limit reached (${newCount}/${currentPlan.maxDailyOperations}). Next attempt will open Paywall.`);
     }
-  }, [isPro, usage]);
+  }, [currentPlan, usage, recordDataVolume]);
 
-  // Check if batch processing file count is allowed (Max 2 for free users)
+  // Check if batch processing file count is allowed
   const canProcessBatch = useCallback(
     (fileCount: number): { allowed: boolean; reason?: "BATCH_LIMIT_EXCEEDED" } => {
-      if (isPro) return { allowed: true };
-      if (fileCount > MAX_FREE_BATCH_FILES) {
+      if (fileCount > currentPlan.maxBatchFiles) {
         return { allowed: false, reason: "BATCH_LIMIT_EXCEEDED" };
       }
       return { allowed: true };
     },
-    [isPro]
+    [currentPlan]
   );
 
-  // Check if AI / OCR trial queries can proceed (Max 2 trial queries per day for free users)
+  // Check if AI / OCR trial queries can proceed
   const canProcessAiQuery = useCallback((): { allowed: boolean; reason?: "AI_TRIAL_EXCEEDED" } => {
-    if (isPro) return { allowed: true };
+    if (currentPlan.maxDailyAiQueries === Infinity) return { allowed: true };
     try {
       const todayStr = getTodayDateString();
-      const savedAi = localStorage.getItem("pdfsun_ai_query_count_v1");
+      const savedAi = localStorage.getItem(AI_QUERIES_KEY);
       if (savedAi) {
         const parsed = JSON.parse(savedAi);
-        if (parsed.resetDate === todayStr && parsed.count >= MAX_FREE_AI_QUERIES) {
+        if (parsed.resetDate === todayStr && parsed.count >= currentPlan.maxDailyAiQueries) {
           return { allowed: false, reason: "AI_TRIAL_EXCEEDED" };
         }
       }
@@ -187,34 +326,36 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
       console.error(e);
     }
     return { allowed: true };
-  }, [isPro]);
+  }, [currentPlan]);
 
   // Record AI query usage
   const recordAiQuery = useCallback(() => {
-    if (isPro) return;
+    const todayStr = getTodayDateString();
+    let currentCount = 0;
     try {
-      const todayStr = getTodayDateString();
-      let currentCount = 0;
-      const savedAi = localStorage.getItem("pdfsun_ai_query_count_v1");
+      const savedAi = localStorage.getItem(AI_QUERIES_KEY);
       if (savedAi) {
         const parsed = JSON.parse(savedAi);
         if (parsed.resetDate === todayStr) {
           currentCount = parsed.count || 0;
         }
       }
+      const nextCount = currentCount + 1;
+      setAiQueriesToday(nextCount);
       localStorage.setItem(
-        "pdfsun_ai_query_count_v1",
-        JSON.stringify({ count: currentCount + 1, resetDate: todayStr })
+        AI_QUERIES_KEY,
+        JSON.stringify({ count: nextCount, resetDate: todayStr })
       );
     } catch (e) {
       console.error(e);
     }
-  }, [isPro]);
+  }, []);
 
-  const setProStatus = useCallback((active: boolean) => {
-    setIsPro(active);
+  const setProStatus = useCallback((active: boolean, tier: keyof typeof PLAN_LIMITS = "pro-monthly") => {
+    setActiveTier(active ? tier : "free");
     try {
-      localStorage.setItem(PRO_PLAN_KEY, active ? "pro" : "free");
+      localStorage.setItem(PRO_PLAN_KEY, active ? tier : "free");
+      localStorage.setItem("pdfsun_user_is_pro", active ? "true" : "false");
     } catch (e) {
       console.error(e);
     }
@@ -229,18 +370,32 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
     });
   }, [usage.totalLifetimeDownloads]);
 
-  const remaining = isPro ? Infinity : Math.max(0, MAX_FREE_DAILY_DOWNLOADS - usage.count);
+  const remaining = currentPlan.maxDailyOperations === Infinity
+    ? Infinity
+    : Math.max(0, currentPlan.maxDailyOperations - usage.count);
+
+  const aiQueriesRemaining = currentPlan.maxDailyAiQueries === Infinity
+    ? Infinity
+    : Math.max(0, currentPlan.maxDailyAiQueries - aiQueriesToday);
 
   return {
+    activeTier,
+    currentPlan,
     count: usage.count,
-    maxDailyFree: MAX_FREE_DAILY_DOWNLOADS,
+    maxDailyFree: currentPlan.maxDailyOperations === Infinity ? 999999 : currentPlan.maxDailyOperations,
     remaining,
-    maxFreeFileSizeBytes: MAX_FREE_FILE_SIZE_BYTES,
-    maxBatchFiles: MAX_FREE_BATCH_FILES,
-    maxAiQueries: MAX_FREE_AI_QUERIES,
+    maxFreeFileSizeBytes: currentPlan.maxFileSizeBytes,
+    maxFileSizeMB: currentPlan.maxFileSizeMB,
+    maxBatchFiles: currentPlan.maxBatchFiles,
+    maxAiQueries: currentPlan.maxDailyAiQueries,
+    aiQueriesToday,
+    aiQueriesRemaining,
+    totalVolumeBytes,
+    totalVolumeMB: Number((totalVolumeBytes / (1024 * 1024)).toFixed(2)),
     isPro,
     canProcessDownload,
     recordDownload,
+    recordDataVolume,
     canProcessBatch,
     canProcessAiQuery,
     recordAiQuery,

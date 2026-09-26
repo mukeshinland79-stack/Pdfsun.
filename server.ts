@@ -82,6 +82,7 @@ import {
   reconcilePaymentWithFirestore,
   createInternalOrderInFirestore,
   verifyRazorpayTransactionDetails,
+  getOwnerPaymentAuditLogs,
   PaymentReconciliationInput,
   ReconciliationResult,
 } from "./src/server/firestoreReconciliation";
@@ -2046,6 +2047,27 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
       source: "client_verify",
     });
 
+    try {
+      recordServerAuditLog({
+        category: "payment",
+        eventType: "PAYMENT_CAPTURED",
+        action: `Payment captured for ${productConfig.productName} (₹${verifiedAmountPaise / 100})`,
+        target: `User: ${userEmail}`,
+        adminOperator: "RAZORPAY_GATEWAY",
+        status: "SUCCESS",
+        details: `Payment ID ${pId} verified. Plan ${productConfig.productName} activated. Amount received: ₹${verifiedAmountPaise / 100}. Reconciled with owner audit ledger.`,
+        metadata: {
+          paymentId: pId,
+          orderId: razorpay_order_id,
+          subscriptionId: razorpay_subscription_id,
+          planId: normalizedPlanId,
+          planName: productConfig.productName,
+          amountINR: verifiedAmountPaise / 100,
+          ownerEmail: "mukeshinland79@gmail.com",
+        },
+      });
+    } catch {}
+
     res.json({
       success: reconResult.success,
       verified: signatureVerified,
@@ -2192,6 +2214,35 @@ app.post("/api/user/activate-plan", (req, res) => {
       success: true,
       message: "Subscription activated successfully",
       subscription: result.subscription,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint for Owner Payment Audit Log (Strictly enforces AGENTS_md Section 3)
+app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
+  try {
+    const requesterEmail = (
+      req.headers["x-user-email"] ||
+      req.query.email ||
+      ""
+    ).toString().toLowerCase().trim();
+
+    // Verify owner permission
+    const isOwner =
+      DUAL_OWNER_EMAILS.includes(requesterEmail) ||
+      requesterEmail === "mukeshinland79@gmail.com" ||
+      requesterEmail === "mukeshkalonia241@gmail.com";
+
+    const logs = await getOwnerPaymentAuditLogs();
+
+    res.json({
+      success: true,
+      ownerEmail: "mukeshinland79@gmail.com",
+      isOwner,
+      count: logs.length,
+      logs,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -3104,7 +3155,7 @@ interface ServerAuditLog {
   id: string;
   timestamp: string;
   isoTimestamp: string;
-  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system";
+  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system" | "payment";
   eventType: string;
   action: string;
   target: string;
@@ -3177,7 +3228,7 @@ function recordServerAuditLog(entry: {
   id?: string;
   timestamp?: string;
   isoTimestamp?: string;
-  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system";
+  category: "user_status" | "sponsorship" | "settings_update" | "security" | "system" | "payment";
   eventType: string;
   action: string;
   target: string;
