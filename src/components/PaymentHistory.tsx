@@ -7,6 +7,7 @@ import {
   FirestoreTransactionRecord,
 } from "../lib/firebase";
 import { resolvePaymentProduct } from "../config/paymentProducts";
+import { generatePaymentReceiptPdf } from "../utils/paymentReceiptPdf";
 import {
   CreditCard,
   Receipt,
@@ -674,13 +675,23 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
                       {/* Invoice / Receipt Download Link */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedInvoice(tx)}
-                          className="px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-700 dark:text-amber-300 text-xs font-bold transition inline-flex items-center space-x-1.5 cursor-pointer border border-amber-500/30"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Receipt .PDF</span>
-                        </button>
+                        <div className="inline-flex items-center space-x-1.5">
+                          <button
+                            onClick={() => setSelectedInvoice(tx)}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-700 dark:text-amber-300 text-xs font-bold transition inline-flex items-center space-x-1.5 cursor-pointer border border-amber-500/30"
+                            title="View itemized tax invoice"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>View Receipt</span>
+                          </button>
+                          <button
+                            onClick={() => generatePaymentReceiptPdf(tx, userProfile.email)}
+                            className="p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition inline-flex items-center cursor-pointer border border-emerald-500/30"
+                            title="Download Vector PDF Receipt"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -881,17 +892,28 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
             </div>
 
             {/* Invoice Footer Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <span className="text-[10px] text-slate-400">
-                Payment verified securely via Razorpay Gateway (256-Bit SSL Encrypted)
+                Payment verified securely via Razorpay Gateway (256-Bit SSL Encrypted &amp; Level 1 PCI-DSS)
               </span>
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black flex items-center space-x-1.5 hover:bg-amber-400 transition cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print / Save PDF</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => generatePaymentReceiptPdf(selectedInvoice, userProfile.email)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black flex items-center space-x-1.5 transition cursor-pointer shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Vector PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black flex items-center space-x-1.5 hover:bg-amber-400 transition cursor-pointer shadow-md"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print HTML</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

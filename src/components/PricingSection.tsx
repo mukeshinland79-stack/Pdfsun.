@@ -830,9 +830,18 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                     userSubscription.plan_id === plan.id) ||
                   (!userSubscription && activeUserPlanId === plan.id && plan.id !== "free");
 
-                const expiresDateStr = userSubscription?.expires_at
-                  ? new Date(userSubscription.expires_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-                  : new Date(Date.now() + 365 * 86400000).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                const daysRemaining = userSubscription?.expires_at
+                  ? Math.max(0, Math.ceil((new Date(userSubscription.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                  : plan.id === "flexi"
+                  ? 7
+                  : plan.id === "pro-monthly"
+                  ? 30
+                  : 365;
+
+                const isExpiringSoon = isPlanActiveForUser && daysRemaining <= 3;
+                const expiresFormatted = userSubscription?.expires_at
+                  ? new Date(userSubscription.expires_at).toLocaleDateString("en-GB")
+                  : new Date(Date.now() + (plan.id === "flexi" ? 7 : plan.id === "pro-monthly" ? 30 : 365) * 86400000).toLocaleDateString("en-GB");
 
                 return (
                   <div
@@ -916,30 +925,64 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
                     {/* CTA Button & Payment Router */}
                     <div className="pt-6 space-y-3">
+                      {/* =================================================================== */}
+                      {/* 🟢 PLAN ACTIVATED (DIRECTLY ABOVE MAIN CTA BUTTON ON ACTIVE CARD) */}
+                      {/* =================================================================== */}
+                      {isPlanActiveForUser && (
+                        <div className="space-y-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          {isExpiringSoon && (
+                            <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                              <span>⚠️ Your plan expires in {daysRemaining} days! Renew to maintain WebAssembly speed.</span>
+                            </div>
+                          )}
+                          <div className="p-3 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border-2 border-emerald-500 text-center shadow-lg shadow-emerald-500/10">
+                            <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider border border-emerald-500/40">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
+                              <span>🟢 PLAN ACTIVATED</span>
+                            </div>
+                            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100 mt-1.5 font-mono">
+                              Expire Date: {expiresFormatted} | Days Left: {daysRemaining}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Synced with Account ID: <span className="font-semibold text-slate-700 dark:text-slate-300">{displayBoundAccount}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         type="button"
-                        onClick={() => handleSelectPlan(plan)}
-                        disabled={plan.disabled || isPlanActiveForUser || isProcessing}
-                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 cursor-pointer ${
-                          isPlanActiveForUser
-                            ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-500 shadow-emerald-500/20 cursor-default"
+                        onClick={() => {
+                          if (isExpiringSoon) {
+                            handleSelectPlan(plan);
+                          } else if (!isPlanActiveForUser) {
+                            handleSelectPlan(plan);
+                          }
+                        }}
+                        disabled={(!isExpiringSoon && isPlanActiveForUser) || plan.disabled || isProcessing}
+                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center space-x-2 ${
+                          isExpiringSoon
+                            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20 cursor-pointer"
+                            : isPlanActiveForUser
+                            ? "bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-default opacity-90"
                             : isCardHighlighted
-                            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20"
+                            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 shadow-amber-500/20 cursor-pointer"
                             : plan.disabled
                             ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700"
-                            : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700 hover:scale-[1.01]"
+                            : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-800 dark:border-slate-700 hover:scale-[1.01] cursor-pointer"
                         }`}
                       >
-                        {isPlanActiveForUser ? (
-                          <div className="flex flex-col items-center justify-center space-y-0.5 py-0.5">
-                            <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-black text-xs">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                              <span>{t("pricing.planActivated", "PLAN ACTIVATED")}</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 tracking-normal normal-case">
-                              {plan.id === "flexi" ? `Flex Pass (7 Days) • Expires: ${expiresDateStr}` : `Expires: ${expiresDateStr}`}
-                            </span>
+                        {isExpiringSoon ? (
+                          <div className="flex items-center space-x-1.5 font-black">
+                            <Zap className="w-4 h-4 fill-slate-950" />
+                            <span>RECHARGE / EXTEND PLAN</span>
+                            <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : isPlanActiveForUser ? (
+                          <div className="flex items-center space-x-1.5 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
+                            <span>CURRENT ACTIVE PLAN</span>
                           </div>
                         ) : (
                           <>
@@ -948,31 +991,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                           </>
                         )}
                       </button>
-
-                      {/* STICKY "PLAN ACTIVATED" BADGE DIRECTLY BELOW PLAN CARD */}
-                      {isPlanActiveForUser && (
-                        <div className="mt-3 p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border-2 border-emerald-500 shadow-xl shadow-emerald-500/20 text-center animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden">
-                          <div className="relative space-y-1">
-                            <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[11px] uppercase tracking-wider border border-emerald-500/40">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
-                              <span>{t("pricing.planActivated", "PLAN ACTIVATED")}</span>
-                            </div>
-
-                            <p className="text-[11px] text-slate-700 dark:text-slate-200 font-bold pt-0.5 leading-snug">
-                              Bound to Account: <span className="text-emerald-600 dark:text-emerald-400 font-black">{displayBoundAccount}</span>
-                            </p>
-
-                            <p className="text-[11px] text-slate-800 dark:text-slate-100 font-black">
-                              Plan: <span className="text-emerald-600 dark:text-emerald-400 uppercase">{plan.name}</span>
-                            </p>
-
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
-                              {plan.id === "flexi" ? `Status: Active Flex Pass (7 Days) • Expires: ${expiresDateStr}` : `Expires / Renews: ${expiresDateStr}`}
-                            </p>
-                          </div>
-                        </div>
-                      )}
 
                       {/* Payment Methods Info */}
                       {!plan.disabled && (
@@ -1075,17 +1093,91 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    {/* Primary Instant Access Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPlan(enterprisePlanTier)}
-                      disabled={isProcessing}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl hover:scale-[1.02] active:scale-98 transition flex items-center justify-center space-x-2 cursor-pointer"
-                    >
-                      <Zap className="w-4 h-4 fill-slate-950" />
-                      <span>Get Instant Enterprise Access ({currency === "INR" ? "₹9,999" : "$149"})</span>
-                      <ArrowRight className="w-4 h-4 stroke-[3]" />
-                    </button>
+                    {/* =================================================================== */}
+                    {/* 🟢 PLAN ACTIVATED (DIRECTLY ABOVE MAIN CTA BUTTON ON ENTERPRISE)  */}
+                    {/* =================================================================== */}
+                    {(() => {
+                      const activePlanResolved = userSubscription?.plan_id || activePlanId || (isProUser ? "pro-yearly" : "free");
+                      const isEnterpriseSsoActive =
+                        (userSubscription &&
+                          userSubscription.user_id.toLowerCase() === currentUserId.toLowerCase() &&
+                          userSubscription.status === "active" &&
+                          (userSubscription.plan_id === "enterprise-sso" || userSubscription.plan_id === "enterprise_sso")) ||
+                        (!userSubscription && (activePlanResolved === "enterprise-sso" || activePlanResolved === "enterprise_sso"));
+
+                      const enterpriseDaysRemaining = userSubscription?.expires_at
+                        ? Math.max(0, Math.ceil((new Date(userSubscription.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                        : 365;
+
+                      const isEnterpriseExpiringSoon = isEnterpriseSsoActive && enterpriseDaysRemaining <= 3;
+                      const enterpriseExpiresFormatted = userSubscription?.expires_at
+                        ? new Date(userSubscription.expires_at).toLocaleDateString("en-GB")
+                        : new Date(Date.now() + 365 * 86400000).toLocaleDateString("en-GB");
+
+                      return (
+                        <>
+                          {isEnterpriseSsoActive && (
+                            <div className="space-y-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                              {isEnterpriseExpiringSoon && (
+                                <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                                  <span>⚠️ Your Enterprise plan expires in {enterpriseDaysRemaining} days! Renew now.</span>
+                                </div>
+                              )}
+                              <div className="p-3 rounded-2xl bg-emerald-500/20 border-2 border-emerald-500 text-center shadow-lg shadow-emerald-500/10">
+                                <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs uppercase tracking-wider border border-emerald-500/40">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
+                                  <span>🟢 PLAN ACTIVATED</span>
+                                </div>
+                                <div className="text-[11px] font-bold text-white mt-1.5 font-mono">
+                                  Expire Date: {enterpriseExpiresFormatted} | Days Left: {enterpriseDaysRemaining}
+                                </div>
+                                <div className="text-[10px] text-slate-300 mt-0.5">
+                                  Synced with Account ID: <span className="font-semibold text-white">{displayBoundAccount}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Primary Instant Access Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isEnterpriseExpiringSoon || !isEnterpriseSsoActive) {
+                                handleSelectPlan(enterprisePlanTier);
+                              }
+                            }}
+                            disabled={(!isEnterpriseExpiringSoon && isEnterpriseSsoActive) || isProcessing}
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl transition flex items-center justify-center space-x-2 ${
+                              isEnterpriseExpiringSoon
+                                ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 cursor-pointer shadow-amber-500/20"
+                                : isEnterpriseSsoActive
+                                ? "bg-slate-800/90 text-slate-400 border border-slate-700 cursor-default opacity-90"
+                                : "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 text-slate-950 hover:scale-[1.02] active:scale-98 cursor-pointer"
+                            }`}
+                          >
+                            {isEnterpriseExpiringSoon ? (
+                              <div className="flex items-center space-x-1.5">
+                                <Zap className="w-4 h-4 fill-slate-950" />
+                                <span>RECHARGE / EXTEND PLAN</span>
+                                <ArrowRight className="w-4 h-4 stroke-[3]" />
+                              </div>
+                            ) : isEnterpriseSsoActive ? (
+                              <div className="flex items-center space-x-1.5 font-bold">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+                                <span>CURRENT ACTIVE PLAN</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Zap className="w-4 h-4 fill-slate-950" />
+                                <span>Get Instant Enterprise Access ({currency === "INR" ? "₹9,999" : "$149"})</span>
+                                <ArrowRight className="w-4 h-4 stroke-[3]" />
+                              </>
+                            )}
+                          </button>
+                        </>
+                      );
+                    })()}
 
                     {/* Secondary Contact Enterprise Sales Button */}
                     <button

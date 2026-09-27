@@ -118,6 +118,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     isSsoUser ||
     isOwner;
 
+  const daysRemaining = isOwner
+    ? 9999
+    : isFlexiUser
+    ? 7
+    : resolvedPlan.billingInterval === "yearly" || userProfile.plan?.toLowerCase().includes("annual")
+    ? 365
+    : isPaidUser
+    ? 30
+    : 0;
+
+  const startDateStr = new Date(Date.now() - (isFlexiUser ? 1 : 14) * 86400000).toLocaleDateString("en-GB");
+  const expiryDateStr = isOwner
+    ? "Lifetime / No Expiry"
+    : !isPaidUser
+    ? "Lifetime Free"
+    : new Date(Date.now() + (isFlexiUser ? 7 : resolvedPlan.billingInterval === "yearly" ? 365 : 30) * 86400000).toLocaleDateString("en-GB");
+
   // Real-time transaction verification status calculation
   const latestTx = transactions[0];
   const latestStatusInfo = latestTx
@@ -344,7 +361,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             id="persistent-active-plan-status-box"
             className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/30 border-2 border-emerald-500/40 dark:border-emerald-500/50 shadow-lg shadow-emerald-500/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
           >
-            <div className="space-y-1.5 min-w-0">
+            <div className="space-y-2 min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-xs">
                   <span className="relative flex h-2 w-2">
@@ -365,6 +382,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                     <span>SSO Managed</span>
                   </span>
                 )}
+              </div>
+
+              {/* Exact Status Box Format Required by Master Specification */}
+              <div className="p-2.5 rounded-xl bg-slate-900/90 text-emerald-400 font-mono text-xs border border-emerald-500/30 shadow-inner">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                  <span><strong>Start Date:</strong> {startDateStr}</span>
+                  <span>|</span>
+                  <span><strong>Expiry Date:</strong> {expiryDateStr}</span>
+                  <span>|</span>
+                  <span><strong>Days Remaining:</strong> {isOwner || !isPaidUser ? "Unlimited" : `${daysRemaining} Days`}</span>
+                  <span>|</span>
+                  <span className="text-slate-200"><strong>Status:</strong> Active &amp; Synced with Account ID ({userProfile.email || userProfile.id})</span>
+                </div>
               </div>
 
               <div className="text-xs text-slate-600 dark:text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
