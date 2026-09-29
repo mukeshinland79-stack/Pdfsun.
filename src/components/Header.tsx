@@ -36,6 +36,9 @@ import {
   Camera,
   BookOpen,
   Calendar,
+  Tag,
+  Lock,
+  Shield,
 } from "lucide-react";
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
@@ -302,45 +305,43 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Install, Pricing, Language, Theme & Auth/Profile) */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
-            {/* Install App Direct Button (Customer-Facing PWA Install) */}
+          {/* ZONE 3: ESSENTIAL RIGHT ACTIONS (Install, Pricing, Language, Theme, Blog & Auth/Profile) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+            {/* 1. Install App Direct Badge: [📱 App] (Positioned strictly right BEFORE [🏷️ Plans]) */}
             <button
               type="button"
               id="header-install-app-btn"
               onClick={() => {
                 if (onOpenInstallApp) onOpenInstallApp();
               }}
-              className="h-9 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-2.5 py-1.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/90 dark:border-blue-800/80 hover:border-blue-400/60 transition shadow-2xs hidden sm:flex items-center space-x-1 cursor-pointer active:scale-95 shrink-0"
               title={t("nav.installApp", "Install PDFSun App on your device")}
-              aria-label="Install PDFSun Mobile App"
+              aria-label="Install PDFSun App"
             >
-              <Smartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="whitespace-nowrap">
-                {t("nav.installApp", "Install App")}
-              </span>
+              <span className="text-sm shrink-0 leading-none" aria-hidden="true">📱</span>
+              <span className="whitespace-nowrap font-bold">App</span>
             </button>
 
-            {/* Pricing Plans Menu Item (Directly before Language Selector) */}
+            {/* 2. Pricing Plans: [🏷️ Plans] (Renamed with modern price/tag badge) */}
             <button
               type="button"
               id="header-nav-pricing-btn"
               onClick={handleOpenPricing}
-              className="h-9 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-amber-500/40 transition shadow-2xs flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200/90 dark:border-amber-800/80 hover:border-amber-400/60 transition shadow-2xs hidden sm:flex items-center space-x-1 cursor-pointer active:scale-95 shrink-0"
               title="View PDFSun Pricing & Plans"
               aria-label="View Pricing Plans"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400/30 shrink-0" />
-              <span className="whitespace-nowrap font-bold">
-                {t("pricingPlans", "Pricing Plans")}
-              </span>
+              <Tag className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="whitespace-nowrap font-bold">Plans</span>
             </button>
 
             {/* Language Selector */}
-            <LanguageSwitcher showLabel={true} align="right" />
+            <div className="hidden md:flex items-center">
+              <LanguageSwitcher showLabel={true} align="right" />
+            </div>
 
             {/* Theme Selector */}
-            <div className="relative" ref={themeDropdownRef}>
+            <div className="relative hidden sm:block" ref={themeDropdownRef}>
               <button
                 type="button"
                 onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
@@ -432,8 +433,39 @@ export const Header: React.FC<HeaderProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Profile / Admin / Auth Menu */}
-            <div className="relative" ref={profileDropdownRef}>
+            {/* Blog Button (Positioned Directly AFTER Themes Toggle) */}
+            <button
+              type="button"
+              id="header-nav-blog-btn"
+              onClick={() => {
+                if (onOpenBlog) onOpenBlog();
+              }}
+              className="h-9 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-blue-500/15 hover:text-blue-700 dark:hover:text-blue-300 border border-slate-200/80 dark:border-slate-700/70 hover:border-blue-500/40 transition shadow-2xs hidden md:flex items-center space-x-1.5 cursor-pointer active:scale-95 shrink-0"
+              title={t("nav.blogTitle", "Read PDFSun Knowledge Guides & Technical Blog")}
+              aria-label="Open PDFSun Knowledge Blog"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="whitespace-nowrap font-bold">
+                {t("nav.blog", "Blog")}
+              </span>
+            </button>
+
+            {/* 3-Line Hamburger/Settings Icon (≡) - ONLY rendered when authenticated Owner or Admin session is active */}
+            {hasAdminRights && (
+              <button
+                type="button"
+                id="header-mobile-drawer-toggle-btn"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-xl text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer shrink-0"
+                title="Owner / Admin Controls (≡)"
+                aria-label="Toggle Administrative Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
+
+            {/* Profile / Admin / Auth Menu - STRICT FINAL TERMINATION */}
+            <div className="relative shrink-0" ref={profileDropdownRef}>
               {hasAdminRights ? (
                 <button
                   type="button"
@@ -552,11 +584,87 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
 
-                  {/* ADMIN ONLY MENU ITEMS */}
-                  {hasAdminRights && (
-                    <div className="w-full space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
+                  {/* USER SHORTCUTS: FAVORITES, HISTORY & DASHBOARD */}
+                  <div className="w-full space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onOpenFavorites();
+                      }}
+                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Star className={`w-3.5 h-3.5 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : "text-amber-500"}`} />
+                        <span>{t("favorites.title", "Favorite Tools")}</span>
+                      </div>
+                      {favorites.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-bold">
+                          {favorites.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onOpenHistory();
+                      }}
+                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{t("history", "Recent History")}</span>
+                    </button>
+
+                    {isAuthenticated && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenUserDashboard();
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                      >
+                        <User className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{t("dashboard", "User Dashboard")}</span>
+                      </button>
+                    )}
+
+                    {isAuthenticated && onOpenAvatarModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenAvatarModal();
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-orange-500" />
+                        <span>Update Profile Picture</span>
+                      </button>
+                    )}
+
+                    {onOpenShareModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          onOpenShareModal();
+                        }}
+                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>Share &amp; Scan QR Code</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ADMINISTRATIVE CONFIGURATION OPTION (STRICTLY AT VERY BOTTOM/END OF DROPDOWN LIST) */}
+                  {hasAdminRights ? (
+                    <div className="w-full space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 pt-1 mb-1">
                       <div className="w-full px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center justify-between gap-1">
-                        <span>{currentRole === "owner" ? "Owner Administration" : "Admin Suite"}</span>
+                        <span>{currentRole === "owner" ? "Owner Administration (≡)" : "Admin Suite (≡)"}</span>
                         {adminEditModeActive && (
                           <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black border border-amber-500/30">
                             BAR ACTIVE
@@ -645,7 +753,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className="w-full p-1.5 rounded-lg text-left text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 cursor-pointer"
                         >
-                          <Users className="w-3 h-3 text-cyan-500 shrink-0" />
+                          <Users className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
                           <span className="truncate">Users & RBAC</span>
                         </button>
 
@@ -662,83 +770,28 @@ export const Header: React.FC<HeaderProps> = ({
                         </button>
                       </div>
                     </div>
-                  )}
-
-                  {/* USER SHORTCUTS: FAVORITES, HISTORY & DASHBOARD */}
-                  <div className="w-full space-y-0.5 border-b border-slate-100 dark:border-slate-800 pb-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenFavorites();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Star className={`w-3.5 h-3.5 ${favorites.length > 0 ? "fill-amber-400 text-amber-400" : "text-amber-500"}`} />
-                        <span>{t("favorites.title", "Favorite Tools")}</span>
+                  ) : (
+                    /* Administrative configuration option at very bottom/end for non-admin roles (inactive/disabled) */
+                    <div className="w-full pt-1 pb-1 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      <div className="w-full p-2 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 text-slate-400 dark:text-slate-500 select-none">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <div className="flex items-center space-x-1.5">
+                            <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                              Administrative Suite (≡)
+                            </span>
+                          </div>
+                          <span className="inline-flex items-center space-x-0.5 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
+                            <Lock className="w-2.5 h-2.5 inline mr-0.5" />
+                            Disabled
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                          Restricted to verified Owner &amp; Admin accounts. Feature is inactive for client roles.
+                        </p>
                       </div>
-                      {favorites.length > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-bold">
-                          {favorites.length}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onOpenHistory();
-                      }}
-                      className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                    >
-                      <Clock className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{t("history", "Recent History")}</span>
-                    </button>
-
-                    {isAuthenticated && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          onOpenUserDashboard();
-                        }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      >
-                        <User className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>{t("dashboard", "User Dashboard")}</span>
-                      </button>
-                    )}
-
-                    {isAuthenticated && onOpenAvatarModal && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          onOpenAvatarModal();
-                        }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      >
-                        <Camera className="w-3.5 h-3.5 text-orange-500" />
-                        <span>Update Profile Picture</span>
-                      </button>
-                    )}
-
-                    {onOpenShareModal && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          onOpenShareModal();
-                        }}
-                        className="w-full p-2 rounded-xl text-left text-xs font-semibold flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>Share &amp; Scan QR Code</span>
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* LOGOUT BUTTON */}
                   {isAuthenticated && (
@@ -757,24 +810,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Mobile Menu Toggle Button (< lg screens) */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* RESPONSIVE MOBILE SLIDE-OVER DRAWER (< lg)                */}
+      {/* RESPONSIVE MOBILE SLIDE-OVER DRAWER (Admin / Owner Only)  */}
       {/* ========================================================= */}
-      {mobileMenuOpen && (
+      {hasAdminRights && mobileMenuOpen && (
         <div className="w-full lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0b1120]/98 backdrop-blur-xl p-4 space-y-3 animate-in slide-in-from-top-2 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
 
           {/* Mobile Quick Search Button */}
@@ -844,28 +887,23 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t("home", "Home")}</span>
             </button>
 
-            {/* Mobile Daily Chronicle Link */}
+            {/* Mobile Daily Chronicle & History Link */}
             {onOpenTodayInHistory && (
               <button
                 type="button"
                 id="mobile-drawer-chronicle-btn"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  const el = document.getElementById("daily-chronicle-section");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
-                  } else {
-                    onOpenTodayInHistory();
-                  }
+                  onOpenTodayInHistory();
                 }}
                 className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-cyan-900 dark:text-cyan-200 bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/20 flex items-center justify-between transition cursor-pointer"
               >
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
-                  <span>{t("nav.dailyChronicle", "Daily Chronicle & History")}</span>
+                  <span>{t("nav.dailyChronicle", "Today in History")}</span>
                 </div>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950 uppercase tracking-wider">
-                  Live Feed
+                  Archive
                 </span>
               </button>
             )}
@@ -891,6 +929,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Blog Link */}
             <button
               type="button"
+              id="mobile-drawer-blog-btn"
               onClick={() => {
                 setMobileMenuOpen(false);
                 if (onOpenBlog) {
@@ -899,14 +938,14 @@ export const Header: React.FC<HeaderProps> = ({
                   window.location.href = "/blog";
                 }
               }}
-              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-slate-800 dark:text-slate-200 bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/30 hover:bg-orange-500/20 flex items-center justify-between transition cursor-pointer"
+              className="w-full p-2.5 rounded-xl text-left text-xs font-bold text-blue-900 dark:text-blue-200 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/30 hover:bg-blue-500/20 flex items-center justify-between transition cursor-pointer"
             >
               <div className="flex items-center space-x-2">
-                <BookOpen className="w-4 h-4 text-orange-500 shrink-0" />
-                <span>Blog</span>
+                <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span>PDFSun Blog &amp; Guides</span>
               </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white uppercase tracking-wider">
-                10 Guides
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wider">
+                Knowledge
               </span>
             </button>
 

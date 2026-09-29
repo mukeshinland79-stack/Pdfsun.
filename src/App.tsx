@@ -18,6 +18,7 @@ import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
+import { StickyBottomAdBanner } from "./components/StickyBottomAdBanner";
 import { NewsletterSubscription } from "./components/NewsletterSubscription";
 import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
@@ -37,8 +38,6 @@ import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
-import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
-import { PdfSunArticleSection } from "./components/PdfSunArticleSection";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
@@ -417,25 +416,23 @@ function MainApp() {
     if (activeTool) setActiveTool(null);
     if (activePseoPage) setActivePseoPage(null);
     setPricingModalOpen(false);
-    setBlogViewActive(true);
+    setBlogModalOpen(true);
     setBlogActiveSlug(null);
     if (typeof window !== "undefined" && window.location.pathname !== "/blog") {
       window.history.pushState({}, "", "/blog");
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeTool, activePseoPage]);
 
   const handleNavigateArticle = useCallback((slug: string) => {
     if (activeTool) setActiveTool(null);
     if (activePseoPage) setActivePseoPage(null);
     setPricingModalOpen(false);
-    setBlogViewActive(true);
+    setBlogModalOpen(true);
     setBlogActiveSlug(slug);
     const targetPath = `/blog/${slug}`;
     if (typeof window !== "undefined" && window.location.pathname !== targetPath) {
       window.history.pushState({}, "", targetPath);
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeTool, activePseoPage]);
 
   const handleExitBlogToHome = useCallback(() => {
@@ -852,36 +849,12 @@ function MainApp() {
               <AdSensePlaceholder slotId="pdfsun-auto-hero-sub-01" format="leaderboard" />
             )}
 
-            {/* ========================================================================= */}
-            {/* UNIVERSAL DAILY CHRONICLE & TECHNICAL INTELLIGENCE HUB (100% PUBLIC/UNGATED) */}
-            {/* ========================================================================= */}
-            <section
-              id="daily-chronicle-section"
-              aria-label="Daily Chronicle & Technical Intelligence"
-              className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5"
-            >
-              <EngineChroniclesHub
-                geoResult={geoResult}
-                onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
-                onNavigateArticle={handleNavigateArticle}
-                onNavigateBlog={handleNavigateBlog}
-              />
-            </section>
-
+            {/* Core Utility & Trust Hub (Clean, Fast, Uncluttered Homepage Focus) */}
             <CollapsibleSectionsHub
               childrenAiSection={
                 <div className="space-y-4">
                   <MobileAppPromotionCard />
                   <DualAiFeatureBanner onSelectTool={handleSelectTool} onOpenContactModal={() => setContactModalOpen(true)} />
-                </div>
-              }
-              childrenChroniclesSection={
-                <div className="space-y-6">
-                  <PdfSunArticleSection
-                    showAd={adPlacements.some((p) => p.id === "incontent-grid-ad")}
-                    onNavigateArticle={handleNavigateArticle}
-                    onNavigateBlog={handleNavigateBlog}
-                  />
                 </div>
               }
               childrenFormatsSection={<SupportedFormats />}
@@ -986,7 +959,18 @@ function MainApp() {
       {userProfile && <ProfileAvatarModal isOpen={avatarModalOpen} onClose={() => setAvatarModalOpen(false)} userEmail={userProfile.email} userName={userProfile.name} currentPhotoURL={userProfile.photoURL} currentAvatar={userProfile.avatar} onPhotoUpdated={(newPhotoURL) => updateAvatar(newPhotoURL)} />}
 
       <PricingSection isOpen={pricingModalOpen} onClose={handleClosePricing} isModal={true} onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
-      <BlogModal isOpen={blogModalOpen} onClose={() => setBlogModalOpen(false)} />
+      <BlogModal
+        isOpen={blogModalOpen}
+        onClose={() => {
+          setBlogModalOpen(false);
+          setBlogActiveSlug(null);
+          if (typeof window !== "undefined" && window.location.pathname.startsWith("/blog")) {
+            window.history.pushState({}, "", "/");
+          }
+        }}
+        onSelectTool={handleSelectTool}
+        initialSlug={blogActiveSlug}
+      />
       <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
       <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
       <PaymentSuccessModal isOpen={paymentSuccessModalOpen} onClose={() => setPaymentSuccessModalOpen(false)} userProfile={userProfile} onRefreshProfile={() => handleInstantProUnlock()} onStartProcessing={() => { handleInstantProUnlock(); setPaymentSuccessModalOpen(false); document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" }); }} />
@@ -1006,6 +990,7 @@ function MainApp() {
 
       <TodayInHistoryModal isOpen={todayInHistoryOpen} onClose={() => setTodayInHistoryOpen(false)} initialLanguage={geoResult.detectedLanguage} initialCountryCode={geoResult.detectedCountryCode} onSelectTool={handleSelectTool} />
       <FuturePdfStudioModal isOpen={futureStudioOpen} onClose={() => setFutureStudioOpen(false)} initialTab={futureStudioTab} initialFile={futureStudioFile} onAddHistory={addHistory} />
+      <StickyBottomAdBanner isVisible={!activeTool && !pricingModalOpen && !contactModalOpen && !sitemapModalOpen && !todayInHistoryOpen && !blogModalOpen && !futureStudioOpen && !adminPanelOpen && !userDashboardOpen && !cmsModalOpen && !authModalOpen} />
       <GlobalErrorToast />
     </div>
   );

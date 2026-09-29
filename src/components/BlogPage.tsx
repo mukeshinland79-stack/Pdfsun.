@@ -25,6 +25,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { AdSensePlaceholder } from "./AdSensePlaceholder";
 import {
   calculateReadingTime,
   getSavedArticleSlugs,
@@ -682,6 +683,18 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               );
             })}
           </section>
+
+          {/* In-Article Native Feed Advertisement (Google Publisher Policy Compliant) */}
+          <div className="my-8 py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-center">
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
+              Advertisement
+            </div>
+            <AdSensePlaceholder
+              slotId="pdfsun-blog-in-article-feed"
+              format="auto"
+              className="my-1"
+            />
+          </div>
 
           {/* COMPARISON TABLE SECTION */}
           {activePost.comparisonTable && (
