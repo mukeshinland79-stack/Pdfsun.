@@ -33,28 +33,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
     <!-- Standardized Blue Brand Favicon Architecture (Google Search Favicon Standards & Blue Suite) -->
-    <link rel="icon" type="image/x-icon" href="https://www.pdfsun.in/favicon.ico" />
-    <link rel="shortcut icon" type="image/x-icon" href="https://www.pdfsun.in/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="48x48" href="https://www.pdfsun.in/assets/favicon-48x48.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="https://www.pdfsun.in/assets/favicon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="144x144" href="https://www.pdfsun.in/assets/favicon-144x144.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="https://www.pdfsun.in/assets/favicon-192x192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="https://www.pdfsun.in/assets/favicon-512x512.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="https://www.pdfsun.in/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="https://www.pdfsun.in/favicon-16x16.png" />
-    <link rel="icon" type="image/svg+xml" href="https://www.pdfsun.in/assets/logo.svg" />
-    <link rel="apple-touch-icon" href="https://www.pdfsun.in/assets/pwa-512.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="https://www.pdfsun.in/apple-touch-icon.png" />
+    <link rel="icon" type="image/x-icon" href="https://pdfsun.in/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="shortcut icon" type="image/x-icon" href="https://pdfsun.in/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="https://pdfsun.in/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="https://pdfsun.in/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="https://pdfsun.in/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="144x144" href="https://pdfsun.in/favicon-144x144.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://pdfsun.in/favicon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://pdfsun.in/favicon-512x512.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="https://pdfsun.in/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="https://pdfsun.in/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://pdfsun.in/apple-touch-icon.png" />
+
+    <!-- Resource Preloads for Instant First Paint and Favicon Discovery -->
+    <link rel="preload" href="https://pdfsun.in/favicon-48x48.png" as="image" type="image/png" />
+    <link rel="preload" href="/style.css" as="style" />
 
     <!-- Progressive Web App Manifest & Blue Theme Standardization -->
-    <link rel="manifest" href="https://www.pdfsun.in/site.webmanifest" />
+    <link rel="manifest" href="https://pdfsun.in/site.webmanifest" />
     <meta name="theme-color" content="#0052FF" />
     <meta name="msapplication-TileColor" content="#0052FF" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="PDF Sun PRO AI" />
-    <meta name="application-name" content="PDF Sun PRO AI" />
+    <meta name="apple-mobile-web-app-title" content="PDFSun" />
+    <meta name="application-name" content="PDFSun" />
 
     <!-- Canonical & Global Multi-Language Hreflang Localization -->
     <link rel="canonical" href="https://pdfsun.in/" />
@@ -85,22 +88,26 @@
     <link rel="alternate" hreflang="ko-kr" href="https://pdfsun.in/?lang=ko" />
     <link rel="alternate" hreflang="ru-ru" href="https://pdfsun.in/?lang=ru" />
 
-    <!-- OpenGraph Social Meta (Facebook/LinkedIn) -->
+    <!-- OpenGraph Social Meta (Facebook/LinkedIn/Slack) -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="PDF Sun PRO AI" />
-    <meta property="og:title" content="PDF Sun PRO AI - Free Online PDF Tools | Merge, Split, Compress &amp; Edit PDFs" />
-    <meta property="og:description" content="PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities, and extreme multi-threaded WebAssembly performance." />
-    <meta property="og:url" content="https://www.pdfsun.in/" />
-    <meta property="og:image" content="https://www.pdfsun.in/assets/logo-horizontal.png" />
+    <meta property="og:site_name" content="PDFSun" />
+    <meta property="og:title" content="PDFSun - Free Online PDF Tools | Merge, Split, Compress &amp; Edit PDFs" />
+    <meta property="og:description" content="PDFSun — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities, and extreme multi-threaded WebAssembly performance." />
+    <meta property="og:url" content="https://pdfsun.in/" />
+    <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+    <meta property="og:image:secure_url" content="https://pdfsun.in/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="PDF Sun PRO AI - Your Smart Document Companion" />
+    <meta property="og:image:alt" content="PDFSun - Free Online PDF Tools &amp; WebAssembly Document Engine" />
 
     <!-- Twitter Card Meta -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PDF Sun PRO AI - Free Online PDF Tools | Merge, Split, Compress &amp; Edit PDFs" />
-    <meta name="twitter:description" content="PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities." />
-    <meta name="twitter:image" content="https://www.pdfsun.in/assets/logo-horizontal.png" />
+    <meta name="twitter:site" content="@pdfsun" />
+    <meta name="twitter:creator" content="@pdfsun" />
+    <meta name="twitter:title" content="PDFSun - Free Online PDF Tools | Merge, Split, Compress &amp; Edit PDFs" />
+    <meta name="twitter:description" content="PDFSun — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities." />
+    <meta name="twitter:image" content="https://pdfsun.in/og-image.png" />
 
     <!-- Real User Monitoring (RUM) - Core Web Vitals & WASM Processing Speed -->
     <script>
@@ -187,14 +194,21 @@
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "PDF Sun PRO AI",
-      "url": "https://www.pdfsun.in",
-      "description": "PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities.",
+      "name": "PDFSun",
+      "alternateName": ["PDFSun.in", "PDF Sun", "PDF Sun Online", "Pdfsun"],
+      "url": "https://pdfsun.in",
+      "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun. 100% Client-Side WebAssembly Processing with Zero Server Uploads.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "PDFSun",
+        "url": "https://pdfsun.in",
+        "logo": "https://pdfsun.in/logo.png"
+      },
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://www.pdfsun.in/?search={search_term_string}"
+          "urlTemplate": "https://pdfsun.in/?search={search_term_string}"
         },
         "query-input": "required name=search_term_string"
       }
@@ -206,11 +220,16 @@
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "PDF Sun PRO AI",
-      "url": "https://www.pdfsun.in",
-      "logo": "https://www.pdfsun.in/assets/logo-horizontal.png",
-      "image": "https://www.pdfsun.in/assets/logo-horizontal.png",
-      "sameAs": []
+      "name": "PDFSun",
+      "alternateName": ["PDFSun.in", "PDF Sun", "PDF Sun Technologies", "Pdfsun"],
+      "url": "https://pdfsun.in",
+      "logo": "https://pdfsun.in/logo.png",
+      "image": "https://pdfsun.in/og-image.png",
+      "email": "mukeshinland79@gmail.com",
+      "sameAs": [
+        "https://twitter.com/pdfsun",
+        "https://github.com/mukeshinland79-stack/Pdfsun"
+      ]
     }
     </script>
 
@@ -219,13 +238,14 @@
     {
       "@context": "https://schema.org",
       "@type": ["WebApplication", "SoftwareApplication"],
-      "name": "PDF Sun PRO AI - Free Online PDF Tools",
-      "url": "https://www.pdfsun.in",
-      "description": "PDF Sun PRO AI — Your Smart Document Companion. 100% Local In-Browser Processing (Zero Server Upload, Ultimate Privacy), Gemini AI Utilities.",
+      "name": "PDFSun - Online PDF Tools",
+      "alternateName": ["PDFSun PDF Editor", "PDFSun Converter", "PDFSun Tools"],
+      "url": "https://pdfsun.in",
+      "description": "PDFSun — Enterprise-grade client-side WebAssembly document engine. Merge, compress, convert, sign, OCR, and edit PDFs with zero server upload.",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "All (Web-based, Windows, macOS, Linux, iOS, Android)",
       "browserRequirements": "Requires HTML5 and WebAssembly compatible browser.",
-      "softwareVersion": "3.0.0",
+      "softwareVersion": "3.2.0",
       "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
       "featureList": [
         "Merge multiple PDF files into one with extreme speed",
@@ -242,15 +262,37 @@
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "USD",
+        "priceCurrency": "INR",
         "availability": "https://schema.org/InStock"
       },
       "author": {
         "@type": "Organization",
-        "name": "PDF Sun PRO AI",
-        "url": "https://www.pdfsun.in",
-        "logo": "https://www.pdfsun.in/assets/logo-horizontal.png"
+        "name": "PDFSun",
+        "url": "https://pdfsun.in",
+        "logo": "https://pdfsun.in/logo.png"
       }
+    }
+    </script>
+
+    <!-- 4. Primary BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://pdfsun.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "PDF Tools",
+          "item": "https://pdfsun.in/#tools"
+        }
+      ]
     }
     </script>
 
@@ -261,8 +303,8 @@
       "@graph": [
         {
           "@type": "WebApplication",
-          "@id": "https://www.pdfsun.in/merge-pdf#webapp",
-          "url": "https://www.pdfsun.in/merge-pdf",
+          "@id": "https://pdfsun.in/merge-pdf#webapp",
+          "url": "https://pdfsun.in/merge-pdf",
           "name": "Free Online PDF Merger & Combiner",
           "alternateName": ["PDF Joiner", "Combine PDF Online", "Merge PDF Files"],
           "description": "Merge multiple PDF files into a single document instantly in your browser. Fast, 100% free, secure, and requires no registration.",
@@ -293,12 +335,12 @@
           },
           "author": {
             "@type": "Organization",
-            "@id": "https://www.pdfsun.in/#organization",
-            "name": "PDF Sun",
-            "url": "https://www.pdfsun.in",
+            "@id": "https://pdfsun.in/#organization",
+            "name": "PDFSun",
+            "url": "https://pdfsun.in",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://www.pdfsun.in/og-image.png"
+              "url": "https://pdfsun.in/og-image.png"
             }
           }
         },

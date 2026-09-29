@@ -49,9 +49,9 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.",
     "publisher": {
       "@type": "Organization",
-      "name": "PDF Sun PRO AI",
+      "name": "PDFSun",
       "url": baseUrl,
-      "logo": `${baseUrl}/assets/logo-horizontal.png`,
+      "logo": `${baseUrl}/logo.png`,
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -67,10 +67,15 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "PDF Sun PRO AI",
+    "name": "PDFSun",
+    "alternateName": ["PDFSun.in", "PDF Sun", "PDF Sun Technologies", "Pdfsun"],
     "url": baseUrl,
-    "logo": `${baseUrl}/assets/logo-horizontal.png`,
-    "sameAs": [],
+    "logo": `${baseUrl}/logo.png`,
+    "image": `${baseUrl}/og-image.png`,
+    "sameAs": [
+      "https://twitter.com/pdfsun",
+      "https://github.com/mukeshinland79-stack/Pdfsun"
+    ],
   };
 
   // 3. WebApplication & SoftwareApplication Schema for PDFSun
@@ -487,14 +492,14 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       <meta property="og:description" content={helmetDesc} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content="website" />
-      <meta property="og:site_name" content="PDF Sun PRO AI" />
-      <meta property="og:image" content={`${baseUrl}/assets/logo-horizontal.png`} />
+      <meta property="og:site_name" content="PDFSun" />
+      <meta property="og:image" content={`${baseUrl}/og-image.png`} />
 
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={helmetTitle} />
       <meta name="twitter:description" content={helmetDesc} />
-      <meta name="twitter:image" content={`${baseUrl}/assets/logo-horizontal.png`} />
+      <meta name="twitter:image" content={`${baseUrl}/og-image.png`} />
 
       {/* Rel prev and next tags for paginated pages */}
       {currentPage && currentPage > 1 && (

@@ -3871,7 +3871,7 @@ app.all("/api/admin/feedback/action", async (req, res) => {
   }
 });
 
-// Security Headers & Canonical Domain Middleware (Enforces https://www.pdfsun.in)
+// Security Headers & Canonical Domain Middleware (Strictly enforces https://pdfsun.in non-www)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -3882,57 +3882,76 @@ app.use((req, res, next) => {
   const host = req.headers.host || "";
   const proto = req.headers["x-forwarded-proto"] || req.protocol;
 
-  // 301 Redirect any non-www or HTTP traffic (pdfsun.in, pdfsun.com, www.pdfsun.com) to https://www.pdfsun.in
+  // Staging / GitHub / Preview Deployments: prevent search engine indexation & ranking leakage
+  if (
+    host.includes("run.app") ||
+    host.includes("github.io") ||
+    host.includes("amazonaws.com") ||
+    host.includes("vercel.app") ||
+    host.includes("pages.dev")
+  ) {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
+
+  // 301 Permanent Redirect all alternate hostnames (www.pdfsun.in, pdfsun.com, www.pdfsun.com) and HTTP to https://pdfsun.in
   if (
     process.env.NODE_ENV === "production" &&
     !host.includes("localhost") &&
     !host.includes("127.0.0.1") &&
-    !host.includes("run.app") &&
-    (host === "pdfsun.com" || host === "www.pdfsun.com" || host === "pdfsun.in" || proto === "http" || host !== "www.pdfsun.in")
+    !host.includes("run.app")
   ) {
-    if (host !== "www.pdfsun.in" || proto !== "https") {
-      return res.redirect(301, `https://www.pdfsun.in${req.originalUrl}`);
+    if (host === "www.pdfsun.in" || host === "pdfsun.com" || host === "www.pdfsun.com" || proto === "http") {
+      return res.redirect(301, `https://pdfsun.in${req.originalUrl}`);
     }
   }
 
   next();
 });
 
-// Dynamic Robots.txt
+// Dynamic Robots.txt (Strictly compliant with Google Search Favicon & Bing Webmaster Rules)
 app.get("/robots.txt", (req, res) => {
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
   res.send(`User-agent: *
 Allow: /
-Allow: /assets/
-Allow: /favicon*
+Allow: /favicon.ico
+Allow: /favicon*.png
+Allow: /favicon.svg
 Allow: /apple-touch*
 Allow: /android-chrome*
+Allow: /site.webmanifest
 Allow: /*.png
 Allow: /*.svg
 Allow: /*.ico
+Allow: /*.jpg
+Allow: /*.webp
+Allow: /assets/
 Disallow: /api/admin/
+Disallow: /api/internal/
+
+User-agent: Googlebot-Favicon
+Allow: /favicon.ico
+Allow: /favicon*.png
+Allow: /favicon.svg
+Allow: /apple-touch-icon.png
+Allow: /android-chrome-*.png
+Allow: /
 
 User-agent: Googlebot
 Allow: /
-Allow: /assets/
 Allow: /favicon*
 Allow: /apple-touch*
 Allow: /android-chrome*
-Allow: /*.png
-Allow: /*.svg
-Allow: /*.ico
+Allow: /site.webmanifest
 Disallow: /api/admin/
 
-User-agent: Googlebot-Image
+User-agent: Bingbot
 Allow: /
-Allow: /assets/
 Allow: /favicon*
 Allow: /apple-touch*
 Allow: /android-chrome*
-Allow: /*.png
-Allow: /*.svg
-Allow: /*.ico
+Allow: /site.webmanifest
+Disallow: /api/admin/
 
 Sitemap: https://pdfsun.in/sitemap.xml
 Sitemap: https://pdfsun.in/sitemap-blog.xml

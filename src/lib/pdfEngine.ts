@@ -955,6 +955,7 @@ export function ensureValidFilename(fileName: string, mimeType: string = "applic
   let targetExt = ".pdf";
   if (mimeType.includes("zip")) targetExt = ".zip";
   else if (mimeType.includes("text") || mimeType.includes("plain")) targetExt = ".txt";
+  else if (mimeType.includes("rtf")) targetExt = ".rtf";
   else if (mimeType.includes("wordprocessingml") || mimeType.includes("docx") || mimeType.includes("msword")) targetExt = ".docx";
   else if (mimeType.includes("spreadsheetml") || mimeType.includes("xlsx") || mimeType.includes("excel")) targetExt = ".xlsx";
   else if (mimeType.includes("presentationml") || mimeType.includes("pptx") || mimeType.includes("powerpoint")) targetExt = ".pptx";

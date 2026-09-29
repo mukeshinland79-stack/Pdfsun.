@@ -224,10 +224,28 @@ export async function convertPdfToWordEnterprise(
     creator: "PDFSun Enterprise Engine",
     title: baseName,
     description: "Reconstructed high-fidelity Microsoft Word document",
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Calibri",
+            size: 22,
+            color: "0F172A",
+          },
+          paragraph: {
+            spacing: { line: 276, after: 120 },
+          },
+        },
+      },
+    },
     sections: [
       {
         properties: {
           page: {
+            size: {
+              width: 11906,
+              height: 16838,
+            },
             margin: {
               top: 1440, // 1 inch
               right: 1440,

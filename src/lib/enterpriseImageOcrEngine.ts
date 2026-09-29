@@ -332,22 +332,28 @@ export async function preprocessImageForOcr(
 
       const lumRange = Math.max(1, maxLum - minLum);
 
-      // C. Contrast normalized data writeback
+      // C. Contrast normalized data writeback (gentle adaptive curve preserving faint text)
       p = 0;
       for (let i = 0; i < data.length; i += 4) {
         let lum = gray[p++];
-        lum = Math.min(255, Math.max(0, Math.round(((lum - minLum) / lumRange) * 255)));
+        const normalized = Math.min(255, Math.max(0, Math.round(((lum - minLum) / lumRange) * 255)));
 
-        // Adaptive threshold curve: push page background to pure white (#ffffff), darken text ink
-        if (lum > 175) {
-          lum = 255;
-        } else if (lum < 115) {
-          lum = Math.round(lum * 0.65);
+        // Adaptive threshold curve: push light page background to clean white, darken ink safely without clipping
+        let enhanced = normalized;
+        if (lumRange > 40) {
+          if (normalized > 200) {
+            enhanced = Math.min(255, 200 + (normalized - 200) * 1.5);
+          } else if (normalized < 100) {
+            enhanced = Math.max(0, Math.round(normalized * 0.75));
+          }
+        } else {
+          // Low-contrast scan: amplify contrast linearly around median
+          enhanced = normalized > 128 ? Math.min(255, normalized + 25) : Math.max(0, normalized - 25);
         }
 
-        data[i] = lum;
-        data[i + 1] = lum;
-        data[i + 2] = lum;
+        data[i] = enhanced;
+        data[i + 1] = enhanced;
+        data[i + 2] = enhanced;
       }
       curCtx.putImageData(imgData, 0, 0);
 
@@ -401,12 +407,26 @@ export function buildDocumentAst(
   tokens: RawOcrToken[],
   canvasWidth: number,
   _canvasHeight: number,
-  mode: ImageOcrMode = "auto"
+  mode: ImageOcrMode = "auto",
+  fallbackFullText?: string
 ): DocumentAST {
   if (tokens.length === 0) {
+    const rawParagraphs = (fallbackFullText || "")
+      .split(/\r?\n+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const fallbackNodes: ASTNode[] = rawParagraphs.map((p, idx) => ({
+      type: idx === 0 && p.length < 60 ? "title" : "paragraph",
+      text: p,
+      lines: [p],
+      style: { fontSizePt: idx === 0 && p.length < 60 ? 18 : 11, alignment: "left" },
+    }));
+
     return {
-      nodes: [],
-      fullText: "",
+      title: fallbackNodes[0]?.type === "title" ? fallbackNodes[0].text : undefined,
+      nodes: fallbackNodes,
+      fullText: fallbackFullText || "",
       primaryTableMatrix: [],
       summaryFields: [],
       metadata: {
@@ -421,7 +441,6 @@ export function buildDocumentAst(
   }
 
   // 1. Detect multi-column flow
-  // Check if items split distinctly into a left column and a right column
   const midX = canvasWidth / 2;
   const leftItems = tokens.filter((t) => t.x1 < midX - 20);
   const rightItems = tokens.filter((t) => t.x0 > midX + 20);
@@ -435,7 +454,6 @@ export function buildDocumentAst(
 
   let sortedTokens: RawOcrToken[];
   if (isTwoColumn) {
-    // Sort reading order: Top-to-Bottom in Column 1, then Top-to-Bottom in Column 2
     leftItems.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
     rightItems.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
     sortedTokens = [...leftItems, ...rightItems];
@@ -443,7 +461,7 @@ export function buildDocumentAst(
     sortedTokens = [...tokens].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   }
 
-  // 2. Line Grouping
+  // 2. Line Grouping with adaptive vertical baseline tolerance
   interface LineGroup {
     y: number;
     tokens: RawOcrToken[];
@@ -453,10 +471,11 @@ export function buildDocumentAst(
   }
 
   const lines: LineGroup[] = [];
-  const lineYTolerance = 6.0;
 
   for (const t of sortedTokens) {
-    let matched = lines.find((l) => Math.abs(l.y - t.y0) <= lineYTolerance);
+    const tokenH = t.height || (t.y1 - t.y0) || 16;
+    const lineTol = Math.max(8, Math.min(24, tokenH * 0.65));
+    let matched = lines.find((l) => Math.abs(l.y - t.y0) <= lineTol);
     if (matched) {
       matched.tokens.push(t);
       matched.fontSize = Math.max(matched.fontSize, t.fontSize);
@@ -471,6 +490,9 @@ export function buildDocumentAst(
       });
     }
   }
+
+  // Natural top-down reading order
+  lines.sort((a, b) => a.y - b.y);
 
   // Build clean text per line
   for (const l of lines) {
@@ -533,6 +555,22 @@ export function buildDocumentAst(
           },
         });
         detectedTableMatrices.push(matrix);
+        tableBuffer = [];
+        return;
+      }
+    }
+
+    // CRITICAL ENGINE FIX: If buffered lines do NOT form a valid multi-column table,
+    // NEVER discard them! Convert each line to a clean paragraph node so 100% of text is preserved.
+    for (const r of tableBuffer) {
+      const rowTxt = r.text.trim();
+      if (rowTxt) {
+        nodes.push({
+          type: "paragraph",
+          text: rowTxt,
+          lines: [rowTxt],
+          style: { fontSizePt: 11, alignment: "left" },
+        });
       }
     }
     tableBuffer = [];
@@ -561,12 +599,23 @@ export function buildDocumentAst(
       continue;
     }
 
-    // Check if line is a Table Row (multiple items spaced apart horizontally)
+    // Check if line has genuine spatial columnar gaps (indicative of true tables, not regular prose)
+    let hasColumnarGaps = false;
+    if (line.tokens.length >= 2) {
+      for (let k = 0; k < line.tokens.length - 1; k++) {
+        const gap = line.tokens[k + 1].x0 - line.tokens[k].x1;
+        if (gap >= 35) {
+          hasColumnarGaps = true;
+          break;
+        }
+      }
+    }
+
     const isTabular =
       mode === "table" ||
-      (line.tokens.length >= 3 && line.tokens[line.tokens.length - 1].x1 - line.tokens[0].x0 > canvasWidth * 0.45) ||
       text.includes("\t") ||
-      text.includes("|");
+      text.includes("|") ||
+      (hasColumnarGaps && line.tokens.length >= 2 && mode !== "fields");
 
     if (isTabular) {
       tableBuffer.push(line);
@@ -622,7 +671,6 @@ export function buildDocumentAst(
     detectedTableMatrices.sort((a, b) => b.length * (b[0]?.length || 0) - a.length * (a[0]?.length || 0));
     primaryTableMatrix = detectedTableMatrices[0];
   } else if (lines.length > 0) {
-    // Fallback table matrix from lines
     primaryTableMatrix = lines.map((l) => [l.text]);
   }
 
@@ -648,7 +696,9 @@ export function buildDocumentAst(
 // ---------------------------------------------------------------------------
 
 /**
- * Generate native, styled Microsoft Word (.docx) document from Document AST
+ * Generate native, styled Microsoft Word (.docx) document from Document AST.
+ * Explicitly builds OpenXML body (w:body), paragraphs (w:p), text runs (w:r),
+ * and table elements (w:tbl) fully compatible with Microsoft Word and WordPad.
  */
 export async function generateWordDocxFromAst(
   ast: DocumentAST,
@@ -667,10 +717,11 @@ export async function generateWordDocxFromAst(
             text: ast.title,
             bold: true,
             size: 36, // 18pt
-            color: "1E40AF", // Brand Blue
+            color: "1E40AF",
+            font: "Calibri",
           }),
         ],
-        spacing: { before: 100, after: 200 },
+        spacing: { before: 120, after: 200 },
       })
     );
   }
@@ -681,7 +732,15 @@ export async function generateWordDocxFromAst(
       docChildren.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: node.text || "", bold: true, size: 28, color: "1E3A8A" })],
+          children: [
+            new TextRun({
+              text: node.text || " ",
+              bold: true,
+              size: 28,
+              color: "1E3A8A",
+              font: "Calibri",
+            }),
+          ],
           spacing: { before: 160, after: 100 },
         })
       );
@@ -691,10 +750,11 @@ export async function generateWordDocxFromAst(
           heading: node.type === "heading1" ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2,
           children: [
             new TextRun({
-              text: node.text || "",
+              text: node.text || " ",
               bold: true,
               size: node.type === "heading1" ? 26 : 22,
               color: "1E293B",
+              font: "Calibri",
             }),
           ],
           spacing: { before: 180, after: 80 },
@@ -703,17 +763,32 @@ export async function generateWordDocxFromAst(
     } else if (node.type === "paragraph" && node.text) {
       docChildren.push(
         new Paragraph({
-          children: [new TextRun({ text: node.text, size: 22 })],
-          spacing: { after: 100 },
+          children: [
+            new TextRun({
+              text: node.text,
+              size: 22, // 11pt
+              font: "Calibri",
+              color: "0F172A",
+            }),
+          ],
+          spacing: { after: 120, line: 276 },
         })
       );
     } else if (node.type === "bullet_list" && node.items) {
       for (const it of node.items) {
+        if (!it.trim()) continue;
         docChildren.push(
           new Paragraph({
             bullet: { level: 0 },
-            children: [new TextRun({ text: it, size: 22 })],
-            spacing: { after: 60 },
+            children: [
+              new TextRun({
+                text: it,
+                size: 22,
+                font: "Calibri",
+                color: "1E293B",
+              }),
+            ],
+            spacing: { after: 60, line: 260 },
           })
         );
       }
@@ -722,10 +797,21 @@ export async function generateWordDocxFromAst(
         docChildren.push(
           new Paragraph({
             children: [
-              new TextRun({ text: `${f.label}: `, bold: true, size: 22, color: "334155" }),
-              new TextRun({ text: f.value, size: 22 }),
+              new TextRun({
+                text: `${f.label}: `,
+                bold: true,
+                size: 22,
+                color: "334155",
+                font: "Calibri",
+              }),
+              new TextRun({
+                text: f.value || " ",
+                size: 22,
+                color: "0F172A",
+                font: "Calibri",
+              }),
             ],
-            spacing: { after: 60 },
+            spacing: { after: 60, line: 260 },
           })
         );
       }
@@ -740,11 +826,25 @@ export async function generateWordDocxFromAst(
         (h) =>
           new TableCell({
             width: { size: colWidthPct, type: WidthType.PERCENTAGE },
-            shading: { type: ShadingType.CLEAR, fill: "1E3A8A" },
+            shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+              bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" },
+              left: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+              right: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+            },
             children: [
               new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 20 })],
+                alignment: AlignmentType.LEFT,
+                children: [
+                  new TextRun({
+                    text: h || " ",
+                    bold: true,
+                    color: "0F172A",
+                    size: 20,
+                    font: "Calibri",
+                  }),
+                ],
               }),
             ],
           })
@@ -759,9 +859,22 @@ export async function generateWordDocxFromAst(
             new TableCell({
               width: { size: colWidthPct, type: WidthType.PERCENTAGE },
               shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+                left: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+                right: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+              },
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: c || "", size: 20 })],
+                  children: [
+                    new TextRun({
+                      text: c || " ",
+                      size: 20,
+                      font: "Calibri",
+                      color: "1E293B",
+                    }),
+                  ],
                 }),
               ],
             })
@@ -775,15 +888,94 @@ export async function generateWordDocxFromAst(
           width: { size: 100, type: WidthType.PERCENTAGE },
         })
       );
-      docChildren.push(new Paragraph({ children: [], spacing: { after: 140 } }));
+      // Safe paragraph spacing after table (with non-empty text run so WordPad never crashes)
+      docChildren.push(
+        new Paragraph({
+          children: [new TextRun({ text: " ", size: 12, font: "Calibri" })],
+          spacing: { after: 140 },
+        })
+      );
+    }
+  }
+
+  // Ensure docChildren is never empty or malformed
+  if (docChildren.length === 0) {
+    const rawParagraphs = (ast.fullText || "").split(/\r?\n+/).map((l) => l.trim()).filter(Boolean);
+    if (rawParagraphs.length > 0) {
+      for (const p of rawParagraphs) {
+        docChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: p, size: 22, font: "Calibri", color: "0F172A" })],
+            spacing: { after: 120, line: 276 },
+          })
+        );
+      }
+    } else {
+      docChildren.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [
+            new TextRun({
+              text: `${baseName} - Extracted Document`,
+              bold: true,
+              size: 26,
+              color: "1E40AF",
+              font: "Calibri",
+            }),
+          ],
+          spacing: { before: 120, after: 120 },
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "[Scanned Image processed via PDFSun WebAssembly OCR Engine. Document body is ready for editing.]",
+              italics: true,
+              size: 20,
+              color: "64748B",
+              font: "Calibri",
+            }),
+          ],
+          spacing: { after: 120 },
+        })
+      );
     }
   }
 
   const doc = new DocxDocument({
+    creator: "PDFSun.in Document Engine",
+    title: ast.title || baseName,
+    description: "Converted from image scan via PDFSun.in Client-Side WebAssembly OCR",
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Calibri",
+            size: 22,
+            color: "0F172A",
+          },
+          paragraph: {
+            spacing: { line: 276, after: 120 },
+          },
+        },
+      },
+    },
     sections: [
       {
-        properties: {},
-        children: docChildren.length > 0 ? docChildren : [new Paragraph({ text: ast.fullText })],
+        properties: {
+          page: {
+            size: {
+              width: 11906, // A4 width in twips
+              height: 16838, // A4 height in twips
+            },
+            margin: {
+              top: 1440, // 1 inch in twips
+              right: 1440,
+              bottom: 1440,
+              left: 1440,
+            },
+          },
+        },
+        children: docChildren,
       },
     ],
   });
@@ -943,6 +1135,19 @@ export async function generateExcelFromAst(
 // MASTER PIPELINE ORCHESTRATION FUNCTIONS
 // ---------------------------------------------------------------------------
 
+function fileToBase64(file: File | Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * Enterprise Image to Word / WordPad Master Runner
  */
@@ -975,32 +1180,129 @@ export async function convertImageToWordEnterprise(
   if (onProgress) onProgress(45, "Executing precision OCR layout & bounding box analysis...");
   await yieldToEventLoop();
 
-  const worker = await createWorker("eng");
-  const dataUrl = canvas.toDataURL("image/png");
-  const ret = await worker.recognize(dataUrl);
-  await worker.terminate();
+  let rawWords: any[] = [];
+  let rawLines: any[] = [];
+  let recognizedText = "";
 
-  const rawWords = (ret.data as any)?.words || [];
+  try {
+    const worker = await createWorker("eng");
+    const dataUrl = canvas.toDataURL("image/png");
+    const ret = await worker.recognize(dataUrl);
+    await worker.terminate();
+
+    rawWords = (ret.data as any)?.words || [];
+    rawLines = (ret.data as any)?.lines || [];
+    recognizedText = (ret.data?.text || "").trim();
+
+    // Multi-pass fallback: if high contrast pre-processing yielded very few words on a soft scan,
+    // run second pass on raw unprocessed image bitmap!
+    if (rawWords.length < 5 || recognizedText.length < 25) {
+      if (onProgress) onProgress(55, "Executing second-pass scan on raw raster matrix...");
+      const rawCanvas = document.createElement("canvas");
+      const imgBitmap = await createImageBitmap(file);
+      rawCanvas.width = imgBitmap.width;
+      rawCanvas.height = imgBitmap.height;
+      const rawCtx = rawCanvas.getContext("2d");
+      if (rawCtx) {
+        rawCtx.drawImage(imgBitmap, 0, 0);
+        const rawWorker = await createWorker("eng");
+        const rawRet = await rawWorker.recognize(rawCanvas.toDataURL("image/png"));
+        await rawWorker.terminate();
+        const altWords = (rawRet.data as any)?.words || [];
+        const altLines = (rawRet.data as any)?.lines || [];
+        const altText = (rawRet.data?.text || "").trim();
+        if (altWords.length > rawWords.length || altText.length > recognizedText.length) {
+          rawWords = altWords;
+          rawLines = altLines;
+          recognizedText = altText;
+        }
+      }
+    }
+  } catch (ocrErr) {
+    console.warn("Local Tesseract OCR error, attempting AI OCR fallback:", ocrErr);
+  }
+
+  // If local Tesseract produced 0 or very sparse text, engage Gemini Vision AI OCR fallback
+  if ((rawWords.length < 5 || recognizedText.length < 25)) {
+    if (onProgress) onProgress(65, "Engaging Gemini Vision AI OCR Fallback...");
+    try {
+      const base64Data = await fileToBase64(file);
+      const aiRes = await fetch("/api/ai/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64Data, mimeType: file.type || "image/png" }),
+      });
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        const aiExtracted = (aiData.result || "").trim();
+        if (aiExtracted.length > recognizedText.length) {
+          recognizedText = aiExtracted;
+        }
+      }
+    } catch (aiErr) {
+      console.warn("AI OCR fallback fetch failed:", aiErr);
+    }
+  }
+
   const tokens: RawOcrToken[] = [];
 
-  for (const w of rawWords) {
-    const text = (w.text || "").trim();
-    if (!text) continue;
-    const b = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
-    const width = (b.x1 - b.x0) / upscaleFactor;
-    const height = (b.y1 - b.y0) / upscaleFactor;
-
-    tokens.push({
-      text,
-      x0: b.x0 / upscaleFactor,
-      y0: b.y0 / upscaleFactor,
-      x1: b.x1 / upscaleFactor,
-      y1: b.y1 / upscaleFactor,
-      width,
-      height,
-      confidence: w.confidence || 90,
-      fontSize: Math.max(10, Math.round(height * 0.85)),
-      isBold: w.is_bold || /^[A-Z0-9\s:_-]+$/.test(text),
+  if (rawWords.length > 0) {
+    for (const w of rawWords) {
+      const text = (w.text || "").trim();
+      if (!text) continue;
+      const b = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
+      tokens.push({
+        text,
+        x0: b.x0 / upscaleFactor,
+        y0: b.y0 / upscaleFactor,
+        x1: b.x1 / upscaleFactor,
+        y1: b.y1 / upscaleFactor,
+        width: (b.x1 - b.x0) / upscaleFactor,
+        height: (b.y1 - b.y0) / upscaleFactor,
+        confidence: w.confidence || 90,
+        fontSize: Math.max(10, Math.round(((b.y1 - b.y0) / upscaleFactor) * 0.85)),
+        isBold: w.is_bold || /^[A-Z0-9\s:_-]+$/.test(text),
+      });
+    }
+  } else if (rawLines.length > 0) {
+    for (const l of rawLines) {
+      const text = (l.text || "").trim();
+      if (!text) continue;
+      const b = l.bbox || { x0: 20, y0: 20, x1: 400, y1: 40 };
+      tokens.push({
+        text,
+        x0: b.x0 / upscaleFactor,
+        y0: b.y0 / upscaleFactor,
+        x1: b.x1 / upscaleFactor,
+        y1: b.y1 / upscaleFactor,
+        width: (b.x1 - b.x0) / upscaleFactor,
+        height: (b.y1 - b.y0) / upscaleFactor,
+        confidence: 90,
+        fontSize: Math.max(11, Math.round(((b.y1 - b.y0) / upscaleFactor) * 0.7)),
+        isBold: /^[A-Z0-9\s:_-]+$/.test(text),
+      });
+    }
+  } else if (recognizedText) {
+    const lines = recognizedText.split("\n").map((l: string) => l.trim()).filter(Boolean);
+    lines.forEach((lText: string, idx: number) => {
+      const words = lText.split(/\s+/).filter(Boolean);
+      let curX = 40;
+      words.forEach((w) => {
+        const wLen = Math.max(18, w.length * 8);
+        tokens.push({
+          text: w,
+          x0: curX,
+          y0: 40 + idx * 28,
+          x1: curX + wLen,
+          y1: 65 + idx * 28,
+          width: wLen,
+          height: 25,
+          confidence: 95,
+          fontSize: idx === 0 && lText.length < 60 ? 16 : 11,
+          isBold: idx === 0 || /^[A-Z0-9\s:_-]{3,30}$/.test(w),
+        });
+        curX += wLen + 6;
+      });
     });
   }
 
@@ -1008,7 +1310,7 @@ export async function convertImageToWordEnterprise(
   if (onProgress) onProgress(75, "Constructing Document AST & multi-column layout tree...");
   await yieldToEventLoop();
 
-  const ast = buildDocumentAst(tokens, canvas.width / upscaleFactor, canvas.height / upscaleFactor, mode);
+  const ast = buildDocumentAst(tokens, canvas.width / upscaleFactor, canvas.height / upscaleFactor, mode, recognizedText);
   ast.metadata.skewAngleApplied = skewAngleApplied;
   ast.metadata.upscaleFactor = upscaleFactor;
   ast.metadata.processingTimeMs = Date.now() - startTime;
@@ -1075,32 +1377,107 @@ export async function convertImageToExcelEnterprise(
   if (onProgress) onProgress(45, "Scanning 2D spatial coordinates & columnar cells...");
   await yieldToEventLoop();
 
-  const worker = await createWorker("eng");
-  const dataUrl = canvas.toDataURL("image/png");
-  const ret = await worker.recognize(dataUrl);
-  await worker.terminate();
+  let rawWords: any[] = [];
+  let recognizedText = "";
 
-  const rawWords = (ret.data as any)?.words || [];
+  try {
+    const worker = await createWorker("eng");
+    const dataUrl = canvas.toDataURL("image/png");
+    const ret = await worker.recognize(dataUrl);
+    await worker.terminate();
+
+    rawWords = (ret.data as any)?.words || [];
+    recognizedText = (ret.data?.text || "").trim();
+
+    if (rawWords.length < 5 || recognizedText.length < 25) {
+      if (onProgress) onProgress(55, "Scanning raw raster bitmap fallback...");
+      const rawCanvas = document.createElement("canvas");
+      const imgBitmap = await createImageBitmap(file);
+      rawCanvas.width = imgBitmap.width;
+      rawCanvas.height = imgBitmap.height;
+      const rawCtx = rawCanvas.getContext("2d");
+      if (rawCtx) {
+        rawCtx.drawImage(imgBitmap, 0, 0);
+        const rawWorker = await createWorker("eng");
+        const rawRet = await rawWorker.recognize(rawCanvas.toDataURL("image/png"));
+        await rawWorker.terminate();
+        const altWords = (rawRet.data as any)?.words || [];
+        const altText = (rawRet.data?.text || "").trim();
+        if (altWords.length > rawWords.length || altText.length > recognizedText.length) {
+          rawWords = altWords;
+          recognizedText = altText;
+        }
+      }
+    }
+  } catch (ocrErr) {
+    console.warn("Local OCR error in Excel engine, attempting AI fallback:", ocrErr);
+  }
+
+  if (rawWords.length < 5 || recognizedText.length < 25) {
+    if (onProgress) onProgress(65, "Engaging Gemini Vision AI Table OCR Fallback...");
+    try {
+      const base64Data = await fileToBase64(file);
+      const aiRes = await fetch("/api/ai/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64Data, mimeType: file.type || "image/png" }),
+      });
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        const aiExtracted = (aiData.result || "").trim();
+        if (aiExtracted.length > recognizedText.length) {
+          recognizedText = aiExtracted;
+        }
+      }
+    } catch (aiErr) {
+      console.warn("AI OCR fallback for Excel failed:", aiErr);
+    }
+  }
+
   const tokens: RawOcrToken[] = [];
 
-  for (const w of rawWords) {
-    const text = (w.text || "").trim();
-    if (!text) continue;
-    const b = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
-    const width = (b.x1 - b.x0) / upscaleFactor;
-    const height = (b.y1 - b.y0) / upscaleFactor;
+  if (rawWords.length > 0) {
+    for (const w of rawWords) {
+      const text = (w.text || "").trim();
+      if (!text) continue;
+      const b = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
+      const width = (b.x1 - b.x0) / upscaleFactor;
+      const height = (b.y1 - b.y0) / upscaleFactor;
 
-    tokens.push({
-      text,
-      x0: b.x0 / upscaleFactor,
-      y0: b.y0 / upscaleFactor,
-      x1: b.x1 / upscaleFactor,
-      y1: b.y1 / upscaleFactor,
-      width,
-      height,
-      confidence: w.confidence || 90,
-      fontSize: Math.max(10, Math.round(height * 0.85)),
-      isBold: w.is_bold,
+      tokens.push({
+        text,
+        x0: b.x0 / upscaleFactor,
+        y0: b.y0 / upscaleFactor,
+        x1: b.x1 / upscaleFactor,
+        y1: b.y1 / upscaleFactor,
+        width,
+        height,
+        confidence: w.confidence || 90,
+        fontSize: Math.max(10, Math.round(height * 0.85)),
+        isBold: w.is_bold,
+      });
+    }
+  } else if (recognizedText) {
+    const lines = recognizedText.split("\n").map((l: string) => l.trim()).filter(Boolean);
+    lines.forEach((lText: string, idx: number) => {
+      const words = lText.split(/\s+/).filter(Boolean);
+      let curX = 40;
+      words.forEach((w) => {
+        const wLen = Math.max(18, w.length * 8);
+        tokens.push({
+          text: w,
+          x0: curX,
+          y0: 40 + idx * 28,
+          x1: curX + wLen,
+          y1: 65 + idx * 28,
+          width: wLen,
+          height: 25,
+          confidence: 95,
+          fontSize: idx === 0 ? 14 : 10,
+          isBold: idx === 0,
+        });
+        curX += wLen + 6;
+      });
     });
   }
 
@@ -1108,7 +1485,7 @@ export async function convertImageToExcelEnterprise(
   if (onProgress) onProgress(75, "Mapping X/Y projection corridors & preserving identifiers...");
   await yieldToEventLoop();
 
-  const ast = buildDocumentAst(tokens, canvas.width / upscaleFactor, canvas.height / upscaleFactor, mode);
+  const ast = buildDocumentAst(tokens, canvas.width / upscaleFactor, canvas.height / upscaleFactor, mode, recognizedText);
   ast.metadata.skewAngleApplied = skewAngleApplied;
   ast.metadata.upscaleFactor = upscaleFactor;
   ast.metadata.processingTimeMs = Date.now() - startTime;

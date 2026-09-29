@@ -522,6 +522,18 @@ function MainApp() {
 
       if (matchedSlug) {
         if (matchedSlug === "ocr-pdf" || matchedSlug === "ocr-image-to-text") matchedSlug = "ai-ocr";
+        const futureTabs: Record<string, FutureStudioTab> = {
+          "ai-voice-reader": "voice-reader",
+          "voice-to-pdf": "voice-to-pdf",
+          "quantum-preflight-hud": "quantum-hud",
+          "macro-automator": "macro-automator",
+        };
+        if (futureTabs[matchedSlug]) {
+          setFutureStudioTab(futureTabs[matchedSlug]);
+          setFutureStudioOpen(true);
+          setActiveTool(null);
+          return;
+        }
         const targetTool = ALL_TOOLS.find((t) => t.slug === matchedSlug || t.id === matchedSlug);
         if (targetTool) setActiveTool(targetTool);
       } else if (effectivePath === "/" || effectivePath === "") {
@@ -625,8 +637,28 @@ function MainApp() {
     const canonicalTool = tool.id === "ocr-pdf" || tool.slug === "ocr-pdf" ? ALL_TOOLS.find((t) => t.id === "ai-ocr") || tool : tool;
     trackToolUsage(canonicalTool.id);
 
-    setActiveTool(canonicalTool);
     const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
+
+    // Intercept Future AI Studio tools
+    const futureTabs: Record<string, FutureStudioTab> = {
+      "ai-voice-reader": "voice-reader",
+      "voice-to-pdf": "voice-to-pdf",
+      "quantum-preflight-hud": "quantum-hud",
+      "macro-automator": "macro-automator",
+    };
+    if (futureTabs[canonicalTool.id] || futureTabs[canonicalTool.slug]) {
+      const tab = futureTabs[canonicalTool.id] || futureTabs[canonicalTool.slug];
+      setFutureStudioTab(tab);
+      setFutureStudioFile(initialFiles?.[0] || null);
+      setFutureStudioOpen(true);
+      setActiveTool(null);
+      if (typeof window !== "undefined" && window.location.pathname !== `/${canonicalTool.slug}`) {
+        window.history.pushState({}, "", `/${canonicalTool.slug}${langQuery}`);
+      }
+      return;
+    }
+
+    setActiveTool(canonicalTool);
 
     if (customPseoPage !== undefined) {
       setActivePseoPage(customPseoPage);
