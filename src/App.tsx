@@ -36,7 +36,10 @@ import { SearchModal } from "./components/SearchModal";
 import { SitemapModal } from "./components/SitemapModal";
 import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
-import { DualAiFeatureBanner } from "./components/DualAiFeatureBanner";
+import { EnterpriseSuiteCard } from "./components/EnterpriseSuiteCard";
+import { TodayInHistoryKnowledgeHubCard } from "./components/TodayInHistoryKnowledgeHubCard";
+import { PDFSunAiCopilotCard, PDFSunEnterpriseSuiteCard } from "./components/DualAiFeatureBanner";
+import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
@@ -852,10 +855,46 @@ function MainApp() {
             {/* Core Utility & Trust Hub (Clean, Fast, Uncluttered Homepage Focus) */}
             <CollapsibleSectionsHub
               childrenAiSection={
-                <div className="space-y-4">
-                  <MobileAppPromotionCard />
-                  <DualAiFeatureBanner onSelectTool={handleSelectTool} onOpenContactModal={() => setContactModalOpen(true)} />
+                <div className="space-y-6">
+                  {/* 1. PDFSun Mobile App Section */}
+                  <MobileAppPromotionCard onOpenInstallApp={() => setInstallAppModalOpen(true)} />
+
+                  {/* 2. REPOSITIONED CARD: Today in History & Daily Knowledge Hub */}
+                  {/* Placed strictly BEFORE PDFSun AI Document Copilot */}
+                  <div className="w-full transition-all duration-300">
+                    <TodayInHistoryKnowledgeHubCard
+                      badge="DAILY CHRONICLE"
+                      ctaText="EXPLORE →"
+                      icon="📅"
+                      title="Today in History & Daily Knowledge Hub"
+                      geoResult={geoResult}
+                      onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+                    />
+                  </div>
+
+                  {/* 3. Copilot and Enterprise Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* PDFSun AI Document Copilot */}
+                    <PDFSunAiCopilotCard
+                      onLaunch={() => {
+                        const target = ALL_TOOLS.find((t) => t.id === "ai-chat-pdf" || t.id === "ai-pdf-summary");
+                        if (target) handleSelectTool(target);
+                      }}
+                    />
+
+                    {/* PDFSun Global Enterprise Suite */}
+                    <PDFSunEnterpriseSuiteCard onContact={() => setContactModalOpen(true)} />
+                  </div>
                 </div>
+              }
+              childrenChroniclesSection={
+                <EngineChroniclesHub
+                  geoResult={geoResult}
+                  onOpenHistoryModal={() => setTodayInHistoryOpen(true)}
+                  onNavigateArticle={handleNavigateArticle}
+                  onNavigateBlog={handleNavigateBlog}
+                  showHistoryCard={false}
+                />
               }
               childrenFormatsSection={<SupportedFormats />}
               childrenTestimonialsSection={<TestimonialsSection />}

@@ -23,10 +23,12 @@ import { getQrCodeDataUrl } from "../lib/qrGenerator";
 
 interface MobileAppPromotionCardProps {
   className?: string;
+  onOpenInstallApp?: () => void;
 }
 
 export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
   className = "",
+  onOpenInstallApp,
 }) => {
   const { t } = useLanguage();
   const { isInstalled, installPWA, platform } = usePWAStatus();

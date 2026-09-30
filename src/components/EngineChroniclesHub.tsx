@@ -24,19 +24,22 @@ import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
 import { useLanguage } from "../lib/i18n";
+import { TodayInHistoryKnowledgeHubCard } from "./TodayInHistoryKnowledgeHubCard";
 
 export interface EngineChroniclesHubProps {
-  geoResult: GeoDetectionResult;
+  geoResult?: GeoDetectionResult;
   onOpenHistoryModal: () => void;
   onNavigateArticle: (slug: string) => void;
-  onNavigateBlog: () => void;
+  onNavigateBlog?: () => void;
+  showHistoryCard?: boolean;
 }
 
 export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
-  geoResult,
+  geoResult = { detectedCountryCode: "IN", detectedCountryName: "Global", detectedLanguage: { code: "en", name: "English", nativeName: "English" } },
   onOpenHistoryModal,
   onNavigateArticle,
   onNavigateBlog,
+  showHistoryCard = false,
 }) => {
   const { currentLanguage, t } = useLanguage();
   const effectiveLang = currentLanguage || geoResult.detectedLanguage?.code || "en";
@@ -174,12 +177,12 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
         </div>
       </div>
 
-      {/* 3-Column Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Responsive Grid */}
+      <div className={`grid grid-cols-1 ${showHistoryCard ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-6`}>
         {/* =========================================================================
-         * CARD 1: Today in History & Daily Knowledge Hub
+         * CARD 1: Today in History & Daily Knowledge Hub (Optional/Conditional)
          * ========================================================================= */}
-        {(activeTab === "all" || activeTab === "history") && (
+        {showHistoryCard && (activeTab === "all" || activeTab === "history") && (
           <div
             id="card-daily-history"
             onClick={onOpenHistoryModal}
