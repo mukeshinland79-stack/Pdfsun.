@@ -38,6 +38,7 @@ import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
 import { EnterpriseSuiteCard } from "./components/EnterpriseSuiteCard";
 import { TodayInHistoryKnowledgeHubCard } from "./components/TodayInHistoryKnowledgeHubCard";
+import { StickyAdvertisementWrapper } from "./components/StickyAdvertisementWrapper";
 import { PDFSunAiCopilotCard, PDFSunEnterpriseSuiteCard } from "./components/DualAiFeatureBanner";
 import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
@@ -860,7 +861,6 @@ function MainApp() {
                   <MobileAppPromotionCard onOpenInstallApp={() => setInstallAppModalOpen(true)} />
 
                   {/* 2. REPOSITIONED CARD: Today in History & Daily Knowledge Hub */}
-                  {/* Placed strictly BEFORE PDFSun AI Document Copilot */}
                   <div className="w-full transition-all duration-300">
                     <TodayInHistoryKnowledgeHubCard
                       badge="DAILY CHRONICLE"
@@ -872,7 +872,10 @@ function MainApp() {
                     />
                   </div>
 
-                  {/* 3. Copilot and Enterprise Grid */}
+                  {/* 3. NEW EXACT POSITION: Sticky Advertisement Wrapper */}
+                  <StickyAdvertisementWrapper slotId="pdfsun-sticky-copilot-banner" />
+
+                  {/* 4. Copilot and Enterprise Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* PDFSun AI Document Copilot */}
                     <PDFSunAiCopilotCard

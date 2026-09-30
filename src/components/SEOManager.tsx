@@ -464,8 +464,8 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
   const localizedToolName = activeTool ? getToolName(activeTool) : "";
   const localizedToolDesc = activeTool ? getToolDescription(activeTool) : "";
 
-  let toolTitle = activeTool ? `${localizedToolName} - ${t("badges.privacyTitle", "100% In-Browser Privacy")} | PDFSun` : defaultTitle;
-  let toolDesc = activeTool ? `${localizedToolDesc} ${t("hero.subtitle", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}` : defaultDesc;
+  let toolTitle = activeTool ? `${localizedToolName} – Free Online | Fast, Private & Unlimited | PDFSun` : defaultTitle;
+  let toolDesc = activeTool ? `Convert, edit, or process ${localizedToolName} directly in your browser. 100% private, client-side WebAssembly speed.` : defaultDesc;
 
   if (activeTool?.id === "image-to-excel") {
     toolTitle = "Free Image to Excel Converter Online (100% Accurate OCR) | PDFSun";
@@ -626,6 +626,39 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
           {JSON.stringify(catalogItemListSchema)}
         </script>
       )}
+
+      {/* Knowledge Hub SpecialAnnouncement & EducationalOccupationalCredential JSON-LD */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "SpecialAnnouncement",
+              "name": "PDFSun Today in History & Daily Knowledge Chronicle",
+              "text": "Daily curated historic milestones, world discoveries, and interactive educational worksheets available in 30 languages.",
+              "datePosted": new Date().toISOString().split("T")[0],
+              "url": `${baseUrl}/today-in-history`,
+              "category": "https://schema.org/EducationalOccupationalCredential",
+              "spatialCoverage": {
+                "@type": "Place",
+                "name": "Global",
+              },
+            },
+            {
+              "@type": "EducationalOccupationalCredential",
+              "name": "PDFSun Daily Technical & Historical Literacy Certificate",
+              "description": "Interactive daily history worksheets and technical white papers on browser WebAssembly privacy and digital document mastery.",
+              "credentialCategory": "Educational Resource",
+              "url": `${baseUrl}/today-in-history`,
+              "recognizedBy": {
+                "@type": "Organization",
+                "name": "PDFSun Open Knowledge Initiative",
+                "url": baseUrl,
+              },
+            },
+          ],
+        })}
+      </script>
     </Helmet>
   );
 };
