@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { DayInHistoryData, HistoryEventItem, DailyTriviaQuiz, HistorySourceInfo } from "../types/history";
 import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data/historyData";
+import { localizeHistoryData } from "../utils/historyTranslationEngine";
 
 // Directory for persistent server-side caching so server restarts preserve daily verified data
 const CACHE_DIR = path.join(process.cwd(), ".cache", "history");
@@ -768,11 +769,15 @@ export async function getVerifiedDailyHistory(options: {
   engineStatus.lastSuccessfulUpdate = retrievedTimestamp;
   engineStatus.todayDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-  // Cache in memory and disk
-  memoryCache.set(cacheKey, { data: finalPayload, cachedAt: Date.now() });
-  writeDiskCache(cacheKey, finalPayload);
+  const localizedFinalPayload = (lang && lang.toLowerCase() !== "en")
+    ? localizeHistoryData(finalPayload, lang, country)
+    : finalPayload;
 
-  return finalPayload;
+  // Cache in memory and disk
+  memoryCache.set(cacheKey, { data: localizedFinalPayload, cachedAt: Date.now() });
+  writeDiskCache(cacheKey, localizedFinalPayload);
+
+  return localizedFinalPayload;
 }
 
 /**

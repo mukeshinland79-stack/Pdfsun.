@@ -15,6 +15,8 @@ import { GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { useLanguage } from "../lib/i18n";
+import { getHistoryText } from "../data/historyData";
+import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 export interface TodayInHistoryKnowledgeHubCardProps {
   badge?: string;
@@ -27,18 +29,23 @@ export interface TodayInHistoryKnowledgeHubCardProps {
 }
 
 export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHubCardProps> = ({
-  badge = "DAILY CHRONICLE",
-  ctaText = "EXPLORE →",
+  badge,
+  ctaText,
   icon = "📅",
-  title = "Today in History & Daily Knowledge Hub",
+  title,
   geoResult,
   onOpenHistoryModal,
   className = "",
 }) => {
   const { currentLanguage, t } = useLanguage();
   const effectiveLang = currentLanguage || geoResult?.detectedLanguage?.code || "en";
+  const activeLangMeta = TOP_30_LANGUAGES.find((l) => l.code === effectiveLang) || geoResult?.detectedLanguage;
   const countryCode = geoResult?.detectedCountryCode || "IN";
   const countryName = geoResult?.detectedCountryName || "Global";
+
+  const resolvedTitle = title || getHistoryText("todayInHistory", effectiveLang);
+  const resolvedBadge = badge || getHistoryText("verifiedHub", effectiveLang);
+  const resolvedCta = ctaText || getHistoryText("details", effectiveLang) || "EXPLORE →";
 
   const [featuredHeadline, setFeaturedHeadline] = useState<string>(
     "Historic Global Milestones, World Events & Groundbreaking Inventions"
@@ -100,13 +107,16 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
     }
   };
 
+  const isRtl = activeLangMeta?.direction === "rtl" || effectiveLang === "ar" || effectiveLang === "ur";
+
   return (
     <div
       id="card-today-in-history-hub"
       onClick={onOpenHistoryModal}
+      dir={isRtl ? "rtl" : "ltr"}
       className={`relative group rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-blue-500/25 hover:border-amber-500/60 shadow-xl hover:shadow-amber-500/15 transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer ${className}`}
       role="region"
-      aria-label={title}
+      aria-label={resolvedTitle}
     >
       {/* Ambient Gold/Amber Glow */}
       <div
@@ -124,17 +134,17 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
           <div className="flex items-center space-x-2">
             <span className="inline-flex items-center space-x-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-xs">
               <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
-              <span>{badge}</span>
+              <span>{resolvedBadge}</span>
             </span>
             <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-              <span>Live Daily Feed</span>
+              <span>{getHistoryText("internetVerified", effectiveLang)}</span>
             </span>
           </div>
 
           <span className="text-[11px] font-medium text-slate-400 flex items-center space-x-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="hidden sm:inline">100% Client-Side Knowledge Feed</span>
+            <span className="hidden sm:inline">{getHistoryText("aiVerified", effectiveLang)}</span>
           </span>
         </div>
 
@@ -151,7 +161,7 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-lg sm:text-2xl font-black text-white group-hover:text-amber-300 transition-colors leading-snug">
-              {title}
+              {resolvedTitle}
             </h3>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1">
               <span className="inline-flex items-center text-rose-400 font-semibold">
@@ -164,7 +174,7 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
               </span>
               <span>•</span>
               <span className="text-cyan-400 font-mono text-[11px]">
-                {geoResult?.detectedLanguage?.nativeName || "English"}
+                {activeLangMeta?.nativeName || "English"}
               </span>
             </div>
           </div>
@@ -174,7 +184,7 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-amber-500/25 hover:border-amber-500/40 text-xs space-y-1.5 transition-colors">
           <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Today&apos;s Milestones &amp; Historic Discoveries</span>
+            <span>{getHistoryText("subtitle", effectiveLang)}</span>
           </div>
           <p className="font-semibold text-slate-100 sm:text-sm line-clamp-2 leading-relaxed">
             {featuredHeadline}
@@ -186,13 +196,13 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
           <div className="flex items-center space-x-2 bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl">
             <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="text-[11px] truncate">
-              Localized in <strong>30 Languages</strong>
+              {activeLangMeta?.name || "Global"}
             </span>
           </div>
           <div className="flex items-center space-x-2 bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl">
             <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span className="text-[11px] truncate">
-              Daily Quiz &amp; Printable Study Worksheet
+              {getHistoryText("dailyQuizTitle", effectiveLang)}
             </span>
           </div>
         </div>
@@ -204,10 +214,10 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
           type="button"
           onClick={handleExportQuickPdf}
           className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold border border-white/10 transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
-          title={t("chronicles.exportPdfTitle", "Download printable study worksheet PDF")}
+          title={getHistoryText("exportAsPdf", effectiveLang)}
         >
           <Download className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>{t("chronicles.exportPdf", "Export PDF")}</span>
+          <span>{getHistoryText("exportAsPdf", effectiveLang)}</span>
         </button>
 
         <button
@@ -218,7 +228,7 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
           }}
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md shadow-amber-500/25 flex items-center space-x-2 transition group-hover:scale-102 active:scale-95 cursor-pointer"
         >
-          <span>{ctaText}</span>
+          <span>{resolvedCta}</span>
           <ArrowRight className="w-3.5 h-3.5 stroke-[3] group-hover:translate-x-1 transition-transform" />
         </button>
       </div>

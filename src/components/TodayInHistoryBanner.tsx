@@ -15,6 +15,8 @@ import { SupportedLanguage, GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
+import { useLanguage } from "../lib/i18n";
+import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
 
 interface TodayInHistoryBannerProps {
   geoResult: GeoDetectionResult;
@@ -25,6 +27,10 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
   geoResult,
   onOpenHistoryModal,
 }) => {
+  const { currentLanguage } = useLanguage();
+  const effectiveLangCode = currentLanguage || geoResult.detectedLanguage.code || "en";
+  const activeLangMeta = TOP_30_LANGUAGES.find((l) => l.code === effectiveLangCode) || geoResult.detectedLanguage;
+
   const [featuredHeadline, setFeaturedHeadline] = useState<string>("Historic Global Milestones & Groundbreaking Inventions");
   const [dateString, setDateString] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -36,7 +42,7 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
     const loadData = () => {
       const now = new Date();
       lastLoadedDay = now.getDate();
-      fetchDayInHistory(now, geoResult.detectedLanguage.code, geoResult.detectedCountryCode).then((data) => {
+      fetchDayInHistory(now, effectiveLangCode, geoResult.detectedCountryCode).then((data) => {
         if (isMounted && data) {
           setFeaturedHeadline(data.featuredHeadline);
           setDateString(data.formattedDate);
@@ -70,22 +76,23 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [geoResult.detectedLanguage?.code, geoResult.detectedCountryCode]);
+  }, [effectiveLangCode, geoResult.detectedCountryCode]);
 
   const handleExportQuickPdf = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const data = await fetchDayInHistory(new Date(), geoResult.detectedLanguage.code, geoResult.detectedCountryCode);
+    const data = await fetchDayInHistory(new Date(), effectiveLangCode, geoResult.detectedCountryCode);
     if (data) {
       generateHistoryWorksheetPdf(data);
     }
   };
 
-  const langCode = geoResult.detectedLanguage.code;
+  const isRtl = activeLangMeta.direction === "rtl" || effectiveLangCode === "ar" || effectiveLangCode === "ur";
 
   return (
     <section
       className="my-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full"
       aria-label="Today in History and Daily Knowledge Hub"
+      dir={isRtl ? "rtl" : "ltr"}
     >
       <div
         onClick={onOpenHistoryModal}
@@ -105,7 +112,7 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 <Globe className="w-3 h-3 mr-1" />
-                {geoResult.detectedLanguage.nativeName} ({geoResult.detectedLanguage.name})
+                {activeLangMeta.nativeName} ({activeLangMeta.name})
               </span>
 
               <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-slate-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
@@ -115,17 +122,17 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
 
               <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                 <Award className="w-3 h-3 mr-0.5" />
-                Daily Quiz & PDF
+                {getHistoryText("verifiedHub", effectiveLangCode)}
               </span>
             </div>
 
             {/* Title & Headline */}
             <h3 className="text-base sm:text-lg font-black text-white group-hover:text-blue-200 transition-colors">
-              {getHistoryText("todayInHistory", langCode)}: <span className="font-medium text-slate-200">{featuredHeadline}</span>
+              {getHistoryText("todayInHistory", effectiveLangCode)}: <span className="font-medium text-slate-200">{featuredHeadline}</span>
             </h3>
 
             <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-              Explore global milestones, famous birthdays & solve today&apos;s trivia challenge in 30 languages.
+              {getHistoryText("subtitle", effectiveLangCode)}
             </p>
           </div>
         </div>
@@ -138,14 +145,14 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
             title="Download Study Sheet PDF"
           >
             <Download className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Export Study PDF</span>
+            <span className="hidden sm:inline">{getHistoryText("exportAsPdf", effectiveLangCode)}</span>
           </button>
 
           <button
             onClick={onOpenHistoryModal}
             className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/30 flex items-center space-x-1.5 transition group-hover:scale-102"
           >
-            <span>Explore History</span>
+            <span>{getHistoryText("openAiWorkspace", effectiveLangCode) || "Explore History"}</span>
             <ArrowRight className="w-3.5 h-3.5 stroke-[3] group-hover:translate-x-1 transition-transform" />
           </button>
         </div>

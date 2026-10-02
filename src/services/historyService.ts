@@ -1,6 +1,7 @@
 import { DayInHistoryData } from "../types/history";
 import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data/historyData";
 import { formatLocalizedHistoryDate, COUNTRY_META_MAP, TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
+import { localizeHistoryData } from "../utils/historyTranslationEngine";
 
 /**
  * Utility to guarantee strictly unique keys across all history event and birthday items
@@ -78,7 +79,8 @@ export async function fetchDayInHistory(
     if (res.ok) {
       const data = await res.json();
       if (data && data.events && data.events.length > 0) {
-        const sanitizedData = ensureUniqueHistoryIds(data);
+        const localizedData = localizeHistoryData(data, langCode, countryCode);
+        const sanitizedData = ensureUniqueHistoryIds(localizedData);
         try {
           localStorage.setItem(localCacheKey, JSON.stringify(sanitizedData));
         } catch {
@@ -99,7 +101,7 @@ export async function fetchDayInHistory(
 
   if (fallbackEntry && fallbackEntry.events && fallbackEntry.events.length > 0) {
     const countryMatches = fallbackEntry.events.some((e) => e.countryCode === countryCode);
-    return ensureUniqueHistoryIds({
+    const rawFallback: DayInHistoryData = {
       dateString: formattedDateStr,
       month,
       day,
@@ -129,7 +131,8 @@ export async function fetchDayInHistory(
         author: "Alexis de Tocqueville",
         context: "Historian & Political Philosopher"
       }
-    });
+    };
+    return ensureUniqueHistoryIds(localizeHistoryData(rawFallback, langCode, countryCode));
   }
 
   // 3. Dynamic algorithmic fallback for all 365 days
@@ -137,7 +140,7 @@ export async function fetchDayInHistory(
   algorithmic.formattedDate = formattedDateStr;
   algorithmic.dateString = formattedDateStr;
   algorithmic.isGlobalFallback = true;
-  return ensureUniqueHistoryIds(algorithmic);
+  return ensureUniqueHistoryIds(localizeHistoryData(algorithmic, langCode, countryCode));
 }
 
 /**

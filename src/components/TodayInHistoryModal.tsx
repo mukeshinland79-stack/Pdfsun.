@@ -48,6 +48,14 @@ import { fetchDayInHistory } from "../services/historyService";
 import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
+import {
+  getLocalizedTag,
+  getLocalizedCategoryFilterName,
+  getLocalizedQuickJumps,
+  localizeHistoryData,
+  useLocalizedHistoryData,
+} from "../utils/historyTranslationEngine";
 
 interface TodayInHistoryModalProps {
   isOpen: boolean;
@@ -64,15 +72,23 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   initialCountryCode = "IN",
   onSelectTool,
 }) => {
+  const { currentLanguage, setLanguage: setGlobalLanguage, isRtl: globalIsRtl } = useLanguage();
+
   // 1. Reactive State Variables for Date, Country, Language, and Filtering
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(() => {
     if (initialLanguage) return initialLanguage;
+    if (currentLanguage) {
+      const match = TOP_30_LANGUAGES.find(
+        (l) => l.code === currentLanguage || l.code.split("-")[0] === currentLanguage.split("-")[0]
+      );
+      if (match) return match;
+    }
     if (typeof window !== "undefined") {
       try {
-        const saved = localStorage.getItem("pdfsun_history_lang");
+        const saved = localStorage.getItem("pdfsun_history_lang") || localStorage.getItem("pdfsun_lang");
         if (saved) {
-          const match = TOP_30_LANGUAGES.find((l) => l.code === saved);
+          const match = TOP_30_LANGUAGES.find((l) => l.code === saved || l.code.split("-")[0] === saved.split("-")[0]);
           if (match) return match;
         }
       } catch {}
@@ -92,7 +108,8 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   const [historyData, setHistoryData] = useState<DayInHistoryData | null>(() => {
     try {
       const now = new Date();
-      return generateAlgorithmicDayInHistory(now.getMonth() + 1, now.getDate(), "IN", "en");
+      const raw = generateAlgorithmicDayInHistory(now.getMonth() + 1, now.getDate(), "IN", "en");
+      return localizeHistoryData(raw, initialLanguage?.code || "en", "IN");
     } catch {}
     return null;
   });
@@ -118,8 +135,40 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   useEffect(() => {
     if (initialLanguage) {
       setSelectedLang(initialLanguage);
+      setHistoryData((prev) => (prev ? localizeHistoryData(prev, initialLanguage.code, selectedCountry) : prev));
     }
-  }, [initialLanguage]);
+  }, [initialLanguage, selectedCountry]);
+
+  // Reactively synchronize with global language state from useLanguage()
+  useEffect(() => {
+    if (currentLanguage) {
+      const match = TOP_30_LANGUAGES.find(
+        (l) => l.code === currentLanguage || l.code.split("-")[0] === currentLanguage.split("-")[0]
+      );
+      if (match && match.code !== selectedLang.code) {
+        setSelectedLang(match);
+        setHistoryData((prev) => (prev ? localizeHistoryData(prev, match.code, selectedCountry) : prev));
+      }
+    }
+  }, [currentLanguage, selectedCountry, selectedLang.code]);
+
+  // Global event listener for zero-reload instant language updates
+  useEffect(() => {
+    const handleGlobalLangEvent = (e: any) => {
+      const code = e.detail?.lang;
+      if (code) {
+        const match = TOP_30_LANGUAGES.find(
+          (l) => l.code === code || l.code.split("-")[0] === code.split("-")[0]
+        );
+        if (match) {
+          setSelectedLang(match);
+          setHistoryData((prev) => (prev ? localizeHistoryData(prev, match.code, selectedCountry) : prev));
+        }
+      }
+    };
+    window.addEventListener("pdfsun_language_changed", handleGlobalLangEvent);
+    return () => window.removeEventListener("pdfsun_language_changed", handleGlobalLangEvent);
+  }, [selectedCountry]);
 
   // Sync initialCountryCode
   useEffect(() => {
@@ -147,7 +196,8 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     setLoading(true);
     try {
       const data = await fetchDayInHistory(date, langCode, countryCode, forceRefresh);
-      setHistoryData(data);
+      const localized = localizeHistoryData(data, langCode, countryCode);
+      setHistoryData(localized);
     } catch (err) {
       console.error("Failed to load history data:", err);
     } finally {
@@ -222,6 +272,10 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     const found = TOP_30_LANGUAGES.find((l) => l.code === code);
     if (found) {
       setSelectedLang(found);
+      setHistoryData((prev) => (prev ? localizeHistoryData(prev, found.code, selectedCountry) : prev));
+      if (typeof setGlobalLanguage === "function") {
+        setGlobalLanguage(found.code);
+      }
       try {
         localStorage.setItem("pdfsun_history_lang", code);
       } catch {}
@@ -277,15 +331,15 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   };
 
   const handleExportPdf = () => {
-    if (historyData) {
-      generateHistoryWorksheetPdf(historyData);
+    if (displayData) {
+      generateHistoryWorksheetPdf(displayData);
     }
   };
 
   const handleShare = async () => {
     const shareUrl = `https://www.pdfsun.in/today-in-history?lang=${selectedLang.code}&date=${selectedMonth}-${selectedDay}&country=${selectedCountry}`;
-    const shareTitle = `Today in History • ${historyData?.formattedDate || "PDFSun"}`;
-    const shareText = `Explore historical events on ${historyData?.formattedDate} in world history & download the free study sheet!`;
+    const shareTitle = `Today in History • ${displayData?.formattedDate || "PDFSun"}`;
+    const shareText = `Explore historical events on ${displayData?.formattedDate} in world history & download the free study sheet!`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -314,31 +368,32 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
   };
 
   const langCode = selectedLang.code;
+  const displayData = useLocalizedHistoryData(historyData, selectedLang.code, selectedCountry) || historyData;
 
   // Filter events by Category & Search Query
   const allEventsList = useMemo(() => {
-    if (!historyData) return [];
+    if (!displayData) return [];
     let list: HistoryEventItem[] = [];
 
     if (activeCategory === "all") {
       list = [
-        ...(historyData.events || []),
-        ...(historyData.births || []),
-        ...(historyData.discoveries || [])
+        ...(displayData.events || []),
+        ...(displayData.births || []),
+        ...(displayData.discoveries || [])
       ];
     } else if (activeCategory === "milestone") {
-      list = historyData.events || [];
+      list = displayData.events || [];
     } else if (activeCategory === "birth") {
-      list = historyData.births || [];
+      list = displayData.births || [];
     } else if (activeCategory === "invention") {
-      list = historyData.discoveries || [];
+      list = displayData.discoveries || [];
     } else if (activeCategory === "country-spotlight") {
       list = [
-        ...(historyData.events || []).filter((e) => e.countryCode === selectedCountry),
-        ...(historyData.births || []).filter((b) => b.countryCode === selectedCountry)
+        ...(displayData.events || []).filter((e) => e.countryCode === selectedCountry),
+        ...(displayData.births || []).filter((b) => b.countryCode === selectedCountry)
       ];
       if (list.length === 0) {
-        list = (historyData.events || []).slice(0, 3);
+        list = (displayData.events || []).slice(0, 3);
       }
     }
 
@@ -354,14 +409,14 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     }
 
     return list;
-  }, [historyData, activeCategory, searchQuery, selectedCountry]);
+  }, [displayData, activeCategory, searchQuery, selectedCountry]);
 
   // Check if country matches exist in current dataset
   const hasDirectCountryMatches = useMemo(() => {
-    if (!historyData) return false;
-    const evts = [...(historyData.events || []), ...(historyData.births || [])];
+    if (!displayData) return false;
+    const evts = [...(displayData.events || []), ...(displayData.births || [])];
     return evts.some((e) => e.countryCode === selectedCountry);
-  }, [historyData, selectedCountry]);
+  }, [displayData, selectedCountry]);
 
   if (!isOpen) return null;
 
@@ -375,6 +430,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     >
       <div
         id="today-in-history-modal-container"
+        dir={selectedLang.direction === "rtl" || selectedLang.code === "ar" || selectedLang.code === "ur" || selectedLang.code === "fa" ? "rtl" : "ltr"}
         className="relative w-full max-w-5xl my-4 sm:my-6 bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
       >
         {/* TOP HEADER BANNER */}
@@ -394,12 +450,12 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                 </span>
                 <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                   <Globe className="w-3 h-3 text-emerald-400" />
-                  {historyData?.version?.includes("verified-internet") ? "Internet Verified" : "Verified Hub"}
+                  {displayData?.version?.includes("verified-internet") ? getHistoryText("internetVerified", langCode) : getHistoryText("verifiedHub", langCode)}
                 </span>
-                {historyData?.isAiEnhanced && (
+                {displayData?.isAiEnhanced && (
                   <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/30 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-cyan-300" />
-                    AI Verified
+                    {getHistoryText("aiVerified", langCode)}
                   </span>
                 )}
               </div>
@@ -470,7 +526,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
 
               <div className="px-2 py-0.5 font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-1.5">
                 <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                <span className="whitespace-nowrap">{historyData?.formattedDate || formatLocalizedHistoryDate(selectedDate, langCode)}</span>
+                <span className="whitespace-nowrap">{displayData?.formattedDate || formatLocalizedHistoryDate(selectedDate, langCode)}</span>
               </div>
 
               <button
@@ -523,7 +579,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                 ))}
               </select>
 
-              <span className="text-[10px] text-slate-400 font-semibold uppercase ml-1">Year:</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase ml-1">{getHistoryText("selectYear", langCode)}:</span>
               <select
                 id="history-year-select"
                 value={selectedYear}
@@ -608,37 +664,16 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
 
         {/* HISTORIC PRESET SHORTCUTS PILLS */}
         <div className="px-4 sm:px-6 py-2 bg-slate-100/70 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center space-x-2 overflow-x-auto text-[11px] scrollbar-none">
-          <span className="text-slate-400 font-semibold uppercase text-[10px] shrink-0">Quick Jumps:</span>
-          <button
-            onClick={() => handlePresetDate(8, 15)}
-            className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
-          >
-            🇮🇳 Aug 15 (India Independence)
-          </button>
-          <button
-            onClick={() => handlePresetDate(8, 17)}
-            className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
-          >
-            💿 Aug 17 (Radcliffe Line & First CD)
-          </button>
-          <button
-            onClick={() => handlePresetDate(8, 19)}
-            className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
-          >
-            📷 Aug 19 (World Photography Day)
-          </button>
-          <button
-            onClick={() => handlePresetDate(1, 1)}
-            className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
-          >
-            🎉 Jan 1 (New Year & Bose)
-          </button>
-          <button
-            onClick={() => handlePresetDate(10, 2)}
-            className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
-          >
-            🕊️ Oct 2 (Gandhi Jayanti)
-          </button>
+          <span className="text-slate-400 font-semibold uppercase text-[10px] shrink-0">{getHistoryText("quickJumps", langCode)}:</span>
+          {getLocalizedQuickJumps(langCode).map((jump, jIdx) => (
+            <button
+              key={jIdx}
+              onClick={() => handlePresetDate(jump.month, jump.day)}
+              className="px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 transition shrink-0 cursor-pointer"
+            >
+              {jump.label}
+            </button>
+          ))}
         </div>
 
         {/* MAIN SCROLLABLE CONTENT BODY */}
@@ -660,34 +695,34 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
             </div>
           )}
 
-          {historyData && (
+          {displayData && (
             <div className={`space-y-6 transition-opacity duration-150 ${loading ? "opacity-80" : "opacity-100"}`}>
-              {/* FEATURED HEADLINE BANNER & COUNTRY STATUS BADGE */}
-              <div className="relative rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-500/20 shadow-sm space-y-2">
+              {/* FEATURED HEADLINE BANNER & COUNTRY STATUS BADGE (WCAG AA ELEVATED SURFACE) */}
+              <div className="relative rounded-3xl p-5 sm:p-7 bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-white/15 dark:border-white/15 shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   {/* Dynamic Country Match / Fallback Indicator Badge */}
                   {hasDirectCountryMatches ? (
-                    <span className="inline-flex items-center space-x-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/40">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-400" />
                       {getHistoryText("countryMatchBadge", langCode)}: {COUNTRY_META_MAP[selectedCountry]?.name}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
-                      <Info className="w-3.5 h-3.5 mr-1" />
+                    <span className="inline-flex items-center space-x-1.5 text-[11px] font-semibold text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/40">
+                      <Info className="w-3.5 h-3.5 mr-1 text-amber-400" />
                       {getHistoryText("globalFallbackBadge", langCode)}
                     </span>
                   )}
 
-                  <span className="text-xs font-mono text-slate-400">
-                    Day #{historyData.dayOfYear} of Year
+                  <span className="text-xs font-mono text-slate-300 font-semibold bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
+                    {getHistoryText("dayOfYearText", langCode, { day: displayData.dayOfYear })}
                   </span>
                 </div>
 
-                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white leading-snug">
-                  {historyData.featuredHeadline}
+                <h3 className="text-lg sm:text-2xl font-black text-white dark:text-white leading-snug tracking-tight">
+                  {displayData.featuredHeadline}
                 </h3>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300">
+                <p className="text-xs sm:text-sm text-[#D1D5DB] dark:text-[#D1D5DB] leading-relaxed">
                   {getHistoryText("subtitle", langCode)}
                 </p>
               </div>
@@ -716,7 +751,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                     }`}
                   >
-                    {getHistoryText("milestones", langCode)}
+                    {getLocalizedCategoryFilterName("milestone", langCode)}
                   </button>
                   <button
                     id="cat-birth"
@@ -727,7 +762,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                     }`}
                   >
-                    {getHistoryText("birthdays", langCode)}
+                    {getLocalizedCategoryFilterName("birth", langCode)}
                   </button>
                   <button
                     id="cat-invention"
@@ -738,7 +773,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                     }`}
                   >
-                    {getHistoryText("discoveries", langCode)}
+                    {getLocalizedCategoryFilterName("invention", langCode)}
                   </button>
                   <button
                     id="cat-country-spotlight"
@@ -749,7 +784,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                     }`}
                   >
-                    {COUNTRY_META_MAP[selectedCountry]?.flag || "🌐"} {COUNTRY_META_MAP[selectedCountry]?.name || "Country"}
+                    {COUNTRY_META_MAP[selectedCountry]?.flag || "🌐"} {getLocalizedCategoryFilterName("country-spotlight", langCode, COUNTRY_META_MAP[selectedCountry]?.name)}
                   </button>
                 </div>
 
@@ -758,7 +793,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search events, years, people..."
+                    placeholder={getHistoryText("searchPlaceholder", langCode)}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:border-blue-500"
@@ -789,53 +824,53 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                           setSelectedDetailEvent(item);
                         }
                       }}
-                      className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/20 dark:hover:bg-slate-800 transition-all duration-200 space-y-2 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
-                      title="Click to view full historical details and verified source"
+                      className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-[#181825] border border-slate-200 dark:border-[#2e2e42] hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg dark:hover:bg-[#1e1e32] transition-all duration-200 space-y-2.5 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
+                      title={getHistoryText("details", langCode)}
                     >
                       <div>
                         {/* Year & Tag Header */}
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center justify-between gap-2 mb-2">
                           <span className="px-2.5 py-0.5 rounded-lg bg-blue-600 text-white font-mono font-black text-xs shadow-2xs">
                             {item.year}
                           </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
-                            {item.tag || item.category}
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 bg-slate-200/60 dark:bg-[#25263a] px-2.5 py-0.5 rounded-md border dark:border-[#374151]">
+                            {getLocalizedTag(item.tag, item.category, langCode)}
                           </span>
                         </div>
 
                         {/* Event Title */}
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-start justify-between gap-2">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors flex items-start justify-between gap-2">
                           <span>{item.headline}</span>
                         </h4>
 
                         {/* Description */}
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                        <p className="text-xs sm:text-[13px] text-slate-600 dark:text-[#D1D5DB] leading-relaxed mt-1.5">
                           {item.description}
                         </p>
                       </div>
 
                       {/* Significance Note */}
                       {item.significance && (
-                        <p className="text-[11px] italic text-slate-500 dark:text-slate-400">
+                        <p className="text-[11px] italic text-blue-700 dark:text-[#93C5FD]">
                           {item.significance}
                         </p>
                       )}
 
                       {/* Interactive Source Reference & Click-to-Expand Indicator */}
-                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 select-none">
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-[#2e2e42] flex items-center justify-between text-[11px] text-slate-500 dark:text-[#9CA3AF] gap-2 select-none">
                         <div className="flex items-center space-x-1.5 min-w-0">
                           <span className="text-blue-500 dark:text-blue-400 font-bold shrink-0">◉</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                            Source: {item.sourceName || "Wikimedia Foundation"}
+                          <span className="font-semibold text-slate-700 dark:text-[#D1D5DB] truncate">
+                            {getHistoryText("source", langCode)}: {item.sourceName || "Wikimedia Foundation"}
                           </span>
                         </div>
 
                         <div className="flex items-center space-x-2 shrink-0">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {item.verificationStatus || "VERIFIED"}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            {item.verificationStatus || getHistoryText("verified", langCode)}
                           </span>
                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 opacity-90 group-hover:underline">
-                            Details →
+                            {getHistoryText("details", langCode)}
                           </span>
                         </div>
                       </div>
@@ -843,61 +878,61 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 px-4 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 space-y-2">
+                <div className="text-center py-10 px-4 bg-slate-50 dark:bg-[#181825] rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 space-y-2">
                   <BookOpen className="w-8 h-8 text-slate-400 mx-auto" />
                   <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    No events matched your current search/category filter.
+                    {getHistoryText("noEventsMatch", langCode)}
                   </h4>
                   <p className="text-xs text-slate-500">
-                    Try switching categories or exploring other dates.
+                    {getHistoryText("trySwitching", langCode)}
                   </p>
                 </div>
               )}
 
-              {/* DAILY TRIVIA QUIZ CHALLENGE */}
-              {historyData.dailyTrivia && (
-                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-tr from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/30 space-y-4">
+              {/* DAILY TRIVIA QUIZ CHALLENGE (WCAG AA ACCESSIBILITY & CONTRAST FIX) */}
+              {displayData.dailyTrivia && (
+                <div className="p-5 sm:p-7 rounded-3xl bg-[#181825] dark:bg-[#181825] border border-amber-500/40 dark:border-amber-500/40 shadow-xl space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2.5">
                       <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/30">
                         <HelpCircle className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
                           {getHistoryText("dailyQuizTitle", langCode)}
                         </span>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Test Your Historical Knowledge
+                        <h4 className="text-base sm:text-lg font-black text-[#F9FAFB]">
+                          {getHistoryText("testKnowledge", langCode)}
                         </h4>
                       </div>
                     </div>
 
                     {/* Streak Badge */}
-                    <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 text-xs font-bold">
+                    <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
                       <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
                       <span>{quizStreak} {getHistoryText("streak", langCode)}</span>
                     </div>
                   </div>
 
                   {/* Question */}
-                  <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100">
-                    {historyData.dailyTrivia.question}
+                  <p className="text-sm sm:text-base font-bold text-white leading-relaxed">
+                    {displayData.dailyTrivia.question}
                   </p>
 
-                  {/* Options Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {historyData.dailyTrivia.options.map((option, idx) => {
-                      let btnStyle = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-amber-400";
+                  {/* Options Grid with explicit high contrast borders and focus rings */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {displayData.dailyTrivia.options.map((option, idx) => {
+                      let btnStyle = "bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-slate-600 dark:border-[#374151] text-[#F3F4F6] hover:border-amber-400 hover:bg-[#25263A] focus:ring-2 focus:ring-amber-400 focus:outline-none";
                       if (quizSubmitted) {
-                        if (idx === historyData.dailyTrivia.correctIndex) {
-                          btnStyle = "bg-emerald-600 text-white border-emerald-600 font-bold shadow-md shadow-emerald-500/30";
+                        if (idx === displayData.dailyTrivia.correctIndex) {
+                          btnStyle = "bg-emerald-600 text-white border-emerald-500 font-bold shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400";
                         } else if (idx === selectedOption) {
-                          btnStyle = "bg-rose-600 text-white border-rose-600 font-bold";
+                          btnStyle = "bg-rose-600 text-white border-rose-500 font-bold ring-2 ring-rose-400";
                         } else {
-                          btnStyle = "bg-slate-100 dark:bg-slate-800/50 text-slate-400 border-transparent opacity-60";
+                          btnStyle = "bg-[#181825] text-slate-400 border-[#2e2e42] opacity-50";
                         }
                       } else if (selectedOption === idx) {
-                        btnStyle = "bg-amber-500 text-slate-950 border-amber-500 font-bold";
+                        btnStyle = "bg-amber-500 text-slate-950 border-amber-400 font-bold ring-2 ring-amber-400";
                       }
 
                       return (
@@ -905,12 +940,12 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                           key={idx}
                           disabled={quizSubmitted}
                           onClick={() => handleQuizAnswer(idx)}
-                          className={`p-3 rounded-2xl border text-xs sm:text-sm text-left transition flex items-start space-x-2 cursor-pointer ${btnStyle}`}
+                          className={`p-3.5 rounded-2xl border text-xs sm:text-sm text-left transition flex items-start space-x-2.5 cursor-pointer shadow-xs ${btnStyle}`}
                         >
-                          <span className="w-5 h-5 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center font-mono font-bold text-[10px] shrink-0 mt-0.5">
+                          <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center font-mono font-bold text-[10px] text-white shrink-0 mt-0.5">
                             {String.fromCharCode(65 + idx)}
                           </span>
-                          <span className="leading-snug">{option}</span>
+                          <span className="leading-snug text-[#F3F4F6] font-medium">{option}</span>
                         </button>
                       );
                     })}
@@ -918,39 +953,39 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
 
                   {/* Feedback Explanation */}
                   {quizSubmitted && (
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-amber-500/30 space-y-2 animate-fadeIn">
+                    <div className="p-4 rounded-2xl bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-amber-500/40 space-y-2 animate-fadeIn text-[#D1D5DB]">
                       <div className="flex items-center space-x-2">
-                        {selectedOption === historyData.dailyTrivia.correctIndex ? (
-                          <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        {selectedOption === displayData.dailyTrivia.correctIndex ? (
+                          <span className="text-xs font-black text-emerald-400 flex items-center gap-1">
                             <CheckCircle2 className="w-4 h-4" />
                             {getHistoryText("correct", langCode)}
                           </span>
                         ) : (
-                          <span className="text-xs font-black text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                          <span className="text-xs font-black text-rose-400 flex items-center gap-1">
                             <XCircle className="w-4 h-4" />
-                            {getHistoryText("incorrect", langCode)} {historyData.dailyTrivia.options[historyData.dailyTrivia.correctIndex]}
+                            {getHistoryText("incorrect", langCode)} {displayData.dailyTrivia.options[displayData.dailyTrivia.correctIndex]}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {historyData.dailyTrivia.explanation}
+                      <p className="text-xs text-[#D1D5DB] leading-relaxed">
+                        {displayData.dailyTrivia.explanation}
                       </p>
                     </div>
                   )}
 
-                  {/* Display-Only Trivia Source Reference (Strictly Plain Text • Not Clickable) */}
-                  <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 select-text cursor-default">
+                  {/* Display-Only Trivia Source Reference */}
+                  <div className="pt-2.5 border-t border-[#374151] flex items-center justify-between text-[11px] text-[#9CA3AF] select-text cursor-default">
                     <div className="flex items-center space-x-1.5 min-w-0">
-                      <span className="text-amber-500 font-bold shrink-0">◉</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                        Source: {historyData.dailyTrivia.sourceName || "Wikimedia Foundation"}
+                      <span className="text-amber-400 font-bold shrink-0">◉</span>
+                      <span className="font-semibold text-[#D1D5DB] truncate">
+                        {getHistoryText("source", langCode)}: {displayData.dailyTrivia.sourceName || "Wikimedia Foundation"}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
-                        • {historyData.dailyTrivia.sourceDomain || "wikimedia.org"}
+                      <span className="text-slate-400 dark:text-[#9CA3AF] font-mono text-[10px] shrink-0">
+                        • {displayData.dailyTrivia.sourceDomain || "wikimedia.org"}
                       </span>
                     </div>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                      {historyData.dailyTrivia.verificationStatus || "VERIFIED"}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                      {displayData.dailyTrivia.verificationStatus || getHistoryText("verified", langCode)}
                     </span>
                   </div>
                 </div>
@@ -959,61 +994,61 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               {/* QUOTE OF THE DAY & AI DEEP DIVE CTA */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Quote Box */}
-                {historyData.quoteOfTheDay && (
-                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-2 flex flex-col justify-between">
+                {displayData.quoteOfTheDay && (
+                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-[#181825] border border-slate-200 dark:border-[#2e2e42] space-y-2 flex flex-col justify-between shadow-sm">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                         {getHistoryText("quoteTitle", langCode)}
                       </span>
-                      <blockquote className="text-xs sm:text-sm font-serif italic text-slate-800 dark:text-slate-200 leading-relaxed mt-1">
-                        &ldquo;{historyData.quoteOfTheDay.quote}&rdquo;
+                      <blockquote className="text-xs sm:text-sm font-serif italic text-slate-800 dark:text-[#F3F4F6] leading-relaxed mt-1">
+                        &ldquo;{displayData.quoteOfTheDay.quote}&rdquo;
                       </blockquote>
                       <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                        — {historyData.quoteOfTheDay.author}{" "}
-                        <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                          ({historyData.quoteOfTheDay.context})
+                        — {displayData.quoteOfTheDay.author}{" "}
+                        <span className="text-[11px] font-normal text-slate-500 dark:text-[#9CA3AF]">
+                          ({displayData.quoteOfTheDay.context})
                         </span>
                       </p>
                     </div>
 
-                    {/* Display-Only Quote Source Reference (Strictly Plain Text • Not Clickable) */}
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 select-text cursor-default mt-2">
+                    {/* Display-Only Quote Source Reference */}
+                    <div className="pt-2 border-t border-slate-200/60 dark:border-[#2e2e42] flex items-center justify-between text-[11px] text-slate-500 dark:text-[#9CA3AF] select-text cursor-default mt-2">
                       <div className="flex items-center space-x-1.5 min-w-0">
                         <span className="text-blue-500 dark:text-blue-400 font-bold shrink-0">◉</span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                          Source: {historyData.quoteOfTheDay.sourceName || "Historical Archives"}
+                        <span className="font-semibold text-slate-700 dark:text-[#D1D5DB] truncate">
+                          {getHistoryText("source", langCode)}: {displayData.quoteOfTheDay.sourceName || "Historical Archives"}
                         </span>
-                        <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] shrink-0">
-                          • {historyData.quoteOfTheDay.sourceDomain || "wikimedia.org"}
+                        <span className="text-slate-400 dark:text-[#9CA3AF] font-mono text-[10px] shrink-0">
+                          • {displayData.quoteOfTheDay.sourceDomain || "wikimedia.org"}
                         </span>
                       </div>
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                        {historyData.quoteOfTheDay.verificationStatus || "VERIFIED"}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                        {displayData.quoteOfTheDay.verificationStatus || getHistoryText("verified", langCode)}
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* AI Assistant Integration Card */}
-                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white space-y-2 flex flex-col justify-between shadow-lg shadow-blue-500/20">
+                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 border border-blue-400/30 text-white space-y-2 flex flex-col justify-between shadow-xl">
                   <div>
                     <div className="flex items-center space-x-2 text-cyan-200 text-xs font-black uppercase tracking-wider">
                       <Bot className="w-4 h-4" />
                       <span>{getHistoryText("learnWithAi", langCode)}</span>
                     </div>
                     <h4 className="text-sm sm:text-base font-black text-white mt-1">
-                      Summarize & Convert History to PDF Study Worksheets
+                      {getHistoryText("aiBannerTitle", langCode)}
                     </h4>
                     <p className="text-xs text-blue-100 mt-1 leading-relaxed">
-                      Use PDFSun&apos;s intelligent AI tools to summarize historical research papers, extract text, or compile revision flashcards.
+                      {getHistoryText("aiBannerDesc", langCode)}
                     </p>
                   </div>
 
                   <button
                     onClick={handleLaunchAiAssistant}
-                    className="mt-2 self-start px-4 py-2 rounded-xl bg-white text-blue-900 hover:bg-blue-50 text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-md"
+                    className="mt-2 self-start px-4 py-2 rounded-xl bg-white text-blue-950 hover:bg-slate-100 text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-md"
                   >
-                    Open AI Workspace
+                    {getHistoryText("openAiWorkspace", langCode)}
                   </button>
                 </div>
               </div>
@@ -1033,7 +1068,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
         >
           <div
             id="history-event-detail-modal"
-            className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 sm:p-7 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-xl bg-white dark:bg-[#181825] rounded-3xl border border-slate-200 dark:border-[#2e2e42] shadow-2xl overflow-hidden p-6 sm:p-7 space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -1041,14 +1076,14 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                 <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-sm shadow-xs">
                   {selectedDetailEvent.year}
                 </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                  {selectedDetailEvent.tag || selectedDetailEvent.category}
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-[#25263a] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#374151]">
+                  {getLocalizedTag(selectedDetailEvent.tag, selectedDetailEvent.category, langCode)}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedDetailEvent(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#25263a] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 aria-label="Close details"
               >
                 <X className="w-5 h-5" />
@@ -1059,21 +1094,21 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               {selectedDetailEvent.headline}
             </h3>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#1E1E2E] border border-slate-200/80 dark:border-[#2e2e42] text-xs sm:text-sm text-slate-700 dark:text-[#D1D5DB] leading-relaxed space-y-2">
               <p>{selectedDetailEvent.description}</p>
               {selectedDetailEvent.significance && (
-                <p className="text-xs italic text-blue-600 dark:text-blue-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <strong>Historical Impact:</strong> {selectedDetailEvent.significance}
+                <p className="text-xs italic text-blue-600 dark:text-[#93C5FD] pt-2 border-t border-slate-200/60 dark:border-[#374151]">
+                  <strong>{getHistoryText("historicalImpact", langCode)}</strong> {selectedDetailEvent.significance}
                 </p>
               )}
             </div>
 
             {/* Source & Actions */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
+            <div className="pt-3 border-t border-slate-200 dark:border-[#2e2e42] flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-slate-500 dark:text-[#9CA3AF]">
                 <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                 <span className="truncate">
-                  Verified via <strong>{selectedDetailEvent.sourceName || "Wikimedia Foundation"}</strong>
+                  {getHistoryText("verifiedVia", langCode)} <strong className="text-slate-700 dark:text-white">{selectedDetailEvent.sourceName || "Wikimedia Foundation"}</strong>
                 </span>
               </div>
 
@@ -1086,10 +1121,10 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                     setCopiedEventText(true);
                     setTimeout(() => setCopiedEventText(false), 2000);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#25263a] hover:bg-slate-200 dark:hover:bg-[#2f3148] text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1.5 cursor-pointer border dark:border-[#374151]"
                 >
                   {copiedEventText ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedEventText ? "Copied!" : "Copy Story"}</span>
+                  <span>{copiedEventText ? getHistoryText("copied", langCode) : getHistoryText("copyStory", langCode)}</span>
                 </button>
 
                 {selectedDetailEvent.wikipediaUrl && (
