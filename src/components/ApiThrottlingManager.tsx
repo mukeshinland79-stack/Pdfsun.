@@ -32,10 +32,22 @@ import {
   UserCheck,
 } from "lucide-react";
 import { UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
+import { setInternalTrafficMode, isInternalOwnerTraffic } from "../utils/analytics";
 
 export interface ApiThrottlingManagerProps {
   currentUserProfile?: UserProfile | null;
   className?: string;
+}
+
+interface TrafficSecurityLiveSummary {
+  normalTraffic: number;
+  suspiciousRequests: number;
+  rateLimited: number;
+  blockedTemporarily: number;
+  botLikeRequests: number;
+  referralSpamCandidates: number;
+  searchEngineCrawlerHits: number;
+  uptimeSeconds: number;
 }
 
 interface TrafficDataPoint {
@@ -97,6 +109,45 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Live Server Traffic Security Summary
+  const [securitySummary, setSecuritySummary] = useState<TrafficSecurityLiveSummary>({
+    normalTraffic: 0,
+    suspiciousRequests: 0,
+    rateLimited: 0,
+    blockedTemporarily: 0,
+    botLikeRequests: 0,
+    referralSpamCandidates: 0,
+    searchEngineCrawlerHits: 0,
+    uptimeSeconds: 0,
+  });
+  const [internalTrafficFiltered, setInternalTrafficFiltered] = useState<boolean>(() => isInternalOwnerTraffic());
+
+  // Fetch live traffic security summary from server
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch("/api/admin/traffic-security-summary", {
+          headers: {
+            "x-user-email": userEmail,
+            "x-admin-token": "12345",
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.summary) {
+            setSecuritySummary(data.summary);
+          }
+        }
+      } catch (e) {
+        // Non-blocking telemetry fetch
+      }
+    };
+
+    fetchSummary();
+    const interval = setInterval(fetchSummary, 5000);
+    return () => clearInterval(interval);
+  }, [userEmail]);
 
   // Fetch initial config from server
   useEffect(() => {

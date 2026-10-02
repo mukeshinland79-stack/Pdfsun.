@@ -9,15 +9,34 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4189458265489554"
      crossorigin="anonymous"></script>
 
-    <!-- Google Analytics 4 (GA4) -->
+    <!-- Google Analytics 4 (GA4) with Bot Hygiene & Internal Traffic Isolation -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKEKHR7SK8"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+
+      // Auto-detect internal owner/developer traffic without hard-coding temporary IPs
+      var isInternal = false;
+      try {
+        if (localStorage.getItem("pdfsun_internal_traffic") === "true") {
+          isInternal = true;
+        } else {
+          var userProfile = localStorage.getItem("pdfsun_user_profile");
+          if (userProfile && (userProfile.indexOf("mukeshinland79@gmail.com") !== -1 || userProfile.indexOf('"role":"owner"') !== -1)) {
+            isInternal = true;
+          }
+        }
+      } catch (e) {}
+
+      if (isInternal) {
+        gtag('set', 'user_properties', { traffic_type: 'internal' });
+      }
+
       gtag('config', 'G-VKEKHR7SK8', {
         page_location: window.location.href,
-        page_path: window.location.pathname
+        page_path: window.location.pathname,
+        traffic_type: isInternal ? 'internal' : 'regular'
       });
     </script>
 

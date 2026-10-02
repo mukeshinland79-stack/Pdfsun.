@@ -6,6 +6,9 @@
  * Visitor -> Landing Page -> Tool View -> File Upload -> Processing -> Download -> Second Tool -> Signup -> Pricing -> Checkout -> Purchase
  */
 
+import { TRAFFIC_SECURITY_CONFIG } from "../config/trafficSecurityConfig";
+import { DUAL_OWNER_EMAILS } from "../types";
+
 export const GA_MEASUREMENT_ID =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GA_MEASUREMENT_ID) ||
   "G-VKEKHR7SK8";
@@ -17,8 +20,93 @@ declare global {
   }
 }
 
-// Track last sent event signatures to prevent duplicate rapid-fire events
+// Track last sent event signatures to prevent duplicate rapid-fire events (React StrictMode safe)
 const recentEventCache = new Map<string, number>();
+
+/**
+ * Check if the current browser environment is an automated headless bot
+ * (e.g. Selenium, Puppeteer, Headless Chrome)
+ */
+export function isAutomatedBotTraffic(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+
+  // 1. Standard WebDriver flag exposed by automation frameworks
+  if (navigator.webdriver === true) {
+    return true;
+  }
+
+  // 2. Automated test runners & scrapers
+  const ua = (navigator.userAgent || "").toLowerCase();
+  if (
+    ua.includes("headlesschrome") ||
+    ua.includes("phantomjs") ||
+    ua.includes("puppeteer") ||
+    ua.includes("playwright")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if current referrer matches known referral spam domains
+ */
+export function isReferralSpamVisit(): boolean {
+  if (typeof document === "undefined") return false;
+  const ref = (document.referrer || "").toLowerCase();
+  if (!ref) return false;
+
+  return TRAFFIC_SECURITY_CONFIG.suspiciousReferrers.some((spamDomain) => ref.includes(spamDomain));
+}
+
+/**
+ * Check if the current session represents internal owner/developer traffic
+ */
+export function isInternalOwnerTraffic(): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    // 1. Explicit developer/internal override toggle in localStorage
+    if (localStorage.getItem("pdfsun_internal_traffic") === "true") {
+      return true;
+    }
+
+    // 2. Check if logged-in user is verified Owner
+    const savedUser = localStorage.getItem("pdfsun_user_profile");
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      const email = (parsed?.email || "").toLowerCase().trim();
+      if (DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === email) || parsed?.role === "owner") {
+        return true;
+      }
+    }
+  } catch (e) {
+    // Ignore storage parse issues
+  }
+
+  return false;
+}
+
+/**
+ * Allow Owner / Admin to toggle internal traffic filtering in live preview/production
+ */
+export function setInternalTrafficMode(enable: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (enable) {
+      localStorage.setItem("pdfsun_internal_traffic", "true");
+      if (typeof window.gtag === "function") {
+        window.gtag("set", "user_properties", { traffic_type: "internal" });
+      }
+    } else {
+      localStorage.removeItem("pdfsun_internal_traffic");
+      if (typeof window.gtag === "function") {
+        window.gtag("set", "user_properties", { traffic_type: "regular" });
+      }
+    }
+  } catch (e) {}
+}
 
 function shouldThrottleEvent(signature: string, throttleMs = 800): boolean {
   const now = Date.now();
@@ -39,6 +127,7 @@ function shouldThrottleEvent(signature: string, throttleMs = 800): boolean {
 
 /**
  * Send custom event to Google Analytics 4
+ * With Bot, Referral Spam, and Internal Traffic guardrails
  */
 export const trackGAEvent = (
   eventName: string,
@@ -46,15 +135,34 @@ export const trackGAEvent = (
 ) => {
   if (typeof window === "undefined") return;
 
+  // 1. Filter out automated scrapers & headless bots from dirtying GA4 metrics
+  if (isAutomatedBotTraffic()) {
+    return;
+  }
+
+  // 2. Filter out referral spam domains
+  if (isReferralSpamVisit()) {
+    return;
+  }
+
+  // 3. Deduplicate events
   const signature = `${eventName}:${JSON.stringify(eventParams || {})}`;
   if (shouldThrottleEvent(signature)) {
     return;
   }
 
+  const isInternal = isInternalOwnerTraffic();
+
   if (typeof window.gtag === "function") {
     try {
+      // Mark internal developer/owner traffic so GA4 filters can exclude it
+      if (isInternal) {
+        window.gtag("set", "user_properties", { traffic_type: "internal" });
+      }
+
       window.gtag("event", eventName, {
         send_to: GA_MEASUREMENT_ID,
+        ...(isInternal ? { traffic_type: "internal" } : {}),
         ...eventParams,
       });
     } catch (err) {
@@ -65,22 +173,34 @@ export const trackGAEvent = (
 
 /**
  * Track pageview in GA4 with path and title
+ * Strict deduplication ensures React StrictMode never causes double counting
  */
 export const trackGAPageView = (pagePath: string, pageTitle?: string) => {
   if (typeof window === "undefined") return;
 
-  const signature = `page_view:${pagePath}`;
-  if (shouldThrottleEvent(signature, 1200)) {
+  if (isAutomatedBotTraffic() || isReferralSpamVisit()) {
     return;
   }
 
+  const signature = `page_view:${pagePath}`;
+  if (shouldThrottleEvent(signature, 1500)) {
+    return;
+  }
+
+  const isInternal = isInternalOwnerTraffic();
+
   if (typeof window.gtag === "function") {
     try {
+      if (isInternal) {
+        window.gtag("set", "user_properties", { traffic_type: "internal" });
+      }
+
       window.gtag("event", "page_view", {
         send_to: GA_MEASUREMENT_ID,
         page_path: pagePath,
         page_title: pageTitle || document.title,
         page_location: window.location.href,
+        ...(isInternal ? { traffic_type: "internal" } : {}),
       });
     } catch (err) {
       console.warn("[GA4 Analytics] Error sending pageview:", err);

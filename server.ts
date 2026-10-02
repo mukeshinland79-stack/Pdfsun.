@@ -87,6 +87,13 @@ import {
   ReconciliationResult,
 } from "./src/server/firestoreReconciliation";
 import handleRazorpayWebhookHandler from "./src/pages/api/webhooks/razorpay";
+import {
+  trafficSecurityHeadersMiddleware,
+  globalTrafficHygieneMiddleware,
+  createSlidingRateLimiter,
+  getTrafficSecuritySummary,
+} from "./src/server/trafficProtection";
+import { TRAFFIC_SECURITY_CONFIG } from "./src/config/trafficSecurityConfig";
 
 dotenv.config();
 
@@ -116,6 +123,19 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// 1. Enterprise Security Headers (HSTS, nosniff, Referrer-Policy, Permissions-Policy)
+app.use(trafficSecurityHeadersMiddleware);
+
+// 2. Global Traffic Hygiene & Bot Anomaly Filter (Allows all verified search crawlers, blocks exploit scanners, flags referral spam)
+app.use(globalTrafficHygieneMiddleware);
+
+// 3. Sliding-Window Rate Limiters on Sensitive Endpoints
+app.use("/api/ai", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.aiEndpoints, "ai"));
+app.use("/api/auth", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.authEndpoints, "auth"));
+app.use("/api/comments", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.commentsEndpoints, "comments"));
+app.use("/api/history", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "history"));
+app.use("/api/user", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "user"));
 
 // Metric Counters & Active System Config
 let lastCpuUsage = process.cpuUsage();
@@ -1571,6 +1591,15 @@ app.post("/api/admin/system-config/reset", verifyDualOwnerAccess, (req, res) => 
     status: "ok",
     message: "System configuration reset to baseline defaults.",
     config: currentSystemConfig,
+  });
+});
+
+// Traffic Security Audit Summary for Owner & Admin Monitoring
+app.get("/api/admin/traffic-security-summary", verifyDualOwnerAccess, (_req, res) => {
+  res.json({
+    success: true,
+    summary: getTrafficSecuritySummary(),
+    config: TRAFFIC_SECURITY_CONFIG,
   });
 });
 

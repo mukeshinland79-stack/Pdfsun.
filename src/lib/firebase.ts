@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import {
   initializeFirestore,
   getFirestore,
+  setLogLevel,
   collection,
   addDoc,
   getDocs,
@@ -79,6 +80,11 @@ export const firebaseConfig = {
   appId: firebaseConfigData.appId || "1:125719086147:web:d1e5ed9cfbb065d36a80f6"
 };
 
+// Suppress internal gRPC stream idle disconnect warnings
+try {
+  setLogLevel("error");
+} catch {}
+
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
@@ -106,15 +112,12 @@ export function getFirestoreDb(): Firestore {
   if (!db) {
     const firebaseApp = getFirebaseApp();
     const dbId = firebaseConfigData.firestoreDatabaseId || "(default)";
-    if (typeof window !== "undefined") {
-      try {
-        db = initializeFirestore(firebaseApp, {
-          experimentalForceLongPolling: true,
-        }, dbId);
-      } catch {
-        db = getFirestore(firebaseApp, dbId);
-      }
-    } else {
+    try {
+      db = initializeFirestore(firebaseApp, {
+        experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
+      }, dbId);
+    } catch {
       db = getFirestore(firebaseApp, dbId);
     }
   }
@@ -514,9 +517,19 @@ export function subscribeUserTransactionsFromFirestore(
         onUpdate(results);
       },
       (err) => {
-        handleFirestoreError(err, OperationType.LIST, "transactions");
-        // Fallback to fetch one-time
-        fetchUserTransactionsFromFirestore(userParam).then(onUpdate).catch(() => {});
+        const errMsg = err instanceof Error ? err.message : String(err);
+        // Benign transient connection drop (Code 14 UNAVAILABLE: read ECONNRESET / idle timeout)
+        if (
+          errMsg.includes("ECONNRESET") ||
+          errMsg.includes("UNAVAILABLE") ||
+          errMsg.includes("Code: 14")
+        ) {
+          // Fallback to fetch one-time cleanly
+          fetchUserTransactionsFromFirestore(userParam).then(onUpdate).catch(() => {});
+        } else {
+          handleFirestoreError(err, OperationType.LIST, "transactions");
+          fetchUserTransactionsFromFirestore(userParam).then(onUpdate).catch(() => {});
+        }
       }
     );
   } catch (err) {

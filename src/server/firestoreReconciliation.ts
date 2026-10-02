@@ -1,6 +1,8 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
+  initializeFirestore,
   getFirestore,
+  setLogLevel,
   doc,
   getDoc,
   setDoc,
@@ -65,6 +67,11 @@ export interface ReconciliationResult {
   };
 }
 
+// Suppress gRPC stream idle disconnect logs in Node.js runtime
+try {
+  setLogLevel("error");
+} catch {}
+
 let serverFirestore: Firestore | null = null;
 
 export function getServerFirestore(): Firestore {
@@ -82,10 +89,19 @@ export function getServerFirestore(): Firestore {
         appId: firebaseConfigData.appId,
       });
     }
-    serverFirestore = getFirestore(
-      app,
-      firebaseConfigData.firestoreDatabaseId || "(default)"
-    );
+    const dbId = firebaseConfigData.firestoreDatabaseId || "(default)";
+    try {
+      serverFirestore = initializeFirestore(
+        app,
+        {
+          experimentalForceLongPolling: true,
+          ignoreUndefinedProperties: true,
+        },
+        dbId
+      );
+    } catch {
+      serverFirestore = getFirestore(app, dbId);
+    }
   }
   return serverFirestore;
 }
