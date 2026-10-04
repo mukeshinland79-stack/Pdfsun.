@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Globe, Check, ChevronDown, Search, X, Sparkles } from "lucide-react";
 import i18n from "i18next";
 import { useLanguage, SUPPORTED_LANGUAGES, LanguageOption } from "../lib/i18n";
+import { setGlobalLanguage } from "../hooks/useLanguageStore";
 import { motion, AnimatePresence } from "motion/react";
 
 export interface LanguageSwitcherProps {
@@ -99,6 +100,8 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       } else if (typeof setLanguage === "function") {
         setLanguage(code);
       }
+      // Ensure universal synchronization across all app hooks, stores and listeners
+      setGlobalLanguage(code);
       setIsOpen(false);
       setSearchQuery("");
     },
@@ -314,9 +317,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
               className={`absolute mt-2 w-80 sm:w-84 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[9999] p-3 text-slate-900 dark:text-white ring-1 ring-black/5 dark:ring-white/10 ${
                 align === "left" ? "left-0" : align === "center" ? "left-1/2 -translate-x-1/2" : "right-0"
               }`}
-              style={{
-                backgroundColor: "var(--bg-panel, #ffffff)",
-              }}
               role="dialog"
               aria-modal="true"
               aria-label="Select website language"

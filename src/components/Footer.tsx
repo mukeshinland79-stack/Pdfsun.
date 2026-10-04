@@ -52,11 +52,12 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenInstallApp,
 }) => {
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
-  const { t } = useLanguage();
+  const { t, dir } = useLanguage();
 
   return (
     <footer
       id="main-footer"
+      dir={dir}
       className="w-full bg-[#0B0F19] text-slate-300 pt-4 pb-12 transition-colors"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,8 +74,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <Lock className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-400 block font-bold text-xs truncate">100% In-Browser Privacy</span>
-                <span className="text-[11px] text-slate-400 block truncate">Zero Server Uploads</span>
+                <span className="text-emerald-400 block font-bold text-xs truncate">
+                  {t("trustBadges.privacyTitle", "100% In-Browser Privacy")}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("trustBadges.privacySub", "Zero Server Uploads")}
+                </span>
               </div>
             </div>
 
@@ -84,8 +89,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-400 block font-bold text-xs truncate">Enterprise Security</span>
-                <span className="text-[11px] text-slate-400 block truncate">ISO 27001 &amp; GDPR Compliant</span>
+                <span className="text-emerald-400 block font-bold text-xs truncate">
+                  {t("trustBadges.securityTitle", "Enterprise Security")}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("trustBadges.securitySub", "ISO 27001 & GDPR Compliant")}
+                </span>
               </div>
             </div>
 
@@ -95,8 +104,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <CreditCard className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-blue-400 block font-bold text-xs truncate">Razorpay Verified</span>
-                <span className="text-[11px] text-slate-400 block truncate">UPI &amp; Cards Supported</span>
+                <span className="text-blue-400 block font-bold text-xs truncate">
+                  {t("trustBadges.razorpayTitle", "Razorpay Verified")}
+                </span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("trustBadges.razorpaySub", "UPI & Cards Supported")}
+                </span>
               </div>
             </div>
 
@@ -111,9 +124,13 @@ export const Footer: React.FC<FooterProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                   </span>
-                  <span className="text-cyan-400 font-bold text-xs truncate">Ultra Fast Speed</span>
+                  <span className="text-cyan-400 font-bold text-xs truncate">
+                    {t("trustBadges.speedTitle", "Ultra Fast Speed")}
+                  </span>
                 </div>
-                <span className="text-[11px] text-slate-400 block truncate">Instant WebAssembly Engine</span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {t("trustBadges.speedSub", "Instant WebAssembly Engine")}
+                </span>
               </div>
             </div>
 
@@ -421,12 +438,12 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Left Side: Ownership & Credits */}
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
             <span className="text-sm">🇮🇳</span>
-            <span className="font-semibold text-slate-200">Proudly Made in India</span>
+            <span className="font-semibold text-slate-200">{t("footer.madeInIndia", "Proudly Made in India")}</span>
             <span className="text-slate-600">•</span>
-            <span>© {new Date().getFullYear()} <strong className="text-slate-200 font-bold">PDFSun</strong>. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} <strong className="text-slate-200 font-bold">PDFSun</strong>. {t("footer.rights", "All rights reserved.")}</span>
             <span className="text-slate-600">•</span>
             <span className="text-slate-400">
-              Designed &amp; Engineered by <span className="text-slate-200 font-semibold">Mukesh Kalonia</span>
+              {t("footer.designedBy", "Designed & Engineered by")} <span className="text-slate-200 font-semibold">Mukesh Kalonia</span>
             </span>
           </div>
 
@@ -434,7 +451,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 font-medium text-xs shadow-sm shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-slate-300 font-medium">
-              Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant
+              {t("footer.isoSecurity", "Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant")}
             </span>
           </div>
 

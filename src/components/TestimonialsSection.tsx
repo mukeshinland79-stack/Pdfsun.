@@ -4,22 +4,52 @@ import { TESTIMONIALS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
 
 export const TestimonialsSection: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, dir } = useLanguage();
+
+  const getReviewQuote = (item: (typeof TESTIMONIALS)[0]) => {
+    switch (item.id) {
+      case "1":
+        return t("reviews.quote_aarav", t("testimonials.quote_1", item.quote));
+      case "2":
+        return t("reviews.quote_priya", t("testimonials.quote_2", item.quote));
+      case "3":
+        return t("reviews.quote_david", t("testimonials.quote_3", item.quote));
+      case "4":
+        return t("reviews.quote_ananya", t("testimonials.quote_4", item.quote));
+      default:
+        return t(`testimonials.quote_${item.id}`, item.quote);
+    }
+  };
+
+  const getReviewRole = (item: (typeof TESTIMONIALS)[0]) => {
+    switch (item.id) {
+      case "1":
+        return t("reviews.role_aarav", t("testimonials.role_1", item.role));
+      case "2":
+        return t("reviews.role_priya", t("testimonials.role_2", item.role));
+      case "3":
+        return t("reviews.role_david", t("testimonials.role_3", item.role));
+      case "4":
+        return t("reviews.role_ananya", t("testimonials.role_4", item.role));
+      default:
+        return t(`testimonials.role_${item.id}`, item.role);
+    }
+  };
 
   return (
-    <section className="py-16 bg-slate-50 dark:bg-slate-800/40 border-y border-slate-200 dark:border-slate-800">
+    <section dir={dir} className="py-16 bg-slate-50 dark:bg-slate-800/40 border-y border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div className="text-center space-y-3">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>{t("testimonials.badge", "Loved by 500,000+ Users")}</span>
+            <span>{t("reviews.badge", t("testimonials.badge", "Loved by 500,000+ Users"))}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-            {t("testimonials.title", "Trusted by Students, Lawyers & Researchers")}
+            {t("reviews.title", t("testimonials.title", "Supported Formats & Verified User Reviews"))}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
-            {t("testimonials.subtitle", "See what students and industry professionals say about PDFSun efficiency, privacy, and Gemini AI capabilities.")}
+            {t("reviews.subtitle", t("testimonials.subtitle", "See what students and industry professionals say about PDFSun efficiency, privacy, and Gemini AI capabilities."))}
           </p>
         </div>
 
@@ -48,7 +78,7 @@ export const TestimonialsSection: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed" itemProp="reviewBody">
-                  "{t(`testimonials.quote_${item.id}`, item.quote)}"
+                  "{getReviewQuote(item)}"
                 </p>
               </div>
 
@@ -64,7 +94,7 @@ export const TestimonialsSection: React.FC = () => {
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white" itemProp="name">{item.name}</div>
                   <div className="text-[10px] text-slate-400">
-                    {t(`testimonials.role_${item.id}`, item.role)} • {item.organization}
+                    {getReviewRole(item)} • {item.organization}
                   </div>
                 </div>
               </div>

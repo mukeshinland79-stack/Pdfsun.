@@ -56,6 +56,7 @@ import {
   localizeHistoryData,
   useLocalizedHistoryData,
 } from "../utils/historyTranslationEngine";
+import { LanguageSelectorModal } from "./LanguageSelectorModal";
 
 interface TodayInHistoryModalProps {
   isOpen: boolean;
@@ -130,6 +131,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
     }
   });
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isLangSelectorModalOpen, setIsLangSelectorModalOpen] = useState(false);
 
   // Sync initialLanguage changes if props update
   useEffect(() => {
@@ -369,6 +371,21 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
 
   const langCode = selectedLang.code;
   const displayData = useLocalizedHistoryData(historyData, selectedLang.code, selectedCountry) || historyData;
+
+  // Derive reactively localized selectedDetailEvent so opening or switching languages translates detail modal in real-time
+  const activeDetailEvent = useMemo(() => {
+    if (!selectedDetailEvent || !displayData) return selectedDetailEvent;
+    const allItems = [
+      ...(displayData.events || []),
+      ...(displayData.births || []),
+      ...(displayData.discoveries || []),
+      ...(displayData.countrySpotlight || []),
+    ];
+    const match = allItems.find(
+      (e) => e.id === selectedDetailEvent.id || (e.year === selectedDetailEvent.year && e.headline === selectedDetailEvent.headline)
+    );
+    return match || selectedDetailEvent;
+  }, [selectedDetailEvent, displayData]);
 
   // Filter events by Category & Search Query
   const allEventsList = useMemo(() => {
@@ -658,6 +675,15 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() => setIsLangSelectorModalOpen(true)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-500 hover:text-indigo-400 transition cursor-pointer"
+                title="Search all 30+ languages"
+                aria-label="Search all languages"
+              >
+                <Search className="w-3 h-3" />
+              </button>
             </div>
           </div>
         </div>
@@ -698,7 +724,13 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
           {displayData && (
             <div className={`space-y-6 transition-opacity duration-150 ${loading ? "opacity-80" : "opacity-100"}`}>
               {/* FEATURED HEADLINE BANNER & COUNTRY STATUS BADGE (WCAG AA ELEVATED SURFACE) */}
-              <div className="relative rounded-3xl p-5 sm:p-7 bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-white/15 dark:border-white/15 shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-3">
+              <div
+                style={{
+                  backgroundColor: "var(--surface-card-elevated, #1E1E2E)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                }}
+                className="relative rounded-3xl p-5 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-3"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   {/* Dynamic Country Match / Fallback Indicator Badge */}
                   {hasDirectCountryMatches ? (
@@ -891,7 +923,12 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
 
               {/* DAILY TRIVIA QUIZ CHALLENGE (WCAG AA ACCESSIBILITY & CONTRAST FIX) */}
               {displayData.dailyTrivia && (
-                <div className="p-5 sm:p-7 rounded-3xl bg-[#181825] dark:bg-[#181825] border border-amber-500/40 dark:border-amber-500/40 shadow-xl space-y-4">
+                <div
+                  style={{
+                    backgroundColor: "var(--surface-trivia-card, #181825)",
+                  }}
+                  className="p-5 sm:p-7 rounded-3xl border border-amber-500/40 shadow-xl space-y-4"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center space-x-2.5">
                       <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/30">
@@ -922,7 +959,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   {/* Options Grid with explicit high contrast borders and focus rings */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {displayData.dailyTrivia.options.map((option, idx) => {
-                      let btnStyle = "bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-slate-600 dark:border-[#374151] text-[#F3F4F6] hover:border-amber-400 hover:bg-[#25263A] focus:ring-2 focus:ring-amber-400 focus:outline-none";
+                      let btnStyle = "bg-[#1E1E2E] dark:bg-[#1E1E2E] border border-[#374151] dark:border-[#374151] text-[#F3F4F6] hover:border-amber-400 hover:bg-[#25263A] focus:ring-2 focus:ring-amber-400 focus:outline-none";
                       if (quizSubmitted) {
                         if (idx === displayData.dailyTrivia.correctIndex) {
                           btnStyle = "bg-emerald-600 text-white border-emerald-500 font-bold shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400";
@@ -1058,7 +1095,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
       </div>
 
       {/* INTERACTIVE EVENT DETAIL DIALOG (Accessible to all guests & users) */}
-      {selectedDetailEvent && (
+      {activeDetailEvent && (
         <div
           id="history-event-detail-backdrop"
           className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fadeIn"
@@ -1068,16 +1105,17 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
         >
           <div
             id="history-event-detail-modal"
+            dir={selectedLang.direction === "rtl" || selectedLang.code === "ar" || selectedLang.code === "ur" || selectedLang.code === "fa" ? "rtl" : "ltr"}
             className="relative w-full max-w-xl bg-white dark:bg-[#181825] rounded-3xl border border-slate-200 dark:border-[#2e2e42] shadow-2xl overflow-hidden p-6 sm:p-7 space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center space-x-2">
                 <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-sm shadow-xs">
-                  {selectedDetailEvent.year}
+                  {activeDetailEvent.year}
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-[#25263a] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#374151]">
-                  {getLocalizedTag(selectedDetailEvent.tag, selectedDetailEvent.category, langCode)}
+                  {getLocalizedTag(activeDetailEvent.tag, activeDetailEvent.category, langCode)}
                 </span>
               </div>
               <button
@@ -1091,14 +1129,14 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
             </div>
 
             <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-snug">
-              {selectedDetailEvent.headline}
+              {activeDetailEvent.headline}
             </h3>
 
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#1E1E2E] border border-slate-200/80 dark:border-[#2e2e42] text-xs sm:text-sm text-slate-700 dark:text-[#D1D5DB] leading-relaxed space-y-2">
-              <p>{selectedDetailEvent.description}</p>
-              {selectedDetailEvent.significance && (
+              <p>{activeDetailEvent.description}</p>
+              {activeDetailEvent.significance && (
                 <p className="text-xs italic text-blue-600 dark:text-[#93C5FD] pt-2 border-t border-slate-200/60 dark:border-[#374151]">
-                  <strong>{getHistoryText("historicalImpact", langCode)}</strong> {selectedDetailEvent.significance}
+                  <strong>{getHistoryText("historicalImpact", langCode)}</strong> {activeDetailEvent.significance}
                 </p>
               )}
             </div>
@@ -1108,7 +1146,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
               <div className="flex items-center space-x-2 text-slate-500 dark:text-[#9CA3AF]">
                 <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                 <span className="truncate">
-                  {getHistoryText("verifiedVia", langCode)} <strong className="text-slate-700 dark:text-white">{selectedDetailEvent.sourceName || "Wikimedia Foundation"}</strong>
+                  {getHistoryText("verifiedVia", langCode)} <strong className="text-slate-700 dark:text-white">{activeDetailEvent.sourceName || "Wikimedia Foundation"}</strong>
                 </span>
               </div>
 
@@ -1116,7 +1154,7 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const text = `${selectedDetailEvent.year}: ${selectedDetailEvent.headline} - ${selectedDetailEvent.description}`;
+                    const text = `${activeDetailEvent.year}: ${activeDetailEvent.headline} - ${activeDetailEvent.description}`;
                     navigator.clipboard.writeText(text);
                     setCopiedEventText(true);
                     setTimeout(() => setCopiedEventText(false), 2000);
@@ -1127,9 +1165,9 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
                   <span>{copiedEventText ? getHistoryText("copied", langCode) : getHistoryText("copyStory", langCode)}</span>
                 </button>
 
-                {selectedDetailEvent.wikipediaUrl && (
+                {activeDetailEvent.wikipediaUrl && (
                   <a
-                    href={selectedDetailEvent.wikipediaUrl}
+                    href={activeDetailEvent.wikipediaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
@@ -1143,6 +1181,12 @@ export const TodayInHistoryModal: React.FC<TodayInHistoryModalProps> = ({
           </div>
         </div>
       )}
+      {/* 30+ SEARCHABLE LANGUAGE SELECTOR MODAL */}
+      <LanguageSelectorModal
+        isOpen={isLangSelectorModalOpen}
+        onClose={() => setIsLangSelectorModalOpen(false)}
+        onLanguageSelect={(lang) => handleLanguageChange(lang.code)}
+      />
     </div>
   );
 };

@@ -30,7 +30,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
   className = "",
   onOpenInstallApp,
 }) => {
-  const { t } = useLanguage();
+  const { t, dir, isRtl } = useLanguage();
   const { isInstalled, installPWA, platform } = usePWAStatus();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<"install" | "ios" | "android" | "desktop" | "qr">("install");
@@ -102,17 +102,18 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
   };
 
   const benefitChips = [
-    { icon: Zap, label: t("mobilePromo.instantLaunch", "⚡ Instant Launch"), color: "text-amber-400" },
-    { icon: ShieldCheck, label: t("mobilePromo.privacyFocused", "🔒 Privacy-Focused"), color: "text-emerald-400" },
-    { icon: Smartphone, label: t("mobilePromo.mobileOptimized", "📱 Mobile Optimized"), color: "text-sky-400" },
-    { icon: Bot, label: t("mobilePromo.aiTools", "🤖 AI PDF Tools"), color: "text-cyan-400" },
-    { icon: Globe, label: t("mobilePromo.multiLang", "🌍 Multi-Language"), color: "text-indigo-400" },
-    { icon: WifiOff, label: t("mobilePromo.offlineReady", "📴 Offline-Ready Tools*"), color: "text-orange-400" },
+    { icon: Zap, label: t("appBanner.features.instantLaunch", t("mobilePromo.instantLaunch", "⚡ Instant Launch")), color: "text-amber-400" },
+    { icon: ShieldCheck, label: t("appBanner.features.privacyFocused", t("mobilePromo.privacyFocused", "🔒 Privacy-Focused")), color: "text-emerald-400" },
+    { icon: Smartphone, label: t("appBanner.features.mobileOptimized", t("mobilePromo.mobileOptimized", "📱 Mobile Optimized")), color: "text-sky-400" },
+    { icon: Bot, label: t("appBanner.features.aiTools", t("mobilePromo.aiTools", "🤖 AI PDF Tools")), color: "text-cyan-400" },
+    { icon: Globe, label: t("appBanner.features.multiLang", t("mobilePromo.multiLang", "🌍 Multi-Language")), color: "text-indigo-400" },
+    { icon: WifiOff, label: t("appBanner.features.offlineReady", t("mobilePromo.offlineReady", "📴 Offline-Ready Tools*")), color: "text-orange-400" },
   ];
 
   return (
     <section
       id="mobile-app-section"
+      dir={dir}
       className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-6 sm:my-10 ${className}`}
       aria-label="PDFSun Mobile App Section"
     >
@@ -129,12 +130,12 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
               <div className="flex items-center space-x-2 mb-2 flex-wrap gap-y-1">
                 <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-xs">
                   <Sparkles className="w-3 h-3 mr-0.5" />
-                  {t("mobilePromo.officialBadge", "OFFICIAL PDFSUN MOBILE APP")}
+                  {t("appBanner.officialBadge", t("mobilePromo.officialBadge", "OFFICIAL PDFSUN MOBILE APP"))}
                 </span>
                 {isInstalled && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center space-x-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>{t("mobilePromo.installed", "Installed")}</span>
+                    <span>{t("appBanner.installed", t("mobilePromo.installed", "Installed"))}</span>
                   </span>
                 )}
               </div>
@@ -145,10 +146,10 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">
-                    {t("mobilePromo.title", "PDFSun Mobile App")}
+                    {t("appBanner.title", t("mobilePromo.title", "PDFSun Mobile App"))}
                   </h2>
                   <p className="text-xs sm:text-sm font-semibold text-blue-200">
-                    {t("mobilePromo.tagline", "Your complete PDF workspace, right on your phone.")}
+                    {t("appBanner.tagline", t("mobilePromo.tagline", "Your complete PDF workspace, right on your phone."))}
                   </p>
                 </div>
               </div>
@@ -157,8 +158,11 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
             {/* Short Description */}
             <p className="text-xs sm:text-sm text-blue-100/90 font-normal leading-relaxed max-w-2xl">
               {t(
-                "mobilePromo.desc",
-                "Fast, private and mobile-optimized access to PDFSun tools, AI document features and your everyday PDF workflow."
+                "appBanner.desc",
+                t(
+                  "mobilePromo.desc",
+                  "Fast, private and mobile-optimized access to PDFSun tools, AI document features and your everyday PDF workflow."
+                )
               )}
             </p>
 
@@ -192,15 +196,15 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
                 {isInstalled ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>✓ {t("mobilePromo.appInstalled", "PDFSun App Installed")}</span>
+                    <span>✓ {t("appBanner.appInstalled", t("mobilePromo.appInstalled", "PDFSun App Installed"))}</span>
                   </>
                 ) : (
                   <>
                     <Smartphone className="w-4 h-4 text-white" />
                     <span>
                       {isInstalling
-                        ? t("mobilePromo.opening", "Opening...")
-                        : t("mobilePromo.installBtn", "Install PDFSun App")}
+                        ? t("appBanner.opening", t("mobilePromo.opening", "Opening..."))
+                        : t("appBanner.installBtn", t("mobilePromo.installBtn", "Install PDFSun App"))}
                     </span>
                   </>
                 )}
@@ -214,7 +218,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
                 className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/15 transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
               >
                 <Compass className="w-4 h-4 text-cyan-300" />
-                <span>{t("mobilePromo.continueInBrowser", "Continue in Browser")}</span>
+                <span>{t("appBanner.continueInBrowser", t("mobilePromo.continueInBrowser", "Continue in Browser"))}</span>
               </button>
 
               {/* How to Install & QR Link */}
@@ -225,7 +229,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
                 className="py-2 px-3 rounded-lg text-blue-200 hover:text-white font-medium text-xs flex items-center space-x-1.5 transition underline-offset-4 hover:underline cursor-pointer"
               >
                 <QrCode className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t("mobilePromo.howToInstall", "How to Install & QR")}</span>
+                <span>{t("appBanner.howToInstall", t("mobilePromo.howToInstall", "How to Install & QR"))}</span>
               </button>
             </div>
           </div>
@@ -236,7 +240,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
               <div className="flex items-center justify-between mb-2.5 border-b border-slate-100 pb-1.5">
                 <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider flex items-center space-x-1">
                   <Smartphone className="w-3 h-3 text-blue-600" />
-                  <span>Scan to Install</span>
+                  <span>{t("appBanner.scanToInstall", "Scan to Install")}</span>
                 </span>
                 <span className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-700 font-bold rounded-full border border-blue-200">
                   Mobile / PWA
@@ -266,7 +270,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
               </div>
 
               <p className="text-[11px] font-bold text-slate-700 mt-2 leading-snug">
-                Point your camera to open <br />
+                {t("appBanner.pointCamera", "Point your camera to open")} <br />
                 <span className="text-blue-600 font-black break-all">{websiteUrl}</span>
               </p>
 
@@ -280,7 +284,7 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
                 ) : (
                   <Copy className="w-3 h-3 text-slate-600" />
                 )}
-                <span>{copiedLink ? "Link Copied!" : "Copy Link"}</span>
+                <span>{copiedLink ? t("appBanner.linkCopied", "Link Copied!") : t("appBanner.copyLink", "Copy Link")}</span>
               </button>
             </div>
           </div>

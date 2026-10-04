@@ -482,7 +482,9 @@ export async function getVerifiedDailyHistory(options: {
     // Try reading any previous disk cache for this day regardless of country
     const fallbackDisk = readDiskCache(`history-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}-US-en`);
     if (fallbackDisk) {
-      return fallbackDisk;
+      return (lang && lang.toLowerCase() !== "en")
+        ? localizeHistoryData(fallbackDisk, lang, country)
+        : fallbackDisk;
     }
 
     // Try static curated database
@@ -558,7 +560,9 @@ export async function getVerifiedDailyHistory(options: {
           verificationStatus: "VERIFIED",
         },
       };
-      return fallbackData;
+      return (lang && lang.toLowerCase() !== "en")
+        ? localizeHistoryData(fallbackData, lang, country)
+        : fallbackData;
     }
 
     // Algorithmic fallback as absolute safety net

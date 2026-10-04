@@ -51,7 +51,13 @@ body {
   --text-muted: #64748b;
   --card-border-radius: 20px;
   --inner-border-radius: 12px;
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Inter', system-ui, -apple-system, 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Tamil', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Arabic', sans-serif;
+
+  /* Universal History & WCAG AA Surface Tokens */
+  --surface-card-elevated: #1E1E2E;
+  --surface-trivia-card: #181825;
+  --surface-choice-btn: #1E1E2E;
+  --surface-choice-hover: #25263A;
 
   /* Central Theme Aliases mapped to Master Design Tokens */
   --bg-primary: var(--outer-bg);
@@ -926,6 +932,26 @@ body[data-lang],
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);
+}
+
+@keyframes quizShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-quiz-shake {
+  animation: quizShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes pulseRipple {
+  0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { transform: scale(1.01); box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.animate-quiz-ripple {
+  animation: pulseRipple 0.5s ease-out;
 }
 
 

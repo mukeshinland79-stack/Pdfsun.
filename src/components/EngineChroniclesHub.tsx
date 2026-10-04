@@ -410,11 +410,11 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                   <Zap className="w-3 h-3 text-emerald-400 mr-1" />
-                  Productivity Hacks
+                  {t("productivity.badge", "Productivity Hacks")}
                 </span>
                 <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                   <Clock className="w-3 h-3 text-emerald-400 mr-1" />
-                  7 min read
+                  {t("productivity.readTime", "7 min read")}
                 </span>
               </div>
 
@@ -425,14 +425,10 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition-colors leading-snug">
-                    Productivity Hacks, Tutorials &amp; Workflows
+                    {t("productivity.title", "Productivity Hacks, Tutorials & Workflows")}
                   </h3>
                   <div className="flex items-center space-x-2 text-[11px] text-emerald-400 mt-1 font-semibold">
-                    <span>PDF Optimization</span>
-                    <span>•</span>
-                    <span>AI Summaries</span>
-                    <span>•</span>
-                    <span>Table Extraction</span>
+                    <span>{t("productivity.subTags", "PDF Optimization • AI Summaries • Table Extraction")}</span>
                   </div>
                 </div>
               </div>
@@ -441,13 +437,13 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
               <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-emerald-500/20 text-xs space-y-1.5 group-hover:border-emerald-500/40 transition-colors">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
                   <Flame className="w-3 h-3" />
-                  <span>Featured Step-by-Step Tutorial</span>
+                  <span>{t("productivity.featuredBadge", "Featured Step-by-Step Tutorial")}</span>
                 </div>
                 <p className="font-semibold text-slate-100 line-clamp-2 leading-relaxed">
-                  Mastering PDF Compression: Downsample DPI &amp; Quantize Images
+                  {t("productivity.featuredTitle", "Mastering PDF Compression: Downsample DPI & Quantize Images")}
                 </p>
                 <p className="text-[11px] text-slate-400 line-clamp-2 leading-normal">
-                  Step-by-step workflow to shrink files down to 100KB, 200KB, or 500KB thresholds for portal submissions without quality loss.
+                  {t("productivity.featuredDesc", "Step-by-step workflow to shrink files down to 100KB, 200KB, or 500KB thresholds for portal submissions without quality loss.")}
                 </p>
               </div>
 
@@ -462,7 +458,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                   className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
                 >
                   <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-emerald-300 truncate">
-                    Merge Massive PDF Reports Online Privately
+                    {t("productivity.tutorial1", "Merge Massive PDF Reports Online Privately")}
                   </span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-emerald-400 shrink-0 ml-1" />
                 </button>
@@ -476,7 +472,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                   className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
                 >
                   <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-emerald-300 truncate">
-                    Extract Clean Excel Tables Without Breaking Columns
+                    {t("productivity.tutorial2", "Extract Clean Excel Tables Without Breaking Columns")}
                   </span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-emerald-400 shrink-0 ml-1" />
                 </button>
@@ -486,7 +482,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             {/* Action Buttons Row */}
             <div className="pt-5 mt-5 border-t border-slate-800/80 flex items-center justify-between gap-2 relative z-10">
               <span className="text-[11px] font-mono font-medium text-slate-400">
-                Fast &amp; Free Guides
+                {t("productivity.fastGuides", "Fast & Free Guides")}
               </span>
 
               <button
@@ -494,7 +490,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 onClick={() => onNavigateArticle("mastering-pdf-compression-dpi-downsample")}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-500/20 flex items-center space-x-1.5 transition group-hover:scale-102 cursor-pointer"
               >
-                <span>Read Tutorial</span>
+                <span>{t("productivity.readTutorial", "Read Tutorial")}</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[3] group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
@@ -507,7 +503,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
         <div className="flex items-center space-x-3 text-xs text-slate-300">
           <BookOpen className="w-5 h-5 text-blue-400 shrink-0" />
           <span>
-            Explore all <strong>10+ In-Depth Engineering White Papers</strong>, WebAssembly security architectures &amp; document workflow cheat sheets.
+            {t("productivity.archiveNote", "Explore all 10+ In-Depth Engineering White Papers, WebAssembly security architectures & document workflow cheat sheets.")}
           </span>
         </div>
 
@@ -516,7 +512,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
           onClick={onNavigateBlog}
           className="px-4 py-2 rounded-xl bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold transition flex items-center space-x-2 shrink-0 cursor-pointer shadow-xs"
         >
-          <span>View All Articles &amp; Guides</span>
+          <span>{t("productivity.viewAll", "View All Articles & Guides")}</span>
           <ExternalLink className="w-3.5 h-3.5 text-blue-200" />
         </button>
       </div>

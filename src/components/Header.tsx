@@ -335,11 +335,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="whitespace-nowrap font-bold">Plans</span>
             </button>
 
-            {/* Language Selector */}
-            <div className="hidden md:flex items-center">
-              <LanguageSwitcher showLabel={true} align="right" />
-            </div>
-
             {/* Theme Selector */}
             <div className="relative hidden sm:block" ref={themeDropdownRef}>
               <button
@@ -463,6 +458,11 @@ export const Header: React.FC<HeaderProps> = ({
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             )}
+
+            {/* Searchable Language Selector Dropdown (Top-Right Corner) */}
+            <div className="flex items-center shrink-0">
+              <LanguageSwitcher showLabel={true} align="right" />
+            </div>
 
             {/* Profile / Admin / Auth Menu - STRICT FINAL TERMINATION */}
             <div className="relative shrink-0" ref={profileDropdownRef}>

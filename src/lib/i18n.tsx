@@ -13,57 +13,66 @@ import HttpBackend from "i18next-http-backend";
 import { INDIAN_LANGUAGES_TRANSLATIONS } from "./translations/indianLanguages";
 import { GLOBAL_LANGUAGES_TRANSLATIONS } from "./translations/globalLanguages";
 import { TOOL_TRANSLATIONS } from "./translations/toolTranslations";
+import enLocale from "../locales/en.json";
+import hiLocale from "../locales/hi.json";
 
 export interface LanguageOption {
   code: string;
   name: string;
   nativeName: string;
-  flag: string;
+  dir: "ltr" | "rtl";
+  flag?: string;
   isRtl?: boolean;
 }
 
 export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
-  { code: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
-  { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
-  { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳" },
-  { code: "mr", name: "Marathi", nativeName: "मराठी", flag: "🇮🇳" },
-  { code: "te", name: "Telugu", nativeName: "తెలుగు", flag: "🇮🇳" },
-  { code: "ta", name: "Tamil", nativeName: "தமிழ்", flag: "🇮🇳" },
-  { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી", flag: "🇮🇳" },
-  { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳" },
-  { code: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ", flag: "🇮🇳" },
-  { code: "ml", name: "Malayalam", nativeName: "മലയാളം", flag: "🇮🇳" },
-  { code: "ur", name: "Urdu", nativeName: "اردو", flag: "🇵🇰", isRtl: true },
-  { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
-  { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
-  { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
-  { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹" },
-  { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹" },
-  { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
-  { code: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵" },
-  { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷" },
-  { code: "zh", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
-  { code: "zh-CN", name: "Chinese Simplified", nativeName: "简体中文", flag: "🇨🇳" },
-  { code: "zh-TW", name: "Chinese Traditional", nativeName: "繁體中文", flag: "🇹🇼" },
-  { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", isRtl: true },
-  { code: "tr", name: "Turkish", nativeName: "Türkçe", flag: "🇹🇷" },
-  { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱" },
-  { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱" },
-  { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", flag: "🇻🇳" },
-  { code: "th", name: "Thai", nativeName: "ไทย", flag: "🇹🇭" },
-  { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", flag: "🇮🇩" },
-  { code: "uk", name: "Ukrainian", nativeName: "Українська", flag: "🇺🇦" },
-  { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷", isRtl: true },
-  { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", flag: "🇲🇾" },
-  { code: "sv", name: "Swedish", nativeName: "Svenska", flag: "🇸🇪" },
-  { code: "el", name: "Greek", nativeName: "Ελληνικά", flag: "🇬🇷" },
+  { code: "en", name: "English", nativeName: "English", dir: "ltr", flag: "🇺🇸" },
+  { code: "hi", name: "Hindi", nativeName: "हिन्दी", dir: "ltr", flag: "🇮🇳" },
+  { code: "es", name: "Spanish", nativeName: "Español", dir: "ltr", flag: "🇪🇸" },
+  { code: "de", name: "German", nativeName: "Deutsch", dir: "ltr", flag: "🇩🇪" },
+  { code: "fr", name: "French", nativeName: "Français", dir: "ltr", flag: "🇫🇷" },
+  { code: "pt", name: "Portuguese", nativeName: "Português", dir: "ltr", flag: "🇵🇹" },
+  { code: "ar", name: "Arabic", nativeName: "العربية", dir: "rtl", flag: "🇸🇦", isRtl: true },
+  { code: "ja", name: "Japanese", nativeName: "日本語", dir: "ltr", flag: "🇯🇵" },
+  { code: "ru", name: "Russian", nativeName: "Русский", dir: "ltr", flag: "🇷🇺" },
+  { code: "bn", name: "Bengali", nativeName: "বাংলা", dir: "ltr", flag: "🇮🇳" },
+  { code: "mr", name: "Marathi", nativeName: "मराठी", dir: "ltr", flag: "🇮🇳" },
+  { code: "te", name: "Telugu", nativeName: "తెలుగు", dir: "ltr", flag: "🇮🇳" },
+  { code: "ta", name: "Tamil", nativeName: "தமிழ்", dir: "ltr", flag: "🇮🇳" },
+  { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી", dir: "ltr", flag: "🇮🇳" },
+  { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", dir: "ltr", flag: "🇮🇳" },
+  { code: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ", dir: "ltr", flag: "🇮🇳" },
+  { code: "ml", name: "Malayalam", nativeName: "മലയാളം", dir: "ltr", flag: "🇮🇳" },
+  { code: "ur", name: "Urdu", nativeName: "اردو", dir: "rtl", flag: "🇵🇰", isRtl: true },
+  { code: "ko", name: "Korean", nativeName: "한국어", dir: "ltr", flag: "🇰🇷" },
+  { code: "zh-CN", name: "Chinese Simplified", nativeName: "简体中文", dir: "ltr", flag: "🇨🇳" },
+  { code: "zh-TW", name: "Chinese Traditional", nativeName: "繁體中文", dir: "ltr", flag: "🇹🇼" },
+  { code: "tr", name: "Turkish", nativeName: "Türkçe", dir: "ltr", flag: "🇹🇷" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands", dir: "ltr", flag: "🇳🇱" },
+  { code: "pl", name: "Polish", nativeName: "Polski", dir: "ltr", flag: "🇵🇱" },
+  { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt", dir: "ltr", flag: "🇻🇳" },
+  { code: "th", name: "Thai", nativeName: "ไทย", dir: "ltr", flag: "🇹🇭" },
+  { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", dir: "ltr", flag: "🇮🇩" },
+  { code: "uk", name: "Ukrainian", nativeName: "Українська", dir: "ltr", flag: "🇺🇦" },
+  { code: "fa", name: "Persian", nativeName: "فارसी", dir: "rtl", flag: "🇮🇷", isRtl: true },
+  { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", dir: "ltr", flag: "🇲🇾" },
+  { code: "it", name: "Italian", nativeName: "Italiano", dir: "ltr", flag: "🇮🇹" },
+  { code: "el", name: "Greek", nativeName: "Ελληνικά", dir: "ltr", flag: "🇬🇷" },
 ];
 
 export const RTL_LANGUAGES = ["ar", "ur", "fa", "he"];
 
 export const isRtlLanguage = (code: string): boolean => {
   const clean = code.toLowerCase().split("-")[0];
+  const item = SUPPORTED_LANGUAGES.find(
+    (l) => l.code.toLowerCase() === code.toLowerCase() || l.code.toLowerCase().split("-")[0] === clean
+  );
+  if (item && item.dir === "rtl") return true;
   return RTL_LANGUAGES.includes(clean);
+};
+
+export const getDirection = (code: string): "rtl" | "ltr" => {
+  return isRtlLanguage(code) ? "rtl" : "ltr";
 };
 
 export const DEFAULT_LANGUAGE = "en";
@@ -221,6 +230,7 @@ export const getInitialLanguage = (): string => {
 // In-memory Core Dictionaries for Instant 0ms Zero-Latency Switching
 export const IN_MEMORY_TRANSLATIONS: Record<string, Record<string, any>> = {
   en: {
+    ...enLocale,
     nav: {
       home: "Home",
       allTools: "All PDF Tools",
@@ -474,6 +484,7 @@ export const IN_MEMORY_TRANSLATIONS: Record<string, Record<string, any>> = {
     },
   },
   hi: {
+    ...hiLocale,
     nav: {
       home: "मुख्य पृष्ठ",
       allTools: "सभी पीडीएफ उपकरण",
@@ -1535,6 +1546,8 @@ export interface LanguageContextType {
   changeLanguage: (lang: string) => void;
   languageOption: LanguageOption;
   isRtl: boolean;
+  dir: "ltr" | "rtl";
+  direction: "ltr" | "rtl";
   t: (
     key: string,
     fallbackOrParams?: string | Record<string, any>,
@@ -1554,6 +1567,8 @@ const defaultContextValue: LanguageContextType = {
   changeLanguage: () => {},
   languageOption: SUPPORTED_LANGUAGES[0],
   isRtl: false,
+  dir: "ltr",
+  direction: "ltr",
   t: (key: string, fallback?: string | Record<string, any>) => (typeof fallback === "string" ? fallback : key),
   getToolName: (tool) => tool.name,
   getToolDescription: (tool) => tool.description || "",
@@ -2035,6 +2050,8 @@ export const LanguageProvider: FC<{ children: ReactNode }> = ({ children }) => {
       changeLanguage: setLanguage,
       languageOption,
       isRtl,
+      dir: isRtl ? ("rtl" as const) : ("ltr" as const),
+      direction: isRtl ? ("rtl" as const) : ("ltr" as const),
       t,
       getToolName,
       getToolDescription,

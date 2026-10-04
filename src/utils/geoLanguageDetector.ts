@@ -23,7 +23,8 @@ export const TOP_30_LANGUAGES: SupportedLanguage[] = [
   { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺", hreflang: "ru", popularCountries: ["RU", "KZ", "BY", "KG"] },
   { code: "ja", name: "Japanese", nativeName: "日本語", flag: "🇯🇵", hreflang: "ja", popularCountries: ["JP"] },
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷", hreflang: "ko", popularCountries: ["KR"] },
-  { code: "zh", name: "Chinese (Simplified)", nativeName: "简体中文", flag: "🇨🇳", hreflang: "zh-Hans", popularCountries: ["CN", "SG", "TW", "HK"] },
+  { code: "zh-CN", name: "Chinese (Simplified)", nativeName: "简体中文", flag: "🇨🇳", hreflang: "zh-Hans", popularCountries: ["CN", "SG"] },
+  { code: "zh-TW", name: "Chinese (Traditional)", nativeName: "繁體中文", flag: "🇹🇼", hreflang: "zh-Hant", popularCountries: ["TW", "HK"] },
   { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦", direction: "rtl", hreflang: "ar", popularCountries: ["SA", "AE", "EG", "QA", "KW", "OM"] },
   { code: "tr", name: "Turkish", nativeName: "Türkçe", flag: "🇹🇷", hreflang: "tr", popularCountries: ["TR", "CY"] },
   { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱", hreflang: "nl", popularCountries: ["NL", "BE", "SR"] },
@@ -34,6 +35,7 @@ export const TOP_30_LANGUAGES: SupportedLanguage[] = [
   { code: "uk", name: "Ukrainian", nativeName: "Українська", flag: "🇺🇦", hreflang: "uk", popularCountries: ["UA"] },
   { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷", direction: "rtl", hreflang: "fa", popularCountries: ["IR", "AF", "TJ"] },
   { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", flag: "🇲🇾", hreflang: "ms", popularCountries: ["MY", "BN", "SG"] },
+  { code: "el", name: "Greek", nativeName: "Ελληνικά", flag: "🇬🇷", hreflang: "el", popularCountries: ["GR", "CY"] },
 ];
 
 /**

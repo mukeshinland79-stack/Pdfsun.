@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
 
 interface EnterpriseSuiteCardProps {
   onSelectTool: (tool: ToolItem) => void;
@@ -27,6 +28,8 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
   onOpenPricing,
   onOpenContactModal,
 }) => {
+  const { t, dir } = useLanguage();
+
   const handleLaunchCopilot = () => {
     const aiTool =
       ALL_TOOLS.find((t) => t.id === "ai-chat-pdf" || t.slug === "ai-chat-pdf") ||
@@ -46,6 +49,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
   return (
     <div
       id="enterprise-suite-card"
+      dir={dir}
       className="relative group h-full rounded-3xl p-6 sm:p-8 bg-[#0b1329] border border-blue-500/30 hover:border-blue-400/60 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_35px_rgba(59,130,246,0.25)] transition-all duration-300 flex flex-col justify-between overflow-hidden text-white"
       aria-label="PDFSun Global Enterprise Suite"
     >
@@ -58,25 +62,25 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center space-x-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-xs">
             <Globe className="w-3 h-3 text-blue-400" />
-            <span>GLOBAL ENTERPRISE SUITE</span>
+            <span>{t("enterpriseSuite.badgeGlobal", "GLOBAL ENTERPRISE SUITE")}</span>
           </span>
           <span className="inline-flex items-center space-x-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs">
             <Cpu className="w-3 h-3 text-amber-400" />
-            <span>WASM MULTI-THREAD ENGINE</span>
+            <span>{t("enterpriseSuite.badgeWasm", "WASM MULTI-THREAD ENGINE")}</span>
           </span>
           <span className="inline-flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 ml-auto hidden sm:inline-flex">
             <ShieldCheck className="w-3 h-3 text-emerald-400 mr-0.5" />
-            SOC-2 &amp; GDPR Ready
+            {t("enterpriseSuite.badgeSoc", "SOC-2 & GDPR Ready")}
           </span>
         </div>
 
         {/* Title & Core Value Proposition */}
         <div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight mb-2 tracking-tight flex items-center space-x-2">
-            <span>PDFSun Global Enterprise Suite</span>
+            <span>{t("enterpriseSuite.title", "PDFSun Global Enterprise Suite")}</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-            Empower high-volume teams with zero-knowledge, in-browser WebAssembly document automation, hardware-accelerated batch conversions, and enterprise identity federation.
+            {t("enterpriseSuite.description", "Empower high-volume teams with zero-knowledge, in-browser WebAssembly document automation, hardware-accelerated batch conversions, and enterprise identity federation.")}
           </p>
         </div>
 
@@ -87,8 +91,8 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-mono font-bold text-slate-400">&lt;200ms</span>
             </div>
-            <div className="text-xs font-bold text-white">Edge Speed</div>
-            <div className="text-[10px] text-slate-400">Zero cloud latency</div>
+            <div className="text-xs font-bold text-white">{t("enterpriseSuite.edgeSpeed", "Edge Speed")}</div>
+            <div className="text-[10px] text-slate-400">{t("enterpriseSuite.edgeSpeedSub", "Zero cloud latency (<200ms)")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
@@ -96,8 +100,8 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
               <KeyRound className="w-4 h-4" />
               <span className="text-[10px] font-mono font-bold text-slate-400">SAML 2.0</span>
             </div>
-            <div className="text-xs font-bold text-white">Enterprise SSO</div>
-            <div className="text-[10px] text-slate-400">Okta &amp; Azure AD</div>
+            <div className="text-xs font-bold text-white">{t("enterpriseSuite.enterpriseSso", "Enterprise SSO")}</div>
+            <div className="text-[10px] text-slate-400">{t("enterpriseSuite.enterpriseSsoSub", "Okta & Azure AD (SAML 2.0)")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
@@ -105,8 +109,8 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
               <Lock className="w-4 h-4" />
               <span className="text-[10px] font-mono font-bold text-slate-400">256-Bit</span>
             </div>
-            <div className="text-xs font-bold text-white">Zero Leakage</div>
-            <div className="text-[10px] text-slate-400">Pure client sandbox</div>
+            <div className="text-xs font-bold text-white">{t("enterpriseSuite.zeroLeakage", "Zero Leakage")}</div>
+            <div className="text-[10px] text-slate-400">{t("enterpriseSuite.zeroLeakageSub", "Pure client sandbox (256-Bit)")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col justify-between">
@@ -114,8 +118,8 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
               <CheckCircle2 className="w-4 h-4" />
               <span className="text-[10px] font-mono font-bold text-slate-400">99.99%</span>
             </div>
-            <div className="text-xs font-bold text-white">Uptime SLA</div>
-            <div className="text-[10px] text-slate-400">Offline PWA ready</div>
+            <div className="text-xs font-bold text-white">{t("enterpriseSuite.uptimeSla", "Uptime SLA")}</div>
+            <div className="text-[10px] text-slate-400">{t("enterpriseSuite.uptimeSlaSub", "Offline PWA ready (99.99%)")}</div>
           </div>
         </div>
 
@@ -123,15 +127,15 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
         <div className="flex flex-wrap gap-2 pt-1 text-[11px] text-slate-300 font-medium">
           <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700">
             <Sparkles className="w-3 h-3 text-blue-400" />
-            <span>AI Copilot &amp; Smart Summaries</span>
+            <span>{t("enterpriseSuite.aiCopilot", "AI Copilot & Smart Summaries")}</span>
           </span>
           <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700">
             <Layers className="w-3 h-3 text-cyan-400" />
-            <span>Unlimited Concurrent Batching</span>
+            <span>{t("enterpriseSuite.unlimitedBatching", "Unlimited Concurrent Batching")}</span>
           </span>
           <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700">
             <FileCheck className="w-3 h-3 text-emerald-400" />
-            <span>Audit-Proof Ledger &amp; Invoicing</span>
+            <span>{t("enterpriseSuite.auditProofLedger", "Audit-Proof Ledger & Invoicing")}</span>
           </span>
         </div>
       </div>
@@ -145,7 +149,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
             className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/30 transition cursor-pointer active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Launch AI Copilot</span>
+            <span>{t("copilot.cta", "Launch AI Assistant")}</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </button>
 
@@ -154,12 +158,12 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
             onClick={handleOpenEnterprisePlans}
             className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 transition cursor-pointer active:scale-95"
           >
-            <span>Explore Enterprise Plans</span>
+            <span>{t("enterpriseSuite.cta", "Explore Enterprise Solutions")}</span>
           </button>
         </div>
 
         <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-          66+ Tools • 100% In-Browser Privacy
+          {t("badges.tools50", "66+ Tools")} • {t("badges.privacyTitle", "100% In-Browser Privacy")}
         </span>
       </div>
     </div>

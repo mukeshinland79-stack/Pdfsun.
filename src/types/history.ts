@@ -1,8 +1,10 @@
 export interface HistoryEventItem {
   id: string;
   year: number | string;
+  originalYear?: number | string;
   headline: string;
   title?: string;
+  subtitle?: string; // Profession, title or secondary summary
   description: string;
   category: "milestone" | "birth" | "invention" | "culture" | "country-spotlight";
   tag: string;
@@ -14,7 +16,7 @@ export interface HistoryEventItem {
   sourceDomain?: string;
   sourceUrl?: string; // internal backend provenance
   retrievedAt?: string;
-  verificationStatus?: "VERIFIED" | "ARCHIVED" | "CROSS_REFERENCED";
+  verificationStatus?: "VERIFIED" | "ARCHIVED" | "CROSS_REFERENCED" | string;
   confidence?: "high" | "medium" | "standard";
   people?: string[];
   imageUrl?: string;
@@ -28,6 +30,26 @@ export interface DailyTriviaQuiz {
   explanation: string;
   historicalContext: string;
   relatedYear: string | number;
+  sourceName?: string;
+  sourceDomain?: string;
+  verificationStatus?: string;
+}
+
+export interface TriviaQuizState {
+  selectedOption: number | null;
+  isSubmitted: boolean;
+  isCorrect: boolean | null;
+  score: number;
+  streak: number;
+  totalAnswered: number;
+  showExplanationModal: boolean;
+}
+
+export interface HistoryQuote {
+  quote: string;
+  author: string;
+  context: string;
+  tag?: string;
   sourceName?: string;
   sourceDomain?: string;
   verificationStatus?: string;
@@ -61,19 +83,13 @@ export interface DayInHistoryData {
   isAiEnhanced?: boolean;
   isCountrySpecific?: boolean;
   isGlobalFallback?: boolean;
+  isFallbackTranslation?: boolean;
   events: HistoryEventItem[];
   births: HistoryEventItem[];
   discoveries: HistoryEventItem[];
   countrySpotlight?: HistoryEventItem[];
   dailyTrivia: DailyTriviaQuiz;
-  quoteOfTheDay: {
-    quote: string;
-    author: string;
-    context: string;
-    sourceName?: string;
-    sourceDomain?: string;
-    verificationStatus?: string;
-  };
+  quoteOfTheDay: HistoryQuote;
 }
 
 export interface SupportedLanguage {
@@ -84,6 +100,11 @@ export interface SupportedLanguage {
   direction?: "ltr" | "rtl";
   hreflang: string;
   popularCountries: string[];
+}
+
+export interface HistoryLanguageConfig extends SupportedLanguage {
+  wikiSubdomain?: string;
+  fontFamilyFallback?: string;
 }
 
 export interface GeoDetectionResult {
