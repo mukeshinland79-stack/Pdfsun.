@@ -1,16 +1,4 @@
 {
-  "hub": {
-    "enterpriseAiTitle": "Enterprise AI & Next-Gen Document Engine",
-    "enterpriseAiSub": "AI PDF Chat, Voice Dictation, Summarization, and Mobile Integration",
-    "engineChroniclesTitle": "PDFSun Engine & Daily Chronicles",
-    "engineChroniclesSub": "Client-Side WebAssembly Architecture, Historical Insights & World-Class Document Intelligence",
-    "formatsReviewsTitle": "Supported Formats & Verified User Reviews",
-    "formatsReviewsSub": "4.9/5 Rating from 18,420+ global professionals and students",
-    "faqsTitle": "Frequently Asked Questions (FAQ)",
-    "faqsSub": "Security, file limits, browser privacy, and WebAssembly processing",
-    "expand": "Expand",
-    "collapse": "Collapse"
-  },
   "appBanner": {
     "title": "PDFSun Mobile App",
     "tagline": "Your complete PDF workspace, right on your phone.",

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { ChevronDown, Sparkles, BookOpen, Layers, MessageSquare, Compass, ShieldCheck } from "lucide-react";
-import { useLanguage } from "../lib/i18n";
 
 export interface CollapsibleSectionsHubProps {
   childrenAiSection?: React.ReactNode;
@@ -23,7 +22,6 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
   childrenFaqSection,
   childrenNewsletterSection,
 }) => {
-  const { t, dir } = useLanguage();
   // Collapsible accordion states (default open for key SEO and informative sections)
   const [aiExpanded, setAiExpanded] = useState<boolean>(true);
   const [knowledgeExpanded, setKnowledgeExpanded] = useState<boolean>(true);
@@ -31,7 +29,7 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
   const [faqExpanded, setFaqExpanded] = useState<boolean>(true);
 
   return (
-    <div id="collapsible-sections-hub" dir={dir} className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div id="collapsible-sections-hub" className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Section 1: Enterprise AI & Pro Suite Accordion */}
       {childrenAiSection && (
         <section
@@ -51,16 +49,16 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {t("hub.enterpriseAiTitle", "Enterprise AI & Next-Gen Document Engine")}
+                  Enterprise AI &amp; Next-Gen Document Engine
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("hub.enterpriseAiSub", "AI PDF Chat, Voice Dictation, Summarization, and Mobile Integration")}
+                  AI PDF Chat, Voice Dictation, Summarization, and Mobile Integration
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hidden sm:inline">
-                {aiExpanded ? t("hub.collapse", "Collapse") : t("hub.expand", "Expand")}
+                {aiExpanded ? "Collapse" : "Expand"}
               </span>
               <ChevronDown
                 className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
@@ -97,16 +95,16 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {t("hub.engineChroniclesTitle", "PDFSun Engine & Daily Chronicles")}
+                  PDFSun Engine &amp; Daily Chronicles
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("hub.engineChroniclesSub", "Client-Side WebAssembly Architecture, Historical Insights & World-Class Document Intelligence")}
+                  Client-Side WebAssembly Architecture, Historical Insights &amp; World-Class Document Intelligence
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 hidden sm:inline">
-                {knowledgeExpanded ? t("hub.collapse", "Collapse") : t("hub.expand", "Expand")}
+                {knowledgeExpanded ? "Collapse" : "Expand"}
               </span>
               <ChevronDown
                 className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
@@ -148,16 +146,16 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {t("hub.formatsReviewsTitle", "Supported Formats & Verified User Reviews")}
+                  Supported Formats &amp; Verified User Reviews
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("hub.formatsReviewsSub", "4.9/5 Rating from 18,420+ global professionals and students")}
+                  4.9/5 Rating from 18,420+ global professionals and students
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hidden sm:inline">
-                {reviewsExpanded ? t("hub.collapse", "Collapse") : t("hub.expand", "Expand")}
+                {reviewsExpanded ? "Collapse" : "Expand"}
               </span>
               <ChevronDown
                 className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
@@ -195,16 +193,16 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {t("hub.faqsTitle", "Frequently Asked Questions (FAQ)")}
+                  Frequently Asked Questions (FAQ)
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("hub.faqsSub", "Security, file limits, browser privacy, and WebAssembly processing")}
+                  Security, file limits, browser privacy, and WebAssembly processing
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 hidden sm:inline">
-                {faqExpanded ? t("hub.collapse", "Collapse") : t("hub.expand", "Expand")}
+                {faqExpanded ? "Collapse" : "Expand"}
               </span>
               <ChevronDown
                 className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
