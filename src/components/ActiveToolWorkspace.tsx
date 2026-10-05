@@ -508,6 +508,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [smartAnalysisResult, setSmartAnalysisResult] = useState<SmartDocumentAnalysis | null>(null);
   const [wordConversionPreset, setWordConversionPreset] = useState<WordToPdfPreset>("max_accuracy");
   const [excelConversionPreset, setExcelConversionPreset] = useState<ExcelToPdfPreset>("fit_to_page");
+  const [excelShowGridlines, setExcelShowGridlines] = useState<boolean>(true);
+  const [excelRepeatHeader, setExcelRepeatHeader] = useState<boolean>(true);
+  const [excelPaperMargin, setExcelPaperMargin] = useState<"standard" | "compact" | "wide">("standard");
   const [pptConversionPreset, setPptConversionPreset] = useState<PptToPdfPreset>("vector_fidelity");
   const [pdfToPptPreset, setPdfToPptPreset] = useState<PdfToPptPreset>("hybrid_master");
   const [ocrAutoDeskew, setOcrAutoDeskew] = useState<boolean>(true);
@@ -1149,8 +1152,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Analyzing spreadsheet geometry, column auto-fit & layout...");
           const res = await convertExcelToPdfEnterprise(files[0], {
             preset: excelConversionPreset,
+            detectionMode: smartDetectionMode as any,
             pageSize: convertPageSize === "Letter" ? "Letter" : "A4",
             orientation: convertOrientation,
+            showGridLines: excelShowGridlines,
+            repeatHeader: excelRepeatHeader,
+            paperMargin: excelPaperMargin,
             onProgress: (p, msg) => {
               setProgress(20 + Math.round((p / 100) * 75));
               if (msg) setStatusMessage(msg);
@@ -4011,68 +4018,160 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   )}
 
                   {tool.id === "excel-to-pdf" && (
-                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
+                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                           <span>📊 Adaptive Auto-Fit & Multi-Page Pagination Presets</span>
                         </label>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                           {excelConversionPreset === "fit_to_page"
-                            ? "Mode 1: Fit to 1 Page Wide"
+                            ? "Mode 1: Fit Sheet to 1 Page Wide"
                             : excelConversionPreset === "standard_grid"
                             ? "Mode 2: Standard Grid Print"
-                            : "Mode 3: Compact Density"}
+                            : "Mode 3: Compact High-Density"}
                         </span>
                       </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button
                           type="button"
                           onClick={() => setExcelConversionPreset("fit_to_page")}
-                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                          className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                             excelConversionPreset === "fit_to_page"
-                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
-                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-600 ring-2 ring-emerald-500/40 shadow-xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400"
                           }`}
                         >
-                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                            📐 Fit Sheet to 1 Page Wide
+                          <span className="text-xs font-black text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                            <span>📐 Fit Sheet to 1 Page Wide</span>
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-1.5 leading-snug">
                             Auto-scales columns proportionally with ZERO horizontal edge clipping on 50+ column sheets.
                           </span>
                         </button>
+
                         <button
                           type="button"
                           onClick={() => setExcelConversionPreset("standard_grid")}
-                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                          className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                             excelConversionPreset === "standard_grid"
-                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
-                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-600 ring-2 ring-emerald-500/40 shadow-xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400"
                           }`}
                         >
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            📊 Standard Grid Print
+                          <span className="text-xs font-black text-slate-900 dark:text-slate-200 flex items-center gap-1.5">
+                            <span>📊 Standard Grid Print</span>
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-1.5 leading-snug">
                             Comfortable font sizing with repeated row headers for long multi-page financial statements.
                           </span>
                         </button>
+
                         <button
                           type="button"
                           onClick={() => setExcelConversionPreset("compact_density")}
-                          className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                          className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                             excelConversionPreset === "compact_density"
-                              ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-1 ring-emerald-600 shadow-2xs"
-                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-600 ring-2 ring-emerald-500/40 shadow-xs"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400"
                           }`}
                         >
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            🪶 Compact High-Density
+                          <span className="text-xs font-black text-slate-900 dark:text-slate-200 flex items-center gap-1.5">
+                            <span>🪶 Compact High-Density</span>
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-1.5 leading-snug">
                             Tight row packaging with compressed vector stream for email, WhatsApp & web archiving.
                           </span>
                         </button>
+                      </div>
+
+                      {/* Vector Quality & Artifact-Free Parameters */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        {/* 1. Gridlines toggle */}
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                              Clean Vector Gridlines
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                              Single-pass solid #D1D5DB lines
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setExcelShowGridlines((prev) => !prev)}
+                            className={`w-10 h-5.5 rounded-full transition-colors relative cursor-pointer ${
+                              excelShowGridlines ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-600"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform ${
+                                excelShowGridlines ? "translate-x-4.5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* 2. Repeat Header toggle */}
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                              Repeat Column Header
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                              On each continuation page
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setExcelRepeatHeader((prev) => !prev)}
+                            className={`w-10 h-5.5 rounded-full transition-colors relative cursor-pointer ${
+                              excelRepeatHeader ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-600"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform ${
+                                excelRepeatHeader ? "translate-x-4.5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* 3. Paper Margin Selector */}
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                              Page Margin
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                              Printable boundary
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            {(["compact", "standard", "wide"] as const).map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => setExcelPaperMargin(m)}
+                                className={`px-2 py-1 rounded text-[10px] font-bold capitalize transition ${
+                                  excelPaperMargin === m
+                                    ? "bg-emerald-600 text-white shadow-2xs"
+                                    : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
+                                }`}
+                              >
+                                {m === "compact" ? "8mm" : m === "standard" ? "12mm" : "16mm"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pure Vector Security & Artifact Elimination Banner */}
+                      <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>
+                          <strong>Zero Background Noise Guaranteed:</strong> Solid opaque pure white canvas (#FFFFFF), single-pass continuous line vector rendering, and optical glyph clearance active.
+                        </span>
                       </div>
                     </div>
                   )}

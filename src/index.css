@@ -1296,6 +1296,29 @@ html.theme-transitioning *::after {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
 
+/* =========================================================================
+   Excel & Table to PDF Clean Vector & Anti-Aliasing Sanitization
+   Eliminates sub-pixel border artifacts, canvas dithering & text glyph noise
+   ========================================================================= */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.pdf-export-table,
+.pdf-export-table table,
+.pdf-export-table td,
+.pdf-export-table th {
+  border-collapse: collapse !important;
+  border-style: solid !important;
+  /* Enforce solid 1px borders to prevent fractional sub-pixel dots */
+  border-width: 1px !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 
 
 

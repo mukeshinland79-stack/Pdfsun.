@@ -1010,10 +1010,17 @@ export async function wordToPdf(
 // 16. Real Excel (.xlsx / .csv) to PDF Converter using Enterprise Adaptive Engine
 export async function excelToPdf(
   file: File,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  options?: Partial<ExcelToPdfOptions>
 ): Promise<Uint8Array> {
   const res = await convertExcelToPdfEnterprise(file, {
-    preset: "fit_to_page",
+    preset: options?.preset || "fit_to_page",
+    detectionMode: options?.detectionMode || "auto",
+    pageSize: options?.pageSize || "A4",
+    orientation: options?.orientation || "auto",
+    showGridLines: options?.showGridLines !== false,
+    repeatHeader: options?.repeatHeader !== false,
+    ...options,
     onProgress: (p) => {
       if (onProgress) onProgress(p);
     },
