@@ -39,50 +39,212 @@ body {
 
 :root {
   /* =========================================================
-     PDFSun Master Design Tokens (Image to Excel Standard)
+     PDFSun Central Design Tokens & Multi-Theme Architecture
      ========================================================= */
-  --outer-bg: #0b0f19;
-  --card-main-bg: #ffffff;
-  --section-accent-bg: #fffbeb;
-  --section-accent-border: #fef08a;
   --primary-orange: #f97316;
   --primary-orange-hover: #ea580c;
-  --text-dark: #1e293b;
-  --text-muted: #64748b;
+  --accent-orange: var(--primary-orange);
   --card-border-radius: 20px;
   --inner-border-radius: 12px;
-  --font-family: 'Inter', system-ui, -apple-system, 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Tamil', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Arabic', sans-serif;
-
-  /* Universal History & WCAG AA Surface Tokens */
-  --surface-card-elevated: #1E1E2E;
-  --surface-trivia-card: #181825;
-  --surface-choice-btn: #1E1E2E;
-  --surface-choice-hover: #25263A;
-
-  /* Central Theme Aliases mapped to Master Design Tokens */
-  --bg-primary: var(--outer-bg);
-  --bg-secondary: var(--card-main-bg);
-  --accent-orange: var(--primary-orange);
-  --text-primary: var(--text-dark);
-  --text-secondary: var(--text-muted);
   --border-radius: var(--inner-border-radius);
-
-  /* Aliases & Semantic Tokens for Tool Components */
-  --bg-surface: #ffffff;
-  --bg-elevated: #f8fafc;
-  --bg-elevated-hover: #f1f5f9;
-  --border-color: #e2e8f0;
-  --border-subtle: #f1f5f9;
+  --font-family: 'Inter', system-ui, -apple-system, 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Tamil', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Arabic', sans-serif;
+  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
   --border-focus: var(--primary-orange);
   --accent-color: var(--primary-orange);
   --accent-hover: var(--primary-orange-hover);
-  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #f59e0b 100%);
+
+  /* Light Theme (Default Root) */
+  --canvas-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --card-header-bg: #ffffff;
+  --card-footer-bg: #ffffff;
+  --section-accent-bg: #fffbeb;
+  --section-accent-border: #fef08a;
+  --section-accent-text: #92400e;
+  --card-border: #e2e8f0;
+  --subtle-border: #f1f5f9;
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --dropzone-bg: #f8fafc;
   --dropzone-border: #cbd5e1;
   --dropzone-hover-bg: #fffbeb;
   --dropzone-hover-border: var(--primary-orange);
-  --input-bg: #f8fafc;
-  --input-border: #e2e8f0;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --option-card-bg: #f8fafc;
+  --option-card-hover-bg: #fff7ed;
+  --option-card-active-bg: #ffedd5;
+  --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+
+  /* Central Aliases mapped to active tokens */
+  --outer-bg: var(--canvas-bg);
+  --card-main-bg: var(--card-bg);
+  --bg-primary: var(--canvas-bg);
+  --bg-secondary: var(--card-bg);
+  --bg-surface: var(--card-bg);
+  --bg-elevated: var(--option-card-bg);
+  --bg-elevated-hover: var(--option-card-hover-bg);
+  --text-dark: var(--text-main);
+  --text-primary: var(--text-main);
+  --border-color: var(--card-border);
+  --border-subtle: var(--subtle-border);
+  --surface-card-elevated: #f1f5f9;
+  --surface-trivia-card: #f8fafc;
+  --surface-choice-btn: #ffffff;
+  --surface-choice-hover: #f1f5f9;
+}
+
+/* Explicit Light Theme */
+:root[data-theme="light"],
+html[data-theme="light"],
+html.light {
+  --canvas-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --card-header-bg: #ffffff;
+  --card-footer-bg: #ffffff;
+  --section-accent-bg: #fffbeb;
+  --section-accent-border: #fef08a;
+  --section-accent-text: #92400e;
+  --card-border: #e2e8f0;
+  --subtle-border: #f1f5f9;
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --dropzone-bg: #f8fafc;
+  --dropzone-border: #cbd5e1;
+  --dropzone-hover-bg: #fffbeb;
+  --dropzone-hover-border: var(--primary-orange);
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --option-card-bg: #f8fafc;
+  --option-card-hover-bg: #fff7ed;
+  --option-card-active-bg: #ffedd5;
+  --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark Theme Tokens */
+:root[data-theme="dark"],
+html[data-theme="dark"],
+html.dark {
+  --canvas-bg: #0b0f19;
+  --card-bg: #161f33;
+  --card-header-bg: #0f172a;
+  --card-footer-bg: #0f172a;
+  --section-accent-bg: rgba(245, 158, 11, 0.1);
+  --section-accent-border: rgba(245, 158, 11, 0.25);
+  --section-accent-text: #fcd34d;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --subtle-border: rgba(255, 255, 255, 0.06);
+  --text-main: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --dropzone-bg: rgba(15, 23, 42, 0.6);
+  --dropzone-border: rgba(255, 255, 255, 0.15);
+  --dropzone-hover-bg: rgba(245, 158, 11, 0.08);
+  --dropzone-hover-border: #f97316;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --option-card-bg: #1e293b;
+  --option-card-hover-bg: rgba(249, 115, 22, 0.12);
+  --option-card-active-bg: rgba(249, 115, 22, 0.22);
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+
+  --surface-card-elevated: #1E1E2E;
+  --surface-trivia-card: #181825;
+  --surface-choice-btn: #1E1E2E;
+  --surface-choice-hover: #25263A;
+}
+
+/* Eye-Protection (Sepia / Warm Paper) Theme Tokens */
+:root[data-theme="eye-protection"],
+html[data-theme="eye-protection"],
+html.eye-protection {
+  --canvas-bg: #f7f3e9;
+  --card-bg: #fcf9f2;
+  --card-header-bg: #f5eee0;
+  --card-footer-bg: #fcf9f2;
+  --section-accent-bg: #faeed9;
+  --section-accent-border: #e9d4b3;
+  --section-accent-text: #78350f;
+  --card-border: #e3d9c7;
+  --subtle-border: #ece3d2;
+  --text-main: #2b251e;
+  --text-secondary: #5c5243;
+  --text-muted: #7c7161;
+  --dropzone-bg: #f9f5ec;
+  --dropzone-border: #d6cbbb;
+  --dropzone-hover-bg: #f5ecda;
+  --dropzone-hover-border: #d97706;
+  --input-bg: #fcf9f2;
+  --input-border: #d6cbbb;
+  --option-card-bg: #f7f2e7;
+  --option-card-hover-bg: #f5ecd8;
+  --option-card-active-bg: #faeed9;
+  --card-shadow: 0 8px 24px -4px rgba(78, 64, 48, 0.08);
+
+  --surface-card-elevated: #f5eee0;
+  --surface-trivia-card: #f9f5ec;
+  --surface-choice-btn: #fcf9f2;
+  --surface-choice-hover: #faeed9;
+}
+
+/* Aurora Glass Theme Tokens */
+:root[data-theme="aurora"],
+html[data-theme="aurora"],
+html.aurora-theme {
+  --canvas-bg: #0b1120;
+  --card-bg: rgba(22, 31, 51, 0.82);
+  --card-header-bg: rgba(15, 23, 42, 0.75);
+  --card-footer-bg: rgba(15, 23, 42, 0.75);
+  --section-accent-bg: rgba(99, 102, 241, 0.15);
+  --section-accent-border: rgba(99, 102, 241, 0.35);
+  --section-accent-text: #c7d2fe;
+  --card-border: rgba(255, 255, 255, 0.14);
+  --subtle-border: rgba(255, 255, 255, 0.09);
+  --text-main: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --dropzone-bg: rgba(30, 41, 59, 0.5);
+  --dropzone-border: rgba(99, 102, 241, 0.35);
+  --dropzone-hover-bg: rgba(99, 102, 241, 0.2);
+  --dropzone-hover-border: #818cf8;
+  --input-bg: rgba(15, 23, 42, 0.85);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --option-card-bg: rgba(30, 41, 59, 0.6);
+  --option-card-hover-bg: rgba(99, 102, 241, 0.2);
+  --option-card-active-bg: rgba(99, 102, 241, 0.3);
+  --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 25px rgba(99, 102, 241, 0.15);
+
+  --surface-card-elevated: rgba(30, 41, 59, 0.7);
+  --surface-trivia-card: rgba(15, 23, 42, 0.8);
+  --surface-choice-btn: rgba(30, 41, 59, 0.6);
+  --surface-choice-hover: rgba(99, 102, 241, 0.25);
+}
+
+/* =========================================================
+   Unified Smooth Theme Cross-Fade Transitions
+   ========================================================= */
+.main-tool-card,
+.tool-card-wrapper,
+.tool-card-container,
+.active-workspace-card,
+.tool-card-header,
+.tool-card-footer,
+.drag-drop-zone,
+.tool-dropzone,
+.tool-option-card,
+.section-accent-card,
+.quick-tip-banner,
+.tool-settings-wrapper,
+.faq-accordion-section,
+.faq-accordion-item,
+.site-outer-canvas,
+#pdfsun-tool-wrapper,
+#pdfsun-compressor-box,
+.btn-interactive,
+article[id^="tool-card-"] {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
 
 /* =========================================================
@@ -90,8 +252,8 @@ body {
    ========================================================= */
 .site-outer-canvas,
 #pdfsun-tool-wrapper {
-  background-color: var(--outer-bg, #0b0f19) !important;
-  color: var(--text-dark, #1e293b);
+  background-color: var(--canvas-bg) !important;
+  color: var(--text-main) !important;
   min-height: 100vh;
   width: 100%;
 }
@@ -101,12 +263,18 @@ body {
 .tool-card-container,
 .active-workspace-card,
 .compressor-container > div.tool-card-wrapper {
-  background-color: var(--card-main-bg, #ffffff) !important;
-  color: var(--text-dark, #1e293b) !important;
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
   border-radius: var(--card-border-radius, 20px) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid rgba(226, 232, 240, 0.85) !important;
-  transition: all 0.2s ease-in-out;
+  box-shadow: var(--card-shadow) !important;
+  border: 1px solid var(--card-border) !important;
+}
+
+html.aurora-theme .main-tool-card,
+html.aurora-theme .tool-card-wrapper,
+html.aurora-theme .active-workspace-card {
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
 /* Exact responsive padding standard */
@@ -130,9 +298,9 @@ body {
 .tool-card-header,
 .active-workspace-card > div:first-of-type:not(.absolute),
 .tool-card-wrapper > div:first-of-type:not(.absolute) {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #f1f5f9 !important;
-  color: var(--text-dark, #1e293b) !important;
+  background-color: var(--card-header-bg) !important;
+  border-bottom: 1px solid var(--subtle-border) !important;
+  color: var(--text-main) !important;
 }
 
 .main-tool-card h1,
@@ -144,62 +312,112 @@ body {
 .tool-card-wrapper h1,
 .tool-card-wrapper h2,
 .tool-card-wrapper h3 {
-  color: var(--text-dark, #1e293b) !important;
+  color: var(--text-main) !important;
+}
+
+/* Contextual Inner Card Theme Mappings for Workspaces & Compressors */
+.main-tool-card .bg-slate-50,
+.main-tool-card .bg-slate-50\/80,
+.main-tool-card .bg-slate-100,
+.active-workspace-card .bg-slate-50,
+.active-workspace-card .bg-slate-100,
+.compressor-container .bg-slate-50,
+.compressor-container .bg-slate-50\/80 {
+  background-color: var(--card-header-bg) !important;
+  border-color: var(--card-border) !important;
+  color: var(--text-main) !important;
+}
+
+.main-tool-card .bg-white,
+.active-workspace-card .bg-white,
+.compressor-container .bg-white {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  color: var(--text-main) !important;
+}
+
+.main-tool-card .text-slate-900,
+.main-tool-card .text-slate-800,
+.active-workspace-card .text-slate-900,
+.active-workspace-card .text-slate-800,
+.compressor-container .text-slate-900,
+.compressor-container .text-slate-800 {
+  color: var(--text-main) !important;
+}
+
+.main-tool-card .text-slate-700,
+.main-tool-card .text-slate-600,
+.main-tool-card .text-slate-500,
+.active-workspace-card .text-slate-700,
+.active-workspace-card .text-slate-600,
+.active-workspace-card .text-slate-500,
+.compressor-container .text-slate-700,
+.compressor-container .text-slate-600,
+.compressor-container .text-slate-500 {
+  color: var(--text-secondary) !important;
+}
+
+.main-tool-card .border-slate-200,
+.main-tool-card .border-slate-100,
+.active-workspace-card .border-slate-200,
+.active-workspace-card .border-slate-100,
+.compressor-container .border-slate-200 {
+  border-color: var(--subtle-border) !important;
 }
 
 /* Section Cards & Accent Backgrounds (Quick Tips and Settings) */
 .quick-tip-banner,
 .section-accent-card {
-  background-color: var(--section-accent-bg, #fffbeb) !important;
-  border: 1px solid var(--section-accent-border, #fef08a) !important;
+  background-color: var(--section-accent-bg) !important;
+  border: 1px solid var(--section-accent-border) !important;
   border-radius: var(--inner-border-radius, 12px) !important;
-  color: #92400e !important;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.08) !important;
+  color: var(--section-accent-text) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
 .quick-tip-banner p,
 .quick-tip-banner span,
 .section-accent-card p,
 .section-accent-card span {
-  color: #92400e !important;
+  color: var(--section-accent-text) !important;
 }
 
 /* Standard Upload Zone */
 .drag-drop-zone,
 .tool-dropzone {
-  background-color: #f8fafc !important;
-  border: 2px dashed #cbd5e1 !important;
+  background-color: var(--dropzone-bg) !important;
+  border: 2px dashed var(--dropzone-border) !important;
   border-radius: var(--inner-border-radius, 12px) !important;
-  color: var(--text-dark, #1e293b) !important;
-  transition: all 0.2s ease-in-out;
+  color: var(--text-main) !important;
 }
 
 .drag-drop-zone:hover,
 .tool-dropzone:hover {
-  background-color: #fffbeb !important;
-  border-color: var(--primary-orange, #f97316) !important;
+  background-color: var(--dropzone-hover-bg) !important;
+  border-color: var(--dropzone-hover-border) !important;
 }
 
 /* Settings Sections */
 .tool-settings-wrapper {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: var(--option-card-bg);
+  border: 1px solid var(--card-border);
   border-radius: var(--inner-border-radius, 12px);
   padding: 16px;
-  color: var(--text-dark, #1e293b);
+  color: var(--text-main);
 }
 
-/* Collapsible White FAQ Accordion Section */
+/* Collapsible FAQ Accordion Section */
 .faq-accordion-section {
-  background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
   border-radius: var(--inner-border-radius, 12px) !important;
   overflow: hidden !important;
 }
 
 .faq-accordion-item {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #f1f5f9 !important;
+  background-color: var(--card-bg) !important;
+  border-bottom: 1px solid var(--subtle-border) !important;
+  color: var(--text-main) !important;
 }
 
 .faq-accordion-item:last-child {
@@ -209,9 +427,9 @@ body {
 /* Standard Tool Card Footer */
 .tool-card-footer,
 .active-workspace-card > div:last-of-type:not(.fixed):not(.absolute) {
-  border-top: 1px solid #f1f5f9 !important;
-  background-color: #ffffff !important;
-  color: var(--text-dark, #1e293b) !important;
+  border-top: 1px solid var(--subtle-border) !important;
+  background-color: var(--card-footer-bg) !important;
+  color: var(--text-main) !important;
 }
 
 /* Primary Call to Action Button */
@@ -225,7 +443,6 @@ body {
   border-radius: var(--inner-border-radius, 12px) !important;
   font-weight: 700 !important;
   box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3) !important;
-  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn-primary:hover,
@@ -236,86 +453,93 @@ body {
   background-color: var(--primary-orange-hover, #ea580c) !important;
 }
 
-/* Option Cards (Smart Auto-Detect, Table Focus) */
+/* Option Cards (Smart Auto-Detect, Table Focus, Presets) */
 .tool-option-card {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: var(--option-card-bg);
+  border: 1px solid var(--card-border);
   border-radius: var(--inner-border-radius, 12px);
   padding: 12px;
-  transition: all 0.2s ease;
+  color: var(--text-main);
 }
 
 .tool-option-card:hover {
   border-color: var(--primary-orange, #f97316);
-  background-color: #fffbeb;
+  background-color: var(--option-card-hover-bg);
 }
 
 .tool-option-card.active {
-  background-color: #fffbeb;
+  background-color: var(--option-card-active-bg);
   border-color: var(--primary-orange, #f97316);
   box-shadow: 0 0 0 1px var(--primary-orange, #f97316);
 }
 
-/* Orange Pill Badges */
+/* Pill Badges */
 .pill-badge-orange,
 .badge-orange-pill {
-  background-color: #ffedd5 !important;
-  color: #c2410c !important;
-  border: 1px solid #fed7aa !important;
+  background-color: rgba(249, 115, 22, 0.15) !important;
+  color: #ea580c !important;
+  border: 1px solid rgba(249, 115, 22, 0.3) !important;
   border-radius: 9999px !important;
   font-weight: 800 !important;
   font-size: 11px !important;
   padding: 2px 10px !important;
 }
 
-/* Soft Grey Input Boxes (#F8FAFC) */
+html.dark .pill-badge-orange,
+html.dark .badge-orange-pill,
+[data-theme="dark"] .pill-badge-orange,
+[data-theme="dark"] .badge-orange-pill {
+  color: #fb923c !important;
+}
+
+/* Soft Grey / Themed Input Boxes */
 .tool-input-soft,
 .main-tool-card input[type="text"]:not([class*="bg-transparent"]),
 .main-tool-card input[type="number"]:not([class*="bg-transparent"]),
 .main-tool-card input[type="password"]:not([class*="bg-transparent"]),
 .main-tool-card textarea:not([class*="bg-transparent"]),
 .main-tool-card select:not([class*="bg-transparent"]) {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #1e293b !important;
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-main) !important;
   border-radius: var(--inner-border-radius, 12px) !important;
 }
 
 /* Tool Shared UI Token Helper Classes */
 .tool-theme-shell {
-  background-color: var(--outer-bg);
-  color: var(--text-dark);
-  border-color: var(--border-color);
+  background-color: var(--canvas-bg);
+  color: var(--text-main);
+  border-color: var(--card-border);
 }
 
 .tool-theme-header {
-  background-color: #ffffff;
-  border-color: #f1f5f9;
-  color: var(--text-dark);
+  background-color: var(--card-header-bg);
+  border-color: var(--subtle-border);
+  color: var(--text-main);
 }
 
 .tool-theme-surface {
-  background-color: #ffffff;
-  border-color: #e2e8f0;
-  color: var(--text-dark);
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
+  color: var(--text-main);
 }
 
 .tool-theme-card {
-  background-color: #f8fafc;
-  border-color: #e2e8f0;
-  color: var(--text-dark);
+  background-color: var(--option-card-bg);
+  border-color: var(--card-border);
+  color: var(--text-main);
 }
 
 .tool-theme-dropzone {
   background-color: var(--dropzone-bg);
   border-color: var(--dropzone-border);
-  color: var(--text-dark);
+  color: var(--text-main);
 }
 
 .tool-theme-input {
   background-color: var(--input-bg);
   border-color: var(--input-border);
-  color: var(--text-dark);
+  color: var(--text-main);
 }
 
 /* Responsive Ad Grid Layout & Interactive Hover Animation */
@@ -569,7 +793,7 @@ html.eye-protection body {
 
 html.eye-protection .bg-white,
 html.eye-protection .bg-slate-50,
-html.eye-protection .bg-slate-100\/80 {
+html.eye-protection .bg-slate-100/80 {
   background-color: #fcf9f2 !important;
 }
 
@@ -851,18 +1075,18 @@ html.aurora-theme .aurora-glass {
 
 /* Tool Workspace & Modal Container Background Uniformity */
 #pdfsun-tool-wrapper {
-  background-color: rgba(15, 23, 42, 0.96) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--canvas-bg) !important;
+  color: var(--text-main) !important;
 }
 
 .tool-card-wrapper,
 .tool-card-container,
 #pdfsun-compressor-box > div,
 .active-workspace-card {
-  background-color: var(--bg-secondary) !important;
+  background-color: var(--card-bg) !important;
   border-radius: var(--border-radius) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
 }
 
 /* Tool Input & Form Control Standardization */

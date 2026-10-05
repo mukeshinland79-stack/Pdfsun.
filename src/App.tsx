@@ -48,8 +48,6 @@ import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
 import { ReturningVisitorBar } from "./components/ReturningVisitorBar";
 import { BreadcrumbNav } from "./components/BreadcrumbNav";
-import { PDFEditorWorkspace } from "./components/PDFEditorWorkspace";
-import { ImageEditorWorkspace } from "./components/ImageEditorWorkspace";
 import { CollapsibleSectionsHub } from "./components/CollapsibleSectionsHub";
 import { BlogPage } from "./components/BlogPage";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
@@ -177,15 +175,23 @@ function MainApp() {
     const root = document.documentElement;
 
     const updateClasses = (mode: ThemeMode) => {
-      root.classList.remove("dark", "eye-protection", "aurora-theme");
+      root.classList.remove("dark", "eye-protection", "aurora-theme", "light");
       let active = mode;
       if (mode === "system") {
         active = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       }
 
-      if (active === "dark") root.classList.add("dark");
-      else if (active === "eye-protection") root.classList.add("eye-protection");
-      else if (active === "aurora") root.classList.add("dark", "aurora-theme");
+      root.setAttribute("data-theme", active);
+
+      if (active === "dark") {
+        root.classList.add("dark");
+      } else if (active === "eye-protection") {
+        root.classList.add("eye-protection");
+      } else if (active === "aurora") {
+        root.classList.add("dark", "aurora-theme");
+      } else {
+        root.classList.add("light");
+      }
     };
 
     if (!themeInitialized.current) {
@@ -961,34 +967,6 @@ function MainApp() {
                 <ProtectPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
               ) : activeTool.id === "compress-pdf" ? (
                 <AservusPdfCompressor initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : ["pdf-editor", "edit-pdf", "annotate-pdf"].includes(activeTool.id) && activeToolFiles[0] ? (
-                <PDFEditorWorkspace
-                  file={activeToolFiles[0]}
-                  onClose={handleCloseTool}
-                  onSaveComplete={(outputBytes, fileName) => {
-                    addHistory({
-                      toolId: activeTool.id,
-                      toolName: activeTool.name,
-                      fileName,
-                      outputSize: outputBytes.length,
-                      timestamp: new Date().toISOString(),
-                    });
-                  }}
-                />
-              ) : activeTool.id === "image-editor" && activeToolFiles[0] ? (
-                <ImageEditorWorkspace
-                  file={activeToolFiles[0]}
-                  onClose={handleCloseTool}
-                  onSaveComplete={(outputBytes, fileName) => {
-                    addHistory({
-                      toolId: activeTool.id,
-                      toolName: activeTool.name,
-                      fileName,
-                      outputSize: outputBytes.length,
-                      timestamp: new Date().toISOString(),
-                    });
-                  }}
-                />
               ) : activeTool.isAi ? (
                 <AIChatWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onAddHistory={addHistory} />
               ) : (

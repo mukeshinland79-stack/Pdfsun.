@@ -186,26 +186,30 @@
           var savedTheme = localStorage.getItem("pdfsun_theme");
           var docEl = document.documentElement;
 
+          var targetTheme = "dark";
           if (savedEye === "true" || savedTheme === "eye-protection") {
+            targetTheme = "eye-protection";
+            docEl.classList.remove("dark", "light", "aurora-theme");
             docEl.classList.add("eye-protection");
-            docEl.style.setProperty("--bg-color", "#fcf9f2");
-            docEl.style.setProperty("--text-color", "#2b251e");
-            docEl.style.setProperty("--accent-color", "#0f766e");
           } else if (savedTheme === "aurora") {
+            targetTheme = "aurora";
+            docEl.classList.remove("eye-protection", "light");
             docEl.classList.add("dark", "aurora-theme");
-            docEl.style.setProperty("--bg-color", "#0b1120");
-            docEl.style.setProperty("--text-color", "#f8fafc");
-            docEl.style.setProperty("--accent-color", "#6366f1");
-          } else if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          } else if (savedTheme === "light") {
+            targetTheme = "light";
+            docEl.classList.remove("dark", "eye-protection", "aurora-theme");
+            docEl.classList.add("light");
+          } else if (savedTheme === "dark") {
+            targetTheme = "dark";
+            docEl.classList.remove("light", "eye-protection", "aurora-theme");
             docEl.classList.add("dark");
-            docEl.style.setProperty("--bg-color", "#0f172a");
-            docEl.style.setProperty("--text-color", "#f8fafc");
-            docEl.style.setProperty("--accent-color", "#3b82f6");
-          } else {
-            docEl.style.setProperty("--bg-color", "#ffffff");
-            docEl.style.setProperty("--text-color", "#0f172a");
-            docEl.style.setProperty("--accent-color", "#2563eb");
+          } else if (savedTheme === "system" || !savedTheme) {
+            var isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            targetTheme = isDark ? "dark" : "light";
+            docEl.classList.remove("dark", "light", "eye-protection", "aurora-theme");
+            docEl.classList.add(isDark ? "dark" : "light");
           }
+          docEl.setAttribute("data-theme", targetTheme);
         } catch(e) {}
       })();
     </script>
