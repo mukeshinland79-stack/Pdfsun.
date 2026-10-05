@@ -199,7 +199,12 @@ function MainApp() {
       updateClasses(themeMode);
       isInitialMount.current = false;
     } else {
+      root.classList.add("theme-transitioning");
       updateClasses(themeMode);
+      const timer = window.setTimeout(() => {
+        root.classList.remove("theme-transitioning");
+      }, 250);
+      return () => window.clearTimeout(timer);
     }
 
     try {

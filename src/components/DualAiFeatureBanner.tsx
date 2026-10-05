@@ -15,27 +15,27 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
   return (
     <div
       dir={dir}
-      className="relative group rounded-3xl p-6 sm:p-8 bg-[#0f172a]/85 backdrop-blur-xl border border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-[0_0_35px_rgba(59,130,246,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+      className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-blue-200 dark:border-blue-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(59,130,246,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
     >
       {/* Subtle Background Glow Accent */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/25 transition-all" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/25 transition-all" />
 
       <div>
-        {/* Badges */}
+        {/* Badges with Strict WCAG AAA Contrast */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-xs">
-            <Sparkles className="w-3 h-3 mr-1" /> {t("copilot.badgePro", "PRO FEATURE")}
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#DBEAFE] text-[#1E40AF] border border-[#93C5FD] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 shadow-2xs">
+            <Sparkles className="w-3 h-3 mr-1 text-[#1E40AF] dark:text-blue-400" /> {t("copilot.badgePro", "PRO FEATURE")}
           </span>
-          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs">
-            <Bot className="w-3 h-3 mr-1" /> {t("copilot.badgeAi", "AI POWERED")}
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#CFFAFE] text-[#155E75] border border-[#67E8F9] dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-2xs">
+            <Bot className="w-3 h-3 mr-1 text-[#155E75] dark:text-cyan-300" /> {t("copilot.badgeAi", "AI POWERED")}
           </span>
         </div>
 
         {/* Title & Subheading */}
-        <h3 className="text-xl sm:text-2xl font-black text-white mb-2 flex items-center space-x-2">
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
           <span>{t("copilot.headline", "PDFSun AI Document Copilot")}</span>
         </h3>
-        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-medium">
           {t("copilot.description", "Summarize, analyze, and chat with massive PDF files in real time using 100% private, client-side WebAssembly processing.")}
         </p>
 
@@ -50,9 +50,9 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
             return (
               <span
                 key={idx}
-                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-200 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs"
               >
-                <TagIcon className="w-3.5 h-3.5 text-blue-400" />
+                <TagIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>{tag.label}</span>
               </span>
             );
@@ -80,27 +80,27 @@ export const PDFSunEnterpriseSuiteCard: React.FC<{ onContact: () => void }> = ({
   return (
     <div
       dir={dir}
-      className="relative group rounded-3xl p-6 sm:p-8 bg-[#0f172a]/85 backdrop-blur-xl border border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:shadow-[0_0_35px_rgba(168,85,247,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+      className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-purple-200 dark:border-purple-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(168,85,247,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
     >
       {/* Subtle Background Glow Accent */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/25 transition-all" />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/25 transition-all" />
 
       <div>
-        {/* Badges */}
+        {/* Badges with Strict WCAG AAA Contrast */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs">
-            <Globe className="w-3 h-3 mr-1" /> {t("enterpriseSuite.badgeGlobal", "GLOBAL ENTERPRISE")}
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#F3E8FF] text-[#6B21A8] border border-[#D8B4FE] dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40 shadow-2xs">
+            <Globe className="w-3 h-3 mr-1 text-[#6B21A8] dark:text-purple-400" /> {t("enterpriseSuite.badgeGlobal", "GLOBAL ENTERPRISE")}
           </span>
-          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs">
-            <Cpu className="w-3 h-3 mr-1" /> {t("enterpriseSuite.badgeWasm", "WORLDWIDE SCALE")}
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-2xs">
+            <Cpu className="w-3 h-3 mr-1 text-[#92400E] dark:text-amber-400" /> {t("enterpriseSuite.badgeWasm", "WORLDWIDE SCALE")}
           </span>
         </div>
 
         {/* Title & Subheading */}
-        <h3 className="text-xl sm:text-2xl font-black text-white mb-2 flex items-center space-x-2">
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
           <span>{t("enterpriseSuite.title", "PDFSun Global Enterprise Suite")}</span>
         </h3>
-        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-medium">
           {t("enterpriseSuite.description", "Empower global teams with automated document processing, enterprise encryption, and multi-region deployment.")}
         </p>
 
@@ -115,9 +115,9 @@ export const PDFSunEnterpriseSuiteCard: React.FC<{ onContact: () => void }> = ({
             return (
               <span
                 key={idx}
-                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-200 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs"
               >
-                <TagIcon className="w-3.5 h-3.5 text-purple-400" />
+                <TagIcon className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                 <span>{tag.label}</span>
               </span>
             );

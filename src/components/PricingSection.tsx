@@ -401,7 +401,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       id: "enterprise",
       name: "Enterprise Plan",
       badge: "5 SEATS • ENTERPRISE",
-      badgeBg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+      badgeBg: "bg-[#E0E7FF] text-[#3730A3] border border-[#A5B4FC] dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30",
       description: "Standard Team tier with Google Workspace & Microsoft 365 SSO.",
       billingType: "enterprise",
       seats: 5,
@@ -1010,7 +1010,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
           {/* 3. ENTERPRISE SSO UNLIMITED (FEATURED HIGH-VALUE BANNER CARD) */}
           <section id="enterprise-sso-banner">
-            <div className="relative rounded-3xl p-6 sm:p-8 lg:p-10 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white border-2 border-indigo-500/40 shadow-2xl overflow-hidden">
+            {/* Thematic Accent Divider */}
+            <div className="theme-accent-divider mb-6 opacity-85 rounded-full" />
+            <div className="relative rounded-3xl p-6 sm:p-8 lg:p-10 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white border-2 border-indigo-500/40 shadow-2xl overflow-hidden theme-glow-border">
               {/* Ambient background glows */}
               <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
               <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl" />
@@ -1019,10 +1021,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 {/* Left Column: Heading, IdP Chips, and Specs */}
                 <div className="lg:col-span-7 space-y-5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-300">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-[#E0E7FF] text-[#3730A3] border border-[#A5B4FC] dark:bg-indigo-500/20 dark:border-indigo-400/40 dark:text-indigo-300 shadow-2xs">
                       ⭐ {enterprisePlanTier.badge}
                     </span>
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center gap-1">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#D1FAE5] text-[#065F46] border border-[#6EE7B7] dark:bg-emerald-500/20 dark:border-emerald-400/30 dark:text-emerald-300 flex items-center gap-1 shadow-2xs">
                       <Users className="w-3 h-3" />
                       <span>Flat Up to 20 Seats Included</span>
                     </span>

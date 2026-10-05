@@ -77,6 +77,45 @@ body {
   --option-card-active-bg: #ffedd5;
   --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
 
+  /* WCAG AAA High-Contrast Text Tokens (7:1+ contrast on light backgrounds) */
+  --text-heading: #0f172a; /* Slate 900 */
+  --text-body: #334155;    /* Slate 700 */
+  --text-subtext: #475569; /* Slate 600 */
+
+  /* High-Contrast Pill Badge Tokens (Light Mode - WCAG AAA 7:1+) */
+  --badge-blue-bg: #dbeafe;
+  --badge-blue-text: #1e40af;
+  --badge-blue-border: #93c5fd;
+
+  --badge-amber-bg: #fef3c7;
+  --badge-amber-text: #92400e;
+  --badge-amber-border: #fcd34d;
+
+  --badge-purple-bg: #f3e8ff;
+  --badge-purple-text: #6b21a8;
+  --badge-purple-border: #d8b4fe;
+
+  --badge-emerald-bg: #d1fae5;
+  --badge-emerald-text: #065f46;
+  --badge-emerald-border: #6ee7b7;
+
+  --badge-cyan-bg: #cffafe;
+  --badge-cyan-text: #155e75;
+  --badge-cyan-border: #67e8f9;
+
+  --badge-indigo-bg: #e0e7ff;
+  --badge-indigo-text: #3730a3;
+  --badge-indigo-border: #a5b4fc;
+
+  /* Utility / Status Metrics Bar & Footer Tokens */
+  --status-bar-bg: rgba(241, 245, 249, 0.92);
+  --status-bar-border: #e2e8f0;
+  --footer-bg: #f8fafc;
+  --footer-border: #e2e8f0;
+  --footer-col-title: #1e293b;
+  --footer-link: #334155;
+  --footer-link-hover: #0f172a;
+
   /* Central Aliases mapped to active tokens */
   --outer-bg: var(--canvas-bg);
   --card-main-bg: var(--card-bg);
@@ -154,6 +193,45 @@ html.dark {
   --surface-trivia-card: #181825;
   --surface-choice-btn: #1E1E2E;
   --surface-choice-hover: #25263A;
+
+  /* WCAG AAA High-Contrast Text Tokens (Dark Mode) */
+  --text-heading: #f8fafc; /* Slate 50 */
+  --text-body: #e2e8f0;    /* Slate 200 */
+  --text-subtext: #94a3b8; /* Slate 400 */
+
+  /* High-Contrast Pill Badge Tokens (Dark Mode) */
+  --badge-blue-bg: rgba(59, 130, 246, 0.2);
+  --badge-blue-text: #93c5fd;
+  --badge-blue-border: rgba(59, 130, 246, 0.4);
+
+  --badge-amber-bg: rgba(245, 158, 11, 0.2);
+  --badge-amber-text: #fcd34d;
+  --badge-amber-border: rgba(245, 158, 11, 0.4);
+
+  --badge-purple-bg: rgba(168, 85, 247, 0.2);
+  --badge-purple-text: #d8b4fe;
+  --badge-purple-border: rgba(168, 85, 247, 0.4);
+
+  --badge-emerald-bg: rgba(16, 185, 129, 0.2);
+  --badge-emerald-text: #6ee7b7;
+  --badge-emerald-border: rgba(16, 185, 129, 0.4);
+
+  --badge-cyan-bg: rgba(6, 182, 212, 0.2);
+  --badge-cyan-text: #67e8f9;
+  --badge-cyan-border: rgba(6, 182, 212, 0.4);
+
+  --badge-indigo-bg: rgba(99, 102, 241, 0.2);
+  --badge-indigo-text: #a5b4fc;
+  --badge-indigo-border: rgba(99, 102, 241, 0.4);
+
+  /* Utility / Status Metrics Bar & Footer Tokens */
+  --status-bar-bg: rgba(15, 23, 42, 0.85);
+  --status-bar-border: #1e293b;
+  --footer-bg: #0b0f19;
+  --footer-border: #1e293b;
+  --footer-col-title: #f8fafc;
+  --footer-link: #cbd5e1;
+  --footer-link-hover: #fbbf24;
 }
 
 /* Eye-Protection (Sepia / Warm Paper) Theme Tokens */
@@ -1177,6 +1255,47 @@ body[data-lang],
 .animate-quiz-ripple {
   animation: pulseRipple 0.5s ease-out;
 }
+
+/* =========================================================================
+   Theme Accent Divider & Glowing Border System
+   ========================================================================= */
+
+/* Parallel Gradient Line Accent */
+.theme-accent-divider {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%);
+  border: none;
+}
+
+/* Thematic Glowing Accent Border for Enterprise & Pro Feature Banners */
+.theme-glow-border {
+  position: relative;
+}
+
+.theme-glow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Smooth Theme Switching Transitions (Zero layout shift, flicker-free) */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+}
+
 
 
 

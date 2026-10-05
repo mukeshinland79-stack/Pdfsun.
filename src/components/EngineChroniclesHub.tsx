@@ -117,26 +117,26 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
       aria-label="PDFSun Engine and Daily Chronicles Hub"
     >
       {/* Top Filter & Category Segmented Tabs */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800/80">
         <div className="flex items-center space-x-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse" />
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800 dark:text-slate-300">
             {t("chronicles.title", "Chronicles & Technical Intelligence Hub")}
           </span>
-          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-cyan-400 border border-cyan-500/30">
+          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-[#CFFAFE] text-[#155E75] border border-[#67E8F9] dark:bg-blue-500/10 dark:text-cyan-400 dark:border-cyan-500/30 shadow-2xs">
             {t("chronicles.threePillars", "3 Core Pillars")}
           </span>
         </div>
 
         {/* Filter View Selector */}
-        <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
+        <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={`px-3 py-1 rounded-lg font-bold transition-all ${
               activeTab === "all"
                 ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                : "text-slate-700 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
             }`}
           >
             {t("chronicles.allPillars", "All Pillars (3)")}
@@ -147,7 +147,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             className={`px-3 py-1 rounded-lg font-bold transition-all ${
               activeTab === "history"
                 ? "bg-amber-500 text-slate-950 shadow-xs"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                : "text-slate-700 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
             }`}
           >
             {t("chronicles.dailyHistory", "Daily History")}
@@ -158,7 +158,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             className={`px-3 py-1 rounded-lg font-bold transition-all ${
               activeTab === "engineering"
                 ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                : "text-slate-700 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
             }`}
           >
             {t("chronicles.engineeringInsights", "Engineering Insights")}
@@ -169,7 +169,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             className={`px-3 py-1 rounded-lg font-bold transition-all ${
               activeTab === "productivity"
                 ? "bg-emerald-600 text-white shadow-xs"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                : "text-slate-700 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
             }`}
           >
             {t("chronicles.productivityHacks", "Productivity Hacks")}

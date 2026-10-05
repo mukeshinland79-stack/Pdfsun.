@@ -230,6 +230,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
         </div>
       </div>
+      {/* Thematic Accent Divider Line */}
+      <div className="theme-accent-divider opacity-60 absolute bottom-0 left-0 right-0" />
     </section>
   );
 };
