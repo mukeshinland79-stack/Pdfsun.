@@ -569,7 +569,7 @@ html.eye-protection body {
 
 html.eye-protection .bg-white,
 html.eye-protection .bg-slate-50,
-html.eye-protection .bg-slate-100/80 {
+html.eye-protection .bg-slate-100\/80 {
   background-color: #fcf9f2 !important;
 }
 

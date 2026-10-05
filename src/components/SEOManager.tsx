@@ -137,7 +137,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       },
       {
         "@type": "Offer",
-        "name": "Flexi Pack (100 Lifetime Credits)",
+        "name": "Flex Pass (7 Days)",
         "price": "99",
         "priceCurrency": "INR",
         "availability": "https://schema.org/InStock",

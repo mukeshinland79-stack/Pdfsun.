@@ -1,14 +1,9 @@
-import {
-  mergePdfs,
-  splitPdf,
-  compressPdf,
-  rotatePdf,
-  protectPdf,
-  watermarkPdf,
-  textToPdf,
-  imagesToPdf,
-} from "../lib/pdfEngine";
-import { PDFDocument } from "pdf-lib";
+// Environment compatibility polyfill for headless/Node test execution
+if (typeof (globalThis as any).DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+  };
+}
 
 /**
  * PDFSun Automated Real File Processing Test Suite
@@ -19,6 +14,35 @@ export async function runPdfEngineTestSuite(): Promise<{
   failed: number;
   logs: string[];
 }> {
+  // Ensure polyfill is initialized before dynamic load
+  if (typeof (globalThis as any).DOMMatrix === "undefined") {
+    (globalThis as any).DOMMatrix = class DOMMatrix {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    };
+  }
+  if (typeof (globalThis as any).Image === "undefined") {
+    (globalThis as any).Image = class MockImage {
+      width = 100;
+      height = 100;
+      onload: (() => void) | null = null;
+      set src(_val: string) {
+        setTimeout(() => this.onload && this.onload(), 5);
+      }
+    };
+  }
+
+  const {
+    mergePdfs,
+    splitPdf,
+    compressPdf,
+    rotatePdf,
+    protectPdf,
+    watermarkPdf,
+    textToPdf,
+    imagesToPdf,
+  } = await import("../lib/pdfEngine");
+  const { PDFDocument } = await import("pdf-lib");
+
   const logs: string[] = [];
   let passed = 0;
   let failed = 0;
@@ -90,16 +114,26 @@ export async function runPdfEngineTestSuite(): Promise<{
     assert(watermarkedBytes.length > 0, "watermarkPdf overlays watermark");
 
     // 8. Test Images to PDF
-    const canvas = document.createElement("canvas");
-    canvas.width = 100;
-    canvas.height = 100;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "red";
-      ctx.fillRect(0, 0, 100, 100);
+    let imgFile: File;
+    if (typeof document !== "undefined" && typeof document.createElement === "function") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 100;
+      canvas.height = 100;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(0, 0, 100, 100);
+      }
+      const imgBlob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/png"));
+      imgFile = new File([imgBlob], "test.png", { type: "image/png" });
+    } else {
+      // 1x1 valid PNG image byte buffer for headless test environments
+      const pngBytes = new Uint8Array([
+        137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 8, 215, 99, 248, 207, 192, 0, 0, 3, 1, 1, 0, 24, 221, 141, 176, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130
+      ]);
+      const blob = new Blob([pngBytes], { type: "image/png" });
+      imgFile = new File([blob], "test.png", { type: "image/png" });
     }
-    const imgBlob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/png"));
-    const imgFile = new File([imgBlob], "test.png", { type: "image/png" });
     const imgPdfBytes = await imagesToPdf([imgFile]);
     assert(imgPdfBytes.length > 0, "imagesToPdf converts PNG image to valid PDF");
 

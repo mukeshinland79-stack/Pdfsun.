@@ -11,6 +11,7 @@ import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
 import { ALL_TOOLS } from "./src/data/toolsData";
 import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
 import { BLOG_POSTS } from "./src/data/blogData";
+import { injectSeoTagsIntoHtml } from "./src/server/seoRenderer";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
 import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
@@ -4177,7 +4178,8 @@ async function startServer() {
         if (fs.existsSync(indexPath)) {
           let template = fs.readFileSync(indexPath, "utf-8");
           template = await vite.transformIndexHtml(url, template);
-          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+          template = injectSeoTagsIntoHtml(template, req.path, req.query as Record<string, any>);
+          res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(template);
         } else {
           next();
         }
@@ -4211,7 +4213,18 @@ async function startServer() {
         });
       }
       res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
-      res.sendFile(path.join(distPath, "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        try {
+          let template = fs.readFileSync(indexPath, "utf-8");
+          template = injectSeoTagsIntoHtml(template, req.path, req.query as Record<string, any>);
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          return res.status(200).send(template);
+        } catch (e) {
+          return res.sendFile(indexPath);
+        }
+      }
+      res.sendFile(indexPath);
     });
   }
 

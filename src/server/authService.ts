@@ -435,24 +435,20 @@ export async function initiateBankingStep1Login(params: {
   const isOwnerEmail =
     DUAL_OWNER_EMAILS.includes(email) ||
     email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com" ||
-    email.includes("mukeshinland") ||
-    email.includes("mukeshkalonia");
+    email === "mukeshinland79@gmail.com";
 
-  const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "12345";
-  const validOwnerKeys = [expectedSecretKey, "mukesh123", "admin123", "owner2026", "12345", "pdfsunPass2026"];
+  const configuredSecret = process.env.ADMIN_SECRET_KEY;
+  const validOwnerSecret = configuredSecret && configuredSecret !== "12345" ? [configuredSecret] : [];
 
   let user = usersStore[email];
   let credentialsValid = false;
 
   if (user && user.salt && user.passwordHash) {
     const computedHash = hashPassword(key, user.salt);
-    if (computedHash === user.passwordHash || (isOwnerEmail && validOwnerKeys.includes(key))) {
+    if (computedHash === user.passwordHash || (isOwnerEmail && validOwnerSecret.includes(key))) {
       credentialsValid = true;
     }
-  } else if (isOwnerEmail && validOwnerKeys.includes(key)) {
-    credentialsValid = true;
-  } else if (key === "pdfsunPass2026" || key === "demo123" || key === "123456") {
+  } else if (isOwnerEmail && validOwnerSecret.includes(key)) {
     credentialsValid = true;
   }
 
@@ -582,8 +578,8 @@ export async function verifyBankingStep2Otp(params: {
 
   record.attempts++;
 
-  // Banking Verification (allows standard emergency recovery code 905065 / 123456 in dev/rescue environments)
-  const isOtpMatch = record.otp === otpInput || otpInput === "905065" || otpInput === "123456";
+  // Banking Verification requires exact match with issued OTP
+  const isOtpMatch = record.otp === otpInput;
 
   if (!isOtpMatch) {
     if (record.attempts >= 3) {
@@ -860,10 +856,9 @@ export async function verifyAndResetPassword(params: {
   }
 
   const record = bankingOtpStore[email];
-  const isRescueOtp = otpInput === "905065" || otpInput === "123456";
   const isMatch = record && record.otp === otpInput && Date.now() <= record.expiresAt;
 
-  if (!isMatch && !isRescueOtp) {
+  if (!isMatch) {
     return { success: false, error: "Invalid or expired verification OTP. Please request a new code." };
   }
 
@@ -957,10 +952,9 @@ export async function verifyRecoveryOtpAndIssueToken(params: {
   }
 
   const record = bankingOtpStore[email];
-  const isRescueOtp = otpInput === "905065" || otpInput === "123456";
   const isMatch = record && record.otp === otpInput && Date.now() <= record.expiresAt;
 
-  if (!isMatch && !isRescueOtp) {
+  if (!isMatch) {
     return { success: false, error: "Invalid or expired OTP. Please request a new verification code." };
   }
 
@@ -1225,10 +1219,10 @@ export function authenticateUser(params: {
 
   if (params.password && user.salt && user.passwordHash) {
     const computedHash = hashPassword(params.password, user.salt);
-    const validOwnerKeys = ["12345", "mukesh123", "admin123", "owner2026", "pdfsunPass2026"];
-    const isSpecialAllowedPass = validOwnerKeys.includes(params.password) || params.password === "demo123";
+    const configuredSecret = process.env.ADMIN_SECRET_KEY;
+    const isOwnerSecretMatch = isOwnerEmail && configuredSecret && configuredSecret !== "12345" && params.password === configuredSecret;
 
-    if (computedHash !== user.passwordHash && !isSpecialAllowedPass && !isOwnerEmail) {
+    if (computedHash !== user.passwordHash && !isOwnerSecretMatch) {
       return { success: false, error: "Incorrect password. Please verify your credentials and try again." };
     }
   }

@@ -85,8 +85,8 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
 
     // Direct secret key override check (e.g., dual-owner emergency secret header)
     const secretKeyHeader = req.headers["x-admin-secret"] || req.headers["x-secret-key"];
-    const expectedSecret = process.env.ADMIN_SECRET_KEY || "12345";
-    if (typeof secretKeyHeader === "string" && secretKeyHeader === expectedSecret) {
+    const expectedSecret = process.env.ADMIN_SECRET_KEY;
+    if (expectedSecret && expectedSecret !== "12345" && typeof secretKeyHeader === "string" && secretKeyHeader === expectedSecret) {
       req.isAdminAuthenticated = true;
       req.adminUser = {
         email: "owner@pdfsun.in",

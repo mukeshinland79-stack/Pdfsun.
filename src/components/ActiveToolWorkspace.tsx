@@ -1577,10 +1577,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           if (!files[0]) {
             throw new Error(`Please upload a document to run ${tool.name}.`);
           }
-          setStatusMessage(`Processing ${tool.name}...`);
-          outputBytes = await compressPdf(files[0], 0.8, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_${tool.slug}_${files[0].name}`;
-          break;
+          throw new Error(`The dedicated processing engine for ${tool.name} requires its specialized workspace or an appropriate input document format.`);
       }
 
       // Mark all files 100% complete

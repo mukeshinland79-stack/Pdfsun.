@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, degrees, StandardFonts, PDFName } from "pdf-lib";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import JSZip from "jszip";
 import { createWorker } from "tesseract.js";
 import mammoth from "mammoth";

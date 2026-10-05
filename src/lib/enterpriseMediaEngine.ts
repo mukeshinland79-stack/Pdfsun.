@@ -446,6 +446,18 @@ export async function convertImagesToPdfEnterprise(
       onProgress(baseProgress, `Fitting vector canvas for image ${i + 1} of ${fileList.length}...`);
     }
 
+    if (typeof document === "undefined" || typeof Image === "undefined") {
+      const buffer = await file.arrayBuffer();
+      const u8 = new Uint8Array(buffer);
+      const isPng = u8.length >= 4 && u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47;
+      const embeddedImage = isPng ? await pdfDoc.embedPng(buffer) : await pdfDoc.embedJpg(buffer);
+      const w = embeddedImage.width || 600;
+      const h = embeddedImage.height || 800;
+      const page = pdfDoc.addPage([w, h]);
+      page.drawImage(embeddedImage, { x: 0, y: 0, width: w, height: h });
+      continue;
+    }
+
     const img = await loadImageElement(file);
     const { buffer, format, width: imgW, height: imgH } = await transcodeImageToBuffer(img, quality);
 
