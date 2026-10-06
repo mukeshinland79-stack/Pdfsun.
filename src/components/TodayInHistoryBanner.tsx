@@ -96,8 +96,11 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
     >
       <div
         onClick={onOpenHistoryModal}
-        className="relative group rounded-3xl p-5 sm:p-7 bg-gradient-to-r from-slate-900 via-indigo-950/90 to-blue-950 border border-blue-500/30 hover:border-blue-400 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+        className="relative group rounded-3xl p-5 sm:p-7 bg-gradient-to-r from-slate-900 via-indigo-950/90 to-blue-950 border border-slate-700/60 dark:border-slate-800 hover:border-blue-400 shadow-xl hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5 dark-container-text"
       >
+        {/* Top 2px Gradient Accent Line */}
+        <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
         {/* Subtle Background Glow */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/25 transition-all" />
 
@@ -110,8 +113,8 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
           <div className="space-y-1.5">
             {/* Geo & Language Auto-Detected Tag */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                <Globe className="w-3 h-3 mr-1" />
+              <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full badge-wcag-amber shadow-2xs">
+                <Globe className="w-3 h-3 mr-1 text-[#92400E] dark:text-amber-300" />
                 {activeLangMeta.nativeName} ({activeLangMeta.name})
               </span>
 

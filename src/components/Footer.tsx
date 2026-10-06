@@ -68,19 +68,19 @@ export const Footer: React.FC<FooterProps> = ({
         {/* ========================================================================= */}
         {/* 1. TOP TRUST BADGES STRIP (Status Metrics Bar)                             */}
         {/* ========================================================================= */}
-        <div className="w-full bg-slate-100/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl py-4 px-6 mb-10 shadow-xs backdrop-blur-md">
+        <div className="w-full bg-[#F8FAFC] dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-xl py-4 px-6 mb-10 shadow-xs backdrop-blur-md">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-left">
             
             {/* Card 1: 100% In-Browser Privacy */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                 <Lock className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-700 dark:text-emerald-400 block font-bold text-xs truncate">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
                   {t("trustBadges.privacyTitle", "100% In-Browser Privacy")}
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate font-medium">
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
                   {t("trustBadges.privacySub", "Zero Server Uploads")}
                 </span>
               </div>
@@ -88,14 +88,14 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Card 2: Enterprise Security */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
                 <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-emerald-700 dark:text-emerald-400 block font-bold text-xs truncate">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
                   {t("trustBadges.securityTitle", "Enterprise Security")}
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate font-medium">
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
                   {t("trustBadges.securitySub", "ISO 27001 & GDPR Compliant")}
                 </span>
               </div>
@@ -103,14 +103,14 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Card 3: Razorpay Verified */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
                 <CreditCard className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
-                <span className="text-blue-700 dark:text-blue-400 block font-bold text-xs truncate">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
                   {t("trustBadges.razorpayTitle", "Razorpay Verified")}
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate font-medium">
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
                   {t("trustBadges.razorpaySub", "UPI & Cards Supported")}
                 </span>
               </div>
@@ -118,7 +118,7 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Card 4: Ultra Fast Speed */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
                 <Zap className="w-4 h-4 stroke-[2.5] text-cyan-600 dark:text-cyan-400" />
               </div>
               <div className="min-w-0">
@@ -127,11 +127,11 @@ export const Footer: React.FC<FooterProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-600 dark:bg-cyan-500"></span>
                   </span>
-                  <span className="text-cyan-700 dark:text-cyan-400 font-bold text-xs truncate">
+                  <span className="text-[#0F172A] dark:text-[#F8FAFC] font-bold text-xs truncate">
                     {t("trustBadges.speedTitle", "Ultra Fast Speed")}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate font-medium">
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
                   {t("trustBadges.speedSub", "Instant WebAssembly Engine")}
                 </span>
               </div>
@@ -153,7 +153,7 @@ export const Footer: React.FC<FooterProps> = ({
               pdfsun.in • Your Smart Document Companion
             </p>
 
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-[#334155] dark:text-[#CBD5E1] leading-relaxed">
               Merge, split, compress, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.
             </p>
 
@@ -162,9 +162,9 @@ export const Footer: React.FC<FooterProps> = ({
               <button
                 type="button"
                 onClick={() => setShowBrandShowcase(true)}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg badge-wcag-amber text-xs font-bold transition-colors cursor-pointer shadow-2xs"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <Sparkles className="w-3.5 h-3.5 text-[#92400E] dark:text-amber-400" />
                 <span>Brand Kit</span>
               </button>
 
@@ -177,15 +177,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* COLUMN 2: Quick Links / Tools */}
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-wider font-bold text-[#1E293B] dark:text-[#E2E8F0]">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
               {t("footer.quickLinks", "Quick Links")}
             </h4>
-            <ul className="space-y-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
               <li>
                 <button
                   type="button"
                   onClick={onOpenAllTools}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("footer.allPdfTools", `All PDF Tools (${ALL_TOOLS.length})`)}
                 </button>
@@ -194,10 +194,10 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenAiTools}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center space-x-1.5 text-amber-700 dark:text-amber-400 font-bold cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center space-x-1.5 text-blue-700 dark:text-blue-400 font-bold cursor-pointer text-left"
                 >
                   <span>{t("footer.aiToolsSuite", "AI Tools Suite")}</span>
-                  <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1 py-0.2 rounded font-mono font-black">AI</span>
+                  <span className="text-[9px] bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1 py-0.2 rounded font-mono font-black">AI</span>
                 </button>
               </li>
               {onOpenTodayInHistory && (
@@ -205,10 +205,10 @@ export const Footer: React.FC<FooterProps> = ({
                   <button
                     type="button"
                     onClick={onOpenTodayInHistory}
-                    className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center space-x-1.5 text-slate-700 dark:text-slate-300 cursor-pointer text-left"
+                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center space-x-1.5 text-[#334155] dark:text-[#CBD5E1] cursor-pointer text-left"
                   >
                     <span>Today in History (30 Lang)</span>
-                    <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-400 px-1.5 py-0.5 rounded font-mono font-bold">
+                    <span className="text-[9px] badge-wcag-amber px-1.5 py-0.5 rounded font-mono font-bold">
                       NEW
                     </span>
                   </button>
@@ -219,12 +219,12 @@ export const Footer: React.FC<FooterProps> = ({
                   <button
                     type="button"
                     onClick={onOpenPricing}
-                    className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                   >
                     {t("footer.pricingPlans", "Pricing Plans")}
                   </button>
                 ) : (
-                  <a href="#pricing" className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                  <a href="#pricing" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     {t("footer.pricingPlans", "Pricing Plans")}
                   </a>
                 )}
@@ -247,7 +247,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenBlogModal}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("footer.blogArticles", "Blog & Articles")}
                 </button>
@@ -257,15 +257,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* COLUMN 3: Policies */}
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-wider font-bold text-[#1E293B] dark:text-[#E2E8F0]">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
               {t("footer.policies", "Policies")}
             </h4>
-            <ul className="space-y-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
               <li>
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("privacy")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("privacyPolicy", "Privacy Policy")}
                 </button>
@@ -274,7 +274,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("terms")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("termsOfService", "Terms of Service")}
                 </button>
@@ -283,7 +283,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("refund")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left text-amber-700 dark:text-amber-400/90 font-medium"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left text-blue-700 dark:text-blue-400 font-medium"
                 >
                   {t("refundPolicy", "Refund Policy")}
                 </button>
@@ -292,7 +292,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("cookie")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("cookiePolicy", "Cookie Policy")}
                 </button>
@@ -301,7 +301,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("about")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("aboutUs", "About Us")}
                 </button>
@@ -310,7 +310,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPolicy("disclaimer")}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("disclaimer", "Disclaimer")}
                 </button>
@@ -320,15 +320,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* COLUMN 4: Resources */}
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-wider font-bold text-[#1E293B] dark:text-[#E2E8F0]">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
               {t("footer.resources", "Resources")}
             </h4>
-            <ul className="space-y-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
               <li>
                 <button
                   type="button"
                   onClick={onOpenContactModal}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("footer.helpCenter", "Help Center")}
                 </button>
@@ -337,13 +337,13 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenBlogModal}
-                  className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer text-left"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
                 >
                   {t("footer.tutorialsGuides", "Tutorials & Guides")}
                 </button>
               </li>
               <li>
-                <a href="#faq" className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors block">
+                <a href="#faq" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors block">
                   {t("footer.faqsSecurity", "FAQs & Security")}
                 </a>
               </li>
@@ -352,19 +352,19 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* COLUMN 5: Support & Social / CONNECT */}
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-wider font-bold text-[#1E293B] dark:text-[#E2E8F0]">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
               {t("footer.connect", "Connect")}
             </h4>
 
             {/* Support Highlight Box */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg text-xs hover:border-amber-500/50 transition-all space-y-1 shadow-2xs">
-              <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold block">Customer Support</span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg text-xs hover:border-blue-500/50 transition-all space-y-1 shadow-2xs">
+              <span className="text-[10px] text-[#475569] dark:text-[#94A3B8] uppercase font-bold block">Customer Support</span>
               <div className="flex items-center space-x-2">
-                <Mail className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                 <button
                   type="button"
                   onClick={onOpenContactModal}
-                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer font-mono truncate"
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-mono truncate"
                 >
                   support@pdfsun.in
                 </button>

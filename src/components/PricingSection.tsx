@@ -1557,11 +1557,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           </section>
 
           {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ ACCORDION) */}
-          <section id="pricing-faq" className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
-            <div className="text-center space-y-1.5">
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] font-black uppercase tracking-wider border border-blue-500/20">
-                <HelpCircle className="w-3.5 h-3.5 text-blue-500" />
-                <span>Everything You Need to Know</span>
+          <section id="pricing-faq" className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
+            {/* Top 2px Gradient Accent Line */}
+            <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
+            <div className="text-center space-y-1.5 pt-1">
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full badge-wcag-blue text-[11px] font-black uppercase tracking-wider shadow-2xs">
+                <HelpCircle className="w-3.5 h-3.5 text-[#1E40AF] dark:text-blue-300" />
+                <span>Security &amp; Privacy FAQ</span>
               </div>
               <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 Frequently Asked Questions

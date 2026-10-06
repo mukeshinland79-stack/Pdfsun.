@@ -82,6 +82,8 @@ class ErrorReporter {
     const lowerMessage = message.toLowerCase();
     const contextUrl = String(context?.url || "").toLowerCase();
     if (
+      lowerMessage.includes("websocket closed") ||
+      lowerMessage.includes("clean finish") ||
       lowerMessage.includes("websocket closed without opened") ||
       lowerMessage.includes("failed to connect to websocket") ||
       lowerMessage.includes("transition was aborted") ||

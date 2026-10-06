@@ -207,8 +207,11 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
     <section
       dir={direction}
       aria-label="Today in History and Knowledge Hub"
-      className={`relative w-full max-w-7xl mx-auto rounded-3xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 shadow-2xl overflow-hidden p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}
+      className={`relative w-full max-w-7xl mx-auto rounded-3xl bg-slate-900/90 backdrop-blur-xl border border-slate-700/60 dark:border-slate-800 shadow-2xl overflow-hidden p-4 sm:p-6 lg:p-8 space-y-6 dark-container-text ${className}`}
     >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
       {/* 1. TOP HEADER RIBBON & NAVIGATION CONTROLS */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
         <div className="flex items-center space-x-3.5">

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, get, Database, Unsubscribe } from "firebase/database";
+import { ResilientWebSocket } from "../utils/ResilientWebSocket";
 
 export interface LiveAnalyticsData {
   activeUsersOnline: number;
@@ -119,13 +120,12 @@ class AnalyticsService {
    */
   subscribeToLiveMetrics(options: AnalyticsStreamOptions): () => void {
     let isDisposed = false;
-    let socket: WebSocket | null = null;
+    let resilientSocket: ResilientWebSocket | null = null;
     let pingInterval: ReturnType<typeof setInterval> | null = null;
     let unsubscribeFb: Unsubscribe | null = null;
     let eventSource: EventSource | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let retryCount = 0;
-    let isDisconnectHandled = false;
 
     const getWsUrl = (): string => {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -133,48 +133,17 @@ class AnalyticsService {
       return `${protocol}//${host}/ws/analytics`;
     };
 
-    const handleWsDisconnect = () => {
-      if (isDisconnectHandled) return;
-      isDisconnectHandled = true;
-
-      if (pingInterval) {
-        clearInterval(pingInterval);
-        pingInterval = null;
-      }
-
-      if (socket) {
-        const currentSocket = socket;
-        socket = null;
-        try {
-          if (
-            currentSocket.readyState === WebSocket.OPEN ||
-            currentSocket.readyState === WebSocket.CONNECTING
-          ) {
-            currentSocket.close();
-          }
-        } catch {
-          // ignore close errors
-        }
-      }
-
-      if (isDisposed) return;
-
-      // Try SSE / Firebase fallback
-      fallbackToSseOrFirebase();
-    };
-
     const connectWebSocket = () => {
       if (isDisposed) return;
-      isDisconnectHandled = false;
 
       const currentStatus = retryCount === 0 ? "connecting" : "reconnecting";
       options.onStatusChange?.(currentStatus);
 
       try {
         const wsUrl = getWsUrl();
-        socket = new WebSocket(wsUrl);
+        resilientSocket = new ResilientWebSocket(wsUrl);
 
-        socket.onopen = () => {
+        resilientSocket.on("open", () => {
           if (isDisposed) return;
           retryCount = 0;
           options.onStatusChange?.("live");
@@ -182,17 +151,17 @@ class AnalyticsService {
           // Start heartbeat interval (ping every 10s)
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
+            if (resilientSocket && resilientSocket.readyState === WebSocket.OPEN) {
               try {
-                socket.send(JSON.stringify({ type: "ping" }));
+                resilientSocket.send(JSON.stringify({ type: "ping" }));
               } catch {
                 // ignore write errors
               }
             }
           }, 10000);
-        };
+        });
 
-        socket.onmessage = (event) => {
+        resilientSocket.on("message", (event: MessageEvent) => {
           if (isDisposed) return;
           try {
             const parsed = JSON.parse(event.data);
@@ -203,24 +172,22 @@ class AnalyticsService {
               options.onData(normalizeAnalyticsData(parsed));
               options.onStatusChange?.("live");
             }
-          } catch (err) {
-            console.warn("Failed to parse WebSocket analytics message:", err);
+          } catch {
+            // benign parse error suppressed
           }
-        };
+        });
 
-        socket.onerror = (err) => {
+        resilientSocket.on("error", () => {
           if (isDisposed) return;
-          console.warn("WebSocket analytics stream notice, switching to SSE fallback:", err);
-          handleWsDisconnect();
-        };
+          // Silent handling without crashing
+        });
 
-        socket.onclose = () => {
+        resilientSocket.on("close", () => {
           if (isDisposed) return;
-          handleWsDisconnect();
-        };
-      } catch (wsErr) {
+          fallbackToSseOrFirebase();
+        });
+      } catch {
         if (!isDisposed) {
-          console.warn("Failed to initialize WebSocket client, falling back to SSE:", wsErr);
           fallbackToSseOrFirebase();
         }
       }
@@ -304,14 +271,19 @@ class AnalyticsService {
 
       options.onStatusChange?.("reconnecting");
 
-      // Immediately fetch snapshot as bridge
-      this.getSnapshot().then((snapshot) => {
-        if (snapshot && !isDisposed) {
-          options.onData(snapshot);
-        }
-      });
+      // Safely fetch snapshot as bridge without unhandled promise rejection
+      this.getSnapshot()
+        .then((snapshot) => {
+          if (snapshot && !isDisposed) {
+            options.onData(snapshot);
+          }
+        })
+        .catch(() => {
+          // ignore snapshot bridge errors during offline/disconnect state
+        });
 
-      const backoffMs = Math.min(20000, Math.pow(2, retryCount) * 1000 + Math.random() * 500);
+      // Exponential backoff with jitter up to 30 seconds
+      const backoffMs = Math.min(30000, 1000 * Math.pow(1.8, Math.min(retryCount, 6)) + Math.random() * 500);
       retryCount++;
 
       retryTimer = setTimeout(() => {
@@ -329,9 +301,9 @@ class AnalyticsService {
       isDisposed = true;
       if (pingInterval) clearInterval(pingInterval);
       if (retryTimer) clearTimeout(retryTimer);
-      if (socket) {
-        socket.close();
-        socket = null;
+      if (resilientSocket) {
+        resilientSocket.close(1000, "Component unmounted");
+        resilientSocket = null;
       }
       if (eventSource) {
         eventSource.close();

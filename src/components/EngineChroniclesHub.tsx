@@ -123,7 +123,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800 dark:text-slate-300">
             {t("chronicles.title", "Chronicles & Technical Intelligence Hub")}
           </span>
-          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-[#CFFAFE] text-[#155E75] border border-[#67E8F9] dark:bg-blue-500/10 dark:text-cyan-400 dark:border-cyan-500/30 shadow-2xs">
+          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md badge-wcag-cyan shadow-2xs">
             {t("chronicles.threePillars", "3 Core Pillars")}
           </span>
         </div>
@@ -186,8 +186,11 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
           <div
             id="card-daily-history"
             onClick={onOpenHistoryModal}
-            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-blue-500/25 hover:border-amber-500/60 shadow-xl hover:shadow-amber-500/10 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer"
+            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-slate-700/60 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] shadow-xl transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer dark-container-text"
           >
+            {/* Top 2px Gradient Accent Line */}
+            <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
             {/* Ambient Background Glow */}
             <div
               className="absolute -top-20 -right-20 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-all"
@@ -197,11 +200,11 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             <div className="space-y-4 relative z-10">
               {/* Header Micro-Badges */}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  <Calendar className="w-3 h-3 text-amber-400 mr-1" />
+                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full badge-wcag-amber shadow-2xs">
+                  <Calendar className="w-3 h-3 text-[#92400E] dark:text-amber-400 mr-1" />
                   Daily Chronicle
                 </span>
-                <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-[#94A3B8] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                   <Clock className="w-3 h-3 text-amber-400 mr-1" />
                   Live Daily Feed
                 </span>
@@ -286,8 +289,11 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
           <div
             id="card-engineering-insights"
             onClick={() => onNavigateArticle("in-browser-pdf-processing-privacy")}
-            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-blue-500/25 hover:border-cyan-400/60 shadow-xl hover:shadow-cyan-500/10 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer"
+            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-slate-700/60 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] shadow-xl transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer dark-container-text"
           >
+            {/* Top 2px Gradient Accent Line */}
+            <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
             {/* Ambient Background Glow */}
             <div
               className="absolute -top-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 transition-all"
@@ -297,8 +303,8 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             <div className="space-y-4 relative z-10">
               {/* Header Micro-Badges */}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/15 text-cyan-300 border border-blue-500/30">
-                  <ShieldCheck className="w-3 h-3 text-cyan-400 mr-1" />
+                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full badge-wcag-blue shadow-2xs">
+                  <ShieldCheck className="w-3 h-3 text-[#1E40AF] dark:text-blue-300 mr-1" />
                   Security White Paper
                 </span>
                 <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
@@ -335,7 +341,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 <p className="font-semibold text-slate-100 line-clamp-2 leading-relaxed">
                   Why In-Browser WebAssembly PDF Processing Beats Cloud Uploads in 2026
                 </p>
-                <p className="text-[11px] text-slate-400 line-clamp-2 leading-normal">
+                <p className="text-[11px] text-slate-300 line-clamp-2 leading-normal">
                   How compiled WASM bytecodes eliminate remote server data breach vectors, ensuring GDPR, HIPAA &amp; DPDP compliance.
                 </p>
               </div>
@@ -348,12 +354,12 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                     e.stopPropagation();
                     onNavigateArticle("protecting-sensitive-pdfs-aes-256-encryption");
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/60 text-left transition group/item text-xs"
                 >
-                  <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-cyan-300 truncate">
+                  <span className="text-[11px] font-medium text-slate-200 group-hover/item:text-cyan-300 truncate">
                     AES-256 Encryption vs. Standard Passwords
                   </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-cyan-400 shrink-0 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-cyan-400 shrink-0 ml-1" />
                 </button>
 
                 <button
@@ -362,19 +368,19 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                     e.stopPropagation();
                     onNavigateArticle("ai-document-analysis-gemini-workflows");
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/60 text-left transition group/item text-xs"
                 >
-                  <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-cyan-300 truncate">
+                  <span className="text-[11px] font-medium text-slate-200 group-hover/item:text-cyan-300 truncate">
                     AI Document Analysis &amp; Gemini 3.6 Models
                   </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-cyan-400 shrink-0 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-cyan-400 shrink-0 ml-1" />
                 </button>
               </div>
             </div>
 
             {/* Action Buttons Row */}
             <div className="pt-5 mt-5 border-t border-slate-800/80 flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[11px] font-mono font-medium text-slate-400">
+              <span className="text-[11px] font-mono font-medium text-slate-300">
                 WASM Runtime
               </span>
 
@@ -397,8 +403,11 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
           <div
             id="card-productivity-hacks"
             onClick={() => onNavigateArticle("mastering-pdf-compression-dpi-downsample")}
-            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-blue-500/25 hover:border-emerald-400/60 shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer"
+            className="rounded-3xl p-6 sm:p-7 bg-gradient-to-b from-[#0A0F1D] via-[#0d1629] to-[#0A0F1D] border border-slate-700/60 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] shadow-xl transition-all duration-300 relative group overflow-hidden flex flex-col justify-between cursor-pointer dark-container-text"
           >
+            {/* Top 2px Gradient Accent Line */}
+            <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
             {/* Ambient Background Glow */}
             <div
               className="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all"
@@ -408,8 +417,8 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
             <div className="space-y-4 relative z-10">
               {/* Header Micro-Badges */}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  <Zap className="w-3 h-3 text-emerald-400 mr-1" />
+                <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full badge-wcag-cyan shadow-2xs">
+                  <Zap className="w-3 h-3 text-[#0E7490] dark:text-cyan-400 mr-1" />
                   {t("productivity.badge", "Productivity Hacks")}
                 </span>
                 <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
@@ -442,7 +451,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                 <p className="font-semibold text-slate-100 line-clamp-2 leading-relaxed">
                   {t("productivity.featuredTitle", "Mastering PDF Compression: Downsample DPI & Quantize Images")}
                 </p>
-                <p className="text-[11px] text-slate-400 line-clamp-2 leading-normal">
+                <p className="text-[11px] text-slate-300 line-clamp-2 leading-normal">
                   {t("productivity.featuredDesc", "Step-by-step workflow to shrink files down to 100KB, 200KB, or 500KB thresholds for portal submissions without quality loss.")}
                 </p>
               </div>
@@ -455,12 +464,12 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                     e.stopPropagation();
                     onNavigateArticle("step-by-step-merge-massive-pdf-reports");
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/60 text-left transition group/item text-xs"
                 >
-                  <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-emerald-300 truncate">
+                  <span className="text-[11px] font-medium text-slate-200 group-hover/item:text-emerald-300 truncate">
                     {t("productivity.tutorial1", "Merge Massive PDF Reports Online Privately")}
                   </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-emerald-400 shrink-0 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-emerald-400 shrink-0 ml-1" />
                 </button>
 
                 <button
@@ -469,19 +478,19 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                     e.stopPropagation();
                     onNavigateArticle("convert-pdf-tables-to-clean-excel-csv");
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800/60 text-left transition group/item text-xs"
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/60 text-left transition group/item text-xs"
                 >
-                  <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-emerald-300 truncate">
+                  <span className="text-[11px] font-medium text-slate-200 group-hover/item:text-emerald-300 truncate">
                     {t("productivity.tutorial2", "Extract Clean Excel Tables Without Breaking Columns")}
                   </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/item:text-emerald-400 shrink-0 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-emerald-400 shrink-0 ml-1" />
                 </button>
               </div>
             </div>
 
             {/* Action Buttons Row */}
             <div className="pt-5 mt-5 border-t border-slate-800/80 flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[11px] font-mono font-medium text-slate-400">
+              <span className="text-[11px] font-mono font-medium text-slate-300">
                 {t("productivity.fastGuides", "Fast & Free Guides")}
               </span>
 

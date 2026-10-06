@@ -100,7 +100,7 @@ body {
   --badge-emerald-border: #6ee7b7;
 
   --badge-cyan-bg: #cffafe;
-  --badge-cyan-text: #155e75;
+  --badge-cyan-text: #0e7490;
   --badge-cyan-border: #67e8f9;
 
   --badge-indigo-bg: #e0e7ff;
@@ -108,13 +108,13 @@ body {
   --badge-indigo-border: #a5b4fc;
 
   /* Utility / Status Metrics Bar & Footer Tokens */
-  --status-bar-bg: rgba(241, 245, 249, 0.92);
+  --status-bar-bg: #f8fafc;
   --status-bar-border: #e2e8f0;
   --footer-bg: #f8fafc;
   --footer-border: #e2e8f0;
-  --footer-col-title: #1e293b;
+  --footer-col-title: #0f172a;
   --footer-link: #334155;
-  --footer-link-hover: #0f172a;
+  --footer-link-hover: #2563eb;
 
   /* Central Aliases mapped to active tokens */
   --outer-bg: var(--canvas-bg);
@@ -225,13 +225,13 @@ html.dark {
   --badge-indigo-border: rgba(99, 102, 241, 0.4);
 
   /* Utility / Status Metrics Bar & Footer Tokens */
-  --status-bar-bg: rgba(15, 23, 42, 0.85);
+  --status-bar-bg: #1e293b;
   --status-bar-border: #1e293b;
   --footer-bg: #0b0f19;
   --footer-border: #1e293b;
   --footer-col-title: #f8fafc;
   --footer-link: #cbd5e1;
-  --footer-link-hover: #fbbf24;
+  --footer-link-hover: #60a5fa;
 }
 
 /* Eye-Protection (Sepia / Warm Paper) Theme Tokens */
@@ -801,16 +801,19 @@ html.dark .badge-orange-pill,
   border-color: rgba(245, 158, 11, 0.8) !important;
 }
 
-/* Active Press Effect: Scale down to 0.97 */
+/* Active Press Effect: Clean non-blur hardware rasterized feedback */
 .btn-primary:active, 
 .btn-secondary:active, 
 .btn-accent:active, 
 .btn-interactive:active,
 .btn-cta:active,
-button:active {
-  transform: translateY(0px) scale(0.97) !important;
+button:active,
+[role="button"]:active {
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  transform: translateY(1px) translateZ(0) !important;
   transition-duration: 100ms !important;
-  box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.25) !important;
+  box-shadow: 0 1px 4px -1px rgba(245, 158, 11, 0.25) !important;
 }
 
 /* Ripple Wave Animation */
@@ -1318,6 +1321,152 @@ html.theme-transitioning *::after {
   box-shadow: none !important;
   filter: none !important;
 }
+
+/* =========================================================================
+   Visual Theme Enhancement & WCAG AAA Component Tokens
+   ========================================================================= */
+
+/* Top 2px Gradient Accent Line */
+.gradient-accent-line {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%);
+  border: none;
+}
+
+/* Blue-Tick & Interactive Tool Options */
+.blue-tick-option-card {
+  border: 1px solid #e2e8f0;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark .blue-tick-option-card,
+[data-theme="dark"] .blue-tick-option-card {
+  border-color: #1e293b;
+}
+
+.blue-tick-option-card:hover {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* High-Contrast WCAG AAA Badge Rules */
+.badge-wcag-blue {
+  background-color: #DBEAFE !important;
+  color: #1E40AF !important;
+  border: 1px solid #93C5FD !important;
+}
+
+html.dark .badge-wcag-blue,
+[data-theme="dark"] .badge-wcag-blue {
+  background-color: rgba(30, 64, 175, 0.3) !important;
+  color: #93C5FD !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.badge-wcag-amber {
+  background-color: #FEF3C7 !important;
+  color: #92400E !important;
+  border: 1px solid #FCD34D !important;
+}
+
+html.dark .badge-wcag-amber,
+[data-theme="dark"] .badge-wcag-amber {
+  background-color: rgba(146, 64, 14, 0.3) !important;
+  color: #FCD34D !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.badge-wcag-cyan {
+  background-color: #CFFAFE !important;
+  color: #0E7490 !important;
+  border: 1px solid #67E8F9 !important;
+}
+
+html.dark .badge-wcag-cyan,
+[data-theme="dark"] .badge-wcag-cyan {
+  background-color: rgba(14, 116, 144, 0.3) !important;
+  color: #67E8F9 !important;
+  border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Strict Dark Container Typography Rules (Eliminates Invisible Dark-on-Dark Text) */
+.dark-container-text h2,
+.dark-container-text h3,
+.dark-container-text h4 {
+  color: #F8FAFC !important;
+}
+
+.dark-container-text p,
+.dark-container-text .desc-text {
+  color: #CBD5E1 !important;
+}
+
+.dark-container-text .meta-text,
+.dark-container-text .sub-info {
+  color: #94A3B8 !important;
+}
+
+/* =========================================================================
+   Pixel-Crisp CSS Fix: Hardware GPU Rasterization & Anti-Blur Engine
+   Eliminates sub-pixel rendering blur, contrast drops & jitter on click/active
+   ========================================================================= */
+*, *::before, *::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+[role="button"],
+input,
+select,
+textarea,
+a,
+.interactive-action,
+.tool-card,
+.file-dropzone,
+.btn-primary,
+.option-card,
+.tab-button {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+}
+
+/* Neutralize subpixel blur caused by CSS scale() on active/focus state */
+button:active,
+[role="button"]:active,
+.btn-primary:active,
+.tool-card:active {
+  /* Prevent destructive blur: hardware rasterization anchor */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0) !important;
+}
+
+/* DOM State Separation: Dedicated Non-Repainting Isolated Overlays */
+.progress-container-isolated,
+.loading-overlay-isolated,
+.spinner-isolated {
+  isolation: isolate;
+  contain: paint layout;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  z-index: 50;
+}
+
+/* High-Contrast WCAG 2.1 AA Button States & Tool Interactive Borders */
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+
 
 
 

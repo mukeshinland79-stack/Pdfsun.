@@ -117,7 +117,9 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
       className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-6 sm:my-10 ${className}`}
       aria-label="PDFSun Mobile App Section"
     >
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white p-5 sm:p-7 lg:p-9 border border-blue-800/40 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white p-5 sm:p-7 lg:p-9 border border-slate-700/60 dark:border-blue-800/40 hover:border-blue-500/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] shadow-2xl transition-all duration-300 dark-container-text">
+        {/* Top 2px Gradient Accent Line */}
+        <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
         {/* Subtle decorative background lights */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />

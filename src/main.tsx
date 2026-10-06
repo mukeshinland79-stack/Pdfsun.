@@ -19,7 +19,9 @@ if (typeof window !== 'undefined') {
   const isBenignNoise = (str: string): boolean => {
     const s = str.toLowerCase();
     return (
-      s.includes('websocket closed without opened') ||
+      s.includes('websocket closed') ||
+      s.includes('clean finish') ||
+      s.includes('websocket closed without') ||
       s.includes('failed to connect to websocket') ||
       s.includes('[vite] failed to connect') ||
       s.includes('transition was aborted') ||
@@ -33,7 +35,11 @@ if (typeof window !== 'undefined') {
       s.includes('pagead2') ||
       s.includes('failed to fetch') ||
       s.includes('load failed') ||
-      s.includes('networkerror when attempting to fetch resource')
+      s.includes('networkerror when attempting to fetch resource') ||
+      s.includes('the user aborted a request') ||
+      s.includes('aborterror') ||
+      s.includes('resizeobserver loop') ||
+      s.includes('the play() request was interrupted')
     );
   };
 
@@ -46,19 +52,37 @@ if (typeof window !== 'undefined') {
     originalConsoleError.apply(console, args);
   };
 
+  // Global Unhandled Promise Rejection & Error Handler
+  // Pdfsun.in ke unexpected app crashes aur debug logs ko handle karta hai.
   window.addEventListener('unhandledrejection', (event) => {
-    const reasonStr = String(
+    // Silent handling of WebSocket closures and non-critical network drops
+    const reasonMsg = String(
       event.reason?.message ||
       event.reason?.reason ||
       event.reason?.stack ||
       event.reason ||
       ''
     );
-    if (isBenignNoise(reasonStr)) {
-      event.preventDefault();
+
+    if (
+      event.reason &&
+      (reasonMsg.includes('WebSocket') ||
+       reasonMsg.includes('websocket') ||
+       isBenignNoise(reasonMsg))
+    ) {
+      console.warn('[Pdfsun Network] Handled silent WebSocket rejection:', event.reason);
+      event.preventDefault(); // Unhandled Error Alert ko rokta hai
       if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();
       }
+      return;
+    }
+
+    // Generic fallback handling for other async rejections
+    console.warn('[Pdfsun Global Rejection Handler]:', event.reason);
+    event.preventDefault();
+    if (typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
     }
   });
 
@@ -69,7 +93,9 @@ if (typeof window !== 'undefined') {
       if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();
       }
+      return;
     }
+    console.error('[Pdfsun Global Error Caught]:', event.error || event.message);
   });
 }
 

@@ -17,6 +17,9 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
       dir={dir}
       className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-blue-200 dark:border-blue-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(59,130,246,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
     >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
       {/* Subtle Background Glow Accent */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/25 transition-all" />
 
@@ -26,8 +29,8 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
           <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#DBEAFE] text-[#1E40AF] border border-[#93C5FD] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 shadow-2xs">
             <Sparkles className="w-3 h-3 mr-1 text-[#1E40AF] dark:text-blue-400" /> {t("copilot.badgePro", "PRO FEATURE")}
           </span>
-          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#CFFAFE] text-[#155E75] border border-[#67E8F9] dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-2xs">
-            <Bot className="w-3 h-3 mr-1 text-[#155E75] dark:text-cyan-300" /> {t("copilot.badgeAi", "AI POWERED")}
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#CFFAFE] text-[#0E7490] border border-[#67E8F9] dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-2xs">
+            <Bot className="w-3 h-3 mr-1 text-[#0E7490] dark:text-cyan-300" /> {t("copilot.badgeAi", "AI POWERED")}
           </span>
         </div>
 
@@ -82,6 +85,9 @@ export const PDFSunEnterpriseSuiteCard: React.FC<{ onContact: () => void }> = ({
       dir={dir}
       className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-purple-200 dark:border-purple-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(168,85,247,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
     >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
       {/* Subtle Background Glow Accent */}
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/25 transition-all" />
 

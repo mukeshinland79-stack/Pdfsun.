@@ -53,6 +53,9 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
       className="relative group h-full rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0b1329] border border-blue-200 dark:border-blue-500/30 hover:border-blue-400/60 shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-2xl dark:hover:shadow-[0_8px_35px_rgba(59,130,246,0.25)] transition-all duration-300 flex flex-col justify-between overflow-hidden text-slate-900 dark:text-white theme-glow-border"
       aria-label="PDFSun Global Enterprise Suite"
     >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
       {/* Background Radial Glow */}
       <div className="absolute -top-24 -right-24 w-80 h-80 bg-blue-600/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-600/20 dark:group-hover:bg-blue-600/25 transition-all" />
       <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />

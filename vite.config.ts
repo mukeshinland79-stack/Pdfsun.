@@ -30,7 +30,25 @@ export default defineConfig(() => {
     server: {
       port: 3000,
       host: '0.0.0.0',
-      hmr: process.env.DISABLE_HMR === 'true' ? false : true,
+      hmr: process.env.DISABLE_HMR === 'true' ? false : { overlay: false },
+    },
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+      legalComments: 'none',
+    },
+    build: {
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/pdfjs-dist')) return 'vendor-pdfjs';
+            if (id.includes('node_modules/pptxgenjs')) return 'vendor-pptxgenjs';
+            if (id.includes('node_modules/tesseract.js')) return 'vendor-tesseract';
+            if (id.includes('node_modules/jspdf') || id.includes('node_modules/pdf-lib')) return 'vendor-pdf-engines';
+            if (id.includes('node_modules/xlsx') || id.includes('node_modules/exceljs')) return 'vendor-spreadsheets';
+          },
+        },
+      },
     },
   };
 });

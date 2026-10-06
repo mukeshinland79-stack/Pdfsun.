@@ -1670,6 +1670,67 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in">
+      {/* Individual Tool SoftwareApplication / WebApplication Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: `${tool.name} - Free Online PDF Tool`,
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "All",
+            url: `https://pdfsun.in/${tool.id}`,
+            description: tool.description,
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "INR",
+              availability: "https://schema.org/InStock",
+            },
+            featureList: [
+              "100% In-Browser Privacy",
+              "Enterprise-Grade Speed",
+              "Zero File Retention",
+              "No Installation Required",
+            ],
+          }),
+        }}
+      />
+
+      {/* HowTo Step-by-Step PDF Conversion Guide Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: `How to use ${tool.name}`,
+            description: `Step-by-step instructions for ${tool.name.toLowerCase()} using PDFSun.`,
+            step: [
+              {
+                "@type": "HowToStep",
+                position: 1,
+                name: "Select or Drag & Drop File",
+                text: "Upload your document directly from your device into the secure workspace.",
+              },
+              {
+                "@type": "HowToStep",
+                position: 2,
+                name: "Configure Options & Parameters",
+                text: "Select conversion presets, orientation, quality DPI, or scope range.",
+              },
+              {
+                "@type": "HowToStep",
+                position: 3,
+                name: "Process and Download Instantly",
+                text: "Click convert to process client-side and download the finished file immediately.",
+              },
+            ],
+          }),
+        }}
+      />
+
       {/* Individual Tool Search Engine FAQPage Schema */}
       {toolFAQs && toolFAQs.length > 0 && (
         <script
@@ -4381,7 +4442,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
           {/* Overall Batch Progress Bar & Status */}
           {isProcessing && (
-            <div className="space-y-2 p-4 rounded-2xl bg-orange-50 dark:bg-slate-800 border border-orange-200 dark:border-slate-700 animate-in fade-in">
+            <div className="progress-container-isolated space-y-2 p-4 rounded-2xl bg-orange-50 dark:bg-slate-800 border border-orange-200 dark:border-slate-700 animate-in fade-in">
               <div className="flex items-center justify-between text-xs font-bold text-orange-600 dark:text-amber-400">
                 <span className="flex items-center space-x-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
