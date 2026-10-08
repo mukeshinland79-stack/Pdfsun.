@@ -481,9 +481,9 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white text-slate-900 rounded-[20px] border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col min-h-[85vh]">
+    <div className="main-tool-card w-full max-w-7xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-[0_10px_30px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col min-h-[85vh]">
       {/* Top Header */}
-      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between flex-wrap gap-3">
+      <div className="tool-card-header px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center space-x-3">
           <button
             type="button"

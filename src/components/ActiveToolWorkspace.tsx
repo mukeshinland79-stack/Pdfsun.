@@ -1751,19 +1751,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           }}
         />
       )}
-      <div className="main-tool-card tool-card-wrapper active-workspace-card relative rounded-[20px] max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all bg-white text-slate-800 border border-slate-200/85">
+      <div className="main-tool-card tool-card-wrapper active-workspace-card relative rounded-[20px] max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200/85 dark:border-slate-800">
         {/* Subtle orange ambient glow decorative accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 bg-orange-500/10 blur-3xl pointer-events-none rounded-full" />
 
         {/* Workspace Header */}
-        <header className="tool-card-header relative z-10 px-6 py-4 bg-white/95 backdrop-blur-md border-b border-slate-100 flex items-center justify-between">
+        <header className="tool-card-header relative z-10 px-6 py-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#f4511e] to-[#f59e0b] text-white flex items-center justify-center font-bold text-sm shadow-md shadow-orange-500/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               {tool.id === "image-to-excel" ? (
-                <h1 className="text-lg font-black text-slate-900 flex items-center space-x-2 flex-wrap gap-1">
+                <h1 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
                   <span>Free Online Image to Excel Converter (AI-Powered Table OCR)</span>
                   <span className="brand-engine-badge">
                     PDFSun Engine
@@ -1778,13 +1778,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   >
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
                     <span>{toolRating.avgRating.toFixed(1)}</span>
-                    <span className="text-[10px] text-slate-500 font-normal">
+                    <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
                       ({toolRating.totalRatings.toLocaleString()})
                     </span>
                   </button>
                 </h1>
               ) : (
-                <h2 className="text-lg font-black text-slate-900 flex items-center space-x-2 flex-wrap gap-1">
+                <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
                   <span>{translatedToolName}</span>
                   <span className="brand-engine-badge">
                     PDFSun Engine
@@ -1794,18 +1794,18 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowReviewModal(true)}
-                    className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold transition ml-1"
+                    className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition ml-1"
                     title="View user reviews and ratings"
                   >
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
                     <span>{toolRating.avgRating.toFixed(1)}</span>
-                    <span className="text-[10px] text-[var(--text-muted,#64748b)] font-normal">
+                    <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
                       ({toolRating.totalRatings.toLocaleString()})
                     </span>
                   </button>
                 </h2>
               )}
-              <p className="text-xs text-[var(--text-secondary,#94a3b8)] line-clamp-1">{translatedToolDesc}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium line-clamp-1">{translatedToolDesc}</p>
             </div>
           </div>
 
@@ -1815,12 +1815,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setToolSwapOpen(!toolSwapOpen)}
-                  className="px-2.5 py-1 rounded-xl bg-[var(--bg-elevated,#16161a)] hover:bg-[var(--bg-elevated-hover,#1f1f26)] text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] text-xs font-bold transition flex items-center space-x-1 border border-[var(--border-color,rgba(255,255,255,0.1))]"
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1 border border-slate-200 dark:border-slate-700"
                   title="Switch to another tool keeping current files"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
                   <span className="hidden sm:inline">{t("workspace.swapTool", "Swap Tool")}</span>
-                  <ChevronDown className="w-3 h-3 text-[var(--text-muted,#64748b)]" />
+                  <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                 </button>
 
                 {toolSwapOpen && (

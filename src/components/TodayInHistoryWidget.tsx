@@ -240,13 +240,13 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
           </div>
         </div>
 
-        {/* Date Time-Machine & Action Buttons */}
+        {/* Date Time-Machine & Action Buttons with 44px touch targets & WCAG AAA compliance */}
         <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end">
           {/* Quick Date Stepper */}
-          <div className="flex items-center space-x-1 bg-slate-800/90 p-1 rounded-2xl border border-slate-700 shadow-sm">
+          <div className="flex items-center space-x-1 bg-slate-800/90 p-1 min-h-[44px] rounded-2xl border border-slate-700 shadow-sm">
             <button
               onClick={prevDay}
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+              className="min-w-[40px] min-h-[40px] rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition cursor-pointer"
               title={getHistoryText("prevDay", currentLanguage)}
               aria-label="Previous day"
             >
@@ -254,13 +254,13 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
             </button>
             <button
               onClick={today}
-              className="px-3 py-1 text-xs font-bold text-blue-400 hover:bg-blue-500/20 rounded-xl transition cursor-pointer"
+              className="min-h-[40px] px-3 text-xs font-bold text-blue-400 hover:bg-blue-500/20 rounded-xl flex items-center justify-center transition cursor-pointer"
             >
               {getHistoryText("today", currentLanguage)}
             </button>
             <button
               onClick={nextDay}
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+              className="min-w-[40px] min-h-[40px] rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition cursor-pointer"
               title={getHistoryText("nextDay", currentLanguage)}
               aria-label="Next day"
             >
@@ -271,20 +271,20 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
           {/* Language Selector Modal Trigger */}
           <button
             onClick={() => setIsLangModalOpen(true)}
-            className="px-3.5 py-2 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+            className="min-h-[44px] px-3.5 py-2 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
             title="Switch Language across 30+ languages"
           >
-            <Globe className="w-3.5 h-3.5" />
+            <Globe className="w-4 h-4" />
             <span>{languageMeta.flag} {languageMeta.nativeName}</span>
           </button>
 
           {/* Export PDF Button */}
           <button
             onClick={handleExportPdf}
-            className="px-3.5 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-md shadow-blue-500/20"
+            className="min-h-[44px] px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-md shadow-blue-500/20"
             title="Download Study Sheet PDF"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-4 h-4" />
             <span className="hidden sm:inline">{getHistoryText("exportAsPdf", currentLanguage)}</span>
             <span className="sm:hidden">PDF</span>
           </button>
@@ -316,19 +316,15 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
       {/* MAIN RENDERED CONTENT (WHEN DATA LOADED) */}
       {!loading && data && (
         <div className="space-y-6">
-          {/* FEATURED SPOTLIGHT CARD (WCAG AA ELEVATED SURFACE) */}
+          {/* FEATURED SPOTLIGHT CARD (WCAG AAA HIGH-CONTRAST CONTAINER) */}
           <div
-            style={{
-              backgroundColor: "var(--surface-card-elevated, #1E1E2E)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-            }}
-            className="relative rounded-3xl p-5 sm:p-7 shadow-xl space-y-2.5 overflow-hidden"
+            className="relative rounded-3xl p-5 sm:p-7 bg-[#1E293B] sm:bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-slate-700/80 text-white shadow-xl space-y-2.5 overflow-hidden"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="inline-flex items-center text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+              <span className="inline-flex items-center text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-500/40 shadow-2xs">
                 {getHistoryText("featuredHeadline", currentLanguage) || "Historical Spotlight"}
               </span>
-              <span className="text-xs font-mono text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+              <span className="text-xs font-mono text-slate-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
                 {getHistoryText("dayOfYearText", currentLanguage, { day: data.dayOfYear })}
               </span>
             </div>
@@ -337,7 +333,7 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
               {data.featuredHeadline}
             </h3>
 
-            <p className="text-xs sm:text-sm text-[#D1D5DB] leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
               {getHistoryText("subtitle", currentLanguage)}
             </p>
           </div>
@@ -432,7 +428,7 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
                       <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-xs shadow-sm">
                         {item.year}
                       </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 bg-slate-700/70 px-2.5 py-0.5 rounded-lg border border-slate-600">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-700/90 px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-600 shadow-2xs">
                         {getLocalizedTag(item.tag, item.category, currentLanguage)}
                       </span>
                     </div>
@@ -480,24 +476,21 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
             </div>
           )}
 
-          {/* 3. INTERACTIVE DAILY TRIVIA QUIZ SECTION (MIDDLE-BOTTOM CARD SECTION B) */}
+          {/* 3. INTERACTIVE DAILY TRIVIA QUIZ SECTION (WCAG AAA ACCESSIBILITY & CONTRAST FIX) */}
           {data.dailyTrivia && (
             <div
-              style={{
-                backgroundColor: "var(--surface-trivia-card, #181825)",
-              }}
-              className="p-5 sm:p-7 rounded-3xl border border-amber-500/40 shadow-xl space-y-4"
+              className="p-5 sm:p-7 rounded-3xl bg-white dark:bg-[#181825] border-2 border-amber-400/80 dark:border-amber-500/40 shadow-xl space-y-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/20">
-                    <HelpCircle className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/20 shrink-0">
+                    <HelpCircle className="w-5 h-5 stroke-[2.5]" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#0F172A] dark:text-amber-300">
                       {getHistoryText("dailyQuizTitle", currentLanguage)}
                     </span>
-                    <h4 className="text-base sm:text-lg font-black text-[#F9FAFB]">
+                    <h4 className="text-base sm:text-lg font-black text-[#0F172A] dark:text-white">
                       {getHistoryText("testKnowledge", currentLanguage)}
                     </h4>
                   </div>
@@ -505,10 +498,10 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
 
                 {/* Score & Streak Badges */}
                 <div className="flex items-center space-x-2">
-                  <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold font-mono">
+                  <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30 text-xs font-bold font-mono">
                     Score: {score} pts
                   </span>
-                  <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
+                  <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 text-xs font-bold shadow-2xs">
                     <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
                     <span>{streak} {getHistoryText("streak", currentLanguage)}</span>
                   </div>
@@ -516,7 +509,7 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
               </div>
 
               {/* Question Text */}
-              <p className="text-sm sm:text-base font-bold text-white leading-relaxed">
+              <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
                 {data.dailyTrivia.question}
               </p>
 
@@ -527,18 +520,23 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
                   const isUserSelection = idx === quizState.selectedOption;
                   const isShaking = idx === quizState.shakingIndex;
 
-                  let optionStyle = "bg-[#1E1E2E] border-[#374151] text-[#F3F4F6] hover:border-amber-400 hover:bg-[#25263A]";
+                  let optionStyle = "bg-slate-50 dark:bg-[#1E1E2E] border-2 border-slate-300 dark:border-[#374151] text-slate-900 dark:text-[#F3F4F6] hover:border-amber-500 hover:bg-amber-50/60 dark:hover:bg-[#25263A] focus:ring-2 focus:ring-amber-500 focus:outline-hidden";
+                  let letterCircle = "bg-slate-200 dark:bg-white/15 text-slate-900 dark:text-white";
 
                   if (quizState.isSubmitted) {
                     if (isCorrectAnswer) {
-                      optionStyle = "bg-emerald-600 text-white border-emerald-500 font-bold shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400 animate-quiz-ripple";
+                      optionStyle = "bg-emerald-600 text-white border-2 border-emerald-500 font-bold shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400 animate-quiz-ripple";
+                      letterCircle = "bg-white/20 text-white";
                     } else if (isUserSelection) {
-                      optionStyle = "bg-rose-600 text-white border-rose-500 font-bold ring-2 ring-rose-400";
+                      optionStyle = "bg-rose-600 text-white border-2 border-rose-500 font-bold ring-2 ring-rose-400";
+                      letterCircle = "bg-white/20 text-white";
                     } else {
-                      optionStyle = "bg-slate-900/50 text-slate-500 border-slate-800 opacity-40";
+                      optionStyle = "bg-slate-100 dark:bg-[#181825] text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-[#2e2e42] opacity-50 cursor-not-allowed";
+                      letterCircle = "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500";
                     }
                   } else if (isUserSelection) {
-                    optionStyle = "bg-amber-500 text-slate-950 border-amber-400 font-bold";
+                    optionStyle = "bg-amber-500 text-slate-950 border-2 border-amber-600 font-bold ring-2 ring-amber-400 shadow-md";
+                    letterCircle = "bg-slate-950 text-amber-400";
                   }
 
                   return (
@@ -546,14 +544,14 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
                       key={idx}
                       disabled={quizState.isSubmitted}
                       onClick={() => handleAnswerClick(idx)}
-                      className={`p-3.5 rounded-2xl border text-xs sm:text-sm text-left transition flex items-start space-x-2.5 cursor-pointer shadow-sm ${optionStyle} ${
+                      className={`p-3.5 rounded-2xl border text-xs sm:text-sm text-left transition flex items-start space-x-2.5 cursor-pointer shadow-xs active:scale-[0.99] ${optionStyle} ${
                         isShaking ? "animate-quiz-shake" : ""
                       }`}
                     >
-                      <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center font-mono font-bold text-[10px] text-white shrink-0 mt-0.5">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold text-xs shrink-0 mt-0.5 ${letterCircle}`}>
                         {String.fromCharCode(65 + idx)}
                       </span>
-                      <span className="leading-snug font-medium">{option}</span>
+                      <span className="leading-snug font-medium pt-0.5">{option}</span>
                     </button>
                   );
                 })}
@@ -561,16 +559,16 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
 
               {/* Quiz Feedback Explanation Box */}
               {quizState.isSubmitted && (
-                <div className="p-4 rounded-2xl bg-[#1E1E2E] border border-amber-500/40 space-y-2 animate-fadeIn text-[#D1D5DB]">
+                <div className="p-4 rounded-2xl bg-slate-100 dark:bg-[#1E1E2E] border border-amber-400/60 dark:border-amber-500/40 space-y-2 animate-fadeIn text-slate-800 dark:text-[#D1D5DB]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       {quizState.isCorrect ? (
-                        <span className="text-xs font-black text-emerald-400 flex items-center gap-1">
+                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                           <CheckCircle2 className="w-4 h-4" />
                           {getHistoryText("correct", currentLanguage)} (+10 pts)
                         </span>
                       ) : (
-                        <span className="text-xs font-black text-rose-400 flex items-center gap-1">
+                        <span className="text-xs font-black text-rose-600 dark:text-rose-400 flex items-center gap-1">
                           <XCircle className="w-4 h-4" />
                           {getHistoryText("incorrect", currentLanguage)}: {data.dailyTrivia.options[data.dailyTrivia.correctIndex]}
                         </span>
@@ -579,12 +577,12 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
 
                     <button
                       onClick={() => setShowExplanationModal(true)}
-                      className="text-xs font-bold text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                     >
                       Full Explanation
                     </button>
                   </div>
-                  <p className="text-xs text-[#D1D5DB] leading-relaxed">
+                  <p className="text-xs leading-relaxed font-medium">
                     {data.dailyTrivia.explanation}
                   </p>
                 </div>

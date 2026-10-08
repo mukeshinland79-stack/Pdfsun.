@@ -66,7 +66,7 @@ import { trackGAPricingView, trackGAPaymentSuccess } from "./utils/analytics";
 import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 import { resolvePaymentProduct } from "./config/paymentProducts";
 
-export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora";
+export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora" | "high-contrast";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -147,7 +147,7 @@ function MainApp() {
       const savedEye = localStorage.getItem("pdfsun_eye_protection");
       if (savedEye === "true") return "eye-protection";
       const savedTheme = localStorage.getItem("pdfsun_theme");
-      if (["system", "dark", "eye-protection", "aurora", "light"].includes(savedTheme || "")) {
+      if (["system", "dark", "eye-protection", "aurora", "light", "high-contrast"].includes(savedTheme || "")) {
         return savedTheme as ThemeMode;
       }
     } catch (e) {}
@@ -164,7 +164,7 @@ function MainApp() {
   });
 
   const isSystemDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const darkMode = themeMode === "dark" || themeMode === "aurora" || (themeMode === "system" && isSystemDark);
+  const darkMode = themeMode === "dark" || themeMode === "aurora" || themeMode === "high-contrast" || (themeMode === "system" && isSystemDark);
 
   const handleSetDarkMode = useCallback((val: boolean) => {
     setThemeMode(val ? "dark" : "light");
@@ -175,7 +175,7 @@ function MainApp() {
     const root = document.documentElement;
 
     const updateClasses = (mode: ThemeMode) => {
-      root.classList.remove("dark", "eye-protection", "aurora-theme", "light");
+      root.classList.remove("dark", "eye-protection", "aurora-theme", "light", "high-contrast");
       let active = mode;
       if (mode === "system") {
         active = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -185,6 +185,8 @@ function MainApp() {
 
       if (active === "dark") {
         root.classList.add("dark");
+      } else if (active === "high-contrast") {
+        root.classList.add("dark", "high-contrast");
       } else if (active === "eye-protection") {
         root.classList.add("eye-protection");
       } else if (active === "aurora") {

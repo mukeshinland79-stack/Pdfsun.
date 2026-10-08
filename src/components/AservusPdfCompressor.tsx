@@ -446,24 +446,24 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
       className="compressor-container w-full max-w-4xl mx-auto mt-0 mb-4 relative"
     >
       {/* Master Design Standard: Rounded white card wrapper */}
-      <div className="main-tool-card relative rounded-[20px] bg-white text-slate-900 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.1)] overflow-hidden transition-all duration-300">
+      <div className="main-tool-card relative rounded-[20px] bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 shadow-[0_10px_30px_rgba(0,0,0,0.1)] overflow-hidden transition-all duration-300">
 
         {/* Top Header Bar */}
-        <div className="relative z-10 border-b border-slate-200 bg-slate-50/80 px-5 sm:px-8 py-4 flex items-center justify-between">
+        <div className="tool-card-header relative z-10 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 px-5 sm:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-tr from-[#f4511e] to-[#f59e0b] p-2 rounded-xl shadow-md text-white">
               <Zap className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900">
+                <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
                   Pdfsun<span className="text-orange-600">.in</span>
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
                   Aservus Engine
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
                 Ultra-fast 100% Client-Side In-Browser Compression
               </p>
             </div>
@@ -471,8 +471,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Privacy Badge */}
-            <div className="hidden sm:flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600 shrink-0" />
+            <div className="hidden sm:flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Zero Server Upload</span>
             </div>
 
@@ -481,7 +481,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
                 title="Close Workspace"
               >
                 <X className="w-5 h-5" />
@@ -495,16 +495,16 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
           {/* Hero Heading Banner */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center space-x-2 bg-orange-50 border border-orange-200 px-4 py-1.5 rounded-full text-xs font-semibold text-orange-700 mb-3 shadow-2xs">
+            <div className="inline-flex items-center space-x-2 bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800/60 px-4 py-1.5 rounded-full text-xs font-semibold text-orange-700 dark:text-orange-300 mb-3 shadow-2xs">
               <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
               <span>Aservus Ultimate PDF Compression Algorithm</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-[#0F172A] dark:text-white tracking-tight mb-2">
               Compress PDF without Losing Quality
             </h1>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
               Ultra-fast client-side compression. Your sensitive files{" "}
-              <span className="text-orange-600 font-semibold">never leave your device</span>.
+              <span className="text-orange-600 dark:text-orange-400 font-semibold">never leave your device</span>.
             </p>
           </div>
 

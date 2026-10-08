@@ -52,8 +52,8 @@ import { checkAdminRole } from "../hooks/useAuth";
 interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
-  themeMode?: "system" | "light" | "dark" | "eye-protection" | "aurora";
-  setThemeMode?: (mode: "system" | "light" | "dark" | "eye-protection" | "aurora") => void;
+  themeMode?: "system" | "light" | "dark" | "eye-protection" | "aurora" | "high-contrast";
+  setThemeMode?: (mode: "system" | "light" | "dark" | "eye-protection" | "aurora" | "high-contrast") => void;
   syncWithSystem?: boolean;
   setSyncWithSystem?: (val: boolean) => void;
   favorites: string[];
@@ -389,6 +389,7 @@ export const Header: React.FC<HeaderProps> = ({
                       { id: "system", label: t("theme.systemAuto", "System Auto"), desc: t("theme.systemAutoDesc", "Matches OS settings"), icon: Laptop, color: "text-indigo-500" },
                       { id: "light", label: t("theme.lightMode", "Light Mode"), desc: t("theme.lightModeDesc", "Crisp daylight UI"), icon: Sun, color: "text-amber-500" },
                       { id: "dark", label: t("theme.darkMode", "Dark Mode"), desc: t("theme.darkModeDesc", "OLED midnight theme"), icon: Moon, color: "text-blue-400" },
+                      { id: "high-contrast", label: t("theme.highContrast", "High Contrast"), desc: t("theme.highContrastDesc", "WCAG AAA 10:1+ Crisp UI"), icon: ShieldCheck, color: "text-emerald-500" },
                       { id: "eye-protection", label: t("theme.eyeCare", "Eye Care"), desc: t("theme.eyeCareDesc", "Warm sepia filter"), icon: Eye, color: "text-amber-600" },
                       { id: "aurora", label: t("theme.auroraGlass", "Aurora Glass"), desc: t("theme.auroraGlassDesc", "Vibrant frosted glass"), icon: Sparkles, color: "text-sky-400" },
                     ].map((opt) => {
@@ -1078,10 +1079,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
               {t("themeMode", "Website Theme")}
             </span>
-            <div className="w-full grid grid-cols-3 gap-1.5">
+            <div className="w-full grid grid-cols-4 gap-1.5">
               {[
                 { id: "light", label: "Light", icon: Sun },
                 { id: "dark", label: "Dark", icon: Moon },
+                { id: "high-contrast", label: "Contrast", icon: ShieldCheck },
                 { id: "system", label: "Auto", icon: Laptop },
               ].map((m) => {
                 const IconComponent = m.icon;
@@ -1092,7 +1094,7 @@ export const Header: React.FC<HeaderProps> = ({
                     type="button"
                     onClick={() => {
                       if (setThemeMode) setThemeMode(m.id as any);
-                      else setDarkMode(m.id === "dark" || m.id === "aurora");
+                      else setDarkMode(m.id === "dark" || m.id === "aurora" || m.id === "high-contrast");
                     }}
                     className={`w-full flex items-center justify-center space-x-1 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                       isActive

@@ -131,10 +131,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Headline */}
         <div className="space-y-1.5">
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-4xl font-black text-[#0F172A] dark:text-white tracking-tight leading-tight">
             {t("heroTitle", "Enterprise PDF Tools & AI Document Engine")}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-normal">
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 max-w-xl mx-auto font-medium">
             {t("heroSub", "100% Client-Side WebAssembly Processing. Private, Fast, & Secure.")}
           </p>
         </div>

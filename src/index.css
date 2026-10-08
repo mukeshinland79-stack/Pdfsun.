@@ -128,8 +128,8 @@ body {
   --text-primary: var(--text-main);
   --border-color: var(--card-border);
   --border-subtle: var(--subtle-border);
-  --surface-card-elevated: #f1f5f9;
-  --surface-trivia-card: #f8fafc;
+  --surface-card-elevated: #1E293B;
+  --surface-trivia-card: #ffffff;
   --surface-choice-btn: #ffffff;
   --surface-choice-hover: #f1f5f9;
 }
@@ -298,6 +298,61 @@ html.aurora-theme {
   --surface-trivia-card: rgba(15, 23, 42, 0.8);
   --surface-choice-btn: rgba(30, 41, 59, 0.6);
   --surface-choice-hover: rgba(99, 102, 241, 0.25);
+}
+
+/* High-Contrast Theme Tokens (WCAG AAA High Contrast 10:1+ Crisp Black/White) */
+:root[data-theme="high-contrast"],
+html[data-theme="high-contrast"],
+html.high-contrast {
+  --canvas-bg: #000000;
+  --card-bg: #09090b;
+  --card-header-bg: #141416;
+  --card-footer-bg: #141416;
+  --section-accent-bg: #18181b;
+  --section-accent-border: #ffffff;
+  --section-accent-text: #ffffff;
+  --card-border: #ffffff;
+  --subtle-border: #a1a1aa;
+  --text-main: #ffffff;
+  --text-secondary: #f4f4f5;
+  --text-muted: #e4e4e7;
+  --dropzone-bg: #000000;
+  --dropzone-border: #ffffff;
+  --dropzone-hover-bg: #1f1f23;
+  --dropzone-hover-border: #f97316;
+  --input-bg: #000000;
+  --input-border: #ffffff;
+  --option-card-bg: #121215;
+  --option-card-hover-bg: #27272a;
+  --option-card-active-bg: #3f3f46;
+  --card-shadow: 0 0 0 2px #ffffff;
+
+  --surface-card-elevated: #141416;
+  --surface-trivia-card: #09090b;
+  --surface-choice-btn: #18181b;
+  --surface-choice-hover: #27272a;
+
+  /* WCAG AAA High-Contrast Text Tokens */
+  --text-heading: #ffffff;
+  --text-body: #ffffff;
+  --text-subtext: #f4f4f5;
+
+  /* High-Contrast Badges */
+  --badge-blue-bg: #001a33;
+  --badge-blue-text: #ffffff;
+  --badge-blue-border: #60a5fa;
+
+  --badge-amber-bg: #2b1800;
+  --badge-amber-text: #ffffff;
+  --badge-amber-border: #f59e0b;
+
+  --badge-purple-bg: #260033;
+  --badge-purple-text: #ffffff;
+  --badge-purple-border: #c084fc;
+
+  --badge-emerald-bg: #002611;
+  --badge-emerald-text: #ffffff;
+  --badge-emerald-border: #34d399;
 }
 
 /* =========================================================
@@ -1464,6 +1519,212 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid #3b82f6 !important;
   outline-offset: 2px !important;
+}
+
+/* ==========================================================================
+   Pdfsun.in - Button Crispness, Blur Fix & High-Contrast Styling
+   ========================================================================== */
+
+/* 1. Global Hardware Acceleration & Anti-Aliasing (Fixes Sub-pixel Blur) */
+*,
+*::before,
+*::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fix CSS scale/filter blur on interactive elements during click/focus states */
+button,
+.btn,
+.tool-card,
+.action-button,
+[role="button"] {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, box-shadow;
+  /* Smooth transform transition without destructive scale-induced text blurring */
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.15s ease,
+              border-color 0.15s ease;
+}
+
+/* 2. High-Contrast Primary & Action Buttons (WCAG 2.1 AA Compliant) */
+.btn-primary,
+.btn-convert,
+.action-button {
+  background-color: #e65100; /* Rich High-Contrast Orange */
+  color: #ffffff !important;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1px solid #bf360c;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+/* Clear Active & Hover States without Blurring */
+.btn-primary:hover,
+.btn-convert:hover,
+.action-button:hover {
+  background-color: #d84315;
+  border-color: #a02700;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px); /* Clean lift instead of scaling */
+}
+
+.btn-primary:active,
+.btn-convert:active,
+.action-button:active {
+  background-color: #bf360c;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 3. High-Contrast Tool Cards & Text Visibility */
+.tool-card {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  color: #1a1a1a; /* Dark crisp text */
+}
+
+html.dark .tool-card,
+[data-theme="dark"] .tool-card {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.tool-card:hover {
+  border-color: #ff6d00;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.tool-card .tool-title {
+  color: #000000 !important;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+html.dark .tool-card .tool-title,
+[data-theme="dark"] .tool-card .tool-title {
+  color: #ffffff !important;
+}
+
+.tool-card .tool-description {
+  color: #333333 !important; /* High contrast body text */
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+html.dark .tool-card .tool-description,
+[data-theme="dark"] .tool-card .tool-description {
+  color: #cbd5e1 !important;
+}
+
+/* 4. Overlay & Backdrop Blur Isolation */
+/* Loading overlays will not blur background button typography */
+.loading-overlay,
+.modal-backdrop {
+  backdrop-filter: none !important; /* Disables GPU pixel blurring overlays */
+  background-color: rgba(0, 0, 0, 0.5); /* Crisp dark opacity fallback */
+}
+
+/* ==========================================================================
+   Hero Banner Container & High-Contrast Typography Fix (WCAG AAA)
+   ========================================================================== */
+.hero-banner-card {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 250, 252, 0.95) 100%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.dark .hero-banner-card,
+[data-theme="dark"] .hero-banner-card,
+[data-theme="aurora"] .hero-banner-card {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.high-contrast .hero-banner-card,
+[data-theme="high-contrast"] .hero-banner-card {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 2px #ffffff !important;
+}
+
+/* Heading Fix: High-Contrast Deep Navy #0F172A (WCAG AAA) */
+.hero-banner-card h1, 
+.hero-banner-card h2 {
+  color: #0f172a !important; /* High contrast Deep Navy #0F172A */
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+html.dark .hero-banner-card h1,
+html.dark .hero-banner-card h2,
+[data-theme="dark"] .hero-banner-card h1,
+[data-theme="dark"] .hero-banner-card h2,
+[data-theme="aurora"] .hero-banner-card h1,
+[data-theme="aurora"] .hero-banner-card h2,
+html.high-contrast .hero-banner-card h1,
+html.high-contrast .hero-banner-card h2,
+[data-theme="high-contrast"] .hero-banner-card h1,
+[data-theme="high-contrast"] .hero-banner-card h2 {
+  color: #ffffff !important;
+}
+
+/* Subtitle Fix: Dark Slate #1E293B (WCAG AAA) */
+.hero-banner-card p {
+  color: #1e293b !important; /* High contrast Dark Slate #1E293B */
+  font-weight: 400;
+  margin-top: 8px;
+}
+
+html.dark .hero-banner-card p,
+[data-theme="dark"] .hero-banner-card p,
+[data-theme="aurora"] .hero-banner-card p {
+  color: #cbd5e1 !important;
+}
+
+html.high-contrast .hero-banner-card p,
+[data-theme="high-contrast"] .hero-banner-card p {
+  color: #f4f4f5 !important;
+}
+
+/* Global High-Contrast Overrides */
+html.high-contrast .main-tool-card,
+html.high-contrast .tool-card-wrapper,
+html.high-contrast .active-workspace-card {
+  background: #09090b !important;
+  border: 2px solid #ffffff !important;
+}
+
+html.high-contrast .tool-card-header {
+  background: #141416 !important;
+  border-bottom: 2px solid #ffffff !important;
+}
+
+html.high-contrast h1,
+html.high-contrast h2,
+html.high-contrast h3 {
+  color: #ffffff !important;
+}
+
+html.high-contrast button.btn-primary,
+html.high-contrast .btn-convert,
+html.high-contrast .action-button {
+  border: 2px solid #ffffff !important;
+  outline: 1px solid #ffffff !important;
 }
 
 
