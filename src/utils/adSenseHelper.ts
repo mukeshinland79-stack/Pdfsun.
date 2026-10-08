@@ -1,5 +1,27 @@
 import React from "react";
 
+/**
+ * Global AdSense Configuration & Pre-Approval State Controller
+ * Strictly enforces Zero Blank-Space Policy to prevent Google AdSense rejections
+ * (Thin Content / Poor UI Layout / Cumulative Layout Shift).
+ */
+export const ADSENSE_CONFIG = {
+  // Pre-approval mode: set to false until Google AdSense officially approves the domain
+  isApproved: false,
+  client: "ca-pub-4189458265489554",
+  allowEmptyContainers: false,
+};
+
+export function isAdSenseApproved(): boolean {
+  if (typeof window !== "undefined") {
+    const override = localStorage.getItem("pdfsun_adsense_approved");
+    if (override !== null) {
+      return override === "true";
+    }
+  }
+  return ADSENSE_CONFIG.isApproved;
+}
+
 export interface AdPlacementConfig {
   id: string;
   slotId: string;
@@ -12,7 +34,7 @@ export interface AdPlacementConfig {
 
 /**
  * Dynamically calculates up to 5 optimized Google AdSense placements based on content density and active tool state.
- * Prevents Cumulative Layout Shift (CLS) and ensures ads do not obscure active tool operations.
+ * If AdSense is not approved (Pre-Approval State), returns an empty array to prevent empty white boxes and policy flags.
  */
 export function calculateAdPlacements(
   toolCount: number,
@@ -20,6 +42,11 @@ export function calculateAdPlacements(
   hasAnalytics: boolean,
   viewportWidth: number = 1200
 ): AdPlacementConfig[] {
+  // Zero Blank-Space Policy: If AdSense is unapproved, do not render empty ad slots
+  if (!isAdSenseApproved()) {
+    return [];
+  }
+
   // Density factor based on number of tools displayed
   const contentDensity = Math.min(toolCount / 20, 1.5);
 

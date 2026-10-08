@@ -23,6 +23,7 @@ import {
 import { BLOG_POSTS } from "../data/blogData";
 import { BlogPost } from "../types";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
+import { isAdSenseApproved } from "../utils/adSenseHelper";
 import {
   getSavedArticleSlugs,
   toggleSavedArticle,
@@ -648,14 +649,11 @@ export const PdfSunArticleSection: React.FC<PdfSunArticleSectionProps> = ({
         </div>
 
         {/* Compliant In-Article AdSense Banner with Reserved CLS Buffer (Zero Layout Shift) */}
-        {showAd && (
+        {showAd && isAdSenseApproved() && (
           <div
             id="pdfsun-editorial-ad-buffer"
-            className="mt-8 pt-6 border-t border-slate-800/80 flex flex-col items-center justify-center relative z-10 min-h-[280px]"
+            className="ad-container is-approved mt-8 pt-6 border-t border-slate-800/80 flex flex-col items-center justify-center relative z-10 min-h-[280px]"
           >
-            <span className="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-2">
-              Sponsored Content
-            </span>
             <AdSensePlaceholder
               slotId="pdfsun-auto-incontent-02"
               format="rectangle"

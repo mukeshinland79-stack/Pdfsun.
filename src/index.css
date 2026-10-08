@@ -781,6 +781,53 @@ html.dark .badge-orange-pill,
     }
   }
 
+  /* ==========================================================================
+     ADSENSE PRE-APPROVAL & ZERO-CLS ARCHITECTURE
+     ========================================================================== */
+
+  /* CSS Global Toggle for Unapproved Ad Containers (Zero Blank-Space Policy) */
+  .ad-container,
+  .ad-placeholder-box,
+  .ad-label-advertisement {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure engagement wrapper replacement shows cleanly without layout jump */
+  .engagement-replacement-slot {
+    display: block;
+    width: 100%;
+    margin: 1.5rem 0;
+  }
+
+  /* Post-Approval Preparation (AdSense Ready & Zero-CLS Architecture) */
+  .ad-container.is-approved {
+    display: flex !important;
+    visibility: visible !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 280px; /* Prevents CLS content jumps when ad populates */
+    background-color: var(--card-bg, #f9fafb);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Fallback logic: Automatically collapse if AdSense fails to fill the slot */
+  .ad-container ins.adsbygoogle[data-ad-status="unfilled"],
+  ins.adsbygoogle[data-ad-status="unfilled"],
+  .adsense-slot-wrapper:has(ins.adsbygoogle[data-ad-status="unfilled"]) {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   /* Prevent Cumulative Layout Shift (CLS) for dynamic components and AdSense slots */
   .adsense-slot-wrapper {
     content-visibility: auto;

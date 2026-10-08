@@ -887,8 +887,11 @@ function MainApp() {
                     />
                   </div>
 
-                  {/* 3. NEW EXACT POSITION: Sticky Advertisement Wrapper */}
-                  <StickyAdvertisementWrapper slotId="pdfsun-sticky-copilot-banner" />
+                  {/* 3. Upper Slot: Trending PDF & AI Tools Quick-Hub / AdSense Pre-Approval Booster */}
+                  <StickyAdvertisementWrapper
+                    slotId="pdfsun-sticky-copilot-banner"
+                    onSelectTool={handleSelectTool}
+                  />
 
                   {/* 4. Copilot and Enterprise Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1047,7 +1050,10 @@ function MainApp() {
 
       <TodayInHistoryModal isOpen={todayInHistoryOpen} onClose={() => setTodayInHistoryOpen(false)} initialLanguage={geoResult.detectedLanguage} initialCountryCode={geoResult.detectedCountryCode} onSelectTool={handleSelectTool} />
       <FuturePdfStudioModal isOpen={futureStudioOpen} onClose={() => setFutureStudioOpen(false)} initialTab={futureStudioTab} initialFile={futureStudioFile} onAddHistory={addHistory} />
-      <StickyBottomAdBanner isVisible={!activeTool && !pricingModalOpen && !contactModalOpen && !sitemapModalOpen && !todayInHistoryOpen && !blogModalOpen && !futureStudioOpen && !adminPanelOpen && !userDashboardOpen && !cmsModalOpen && !authModalOpen} />
+      <StickyBottomAdBanner
+        isVisible={!activeTool && !pricingModalOpen && !contactModalOpen && !sitemapModalOpen && !todayInHistoryOpen && !blogModalOpen && !futureStudioOpen && !adminPanelOpen && !userDashboardOpen && !cmsModalOpen && !authModalOpen}
+        onOpenInstallApp={() => setInstallAppModalOpen(true)}
+      />
       <GlobalErrorToast />
     </div>
   );

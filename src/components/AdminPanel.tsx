@@ -1999,10 +1999,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
+                {/* Pre-Approval Zero Blank Space Toggle */}
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-black text-amber-900 dark:text-amber-300">
+                      AdSense Approval Audit Status (Zero Blank-Space Policy)
+                    </span>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      Current Mode: <strong>Pre-Approval Safe</strong> (Empty ad slots suppressed and replaced with Trending Tools Hub &amp; PWA Value Bar).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = localStorage.getItem("pdfsun_adsense_approved") === "true";
+                      localStorage.setItem("pdfsun_adsense_approved", cur ? "false" : "true");
+                      window.location.reload();
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shrink-0 cursor-pointer shadow-xs"
+                  >
+                    Toggle Approval State ({typeof window !== "undefined" && localStorage.getItem("pdfsun_adsense_approved") === "true" ? "Approved" : "Pre-Approval"})
+                  </button>
+                </div>
+
                 <div className="pt-2 text-xs text-slate-500 space-y-1">
-                  <div className="font-bold text-slate-700 dark:text-slate-300">Ad Placement Rules:</div>
-                  <p>• Ads automatically scale to fit Desktop, Tablet, and Mobile screens.</p>
-                  <p>• Placements never overlap tool processing dropzones or buttons.</p>
+                  <div className="font-bold text-slate-700 dark:text-slate-300">Zero Blank-Space &amp; AdSense Policy Guardrails:</div>
+                  <p>• Pre-Approval State: All unapproved ad containers collapse to 0 height with zero static labels.</p>
+                  <p>• Upper slot displays Trending Tools Quick-Hub with real-time 66+ tools search.</p>
+                  <p>• Sticky bottom slot displays PWA Value Bar &amp; Privacy Guarantee.</p>
+                  <p>• Prevents Thin Content &amp; Cumulative Layout Shift (CLS) rejection flags.</p>
                 </div>
               </div>
             </div>

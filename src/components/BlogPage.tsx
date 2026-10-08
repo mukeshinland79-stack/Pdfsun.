@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
+import { isAdSenseApproved } from "../utils/adSenseHelper";
 import {
   calculateReadingTime,
   getSavedArticleSlugs,
@@ -684,17 +685,35 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             })}
           </section>
 
-          {/* In-Article Native Feed Advertisement (Google Publisher Policy Compliant) */}
-          <div className="my-8 py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-center">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
-              Advertisement
+          {/* In-Article Editorial Trust & Quick Tool Box (Zero Blank Ad Slot Policy) */}
+          {isAdSenseApproved() ? (
+            <div className="ad-container is-approved my-8 py-3 px-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-center">
+              <AdSensePlaceholder
+                slotId="pdfsun-blog-in-article-feed"
+                format="auto"
+                className="my-1"
+              />
             </div>
-            <AdSensePlaceholder
-              slotId="pdfsun-blog-in-article-feed"
-              format="auto"
-              className="my-1"
-            />
-          </div>
+          ) : (
+            <div className="engagement-replacement-slot my-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-50/60 via-amber-50/40 to-slate-50 dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900 border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                  <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>PDFSun Privacy &amp; Local Execution Guarantee</span>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      Zero Uploads
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                    All document processing covered in this guide runs directly inside your browser memory using WebAssembly. Your files never touch external servers or third-party cloud storage.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* COMPARISON TABLE SECTION */}
           {activePost.comparisonTable && (

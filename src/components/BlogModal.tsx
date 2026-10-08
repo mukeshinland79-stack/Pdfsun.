@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
+import { isAdSenseApproved } from "../utils/adSenseHelper";
 
 interface BlogModalProps {
   isOpen: boolean;
@@ -219,10 +220,12 @@ export const BlogModal: React.FC<BlogModalProps> = ({
               {selectedPost.content}
             </div>
 
-            {/* In-Article Native Feed Ad Placement */}
-            <div className="my-8 p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 overflow-hidden text-center">
-              <AdSensePlaceholder format="horizontal" className="my-2" />
-            </div>
+            {/* In-Article Native Feed Ad Placement (Rendered only when approved) */}
+            {isAdSenseApproved() && (
+              <div className="ad-container is-approved my-8 p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 overflow-hidden text-center">
+                <AdSensePlaceholder format="horizontal" className="my-2" />
+              </div>
+            )}
 
             {/* Tool Recommendation Callout */}
             {selectedPost.relatedTools && selectedPost.relatedTools.length > 0 && (
