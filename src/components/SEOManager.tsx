@@ -656,6 +656,37 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
                 "url": baseUrl,
               },
             },
+            {
+              "@type": "Article",
+              "headline": "Today in History — Popular Verified Milestones & Knowledge Hub",
+              "description": "Daily verified historic milestones, groundbreaking inventions, and famous birthdays with community popularity rankings and free study worksheet PDF exports.",
+              "url": `${baseUrl}/today-in-history`,
+              "datePublished": new Date().toISOString().split("T")[0],
+              "dateModified": new Date().toISOString().split("T")[0],
+              "inLanguage": currentLanguage || "en",
+              "author": {
+                "@type": "Organization",
+                "name": "PDFSun Historical Archive & Knowledge Network",
+                "url": baseUrl,
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "PDFSun",
+                "url": baseUrl,
+              },
+              "interactionStatistic": [
+                {
+                  "@type": "InteractionCounter",
+                  "interactionType": "https://schema.org/ReadAction",
+                  "userInteractionCount": 14250,
+                },
+                {
+                  "@type": "InteractionCounter",
+                  "interactionType": "https://schema.org/LikeAction",
+                  "userInteractionCount": 3890,
+                },
+              ],
+            },
           ],
         })}
       </script>

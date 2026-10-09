@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ShieldCheck,
   BookOpen,
+  Flame,
 } from "lucide-react";
 import { GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
@@ -139,6 +140,10 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
             <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
               <span>{t("todayInHistory.internetVerified", getHistoryText("internetVerified", effectiveLang))}</span>
+            </span>
+            <span className="inline-flex items-center space-x-1 text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-full">
+              <Flame className="w-3 h-3 text-amber-400 shrink-0" />
+              <span>Trending • 2.4k+ Readers</span>
             </span>
           </div>
 

@@ -22,10 +22,14 @@ import {
   Bot,
   RotateCcw,
   Info,
+  Heart,
+  Eye,
+  TrendingUp,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useHistoryData } from "../hooks/useHistoryData";
 import { useLanguageStore } from "../hooks/useLanguageStore";
+import { useHistoryEngagement } from "../hooks/useHistoryEngagement";
 import { ToolItem } from "../types";
 import { HistoryEventItem } from "../types/history";
 import { LanguageSelectorModal } from "./LanguageSelectorModal";
@@ -59,9 +63,23 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
     refetch,
   } = useHistoryData({ countryCode });
 
+  const dateKey = data ? `${data.month}-${data.day}` : undefined;
+  const {
+    trackView,
+    trackReadDetail,
+    toggleLike,
+    trackShare,
+    trackCopy,
+    trackWorksheetDownload,
+    trackQuizAttempt,
+    getEventMetrics,
+    getPopularEvents,
+    isLiked,
+  } = useHistoryEngagement(dateKey);
+
   // UI States
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<"all" | "milestone" | "birth" | "invention">("all");
+  const [activeCategory, setActiveCategory] = useState<"all" | "popular" | "milestone" | "birth" | "invention">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDetailEvent, setSelectedDetailEvent] = useState<HistoryEventItem | null>(null);
   const [copiedStory, setCopiedStory] = useState(false);
@@ -112,6 +130,7 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
       if (quizState.isSubmitted || !data?.dailyTrivia) return;
 
       const isAnswerCorrect = index === data.dailyTrivia.correctIndex;
+      trackQuizAttempt(data.dailyTrivia.id, isAnswerCorrect);
 
       if (isAnswerCorrect) {
         // Correct Answer: Green Highlight + Ripple + Confetti
@@ -152,16 +171,20 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
         }, 500);
       }
     },
-    [data?.dailyTrivia, quizState.isSubmitted, score, streak]
+    [data?.dailyTrivia, quizState.isSubmitted, score, streak, trackQuizAttempt]
   );
 
-  // Filter Event Cards
+  // Filter Event Cards (with Most Popular sorting supported)
   const filteredEvents = useMemo(() => {
     if (!data) return [];
     let list: HistoryEventItem[] = [];
 
-    if (activeCategory === "all") {
-      list = [...(data.events || []), ...(data.births || []), ...(data.discoveries || [])];
+    const allList = [...(data.events || []), ...(data.births || []), ...(data.discoveries || [])];
+
+    if (activeCategory === "popular") {
+      list = getPopularEvents(allList);
+    } else if (activeCategory === "all") {
+      list = allList;
     } else if (activeCategory === "milestone") {
       list = data.events || [];
     } else if (activeCategory === "birth") {
@@ -181,7 +204,16 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
         (e.subtitle && e.subtitle.toLowerCase().includes(q)) ||
         String(e.year).includes(q)
     );
-  }, [activeCategory, data, searchQuery]);
+  }, [activeCategory, data, getPopularEvents, searchQuery]);
+
+  // Automatically log impressions for visible historical content
+  React.useEffect(() => {
+    if (filteredEvents.length > 0) {
+      filteredEvents.slice(0, 8).forEach((item) => {
+        trackView(item, dateKey);
+      });
+    }
+  }, [filteredEvents, trackView, dateKey]);
 
   // Launch AI Copilot Workspace
   const handleLaunchAiWorkspace = () => {
@@ -191,9 +223,10 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
     }
   };
 
-  // Export PDF Worksheet
+  // Export PDF Worksheet with engagement telemetry
   const handleExportPdf = () => {
     if (data) {
+      trackWorksheetDownload(data.events?.length || 1, data.events?.[0]?.id);
       generateHistoryWorksheetPdf(data);
     }
   };
@@ -353,6 +386,17 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
                 {getHistoryText("allCategories", currentLanguage)}
               </button>
               <button
+                onClick={() => setActiveCategory("popular")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center space-x-1.5 ${
+                  activeCategory === "popular"
+                    ? "bg-amber-600 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-400/40"
+                    : "bg-slate-800 text-amber-300 hover:bg-slate-700 border border-amber-500/20"
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{getHistoryText("popular", currentLanguage) || "Most Popular"}</span>
+              </button>
+              <button
                 onClick={() => setActiveCategory("milestone")}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                   activeCategory === "milestone"
@@ -408,61 +452,103 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
           {/* 2. EVENT CARDS GRID (UPPER CARDS SECTION A) */}
           {filteredEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEvents.map((item, idx) => (
-                <div
-                  key={`${item.id}-${idx}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedDetailEvent(item)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+              {filteredEvents.map((item, idx) => {
+                const metrics = getEventMetrics(item.id, item);
+                return (
+                  <div
+                    key={`${item.id}-${idx}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
                       setSelectedDetailEvent(item);
-                    }
-                  }}
-                  className="p-5 rounded-3xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/70 hover:shadow-xl transition-all duration-200 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
-                >
-                  <div className="space-y-2.5">
-                    {/* Dynamic Year Badge & Category Tag */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-xs shadow-sm">
-                        {item.year}
-                      </span>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-700/90 px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-600 shadow-2xs">
-                        {getLocalizedTag(item.tag, item.category, currentLanguage)}
-                      </span>
+                      trackReadDetail(item, dateKey);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedDetailEvent(item);
+                        trackReadDetail(item, dateKey);
+                      }
+                    }}
+                    className="p-5 rounded-3xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/70 hover:shadow-xl transition-all duration-200 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
+                  >
+                    <div className="space-y-2.5">
+                      {/* Dynamic Year Badge, Category Tag & Popular Ranking / Likes */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-xs shadow-sm">
+                            {item.year}
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-700/90 px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-600 shadow-2xs">
+                            {getLocalizedTag(item.tag, item.category, currentLanguage)}
+                          </span>
+                        </div>
+
+                        {/* Engagement Ranking & Interactive Upvote / Like */}
+                        <div className="flex items-center space-x-1.5">
+                          {activeCategory === "popular" && (
+                            <span className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              {idx === 0 ? "🏆 #1 Most Read" : idx === 1 ? "🔥 #2 Popular" : idx === 2 ? "⭐ #3 Top Pick" : `#${idx + 1}`}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(item, dateKey);
+                            }}
+                            title="Upvote / Like this story"
+                            aria-label="Like story"
+                            className={`px-2 py-1 rounded-lg transition flex items-center space-x-1 cursor-pointer ${
+                              metrics.isLiked
+                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+                                : "bg-slate-700/50 text-slate-400 hover:text-rose-400 border border-slate-600/40"
+                            }`}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${metrics.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+                            <span className="text-[10px] font-bold font-mono">{metrics.likes}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Title / Name */}
+                      <h4 className="text-base font-bold text-white group-hover:text-blue-300 transition-colors line-clamp-2">
+                        {item.title || item.headline}
+                      </h4>
+
+                      {/* Profession / Subtitle */}
+                      {item.subtitle && (
+                        <p className="text-xs font-semibold text-amber-400/90 tracking-wide">
+                          {item.subtitle}
+                        </p>
+                      )}
+
+                      {/* Detailed Summary */}
+                      <p className="text-xs text-[#D1D5DB] leading-relaxed line-clamp-3">
+                        {item.description}
+                      </p>
                     </div>
 
-                    {/* Title / Name */}
-                    <h4 className="text-base font-bold text-white group-hover:text-blue-300 transition-colors line-clamp-2">
-                      {item.title || item.headline}
-                    </h4>
-
-                    {/* Profession / Subtitle */}
-                    {item.subtitle && (
-                      <p className="text-xs font-semibold text-amber-400/90 tracking-wide">
-                        {item.subtitle}
-                      </p>
-                    )}
-
-                    {/* Detailed Summary */}
-                    <p className="text-xs text-[#D1D5DB] leading-relaxed line-clamp-3">
-                      {item.description}
-                    </p>
+                    {/* Source Attribution & Engagement Reads Counter */}
+                    <div className="pt-3 mt-3 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="flex items-center space-x-2 truncate max-w-[200px]">
+                        <span className="truncate">
+                          {getHistoryText("source", currentLanguage)}: {item.sourceName || "विकिपीडिया"}
+                        </span>
+                        <span className="text-slate-500">•</span>
+                        <span className="text-slate-300 flex items-center gap-1 font-mono text-[10px] shrink-0" title="Total Reader Engagement">
+                          <Eye className="w-3 h-3 text-slate-400" />
+                          {metrics.reads.toLocaleString()}
+                        </span>
+                      </div>
+                      <span className="text-blue-400 font-bold group-hover:underline flex items-center gap-1 shrink-0">
+                        {getHistoryText("details", currentLanguage)}
+                        <ExternalLink className="w-3 h-3" />
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Source Attribution & "विवरण देखें" Details Trigger */}
-                  <div className="pt-3 mt-3 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="truncate max-w-[170px]">
-                      {getHistoryText("source", currentLanguage)}: {item.sourceName || "विकिपीडिया"}
-                    </span>
-                    <span className="text-blue-400 font-bold group-hover:underline flex items-center gap-1 shrink-0">
-                      {getHistoryText("details", currentLanguage)}
-                      <ExternalLink className="w-3 h-3" />
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="py-12 text-center bg-slate-800/40 rounded-3xl border border-dashed border-slate-700 space-y-2">
@@ -694,38 +780,65 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
               )}
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <span className="text-slate-400">
-                {getHistoryText("verifiedVia", currentLanguage)} {selectedDetailEvent.sourceName || "विकिपीडिया"}
-              </span>
+            {/* Modal Metrics & Actions */}
+            {(() => {
+              const modalMetrics = getEventMetrics(selectedDetailEvent.id, selectedDetailEvent);
+              return (
+                <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center space-x-2 text-slate-400">
+                    <span className="truncate">
+                      {getHistoryText("verifiedVia", currentLanguage)} {selectedDetailEvent.sourceName || "विकिपीडिया"}
+                    </span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-slate-300 flex items-center gap-1 font-mono text-[11px]">
+                      <Eye className="w-3.5 h-3.5 text-slate-400" />
+                      {modalMetrics.reads.toLocaleString()} reads
+                    </span>
+                  </div>
 
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    const text = `${selectedDetailEvent.year}: ${selectedDetailEvent.headline} - ${selectedDetailEvent.description}`;
-                    navigator.clipboard.writeText(text);
-                    setCopiedStory(true);
-                    setTimeout(() => setCopiedStory(false), 2000);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition flex items-center space-x-1.5 cursor-pointer border border-slate-700"
-                >
-                  {copiedStory ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedStory ? getHistoryText("copied", currentLanguage) : getHistoryText("copyStory", currentLanguage)}</span>
-                </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleLike(selectedDetailEvent, dateKey)}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center space-x-1.5 cursor-pointer border ${
+                        modalMetrics.isLiked
+                          ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                          : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                      }`}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${modalMetrics.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+                      <span>{modalMetrics.likes}</span>
+                    </button>
 
-                {selectedDetailEvent.wikipediaUrl && (
-                  <a
-                    href={selectedDetailEvent.wikipediaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
-                  >
-                    <span>Wikipedia</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
+                    <button
+                      onClick={() => {
+                        const text = `${selectedDetailEvent.year}: ${selectedDetailEvent.headline} - ${selectedDetailEvent.description}`;
+                        navigator.clipboard.writeText(text);
+                        trackCopy(selectedDetailEvent);
+                        setCopiedStory(true);
+                        setTimeout(() => setCopiedStory(false), 2000);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition flex items-center space-x-1.5 cursor-pointer border border-slate-700"
+                    >
+                      {copiedStory ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedStory ? getHistoryText("copied", currentLanguage) : getHistoryText("copyStory", currentLanguage)}</span>
+                    </button>
+
+                    {selectedDetailEvent.wikipediaUrl && (
+                      <a
+                        href={selectedDetailEvent.wikipediaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                      >
+                        <span>Wikipedia</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

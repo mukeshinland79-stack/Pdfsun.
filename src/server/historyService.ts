@@ -147,3 +147,133 @@ historyRouter.post("/refresh", async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
+interface ServerEngagementItem {
+  eventId: string;
+  headline: string;
+  year: string | number;
+  category: string;
+  tag: string;
+  dateKey: string;
+  views: number;
+  reads: number;
+  likes: number;
+  shares: number;
+  downloads: number;
+  engagementScore: number;
+  lastUpdated: string;
+}
+
+// In-memory engagement ledger
+const serverEngagementStore = new Map<string, ServerEngagementItem>();
+
+/**
+ * POST /api/history/engagement
+ * Logs client-side user engagement metric (views, reads, likes, shares, downloads)
+ */
+historyRouter.post("/engagement", (req, res) => {
+  try {
+    const { eventId, type, headline, year, category, tag, dateKey } = req.body || {};
+    if (!eventId || typeof eventId !== "string") {
+      return res.status(400).json({ success: false, error: "eventId is required" });
+    }
+
+    const current = serverEngagementStore.get(eventId) || {
+      eventId,
+      headline: headline || "Historic Event",
+      year: year || "",
+      category: category || "milestone",
+      tag: tag || "History",
+      dateKey: dateKey || "",
+      views: 0,
+      reads: 0,
+      likes: 0,
+      shares: 0,
+      downloads: 0,
+      engagementScore: 0,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    if (headline) current.headline = headline;
+    if (year) current.year = year;
+    if (category) current.category = category;
+    if (tag) current.tag = tag;
+    if (dateKey) current.dateKey = dateKey;
+
+    switch (type) {
+      case "view":
+        current.views += 1;
+        current.engagementScore += 1;
+        break;
+      case "read":
+      case "read_detail":
+        current.reads += 1;
+        current.engagementScore += 3;
+        break;
+      case "like":
+        current.likes += 1;
+        current.engagementScore += 5;
+        break;
+      case "unlike":
+        current.likes = Math.max(0, current.likes - 1);
+        current.engagementScore = Math.max(0, current.engagementScore - 5);
+        break;
+      case "share":
+        current.shares += 1;
+        current.engagementScore += 8;
+        break;
+      case "download":
+      case "download_worksheet":
+        current.downloads += 1;
+        current.engagementScore += 6;
+        break;
+      case "quiz_attempt":
+        current.engagementScore += 2;
+        break;
+      default:
+        current.views += 1;
+        current.engagementScore += 1;
+        break;
+    }
+
+    current.lastUpdated = new Date().toISOString();
+    serverEngagementStore.set(eventId, current);
+
+    return res.json({
+      success: true,
+      eventId,
+      item: current,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/history/popular
+ * Returns most engaged & popular historical content for boosting domain authority
+ */
+historyRouter.get("/popular", (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 10, 50);
+    const dateKey = req.query.dateKey as string | undefined;
+
+    let items = Array.from(serverEngagementStore.values());
+    if (dateKey) {
+      items = items.filter((it) => it.dateKey === dateKey);
+    }
+
+    // Sort descending by engagement score
+    items.sort((a, b) => b.engagementScore - a.engagementScore);
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    return res.json({
+      success: true,
+      count: items.length,
+      popular: items.slice(0, limit),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});

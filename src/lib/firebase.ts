@@ -267,6 +267,110 @@ export async function fetchAllToolFeedbackFromFirestore(): Promise<ToolFeedbackI
   }
 }
 
+export interface HistoryEngagementRecord {
+  eventId: string;
+  headline?: string;
+  year?: string | number;
+  category?: string;
+  tag?: string;
+  dateKey?: string;
+  views: number;
+  reads: number;
+  likes: number;
+  shares: number;
+  downloads: number;
+  engagementScore: number;
+  lastUpdated: string;
+}
+
+/**
+ * Record historical content engagement (views, reads, likes, shares, downloads) to Firestore
+ */
+export async function recordHistoryEngagementToFirestore(
+  eventId: string,
+  type: "view" | "read" | "like" | "share" | "download",
+  meta?: { headline?: string; year?: string | number; category?: string; tag?: string; dateKey?: string }
+): Promise<void> {
+  if (!eventId) return;
+  try {
+    const firestore = getFirestoreDb();
+    const docRef = doc(firestore, "history_engagement", eventId);
+    const snap = await getDoc(docRef);
+
+    const weights: Record<string, number> = {
+      view: 1,
+      read: 3,
+      like: 5,
+      share: 8,
+      download: 6,
+    };
+    const scoreAdd = weights[type] || 1;
+
+    if (snap.exists()) {
+      const fieldMap: Record<string, string> = {
+        view: "views",
+        read: "reads",
+        like: "likes",
+        share: "shares",
+        download: "downloads",
+      };
+      const targetField = fieldMap[type] || "views";
+      await updateDoc(docRef, {
+        [targetField]: increment(1),
+        engagementScore: increment(scoreAdd),
+        lastUpdated: new Date().toISOString(),
+        ...(meta?.headline ? { headline: meta.headline } : {}),
+        ...(meta?.year ? { year: String(meta.year) } : {}),
+        ...(meta?.category ? { category: meta.category } : {}),
+        ...(meta?.tag ? { tag: meta.tag } : {}),
+        ...(meta?.dateKey ? { dateKey: meta.dateKey } : {}),
+      });
+    } else {
+      const initial: HistoryEngagementRecord = {
+        eventId,
+        headline: meta?.headline || "",
+        year: meta?.year || "",
+        category: meta?.category || "milestone",
+        tag: meta?.tag || "History",
+        dateKey: meta?.dateKey || "",
+        views: type === "view" ? 1 : 0,
+        reads: type === "read" ? 1 : 0,
+        likes: type === "like" ? 1 : 0,
+        shares: type === "share" ? 1 : 0,
+        downloads: type === "download" ? 1 : 0,
+        engagementScore: scoreAdd,
+        lastUpdated: new Date().toISOString(),
+      };
+      await setDoc(docRef, initial);
+    }
+  } catch (err) {
+    // Non-blocking telemetry
+    console.debug("[Firestore] Engagement metric recorded locally (background notice):", err);
+  }
+}
+
+/**
+ * Fetch top popular historical events by engagement score from Firestore
+ */
+export async function fetchPopularHistoryFromFirestore(limitCount: number = 20): Promise<HistoryEngagementRecord[]> {
+  try {
+    const firestore = getFirestoreDb();
+    const colRef = collection(firestore, "history_engagement");
+    const q = query(colRef, orderBy("engagementScore", "desc"));
+    const snap = await getDocs(q);
+    const results: HistoryEngagementRecord[] = [];
+    snap.forEach((d) => {
+      if (results.length < limitCount) {
+        results.push(d.data() as HistoryEngagementRecord);
+      }
+    });
+    return results;
+  } catch (err) {
+    console.debug("[Firestore] Fallback to client metrics:", err);
+    return [];
+  }
+}
+
 /**
  * Increment or update helpfulCount for a tool feedback entry in Firestore
  */

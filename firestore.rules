@@ -40,6 +40,13 @@ service cloud.firestore {
       allow update, delete: if true;
     }
 
+    // Today in History Engagement Metrics & Popular Content (Public read & engagement counter updates)
+    match /history_engagement/{eventId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+    }
+
     // Verified Payments Collection (Sensitive financial records - Read by owner/admin, created/updated server-side or by owner auth)
     match /payments/{paymentId} {
       allow read: if isSignedIn() && (

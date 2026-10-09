@@ -745,6 +745,8 @@ export const HISTORY_I18N_DICTIONARY: Record<string, Record<string, string>> = {
     streak: "Day Streak",
     learnWithAi: "Deep Dive with PDFSun AI",
     allCategories: "All Categories",
+    popular: "Most Popular",
+    trending: "Trending Now",
     selectDate: "Select Date",
     selectMonth: "Month",
     selectDay: "Day",

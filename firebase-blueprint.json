@@ -141,9 +141,32 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
       },
       "required": ["paymentId", "userEmail", "amountPaise", "status", "planId", "createdAt"]
+    },
+    "history_engagement": {
+      "title": "History Engagement & Popular Content",
+      "description": "Aggregated user engagement metrics (views, reads, likes, shares, downloads) for historical content to compute domain authority and popularity rankings.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "description": "Unique historical event identifier" },
+        "headline": { "type": "string", "description": "Event headline" },
+        "year": { "type": "string", "description": "Historical year" },
+        "category": { "type": "string", "description": "Category: milestone, birth, invention, culture" },
+        "views": { "type": "number", "description": "Total views" },
+        "reads": { "type": "number", "description": "Total detail reads" },
+        "likes": { "type": "number", "description": "Total likes" },
+        "shares": { "type": "number", "description": "Total shares" },
+        "downloads": { "type": "number", "description": "Worksheet downloads count" },
+        "engagementScore": { "type": "number", "description": "Weighted engagement score" },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "Last engagement update timestamp" }
+      },
+      "required": ["eventId", "views", "engagementScore"]
     }
   },
   "firestore": {
+    "/history_engagement/{eventId}": {
+      "schema": "history_engagement",
+      "description": "User engagement metrics and popular content ranking for Today in History"
+    },
     "/feedback_comments/{commentId}": {
       "schema": "feedback_comments",
       "description": "User reviews and ratings"
