@@ -357,7 +357,7 @@ export async function preprocessImageForOcr(
       }
       curCtx.putImageData(imgData, 0, 0);
 
-      // D. 3x3 Unsharp Sharpening Mask Kernel: [0, -1, 0; -1, 5, -1; 0, -1, 0]
+      // D. Adaptive 3x3 Edge-Enhancing Unsharp Sharpening (Gentle edge blend, preserves font clarity & decimals)
       if (sharpen && w >= 150 && h >= 150) {
         const sharpImgData = curCtx.getImageData(0, 0, w, h);
         const src = new Uint8Array(imgData.data);
@@ -371,13 +371,9 @@ export async function preprocessImageForOcr(
             const left = (y * w + (x - 1)) * 4;
             const right = (y * w + (x + 1)) * 4;
 
-            const sharpVal = Math.min(
-              255,
-              Math.max(
-                0,
-                src[idx] * 5 - (src[top] + src[btm] + src[left] + src[right])
-              )
-            );
+            // Controlled laplacian high-pass boost factor (0.35 blend)
+            const laplacian = src[idx] * 4 - (src[top] + src[btm] + src[left] + src[right]);
+            const sharpVal = Math.min(255, Math.max(0, Math.round(src[idx] + 0.35 * laplacian)));
 
             dst[idx] = sharpVal;
             dst[idx + 1] = sharpVal;
@@ -403,6 +399,88 @@ export async function preprocessImageForOcr(
 /**
  * Cluster OCR tokens into lines, paragraphs, headings, bullet lists, and tables
  */
+/**
+ * Parses structured text containing tables (markdown pipes, tabs, multi-space gutters, CSV)
+ * into a clean 2D table matrix.
+ */
+export function parseDelimitedTable(text: string): string[][] | null {
+  if (!text || !text.trim()) return null;
+  const rawLines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (rawLines.length < 2) return null;
+
+  // 1. Pipe-delimited tables (| Col 1 | Col 2 | Col 3 |)
+  const pipeLines = rawLines.filter((l) => l.includes("|"));
+  if (pipeLines.length >= Math.max(2, Math.floor(rawLines.length * 0.45))) {
+    const matrix: string[][] = [];
+    for (const line of pipeLines) {
+      if (/^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(line)) continue; // Skip separator line
+      const cleanLine = line.replace(/^\|/, "").replace(/\|$/, "");
+      const cells = cleanLine.split("|").map((c) => c.trim());
+      if (cells.length >= 2) {
+        matrix.push(cells);
+      }
+    }
+    if (matrix.length >= 2) {
+      const maxCols = Math.max(...matrix.map((r) => r.length), 2);
+      return matrix.map((r) => {
+        const row = [...r];
+        while (row.length < maxCols) row.push("");
+        return row;
+      });
+    }
+  }
+
+  // 2. Tab-delimited tables
+  const tabLines = rawLines.filter((l) => l.includes("\t"));
+  if (tabLines.length >= Math.max(2, Math.floor(rawLines.length * 0.4))) {
+    const matrix = tabLines.map((l) => l.split("\t").map((c) => c.trim()));
+    const maxCols = Math.max(...matrix.map((r) => r.length), 2);
+    if (maxCols >= 2) {
+      return matrix.map((r) => {
+        const row = [...r];
+        while (row.length < maxCols) row.push("");
+        return row;
+      });
+    }
+  }
+
+  // 3. Multi-space aligned columns (2 or more spaces between column items)
+  const multiSpaceRows = rawLines.map((l) =>
+    l.split(/\s{2,}/).map((c) => c.trim()).filter(Boolean)
+  );
+  const rowsWithMultiCols = multiSpaceRows.filter((r) => r.length >= 2);
+  if (rowsWithMultiCols.length >= Math.max(2, Math.floor(rawLines.length * 0.45))) {
+    const maxCols = Math.max(...rowsWithMultiCols.map((r) => r.length), 2);
+    return multiSpaceRows.map((r) => {
+      const row = [...r];
+      while (row.length < maxCols) row.push("");
+      return row;
+    });
+  }
+
+  // 4. CSV comma separated lines
+  const commaRows = rawLines.map((l) =>
+    l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((c) => c.replace(/^"|"$/g, "").trim())
+  );
+  const validCommaRows = commaRows.filter((r) => r.length >= 2);
+  if (validCommaRows.length >= Math.max(2, Math.floor(rawLines.length * 0.55))) {
+    const maxCols = Math.max(...validCommaRows.map((r) => r.length), 2);
+    return commaRows.map((r) => {
+      const row = [...r];
+      while (row.length < maxCols) row.push("");
+      return row;
+    });
+  }
+
+  return null;
+}
+
+/**
+ * Cluster OCR tokens into lines, paragraphs, headings, bullet lists, and tables
+ */
 export function buildDocumentAst(
   tokens: RawOcrToken[],
   canvasWidth: number,
@@ -410,28 +488,45 @@ export function buildDocumentAst(
   mode: ImageOcrMode = "auto",
   fallbackFullText?: string
 ): DocumentAST {
+  // If tokens are empty or very sparse, check if fallback text contains table structures
   if (tokens.length === 0) {
+    const delimitedMatrix = fallbackFullText ? parseDelimitedTable(fallbackFullText) : null;
     const rawParagraphs = (fallbackFullText || "")
       .split(/\r?\n+/)
       .map((l) => l.trim())
       .filter(Boolean);
 
-    const fallbackNodes: ASTNode[] = rawParagraphs.map((p, idx) => ({
-      type: idx === 0 && p.length < 60 ? "title" : "paragraph",
-      text: p,
-      lines: [p],
-      style: { fontSizePt: idx === 0 && p.length < 60 ? 18 : 11, alignment: "left" },
-    }));
+    const fallbackNodes: ASTNode[] = [];
+
+    if (delimitedMatrix && delimitedMatrix.length >= 2) {
+      fallbackNodes.push({
+        type: "table",
+        tableData: {
+          headers: delimitedMatrix[0] || [],
+          rows: delimitedMatrix.slice(1),
+          columnCount: delimitedMatrix[0]?.length || 2,
+        },
+      });
+    } else {
+      rawParagraphs.forEach((p, idx) => {
+        fallbackNodes.push({
+          type: idx === 0 && p.length < 60 ? "title" : "paragraph",
+          text: p,
+          lines: [p],
+          style: { fontSizePt: idx === 0 && p.length < 60 ? 18 : 11, alignment: "left" },
+        });
+      });
+    }
 
     return {
       title: fallbackNodes[0]?.type === "title" ? fallbackNodes[0].text : undefined,
       nodes: fallbackNodes,
       fullText: fallbackFullText || "",
-      primaryTableMatrix: [],
+      primaryTableMatrix: delimitedMatrix || (rawParagraphs.length > 0 ? rawParagraphs.map((p) => [p]) : []),
       summaryFields: [],
       metadata: {
-        columnsDetected: 1,
-        tablesDetected: 0,
+        columnsDetected: delimitedMatrix ? delimitedMatrix[0]?.length || 1 : 1,
+        tablesDetected: delimitedMatrix ? 1 : 0,
         fieldsDetected: 0,
         skewAngleApplied: 0,
         upscaleFactor: 1,
@@ -462,9 +557,20 @@ export function buildDocumentAst(
   }
 
   // 2. Line Grouping with adaptive vertical baseline tolerance
+  interface CellPhrase {
+    text: string;
+    x0: number;
+    x1: number;
+    y0: number;
+    y1: number;
+    fontSize: number;
+    isBold: boolean;
+  }
+
   interface LineGroup {
     y: number;
     tokens: RawOcrToken[];
+    phrases: CellPhrase[];
     text: string;
     fontSize: number;
     isBold: boolean;
@@ -474,7 +580,7 @@ export function buildDocumentAst(
 
   for (const t of sortedTokens) {
     const tokenH = t.height || (t.y1 - t.y0) || 16;
-    const lineTol = Math.max(8, Math.min(24, tokenH * 0.65));
+    const lineTol = Math.max(6, Math.min(22, tokenH * 0.65));
     let matched = lines.find((l) => Math.abs(l.y - t.y0) <= lineTol);
     if (matched) {
       matched.tokens.push(t);
@@ -484,6 +590,7 @@ export function buildDocumentAst(
       lines.push({
         y: t.y0,
         tokens: [t],
+        phrases: [],
         text: t.text,
         fontSize: t.fontSize,
         isBold: !!t.isBold,
@@ -494,10 +601,60 @@ export function buildDocumentAst(
   // Natural top-down reading order
   lines.sort((a, b) => a.y - b.y);
 
-  // Build clean text per line
+  // Build cell phrases per line:
+  // Words on the same line with small horizontal gaps (<= 18px or <= font size * 1.1) belong to the same cell!
   for (const l of lines) {
     l.tokens.sort((a, b) => a.x0 - b.x0);
     l.text = l.tokens.map((t) => t.text.trim()).filter(Boolean).join(" ");
+
+    const phrases: CellPhrase[] = [];
+    let currentPhrase: CellPhrase | null = null;
+
+    for (const t of l.tokens) {
+      const cleanT = t.text.trim();
+      if (!cleanT) continue;
+
+      if (!currentPhrase) {
+        currentPhrase = {
+          text: cleanT,
+          x0: t.x0,
+          x1: t.x1,
+          y0: t.y0,
+          y1: t.y1,
+          fontSize: t.fontSize,
+          isBold: !!t.isBold,
+        };
+        continue;
+      }
+
+      const hGap = t.x0 - currentPhrase.x1;
+      const wordGapThreshold = Math.max(14, currentPhrase.fontSize * 1.05);
+
+      if (hGap <= wordGapThreshold) {
+        // Words in the same cell
+        currentPhrase.text += " " + cleanT;
+        currentPhrase.x1 = Math.max(currentPhrase.x1, t.x1);
+        currentPhrase.y1 = Math.max(currentPhrase.y1, t.y1);
+        currentPhrase.fontSize = Math.max(currentPhrase.fontSize, t.fontSize);
+        if (t.isBold) currentPhrase.isBold = true;
+      } else {
+        // New cell in a different column!
+        phrases.push(currentPhrase);
+        currentPhrase = {
+          text: cleanT,
+          x0: t.x0,
+          x1: t.x1,
+          y0: t.y0,
+          y1: t.y1,
+          fontSize: t.fontSize,
+          isBold: !!t.isBold,
+        };
+      }
+    }
+    if (currentPhrase) {
+      phrases.push(currentPhrase);
+    }
+    l.phrases = phrases;
   }
 
   // 3. Compute typography stats
@@ -508,41 +665,89 @@ export function buildDocumentAst(
   const fullTextLines: string[] = [];
   const allFields: Array<{ label: string; value: string }> = [];
 
-  // Table row buffer for tabular extraction
+  // 4. Robust Column Corridor Extraction for Tables
+  // Gather recurring phrase start positions (x0) across multi-phrase lines
+  const phraseStartAnchors: number[] = [];
+  for (const l of lines) {
+    if (l.phrases.length >= 2 || mode === "table") {
+      for (const p of l.phrases) {
+        phraseStartAnchors.push(p.x0);
+      }
+    }
+  }
+
+  phraseStartAnchors.sort((a, b) => a - b);
+
+  // Cluster phrase starts into stable column corridors (tolerance 22px)
+  const columnAnchors: number[] = [];
+  const corridorTol = 22;
+
+  for (const x of phraseStartAnchors) {
+    const matchIdx = columnAnchors.findIndex((c) => Math.abs(c - x) <= corridorTol);
+    if (matchIdx === -1) {
+      columnAnchors.push(x);
+    } else {
+      // Gentle running centroid
+      columnAnchors[matchIdx] = (columnAnchors[matchIdx] * 2 + x) / 3;
+    }
+  }
+
+  columnAnchors.sort((a, b) => a - b);
+
+  // Calculate column interval midpoints
+  const columnIntervals: Array<{ left: number; right: number; center: number }> = [];
+  for (let c = 0; c < columnAnchors.length; c++) {
+    const prevCenter = c > 0 ? columnAnchors[c - 1] : 0;
+    const currCenter = columnAnchors[c];
+    const nextCenter = c < columnAnchors.length - 1 ? columnAnchors[c + 1] : canvasWidth;
+
+    const left = c === 0 ? 0 : (prevCenter + currCenter) / 2;
+    const right = c === columnAnchors.length - 1 ? canvasWidth : (currCenter + nextCenter) / 2;
+    columnIntervals.push({ left, right, center: currCenter });
+  }
+
+  const findBestColumn = (phraseX: number, phraseX1: number): number => {
+    if (columnIntervals.length <= 1) return 0;
+    const mid = (phraseX + phraseX1) / 2;
+    // Find interval containing mid
+    for (let i = 0; i < columnIntervals.length; i++) {
+      if (mid >= columnIntervals[i].left && mid < columnIntervals[i].right) {
+        return i;
+      }
+    }
+    // Fallback: closest center
+    let closest = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < columnIntervals.length; i++) {
+      const d = Math.abs(columnIntervals[i].center - phraseX);
+      if (d < minDist) {
+        minDist = d;
+        closest = i;
+      }
+    }
+    return closest;
+  };
+
+  // Table row buffer
   let tableBuffer: LineGroup[] = [];
   const detectedTableMatrices: string[][][] = [];
 
   const flushTableBuffer = () => {
-    if (tableBuffer.length >= 2) {
-      // Spatial corridor mapping across buffered rows
-      const allX = tableBuffer.flatMap((r) => r.tokens.map((t) => t.x0)).sort((a, b) => a - b);
-      const corridors: number[] = [];
-      const tol = 30;
-
-      for (const x of allX) {
-        const idx = corridors.findIndex((c) => Math.abs(c - x) <= tol);
-        if (idx === -1) corridors.push(x);
-        else corridors[idx] = Math.min(corridors[idx], x);
-      }
-      corridors.sort((a, b) => a - b);
-
-      if (corridors.length >= 2) {
-        const matrix: string[][] = [];
-        for (const row of tableBuffer) {
-          const cells = new Array(corridors.length).fill("");
-          for (const t of row.tokens) {
-            let col = 0;
-            for (let c = corridors.length - 1; c >= 0; c--) {
-              if (t.x0 >= corridors[c] - 15) {
-                col = c;
-                break;
-              }
-            }
-            cells[col] = cells[col] ? `${cells[col]} ${t.text}` : t.text;
-          }
+    if (tableBuffer.length >= 2 && columnIntervals.length >= 2) {
+      const matrix: string[][] = [];
+      for (const row of tableBuffer) {
+        const cells = new Array(columnIntervals.length).fill("");
+        for (const p of row.phrases) {
+          const cIdx = findBestColumn(p.x0, p.x1);
+          cells[cIdx] = cells[cIdx] ? `${cells[cIdx]} ${p.text}` : p.text;
+        }
+        // Only keep row if it has content
+        if (cells.some((c) => c.trim().length > 0)) {
           matrix.push(cells);
         }
+      }
 
+      if (matrix.length >= 2) {
         const headers = matrix[0] || [];
         const dataRows = matrix.slice(1);
 
@@ -551,7 +756,7 @@ export function buildDocumentAst(
           tableData: {
             headers,
             rows: dataRows,
-            columnCount: corridors.length,
+            columnCount: columnIntervals.length,
           },
         });
         detectedTableMatrices.push(matrix);
@@ -560,8 +765,7 @@ export function buildDocumentAst(
       }
     }
 
-    // CRITICAL ENGINE FIX: If buffered lines do NOT form a valid multi-column table,
-    // NEVER discard them! Convert each line to a clean paragraph node so 100% of text is preserved.
+    // Preserve non-table buffered lines as clean paragraphs
     for (const r of tableBuffer) {
       const rowTxt = r.text.trim();
       if (rowTxt) {
@@ -576,7 +780,7 @@ export function buildDocumentAst(
     tableBuffer = [];
   };
 
-  // 4. AST Node Classification
+  // 5. AST Node Classification
   let docTitle: string | undefined;
 
   for (let idx = 0; idx < lines.length; idx++) {
@@ -585,9 +789,9 @@ export function buildDocumentAst(
     if (!text) continue;
     fullTextLines.push(text);
 
-    // Check if line represents a Key-Value pair (e.g. "Invoice No: 1234", "Date: 12/03/2026")
+    // Key-value pair check
     const kvMatch = text.match(/^([A-Za-z0-9\s#._-]{2,25})\s*[:=]\s*(.+)$/);
-    if (kvMatch && !text.includes("|") && line.tokens.length <= 6) {
+    if (kvMatch && !text.includes("|") && line.tokens.length <= 6 && mode !== "table") {
       flushTableBuffer();
       const label = kvMatch[1].trim();
       const value = kvMatch[2].trim();
@@ -599,23 +803,13 @@ export function buildDocumentAst(
       continue;
     }
 
-    // Check if line has genuine spatial columnar gaps (indicative of true tables, not regular prose)
-    let hasColumnarGaps = false;
-    if (line.tokens.length >= 2) {
-      for (let k = 0; k < line.tokens.length - 1; k++) {
-        const gap = line.tokens[k + 1].x0 - line.tokens[k].x1;
-        if (gap >= 35) {
-          hasColumnarGaps = true;
-          break;
-        }
-      }
-    }
-
+    // Tabular row check:
+    // When mode === "table" OR line has 2+ distinct phrases OR delimiters are present
     const isTabular =
       mode === "table" ||
       text.includes("\t") ||
       text.includes("|") ||
-      (hasColumnarGaps && line.tokens.length >= 2 && mode !== "fields");
+      line.phrases.length >= 2;
 
     if (isTabular) {
       tableBuffer.push(line);
@@ -624,7 +818,7 @@ export function buildDocumentAst(
       flushTableBuffer();
     }
 
-    // Title & Heading detection
+    // Title & Heading detection (only in non-table mode)
     if (!docTitle && idx <= 2 && (line.fontSize > medianFontSize * 1.35 || (line.isBold && text.length < 50))) {
       docTitle = text;
       nodes.push({
@@ -665,13 +859,44 @@ export function buildDocumentAst(
 
   flushTableBuffer();
 
-  // If table mode was selected or tables were detected, pick the richest matrix
+  // 6. Final Table Matrix Resolution
   let primaryTableMatrix: string[][] = [];
+
   if (detectedTableMatrices.length > 0) {
     detectedTableMatrices.sort((a, b) => b.length * (b[0]?.length || 0) - a.length * (a[0]?.length || 0));
     primaryTableMatrix = detectedTableMatrices[0];
-  } else if (lines.length > 0) {
-    primaryTableMatrix = lines.map((l) => [l.text]);
+  } else {
+    // If spatial clustering did not form a table, check if text has delimiters or multi-spaces
+    const fullTextStr = lines.map((l) => l.text).join("\n");
+    const delimitedMatrix = parseDelimitedTable(fullTextStr);
+
+    if (delimitedMatrix && delimitedMatrix.length >= 2) {
+      primaryTableMatrix = delimitedMatrix;
+      nodes.push({
+        type: "table",
+        tableData: {
+          headers: delimitedMatrix[0] || [],
+          rows: delimitedMatrix.slice(1),
+          columnCount: delimitedMatrix[0]?.length || 2,
+        },
+      });
+    } else if (lines.length > 0) {
+      // Check if lines can be split by multiple spaces or common separators
+      const candidateMatrix = lines.map((l) => {
+        if (l.phrases.length >= 2) {
+          return l.phrases.map((p) => p.text);
+        }
+        const parts = l.text.split(/\s{2,}|\t|\|/).map((c) => c.trim()).filter(Boolean);
+        return parts.length >= 2 ? parts : [l.text];
+      });
+
+      const maxCols = Math.max(...candidateMatrix.map((r) => r.length), 1);
+      primaryTableMatrix = candidateMatrix.map((r) => {
+        const row = [...r];
+        while (row.length < maxCols) row.push("");
+        return row;
+      });
+    }
   }
 
   return {
@@ -681,8 +906,8 @@ export function buildDocumentAst(
     primaryTableMatrix,
     summaryFields: allFields,
     metadata: {
-      columnsDetected: isTwoColumn ? 2 : 1,
-      tablesDetected: detectedTableMatrices.length,
+      columnsDetected: primaryTableMatrix[0]?.length || (isTwoColumn ? 2 : 1),
+      tablesDetected: detectedTableMatrices.length > 0 ? detectedTableMatrices.length : primaryTableMatrix.length > 1 ? 1 : 0,
       fieldsDetected: allFields.length,
       skewAngleApplied: 0,
       upscaleFactor: 1,
@@ -1436,6 +1661,9 @@ export async function convertImageToExcelEnterprise(
 
   const tokens: RawOcrToken[] = [];
 
+  // Check if recognized text already has structured table delimiters (pipes, tabs, multi-spaces)
+  const parsedDirectTable = recognizedText ? parseDelimitedTable(recognizedText) : null;
+
   if (rawWords.length > 0) {
     for (const w of rawWords) {
       const text = (w.text || "").trim();
@@ -1457,26 +1685,50 @@ export async function convertImageToExcelEnterprise(
         isBold: w.is_bold,
       });
     }
+  } else if (parsedDirectTable && parsedDirectTable.length >= 2) {
+    // Direct structured table extraction from recognized/AI OCR text
+    const colWidth = Math.max(120, Math.floor((canvas.width / upscaleFactor) / Math.max(parsedDirectTable[0].length, 1)));
+    parsedDirectTable.forEach((row, rIdx) => {
+      row.forEach((cell, cIdx) => {
+        const cellText = cell.trim();
+        if (!cellText) return;
+        tokens.push({
+          text: cellText,
+          x0: 40 + cIdx * colWidth,
+          y0: 40 + rIdx * 30,
+          x1: 40 + cIdx * colWidth + Math.max(60, cellText.length * 8),
+          y1: 65 + rIdx * 30,
+          width: Math.max(60, cellText.length * 8),
+          height: 25,
+          confidence: 95,
+          fontSize: rIdx === 0 ? 12 : 10,
+          isBold: rIdx === 0,
+        });
+      });
+    });
   } else if (recognizedText) {
     const lines = recognizedText.split("\n").map((l: string) => l.trim()).filter(Boolean);
     lines.forEach((lText: string, idx: number) => {
-      const words = lText.split(/\s+/).filter(Boolean);
-      let curX = 40;
-      words.forEach((w) => {
+      // Check if line has columnar segments
+      const parts = lText.split(/\s{2,}|\t|\|/).map((c) => c.trim()).filter(Boolean);
+      const colItems = parts.length >= 2 ? parts : lText.split(/\s+/).filter(Boolean);
+      const colWidth = Math.max(100, Math.floor((canvas.width / upscaleFactor) / Math.max(colItems.length, 1)));
+
+      colItems.forEach((w, cIdx) => {
         const wLen = Math.max(18, w.length * 8);
+        const xPos = parts.length >= 2 ? 40 + cIdx * colWidth : 40 + cIdx * (wLen + 8);
         tokens.push({
           text: w,
-          x0: curX,
+          x0: xPos,
           y0: 40 + idx * 28,
-          x1: curX + wLen,
+          x1: xPos + wLen,
           y1: 65 + idx * 28,
           width: wLen,
           height: 25,
           confidence: 95,
-          fontSize: idx === 0 ? 14 : 10,
+          fontSize: idx === 0 ? 13 : 10,
           isBold: idx === 0,
         });
-        curX += wLen + 6;
       });
     });
   }
@@ -1486,6 +1738,9 @@ export async function convertImageToExcelEnterprise(
   await yieldToEventLoop();
 
   const ast = buildDocumentAst(tokens, canvas.width / upscaleFactor, canvas.height / upscaleFactor, mode, recognizedText);
+  if (parsedDirectTable && parsedDirectTable.length >= 2 && ast.primaryTableMatrix.length <= 1) {
+    ast.primaryTableMatrix = parsedDirectTable;
+  }
   ast.metadata.skewAngleApplied = skewAngleApplied;
   ast.metadata.upscaleFactor = upscaleFactor;
   ast.metadata.processingTimeMs = Date.now() - startTime;

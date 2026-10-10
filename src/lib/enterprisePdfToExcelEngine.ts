@@ -257,13 +257,45 @@ export async function convertPdfToExcelEnterprise(
   }
 
   // Detect Column Corridors across the document
-  // Collect x0 coordinates of tokens
+  // First, group words on each row that are close horizontally (<= 14pt) into cell phrases
+  interface PdfCellPhrase {
+    text: string;
+    x0: number;
+    x1: number;
+  }
+
+  const rowPhrases: Array<{ page: number; y: number; phrases: PdfCellPhrase[] }> = [];
   const xAnchors: number[] = [];
+
   for (const r of rawRows) {
-    // Only consider rows that have at least 2 tokens to avoid single-line titles skewing column detection
-    if (r.tokens.length >= 2 || preset === "table") {
-      for (const t of r.tokens) {
-        xAnchors.push(t.x0);
+    const phrases: PdfCellPhrase[] = [];
+    let curPhrase: PdfCellPhrase | null = null;
+
+    for (const t of r.tokens) {
+      if (!curPhrase) {
+        curPhrase = { text: t.text, x0: t.x0, x1: t.x1 };
+        continue;
+      }
+
+      const gap = t.x0 - curPhrase.x1;
+      if (gap <= 14) {
+        curPhrase.text += " " + t.text;
+        curPhrase.x1 = Math.max(curPhrase.x1, t.x1);
+      } else {
+        phrases.push(curPhrase);
+        curPhrase = { text: t.text, x0: t.x0, x1: t.x1 };
+      }
+    }
+    if (curPhrase) {
+      phrases.push(curPhrase);
+    }
+
+    rowPhrases.push({ page: r.page, y: r.y, phrases });
+
+    // Collect phrase start positions
+    if (phrases.length >= 2 || preset === "table") {
+      for (const p of phrases) {
+        xAnchors.push(p.x0);
       }
     }
   }
@@ -271,17 +303,16 @@ export async function convertPdfToExcelEnterprise(
   xAnchors.sort((a, b) => a - b);
 
   // Cluster x positions into distinct column boundaries (tolerance 18pt)
-  const colCorridorTolerance = preset === "fields" ? 28 : 16;
+  const colCorridorTolerance = preset === "fields" ? 28 : 18;
   const colCenters: number[] = [];
 
   for (const x of xAnchors) {
-    const existing = colCenters.find((c) => Math.abs(c - x) <= colCorridorTolerance);
-    if (existing !== undefined) {
-      // update running average
-      const idx = colCenters.indexOf(existing);
-      colCenters[idx] = (existing + x) / 2;
-    } else {
+    const matchIdx = colCenters.findIndex((c) => Math.abs(c - x) <= colCorridorTolerance);
+    if (matchIdx === -1) {
       colCenters.push(x);
+    } else {
+      // Gentle running centroid
+      colCenters[matchIdx] = (colCenters[matchIdx] * 2 + x) / 3;
     }
   }
 

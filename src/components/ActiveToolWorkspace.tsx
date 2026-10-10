@@ -1212,6 +1212,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           if (res.analysis) {
             setSmartAnalysisResult(res.analysis);
           }
+          validateConversionOutput(res.bytes, imageExcelFormat, res.fileName);
           outputBytes = res.bytes;
           outputName = res.fileName;
           mimeType = imageExcelFormat === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

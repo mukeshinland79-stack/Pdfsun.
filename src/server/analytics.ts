@@ -73,13 +73,25 @@ export function broadcastLiveMetrics(): void {
 export function setupAnalyticsWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on("upgrade", (request, socket, head) => {
-    const pathname = request.url ? new URL(request.url, `http://${request.headers.host}`).pathname : "";
+  wss.on("error", (err: any) => {
+    console.warn("[Analytics WS Server] Non-fatal WS server warning:", err?.message || err);
+  });
 
-    if (pathname === "/ws/analytics" || pathname === "/api/analytics/ws") {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-      });
+  server.on("upgrade", (request, socket, head) => {
+    socket.on("error", (err: any) => {
+      console.warn("[Analytics WS Socket] Non-fatal socket warning:", err?.message || err);
+    });
+
+    try {
+      const pathname = request.url ? new URL(request.url, `http://${request.headers.host || 'localhost'}`).pathname : "";
+
+      if (pathname === "/ws/analytics" || pathname === "/api/analytics/ws") {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit("connection", ws, request);
+        });
+      }
+    } catch {
+      // Ignore malformed upgrade URLs
     }
   });
 

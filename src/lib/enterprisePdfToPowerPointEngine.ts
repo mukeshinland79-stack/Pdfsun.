@@ -200,8 +200,9 @@ async function performWasmOcrOnPage(
 
     await (page.render as any)({ canvasContext: ctx, viewport: scaledViewport, canvas } as any).promise;
 
+    const dataUrl = canvas.toDataURL("image/png");
     const worker = await createWorker("eng");
-    const ret = await worker.recognize(canvas);
+    const ret = await worker.recognize(dataUrl);
     await worker.terminate();
 
     const tokens: PdfToken[] = [];
@@ -581,24 +582,34 @@ function resolveAntiCollisionLayout(
       const prev = blocks[j];
       const curr = blocks[i];
 
-      // Check horizontal column overlap
-      const horizontalOverlap =
-        curr.x < prev.x + prev.w && curr.x + curr.w > prev.x;
+      // Check horizontal column overlap:
+      // Must have substantial horizontal intersection (> 35% of narrower block) to be the same column
+      const overlapLeft = Math.max(curr.x, prev.x);
+      const overlapRight = Math.min(curr.x + curr.w, prev.x + prev.w);
+      const overlapW = overlapRight - overlapLeft;
+      const minW = Math.min(curr.w, prev.w);
+      const sameColumn = overlapW > 0 && overlapW >= minW * 0.35;
 
-      if (horizontalOverlap) {
-        // If current block starts above previous block's bottom, push down
+      // And must actually overlap vertically
+      const verticalOverlap = curr.y < prev.y + prev.h && curr.y + curr.h > prev.y;
+
+      if (sameColumn && verticalOverlap) {
+        // Adjust curr.y below prev
         const prevBottom = prev.y + prev.h;
-        if (curr.y < prevBottom + 0.05) {
-          curr.y = prevBottom + 0.06;
+        if (curr.y < prevBottom + 0.04) {
+          curr.y = prevBottom + 0.05;
         }
       }
     }
   }
 
-  // Clamp within slide dimensions
+  // Clamp within slide dimensions safely
   for (const b of blocks) {
-    if (b.y + b.h > slideHeightInches - 0.1) {
-      b.h = Math.max(0.3, slideHeightInches - 0.1 - b.y);
+    if (b.y + b.h > slideHeightInches - 0.15) {
+      if (b.y > slideHeightInches - 0.4) {
+        b.y = Math.max(0.15, slideHeightInches - 0.45);
+      }
+      b.h = Math.max(0.25, slideHeightInches - 0.15 - b.y);
     }
   }
 
@@ -764,9 +775,9 @@ export async function convertPdfToPowerPointEnterprise(
 
     const slide = pptx.addSlide();
 
-    // A. High-Resolution Master Plate for Hybrid Mode
+    // A. High-Resolution Master Plate for Hybrid Mode & Compact Deck
     // Renders master vector/raster plate at exact aspect ratio without stretching
-    if (preset === "hybrid_master") {
+    if (preset === "hybrid_master" || preset === "compact_deck") {
       try {
         const renderScale = 2.0; // 2x Ultra-HD DPI
         const scaledViewport = page.getViewport({ scale: renderScale });
@@ -810,57 +821,59 @@ export async function convertPdfToPowerPointEnterprise(
       viewport.height
     );
 
-    // C. Render Discrete Frames & Native Tables to Slide
-    for (const block of resolvedBlocks) {
-      if (block.type === "table" && block.tableData) {
-        // Native OpenXML Table Element
-        try {
-          const tableRows = block.tableData.rows.map((row, rIdx) =>
-            row.map((cellText) => ({
-              text: cellText,
-              options: {
-                fontSize: 9,
-                fontFace: "Calibri",
-                bold: rIdx === 0, // Header row bold
-                color: "0F172A",
-                fill: rIdx === 0 ? { color: "F1F5F9" } : undefined,
-                align: "left" as const,
-                valign: "middle" as const,
-              },
-            }))
-          );
+    // C. Render Discrete Frames & Native Tables to Slide (for Vector & Hybrid modes)
+    if (preset !== "compact_deck") {
+      for (const block of resolvedBlocks) {
+        if (block.type === "table" && block.tableData) {
+          // Native OpenXML Table Element
+          try {
+            const tableRows = block.tableData.rows.map((row, rIdx) =>
+              row.map((cellText) => ({
+                text: cellText,
+                options: {
+                  fontSize: 9,
+                  fontFace: "Calibri",
+                  bold: rIdx === 0, // Header row bold
+                  color: "0F172A",
+                  fill: rIdx === 0 ? { color: "F1F5F9" } : undefined,
+                  align: "left" as const,
+                  valign: "middle" as const,
+                },
+              }))
+            );
 
-          slide.addTable(tableRows, {
+            slide.addTable(tableRows, {
+              x: block.x,
+              y: block.y,
+              w: block.w,
+              h: block.h,
+              border: { type: "solid", pt: 1, color: "CBD5E1" },
+              autoPage: false,
+            });
+          } catch (tableErr) {
+            console.warn("[PDFSun PPTX] Native table fallback:", tableErr);
+          }
+        } else if (block.type === "text") {
+          // Discrete Text Frame with Dynamic Line-Spacing & Anti-Collision Box Sizing
+          slide.addText(block.text, {
             x: block.x,
             y: block.y,
             w: block.w,
             h: block.h,
-            border: { type: "solid", pt: 1, color: "CBD5E1" },
-            autoPage: false,
+            fontSize: block.fontSize,
+            fontFace: block.fontFace,
+            color: "0F172A",
+            transparency: 0, // Fully visible, readable & selectable in Microsoft PowerPoint and Google Slides
+            bold: block.bold,
+            italic: block.italic,
+            align: block.align,
+            valign: "top",
+            wrap: true,
+            autoFit: true,
+            lineSpacingMultiple: 1.15,
+            margin: [2, 4, 2, 4],
           });
-        } catch (tableErr) {
-          console.warn("[PDFSun PPTX] Native table fallback:", tableErr);
         }
-      } else if (block.type === "text") {
-        // Discrete Text Frame with Dynamic Line-Spacing & Anti-Collision Box Sizing
-        slide.addText(block.text, {
-          x: block.x,
-          y: block.y,
-          w: block.w,
-          h: block.h,
-          fontSize: block.fontSize,
-          fontFace: block.fontFace,
-          color: "0F172A",
-          transparency: preset === "hybrid_master" ? 100 : 0, // Native OpenXML transparency: 100% transparent selectable overlay over 2X master plate, or 0% opaque high-contrast text in vector mode
-          bold: block.bold,
-          italic: block.italic,
-          align: block.align,
-          valign: "top",
-          wrap: true,
-          autoFit: true,
-          lineSpacingMultiple: 1.15,
-          margin: [2, 4, 2, 4],
-        });
       }
     }
 

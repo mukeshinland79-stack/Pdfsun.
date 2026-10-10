@@ -106,8 +106,20 @@ try {
   console.error("[Auth Restoration Engine] Failed to run startup repair:", e);
 }
 
+// Ensure stray WebSocket or port conflicts never crash the server process
+process.on("uncaughtException", (err: any) => {
+  if (err && (err.code === "EADDRINUSE" || String(err.message).includes("24678") || String(err.message).includes("WebSocket"))) {
+    console.warn("[DevServer] Suppressing non-critical socket warning:", err.message || err);
+    return;
+  }
+  console.error("[DevServer UncaughtException]:", err);
+});
+process.on("unhandledRejection", (reason: any) => {
+  console.warn("[DevServer UnhandledRejection]:", reason?.message || reason);
+});
+
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Global CORS & Method Mapping Middleware to completely eradicate HTTP 405 (Method Not Allowed)
 app.use((req, res, next) => {
@@ -4159,7 +4171,7 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);
