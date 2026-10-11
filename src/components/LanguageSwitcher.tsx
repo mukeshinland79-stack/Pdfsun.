@@ -133,7 +133,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             <button
               key={lang.code}
               type="button"
-              onClick={() => setLanguage(lang.code)}
+              onClick={() => handleSelectLanguage(lang.code)}
               title={`Switch language to ${lang.name} (${lang.nativeName})`}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-150 flex items-center space-x-1.5 cursor-pointer ${
                 isActive

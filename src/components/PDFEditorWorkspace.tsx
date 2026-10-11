@@ -47,6 +47,7 @@ import {
 import confetti from "canvas-confetti";
 import { downloadFile } from "../lib/pdfEngine";
 import { useLanguage } from "../lib/i18n";
+import { triggerErrorToast } from "./GlobalErrorToast";
 
 // Set PDF.js worker
 if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
@@ -275,7 +276,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         console.error("PDF Editor: Failed to load document:", err);
         if (isMounted) {
           setLoading(false);
-          alert(`Could not open PDF: ${err.message || "Invalid or protected PDF file."}`);
+          triggerErrorToast("Document Access Error", err.message || "Invalid or protected PDF file.", { type: "corrupted" });
           onClose();
         }
       }
@@ -789,7 +790,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
 
   const handleDeletePage = (indexToDelete: number) => {
     if (pagesMeta.filter((p) => !p.isDeleted).length <= 1) {
-      alert("Cannot delete the only remaining page in the document.");
+      triggerErrorToast("Page Deletion Limit", "Cannot delete the only remaining page in the document.", { type: "generic" });
       return;
     }
     const updated = pagesMeta.map((p, idx) =>
@@ -1166,7 +1167,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       setIsExporting(false);
     } catch (err: any) {
       console.error("Failed to export PDF:", err);
-      alert(`Export Failed: ${err.message || "An unexpected error occurred during PDF assembly."}`);
+      triggerErrorToast("Export Failed", err.message || "An unexpected error occurred during PDF assembly.", { type: "generic" });
       setIsExporting(false);
     }
   };

@@ -1,3 +1,5 @@
+import { TOOL_TRANSLATIONS_GLOBAL } from "./toolTranslationsGlobal";
+
 // Comprehensive Localized Names and Short Descriptions for 60+ PDF Tools across Core Global & Regional Languages
 export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; desc?: string }>> = {
   hi: {
@@ -896,3 +898,12 @@ export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; d
     "xml-to-pdf": { name: "XML to PDF", desc: "Render structured XML data files into well-formatted, readable PDF documents." }
   }
 };
+
+// Merge Global Tool Translations
+Object.assign(TOOL_TRANSLATIONS, TOOL_TRANSLATIONS_GLOBAL);
+
+if (TOOL_TRANSLATIONS["zh-CN"]) {
+  if (!TOOL_TRANSLATIONS["zh-TW"]) TOOL_TRANSLATIONS["zh-TW"] = TOOL_TRANSLATIONS["zh-CN"];
+  if (!TOOL_TRANSLATIONS["zh"]) TOOL_TRANSLATIONS["zh"] = TOOL_TRANSLATIONS["zh-CN"];
+}
+

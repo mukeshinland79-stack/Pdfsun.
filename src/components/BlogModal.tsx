@@ -17,10 +17,12 @@ import {
   Check,
   Copy,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
 import { isAdSenseApproved } from "../utils/adSenseHelper";
+import { useLanguage } from "../lib/i18n";
 
 interface BlogModalProps {
   isOpen: boolean;
@@ -35,6 +37,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
   onSelectTool,
   initialSlug,
 }) => {
+  const { t, currentLanguage } = useLanguage();
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(() => {
     if (initialSlug) {
       return BLOG_POSTS.find((p) => p.slug === initialSlug) || null;
@@ -104,7 +107,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
               aria-label="Back to All Articles"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Articles</span>
+              <span>{t("blog.backToArticles", "Back to Articles")}</span>
             </button>
           ) : (
             <button
@@ -114,7 +117,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
               aria-label="Back to PDF Tools & Home"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back to Tools</span>
+              <span className="hidden sm:inline">{t("pricing.backToTools", "Back to Tools")}</span>
             </button>
           )}
 
@@ -130,7 +133,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search articles & guides..."
+                placeholder={t("blog.searchPlaceholder", "Search articles & guides...")}
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-blue-500"
               />
             </div>
@@ -177,7 +180,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
             {/* Article Header */}
             <div className="space-y-4">
               <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                {selectedPost.category}
+                {t(`blog.categories.${selectedPost.category.toLowerCase()}`, selectedPost.category)}
               </span>
 
               <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white leading-tight">
@@ -199,10 +202,20 @@ export const BlogModal: React.FC<BlogModalProps> = ({
                 </span>
                 <span className="flex items-center space-x-1.5 ml-auto text-emerald-600 dark:text-emerald-400 font-semibold">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Zero-Knowledge Verified</span>
+                  <span>{t("badges.privacyTitle", "Zero-Knowledge Verified")}</span>
                 </span>
               </div>
             </div>
+
+            {/* Fallback Notice for Technical English Articles */}
+            {currentLanguage !== "en" && (
+              <aside className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs flex items-center space-x-3">
+                <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <p className="leading-relaxed">
+                  {t("blog.fallbackNotice", "Notice: This in-depth technical guide is provided in English with full diagrams and code samples. Navigation controls, search, and UI features are localized in your selected language.")}
+                </p>
+              </aside>
+            )}
 
             {/* Article Hero Media */}
             {selectedPost.image && (
@@ -270,13 +283,13 @@ export const BlogModal: React.FC<BlogModalProps> = ({
             {/* Header Hero */}
             <div className="text-center max-w-3xl mx-auto space-y-3">
               <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                PDFSun Knowledge Hub
+                {t("blog.badge", "PDFSun Knowledge Hub")}
               </span>
               <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
-                Engineering Insights &amp; PDF Guides
+                {t("blog.title", "Engineering Insights & PDF Guides")}
               </h1>
               <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-                Deep dives into WebAssembly document compilation, client-side zero-knowledge security, and PDF optimization techniques.
+                {t("blog.subtitle", "Deep dives into WebAssembly document compilation, client-side zero-knowledge security, and PDF optimization techniques.")}
               </p>
             </div>
 
@@ -288,7 +301,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search articles & tutorials..."
+                  placeholder={t("blog.searchPlaceholder", "Search articles & tutorials...")}
                   className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-blue-500 shadow-2xs"
                 />
               </div>
@@ -309,7 +322,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {cat}
+                    {t(`blog.categories.${cat.toLowerCase()}`, cat)}
                   </button>
                 );
               })}
@@ -319,17 +332,21 @@ export const BlogModal: React.FC<BlogModalProps> = ({
             {filteredPosts.length === 0 ? (
               <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
                 <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">No articles matched your search</h3>
-                <p className="text-xs text-slate-500">Try adjusting your search query or select "All" categories.</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {t("blog.noSearchResults", "No articles matched your search")}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {t("blog.noSearchResultsSub", "Try adjusting your search query or select \"All\" categories.")}
+                </p>
                 <button
                   type="button"
                   onClick={() => {
                     setSearchQuery("");
                     setActiveCategory("All");
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
                 >
-                  Reset Filters
+                  {t("blog.clearSearch", "Reset Filters")}
                 </button>
               </div>
             ) : (

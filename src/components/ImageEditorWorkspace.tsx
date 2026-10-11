@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { downloadFile } from "../lib/pdfEngine";
+import { triggerErrorToast } from "./GlobalErrorToast";
 
 export interface ImageEditorWorkspaceProps {
   file: File;
@@ -404,7 +405,7 @@ export const ImageEditorWorkspace: React.FC<ImageEditorWorkspaceProps> = ({
       setIsExporting(false);
     } catch (err: any) {
       console.error("Image Export Error:", err);
-      alert(`Image Export Failed: ${err.message || "An unexpected error occurred."}`);
+      triggerErrorToast("Image Export Failed", err.message || "An unexpected error occurred.", { type: "generic" });
       setIsExporting(false);
     }
   };

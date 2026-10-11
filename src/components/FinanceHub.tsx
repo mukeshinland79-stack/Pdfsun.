@@ -205,7 +205,7 @@ export const FinanceHub: React.FC = () => {
           setShowAccountNo(true);
           showToast("खाता संख्या अनलॉक की गई!", "success");
         } else {
-          alert("गलत पासवर्ड! एक्सेस अस्वीकृत।");
+          showToast("गलत पासवर्ड! एक्सेस अस्वीकृत।", "error");
         }
       } catch (e) {
         setRealAccountNo("1215882900113493");
@@ -219,7 +219,7 @@ export const FinanceHub: React.FC = () => {
   const handleInstantPayout = async () => {
     const withdrawAmount = data?.withdrawableBalance || 45000;
     if (withdrawAmount <= 0) {
-      alert("कोई राशि निकालने योग्य नहीं है।");
+      showToast("कोई राशि निकालने योग्य नहीं है।", "error");
       return;
     }
 

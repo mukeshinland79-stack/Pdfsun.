@@ -576,7 +576,7 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
               <div className="flex items-center justify-around pt-2">
                 <button
                   onClick={() => {
-                    alert("Simulated [Approve] clicked from Email!");
+                    setActionMsg({ type: "success", text: "Simulated [Approve] completed from email preview." });
                     setShowEmailTestModal(false);
                   }}
                   className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg text-xs hover:bg-emerald-500 transition"
@@ -585,7 +585,7 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    alert("Simulated [Delete] clicked from Email!");
+                    setActionMsg({ type: "success", text: "Simulated [Delete] completed from email preview." });
                     setShowEmailTestModal(false);
                   }}
                   className="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg text-xs hover:bg-rose-500 transition"

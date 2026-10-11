@@ -976,7 +976,7 @@ html.eye-protection body {
 
 html.eye-protection .bg-white,
 html.eye-protection .bg-slate-50,
-html.eye-protection .bg-slate-100/80 {
+html.eye-protection .bg-slate-100\/80 {
   background-color: #fcf9f2 !important;
 }
 
@@ -1339,6 +1339,37 @@ body[data-lang],
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);
+}
+
+/* Production RTL & BiDi Architecture */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: start;
+}
+
+html[lang="ar"],
+html[lang="ur"],
+html[lang="fa"],
+[dir="rtl"] {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", "Noto Nastaliq Urdu", "Vazirmatn", "Tahoma", sans-serif;
+}
+
+[dir="rtl"] .ltr-preserve,
+[dir="rtl"] code,
+[dir="rtl"] pre,
+[dir="rtl"] .font-mono,
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="url"] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+/* Zero layout shift for language switcher button */
+.lang-switcher-trigger {
+  min-width: 5.5rem;
+  justify-content: space-between;
 }
 
 @keyframes quizShake {

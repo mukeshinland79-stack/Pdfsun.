@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { History, ArrowRight, Zap, ShieldCheck, X } from "lucide-react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
 
 export interface ReturningVisitorBarProps {
   onSelectTool: (tool: ToolItem) => void;
@@ -12,6 +13,7 @@ export const ReturningVisitorBar: React.FC<ReturningVisitorBarProps> = ({
   onSelectTool,
   onOpenHistory,
 }) => {
+  const { t, getToolName } = useLanguage();
   const [recentTools, setRecentTools] = useState<ToolItem[]>([]);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
@@ -69,7 +71,7 @@ export const ReturningVisitorBar: React.FC<ReturningVisitorBarProps> = ({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center space-x-1.5 font-bold text-blue-900 dark:text-blue-300">
             <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-            <span>Welcome back! Quick Resume:</span>
+            <span>{t("returningVisitor.welcome", "Welcome back! Quick Resume:")}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -77,9 +79,9 @@ export const ReturningVisitorBar: React.FC<ReturningVisitorBarProps> = ({
               <button
                 key={tool.id}
                 onClick={() => onSelectTool(tool)}
-                className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold border border-slate-200 dark:border-slate-600 shadow-2xs transition group"
+                className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold border border-slate-200 dark:border-slate-600 shadow-2xs transition group cursor-pointer"
               >
-                <span>{tool.name}</span>
+                <span>{getToolName(tool)}</span>
                 <ArrowRight className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
               </button>
             ))}
@@ -90,17 +92,17 @@ export const ReturningVisitorBar: React.FC<ReturningVisitorBarProps> = ({
         <div className="flex items-center space-x-2 ml-auto">
           <button
             onClick={onOpenHistory}
-            className="inline-flex items-center space-x-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            className="inline-flex items-center space-x-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           >
             <History className="w-3 h-3" />
-            <span>Full History</span>
+            <span>{t("returningVisitor.fullHistory", t("history", "Full History"))}</span>
           </button>
 
           <span className="text-slate-300 dark:text-slate-600">•</span>
 
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium hidden md:inline-flex items-center space-x-1">
             <ShieldCheck className="w-3 h-3" />
-            <span>100% Local Privacy</span>
+            <span>{t("returningVisitor.localPrivacy", t("badges.privacyTitle", "100% Local Privacy"))}</span>
           </span>
 
           <button

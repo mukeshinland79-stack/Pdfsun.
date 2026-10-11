@@ -3861,7 +3861,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     if (files.length > 0) {
                       setShowAnnotatorModal(true);
                     } else {
-                      alert("Please upload or select a PDF file first.");
+                      const errInfo = parseHumanFriendlyError("Please upload or select a PDF file first.");
+                      setErrorOverlay(errInfo);
+                      setErrorMessage("Please upload or select a PDF file first.");
                     }
                   }}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-white font-bold text-xs shadow-md hover:from-amber-600 hover:to-rose-600 transition flex items-center justify-center space-x-2"
@@ -3886,7 +3888,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     if (files.length > 0) {
                       setShowImageEditorModal(true);
                     } else {
-                      alert("Please upload or select an image file first.");
+                      const errInfo = parseHumanFriendlyError("Please upload or select an image file first.");
+                      setErrorOverlay(errInfo);
+                      setErrorMessage("Please upload or select an image file first.");
                     }
                   }}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xs shadow-md hover:from-emerald-600 hover:to-teal-600 transition flex items-center justify-center space-x-2"

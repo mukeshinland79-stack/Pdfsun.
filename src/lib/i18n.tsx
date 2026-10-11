@@ -13,6 +13,9 @@ import HttpBackend from "i18next-http-backend";
 import { INDIAN_LANGUAGES_TRANSLATIONS } from "./translations/indianLanguages";
 import { GLOBAL_LANGUAGES_TRANSLATIONS } from "./translations/globalLanguages";
 import { TOOL_TRANSLATIONS } from "./translations/toolTranslations";
+import { PRICING_TRANSLATIONS } from "./translations/pricingTranslations";
+import { BLOG_TRANSLATIONS } from "./translations/blogTranslations";
+import { HOMEPAGE_SECTIONS_TRANSLATIONS } from "./translations/homepageSections";
 import enLocale from "../locales/en.json";
 import hiLocale from "../locales/hi.json";
 
@@ -1495,10 +1498,28 @@ if (IN_MEMORY_TRANSLATIONS["zh-CN"]) {
   IN_MEMORY_TRANSLATIONS["zh"] = IN_MEMORY_TRANSLATIONS["zh-CN"];
 }
 
-// Auto-populate fallbacks for other supported languages so that translation switching NEVER breaks
+// Merge pricing, blog, and homepage namespaces with reliable English fallback
 for (const lang of SUPPORTED_LANGUAGES) {
-  if (!IN_MEMORY_TRANSLATIONS[lang.code]) {
-    IN_MEMORY_TRANSLATIONS[lang.code] = IN_MEMORY_TRANSLATIONS["en"];
+  const code = lang.code;
+  if (!IN_MEMORY_TRANSLATIONS[code]) {
+    IN_MEMORY_TRANSLATIONS[code] = { ...IN_MEMORY_TRANSLATIONS["en"] };
+  }
+  const pricingBundle = PRICING_TRANSLATIONS[code] || PRICING_TRANSLATIONS.en || {};
+  IN_MEMORY_TRANSLATIONS[code].pricing = {
+    ...(IN_MEMORY_TRANSLATIONS[code].pricing || {}),
+    ...pricingBundle,
+  };
+  const blogBundle = BLOG_TRANSLATIONS[code] || BLOG_TRANSLATIONS.en || {};
+  IN_MEMORY_TRANSLATIONS[code].blog = {
+    ...(IN_MEMORY_TRANSLATIONS[code].blog || {}),
+    ...blogBundle,
+  };
+  const homepageBundle = HOMEPAGE_SECTIONS_TRANSLATIONS[code] || HOMEPAGE_SECTIONS_TRANSLATIONS.en || {};
+  for (const [sectionKey, sectionObj] of Object.entries(homepageBundle)) {
+    IN_MEMORY_TRANSLATIONS[code][sectionKey] = {
+      ...(IN_MEMORY_TRANSLATIONS[code][sectionKey] || {}),
+      ...(sectionObj as Record<string, any>),
+    };
   }
 }
 

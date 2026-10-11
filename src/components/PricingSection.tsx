@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import {
   Check,
@@ -248,49 +248,49 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     }
   }, [isOpen, currentUserId]);
 
-  // Main 5 Plans List
-  const plans: PlanTier[] = [
+  // Main 5 Plans List (Reactive to Selected Language while preserving exact numeric pricing and IDs)
+  const plans: PlanTier[] = useMemo(() => [
     {
       id: "free",
-      name: "Free Forever",
-      badge: "FREE TIER",
+      name: t("pricing.plans.free.name", "Free Forever"),
+      badge: t("pricing.plans.free.badge", "FREE TIER"),
       badgeBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700",
-      description: "Basic daily PDF tools with zero installation.",
+      description: t("pricing.plans.free.desc", "Basic daily PDF tools with zero installation."),
       billingType: "free",
       priceINR: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "₹0",
         labelYearly: "₹0",
-        subtextMonthly: "Free forever • No credit card required",
-        subtextYearly: "Free forever • No credit card required",
+        subtextMonthly: t("pricing.plans.free.subtext", "Free forever • 3 tasks/24hrs"),
+        subtextYearly: t("pricing.plans.free.subtext", "Free forever • 3 tasks/24hrs"),
       },
       priceUSD: {
         monthly: 0,
         yearly: 0,
         labelMonthly: "$0",
         labelYearly: "$0",
-        subtextMonthly: "Free forever • No credit card required",
-        subtextYearly: "Free forever • No credit card required",
+        subtextMonthly: t("pricing.plans.free.subtext", "Free forever • 3 tasks/24hrs"),
+        subtextYearly: t("pricing.plans.free.subtext", "Free forever • 3 tasks/24hrs"),
       },
-      guaranteeText: "Free Forever",
+      guaranteeText: t("pricing.plans.free.guarantee", "Free Forever"),
       popular: false,
       features: [
-        "3 PDF operations per 24 hours",
-        "Up to 15 MB single file size",
-        "Standard WebAssembly engine",
-        "100% In-Browser Privacy",
-        "Basic Gemini AI Chat (5 queries/day)",
+        t("pricing.plans.free.f1", "3 PDF operations per 24 hours"),
+        t("pricing.plans.free.f2", "Up to 15 MB single file size"),
+        t("pricing.plans.free.f3", "Standard WebAssembly engine"),
+        t("pricing.plans.free.f4", "100% In-Browser Privacy"),
+        t("pricing.plans.free.f5", "Basic Gemini AI Chat (5 queries/day)"),
       ],
-      cta: "Current Free Tier",
+      cta: t("pricing.plans.free.cta", "Current Free Tier"),
       disabled: true,
     },
     {
       id: "flexi",
-      name: "Flex Pass",
-      badge: "7 DAYS • PAY-AS-YOU-GO",
+      name: t("pricing.plans.flexi.name", "Flex Pass"),
+      badge: t("pricing.plans.flexi.badge", "7 DAYS • PAY-AS-YOU-GO"),
       badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
-      description: "Pay-as-you-go access, valid for 7 days. No recurring auto-debit.",
+      description: t("pricing.plans.flexi.desc", "Pay-as-you-go access, valid for 7 days. No recurring auto-debit."),
       billingType: "one-time",
       paymentLinkId: "pdfsun-flexi",
       razorpayLink: "https://rzp.io/rzp/pdfsun-flexi",
@@ -300,8 +300,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         oneTime: 99,
         labelMonthly: "₹99",
         labelYearly: "₹99",
-        subtextMonthly: "₹99 • Valid for 7 Days Access",
-        subtextYearly: "₹99 • Valid for 7 Days Access",
+        subtextMonthly: t("pricing.plans.flexi.subtext", "₹99 • Valid for 7 Days Access"),
+        subtextYearly: t("pricing.plans.flexi.subtext", "₹99 • Valid for 7 Days Access"),
       },
       priceUSD: {
         monthly: 1.99,
@@ -312,23 +312,23 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         subtextMonthly: "$1.99 • Valid for 7 Days Access",
         subtextYearly: "$1.99 • Valid for 7 Days Access",
       },
-      guaranteeText: "Valid for 7 Full Days (Instant Activation)",
+      guaranteeText: t("pricing.plans.flexi.guarantee", "Valid for 7 Full Days (Instant Activation)"),
       popular: false,
       features: [
-        "7 Days Unlimited Access",
-        "Up to 500 MB single file limit",
-        "Priority WebAssembly Engine",
-        "All premium PDF & AI OCR tools",
-        "Instant Dynamic QR with Auto-Amount",
+        t("pricing.plans.flexi.f1", "7 Days Unlimited Access"),
+        t("pricing.plans.flexi.f2", "Up to 500 MB single file limit"),
+        t("pricing.plans.flexi.f3", "Priority WebAssembly Engine"),
+        t("pricing.plans.flexi.f4", "All premium PDF & AI OCR tools"),
+        t("pricing.plans.flexi.f5", "Instant Dynamic QR with Auto-Amount"),
       ],
-      cta: "Get Flex Pass (₹99)",
+      cta: t("pricing.plans.flexi.cta", "Get Flex Pass (₹99)"),
     },
     {
       id: "pro-monthly",
-      name: "Pro Sun Monthly",
-      badge: "MOST POPULAR",
+      name: t("pricing.plans.pro-monthly.name", "Pro Sun Monthly"),
+      badge: t("pricing.plans.pro-monthly.badge", "MOST POPULAR"),
       badgeBg: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30",
-      description: "For professionals needing unlimited PDF processing and AI features.",
+      description: t("pricing.plans.pro-monthly.desc", "For professionals needing unlimited PDF processing and AI features."),
       billingType: "subscription",
       paymentLinkId: "pdfsun-monthly",
       razorpayLink: "https://rzp.io/rzp/pdfsun-monthly",
@@ -337,8 +337,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         yearly: 199,
         labelMonthly: "₹199",
         labelYearly: "₹199",
-        subtextMonthly: "₹199/month (Billed monthly • Cancel anytime)",
-        subtextYearly: "₹199/month (Billed monthly • Cancel anytime)",
+        subtextMonthly: t("pricing.plans.pro-monthly.subtext", "₹199/month (Billed monthly • Cancel anytime)"),
+        subtextYearly: t("pricing.plans.pro-monthly.subtext", "₹199/month (Billed monthly • Cancel anytime)"),
       },
       priceUSD: {
         monthly: 2.99,
@@ -348,24 +348,24 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         subtextMonthly: "$2.99/month (Billed monthly • Cancel anytime)",
         subtextYearly: "$2.99/month (Billed monthly • Cancel anytime)",
       },
-      guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+      guaranteeText: t("pricing.plans.pro-monthly.guarantee", "First 7 Days 100% Money-Back Guarantee"),
       popular: true,
       features: [
-        "Unlimited PDF Conversions & Edits",
-        "Unlimited File Size (up to 2 GB per file)",
-        "Batch Processing up to 50 files",
-        "Gemini 3.6 Flash Document AI & OCR",
-        "No Watermarks & Zero Advertisements",
-        "Instant Dynamic QR with Auto-Amount",
+        t("pricing.plans.pro-monthly.f1", "Unlimited PDF Conversions & Edits"),
+        t("pricing.plans.pro-monthly.f2", "Unlimited File Size (up to 2 GB per file)"),
+        t("pricing.plans.pro-monthly.f3", "Batch Processing up to 50 files"),
+        t("pricing.plans.pro-monthly.f4", "Gemini 3.6 Flash Document AI & OCR"),
+        t("pricing.plans.pro-monthly.f5", "No Watermarks & Zero Advertisements"),
+        t("pricing.plans.pro-monthly.f6", "Instant Dynamic QR with Auto-Amount"),
       ],
-      cta: "Start Pro Monthly (₹199/mo)",
+      cta: t("pricing.plans.pro-monthly.cta", "Start Pro Monthly (₹199/mo)"),
     },
     {
       id: "pro-yearly",
-      name: "Pro Sun Annual",
-      badge: "BEST VALUE • SAVE 40%",
+      name: t("pricing.plans.pro-yearly.name", "Pro Sun Annual"),
+      badge: t("pricing.plans.pro-yearly.badge", "BEST VALUE • SAVE 40%"),
       badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-      description: "Maximum savings with dedicated high-throughput processing for power users.",
+      description: t("pricing.plans.pro-yearly.desc", "Maximum savings with dedicated high-throughput processing for power users."),
       billingType: "subscription",
       paymentLinkId: "pdfsun-annual",
       razorpayLink: "https://rzp.io/rzp/pdfsun-annual",
@@ -374,8 +374,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         yearly: 1499,
         labelMonthly: "₹1,499",
         labelYearly: "₹1,499",
-        subtextMonthly: "₹1,499/year (~₹125/month • Save 40%)",
-        subtextYearly: "₹1,499/year (~₹125/month • Save 40%)",
+        subtextMonthly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 40%)"),
+        subtextYearly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 40%)"),
       },
       priceUSD: {
         monthly: 1.99,
@@ -385,24 +385,24 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         subtextMonthly: "$24/year (~$2.00/month • Save 35%)",
         subtextYearly: "$24/year (~$2.00/month • Save 35%)",
       },
-      guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+      guaranteeText: t("pricing.plans.pro-yearly.guarantee", "First 7 Days 100% Money-Back Guarantee"),
       popular: false,
       features: [
-        "Everything in Pro Sun Monthly",
-        "Full 1-Year Unrestricted Access",
-        "Save 40% compared to monthly plan",
-        "Dedicated priority processing bandwidth",
-        "24/7 Priority Support Desk",
-        "First 7 Days 100% Money-Back Guarantee",
+        t("pricing.plans.pro-yearly.f1", "Everything in Pro Sun Monthly"),
+        t("pricing.plans.pro-yearly.f2", "Full 1-Year Unrestricted Access"),
+        t("pricing.plans.pro-yearly.f3", "Save 40% compared to monthly plan"),
+        t("pricing.plans.pro-yearly.f4", "Dedicated priority processing bandwidth"),
+        t("pricing.plans.pro-yearly.f5", "24/7 Priority Support Desk"),
+        t("pricing.plans.pro-yearly.f6", "First 7 Days 100% Money-Back Guarantee"),
       ],
-      cta: "Get Annual Access — Save 40% (₹1,499)",
+      cta: t("pricing.plans.pro-yearly.cta", "Get Annual Access — Save 40% (₹1,499)"),
     },
     {
       id: "enterprise",
-      name: "Enterprise Plan",
-      badge: "5 SEATS • ENTERPRISE",
+      name: t("pricing.plans.enterprise.name", "Enterprise Plan"),
+      badge: t("pricing.plans.enterprise.badge", "5 SEATS • ENTERPRISE"),
       badgeBg: "bg-[#E0E7FF] text-[#3730A3] border border-[#A5B4FC] dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30",
-      description: "Standard Team tier with Google Workspace & Microsoft 365 SSO.",
+      description: t("pricing.plans.enterprise.desc", "Standard Team tier with Google Workspace & Microsoft 365 SSO."),
       billingType: "enterprise",
       seats: 5,
       razorpayLink: "https://rzp.io/rzp/pdfsun-enterprise",
@@ -411,8 +411,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         yearly: 3999,
         labelMonthly: "₹3,999",
         labelYearly: "₹3,999",
-        subtextMonthly: "₹3,999/yr (5 Seats ~₹66/user/mo)",
-        subtextYearly: "₹3,999/yr (5 Seats ~₹66/user/mo)",
+        subtextMonthly: t("pricing.plans.enterprise.subtext", "₹3,999/yr (5 Seats ~₹66/user/mo)"),
+        subtextYearly: t("pricing.plans.enterprise.subtext", "₹3,999/yr (5 Seats ~₹66/user/mo)"),
       },
       priceUSD: {
         monthly: 5.99,
@@ -422,27 +422,27 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         subtextMonthly: "$59/yr (5 Seats ~$0.98/user/mo)",
         subtextYearly: "$59/yr (5 Seats ~$0.98/user/mo)",
       },
-      guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+      guaranteeText: t("pricing.plans.enterprise.guarantee", "First 7 Days 100% Money-Back Guarantee"),
       popular: false,
       features: [
-        "5 User Seats Included (+₹799 per extra seat)",
-        "Google Workspace & Microsoft 365 SSO",
-        "Centralized Team Billing & Admin Portal",
-        "Priority Gemini AI & OCR Pipeline",
-        "GST Invoicing & Priority Support Desk",
-        "Instant Dynamic QR with Auto-Amount",
+        t("pricing.plans.enterprise.f1", "5 User Seats Included (+₹799 per extra seat)"),
+        t("pricing.plans.enterprise.f2", "Google Workspace & Microsoft 365 SSO"),
+        t("pricing.plans.enterprise.f3", "Centralized Team Billing & Admin Portal"),
+        t("pricing.plans.enterprise.f4", "Priority Gemini AI & OCR Pipeline"),
+        t("pricing.plans.enterprise.f5", "GST Invoicing & Priority Support Desk"),
+        t("pricing.plans.enterprise.f6", "Instant Dynamic QR with Auto-Amount"),
       ],
-      cta: "Get Enterprise Plan (₹3,999)",
+      cta: t("pricing.plans.enterprise.cta", "Get Enterprise Plan (₹3,999)"),
     },
-  ];
+  ], [t]);
 
   // Dedicated Enterprise SSO Unlimited Tier (Featured in High-Value Banner)
-  const enterprisePlanTier: PlanTier = {
+  const enterprisePlanTier: PlanTier = useMemo(() => ({
     id: "enterprise-sso",
-    name: "Enterprise SSO Unlimited",
-    badge: "20 SEATS • CUSTOM SAML 2.0",
+    name: t("pricing.plans.enterprise-sso.name", "Enterprise SSO Unlimited"),
+    badge: t("pricing.plans.enterprise-sso.badge", "20 SEATS • CUSTOM SAML 2.0"),
     badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-    description: "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), and SCIM provisioning.",
+    description: t("pricing.plans.enterprise-sso.desc", "Full SAML 2.0, Okta, Azure AD, Auth0, Custom Domain Auto-join (@company.com), and SCIM provisioning."),
     billingType: "enterprise",
     seats: 20,
     razorpayLink: "https://rzp.io/rzp/DTBivZF",
@@ -451,8 +451,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       yearly: 9999,
       labelMonthly: "₹9,999",
       labelYearly: "₹9,999",
-      subtextMonthly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
-      subtextYearly: "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)",
+      subtextMonthly: t("pricing.plans.enterprise-sso.subtext", "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)"),
+      subtextYearly: t("pricing.plans.enterprise-sso.subtext", "₹9,999/yr (Flat up to 20 Seats included ~₹41/user/mo)"),
     },
     priceUSD: {
       monthly: 14.99,
@@ -462,18 +462,18 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       subtextMonthly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
       subtextYearly: "$149/yr (Flat up to 20 Seats included ~$0.62/user/mo)",
     },
-    guaranteeText: "First 7 Days 100% Money-Back Guarantee",
+    guaranteeText: t("pricing.plans.enterprise-sso.guarantee", "Dedicated Cloud Pod & 99.99% Uptime SLA"),
     popular: false,
     features: [
-      "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration",
-      "Custom Domain Enforced Auto-Join (@yourcompany.com)",
-      "SCIM User Provisioning & Granular Access Controls",
-      "Flat up to 20 Seats included (Custom bulk volume available)",
-      "Dedicated SLA Account Manager",
-      "Instant Dynamic QR with Auto-Amount",
+      t("pricing.plans.enterprise-sso.f1", "SAML 2.0 / Okta / Azure AD / Auth0 Custom SSO Integration"),
+      t("pricing.plans.enterprise-sso.f2", "Custom Domain Enforced Auto-Join (@yourcompany.com)"),
+      t("pricing.plans.enterprise-sso.f3", "SCIM User Provisioning & Granular Access Controls"),
+      t("pricing.plans.enterprise-sso.f4", "Flat up to 20 Seats included (Custom bulk volume available)"),
+      t("pricing.plans.enterprise-sso.f5", "Dedicated SLA Account Manager"),
+      t("pricing.plans.enterprise-sso.f6", "Instant Dynamic QR with Auto-Amount"),
     ],
-    cta: "Get Enterprise SSO (₹9,999)",
-  };
+    cta: t("pricing.plans.enterprise-sso.cta", "Get Enterprise SSO (₹9,999)"),
+  }), [t]);
 
   const [activePlanId, setActivePlanId] = useState<string>(() => {
     try {
@@ -796,26 +796,26 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
                 if (plan.billingType === "free") {
                   displayPriceStr = `${currencySymbol}0`;
-                  periodLabel = "/ forever";
-                  subtext = "Free forever • 3 tasks/24hrs";
+                  periodLabel = "";
+                  subtext = t("pricing.plans.free.subtext", "Free forever • 3 tasks/24hrs");
                 } else if (plan.billingType === "one-time") {
                   displayPriceStr = `${currencySymbol}${priceObj.oneTime}`;
-                  periodLabel = "one-time";
+                  periodLabel = t("pricing.oneTime", "one-time");
                   subtext = priceObj.subtextMonthly;
                 } else if (plan.id === "enterprise") {
                   displayPriceStr = `${currencySymbol}${priceObj.yearly.toLocaleString()}`;
-                  periodLabel = "/ year";
+                  periodLabel = t("pricing.perYear", "/ year");
                   subtext = priceObj.subtextYearly;
                 } else {
                   // Subscription: Monthly vs Yearly
                   if (plan.id === "pro-monthly") {
                     displayPriceStr = `${currencySymbol}${priceObj.monthly}`;
-                    periodLabel = "/ month";
+                    periodLabel = t("pricing.perMonth", "/ month");
                     subtext = isYearly ? priceObj.subtextYearly : priceObj.subtextMonthly;
                   } else {
                     // Pro Sun Annual
                     displayPriceStr = `${currencySymbol}${priceObj.yearly.toLocaleString()}`;
-                    periodLabel = "/ year";
+                    periodLabel = t("pricing.perYear", "/ year");
                     subtext = priceObj.subtextYearly;
                   }
                 }
@@ -865,7 +865,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                         {plan.popular && (
                           <span className="flex items-center space-x-1 text-amber-600 dark:text-amber-400 text-xs font-black">
                             <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                            <span>Best Value</span>
+                            <span>{t("pricing.bestValue", "Best Value")}</span>
                           </span>
                         )}
                       </div>
@@ -932,20 +932,20 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                         <div className="space-y-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                           {isExpiringSoon && (
                             <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
-                              <span>⚠️ Your plan expires in {daysRemaining} days! Renew to maintain WebAssembly speed.</span>
+                              <span>{t("pricing.expiresInDays", "⚠️ Your plan expires in {{days}} days! Renew to maintain WebAssembly speed.", { days: daysRemaining })}</span>
                             </div>
                           )}
                           <div className="p-3 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border-2 border-emerald-500 text-center shadow-lg shadow-emerald-500/10">
                             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider border border-emerald-500/40">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
-                              <span>🟢 PLAN ACTIVATED</span>
+                              <span>{t("pricing.planActivated", "🟢 PLAN ACTIVATED")}</span>
                             </div>
                             <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100 mt-1.5 font-mono">
-                              Expire Date: {expiresFormatted} | Days Left: {daysRemaining}
+                              {t("pricing.expireDate", "Expire Date")}: {expiresFormatted} | {t("pricing.daysLeft", "Days Left")}: {daysRemaining}
                             </div>
                             <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                              Synced with Account ID: <span className="font-semibold text-slate-700 dark:text-slate-300">{displayBoundAccount}</span>
+                              {t("pricing.syncedWithAccount", "Synced with Account ID")}: <span className="font-semibold text-slate-700 dark:text-slate-300">{displayBoundAccount}</span>
                             </div>
                           </div>
                         </div>

@@ -28,6 +28,7 @@ import {
   saveBulkCmsOverrides,
   resetAllCmsOverrides,
 } from "../lib/i18n";
+import { triggerErrorToast } from "./GlobalErrorToast";
 
 interface OwnerCmsModalProps {
   isOpen: boolean;
@@ -176,7 +177,7 @@ export const OwnerCmsModal: React.FC<OwnerCmsModalProps> = ({ isOpen, onClose })
           setSaveSuccessMsg("CMS Overrides imported successfully and applied live!");
           setTimeout(() => setSaveSuccessMsg(""), 4000);
         } catch (err) {
-          alert("Invalid JSON file format.");
+          triggerErrorToast("Import Error", "Invalid JSON file format. Please check your JSON syntax.", { type: "generic" });
         }
       };
     }

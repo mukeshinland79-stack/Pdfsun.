@@ -83,6 +83,7 @@ import { SEOPerformanceDashboard } from "./SEOPerformanceDashboard";
 import { AITokenMonitor } from "./AITokenMonitor";
 import { AdminSystemHealth } from "./AdminSystemHealth";
 import { ApiThrottlingManager } from "./ApiThrottlingManager";
+import { triggerErrorToast } from "./GlobalErrorToast";
 import { LiveAnalyticsDashboard } from "./LiveAnalyticsDashboard";
 import { AuditLogManager } from "./AuditLogManager";
 export { AuditLogManager };
@@ -401,10 +402,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       if (data.success) {
         setLocalUserList((prev) => prev.filter((u) => u.id !== userId && u.email !== email));
       } else {
-        alert(data.error || "Failed to delete user");
+        triggerErrorToast("User Deletion Failed", data.error || "Failed to delete user", { type: "generic" });
       }
     } catch (e: any) {
-      alert(e.message || "Failed to delete user");
+      triggerErrorToast("User Deletion Failed", e.message || "Failed to delete user", { type: "generic" });
     }
   };
 
@@ -480,7 +481,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       { id: Date.now(), time: new Date().toLocaleTimeString(), type: "SYSTEM", msg: "Purged client browser cache memories & temp binaries." },
       ...prev,
     ]);
-    alert("Memory cache purged successfully!");
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const handleExportBackup = async () => {
@@ -577,9 +579,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         }
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3500);
-        alert("Configuration backup JSON imported successfully! All settings, secret keys, and rate limits restored.");
       } catch (err) {
-        alert("Invalid backup file format. Please upload a valid PDFSun emergency configuration JSON file.");
+        triggerErrorToast("Import Failed", "Invalid backup file format. Please upload a valid PDFSun emergency configuration JSON file.", { type: "generic" });
       }
     };
     reader.readAsText(file);

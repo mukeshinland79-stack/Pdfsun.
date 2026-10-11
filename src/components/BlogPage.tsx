@@ -23,10 +23,12 @@ import {
   Lock,
   FileCheck2,
   Bookmark,
+  Globe,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { AdSensePlaceholder } from "./AdSensePlaceholder";
 import { isAdSenseApproved } from "../utils/adSenseHelper";
+import { useLanguage } from "../lib/i18n";
 import {
   calculateReadingTime,
   getSavedArticleSlugs,
@@ -50,6 +52,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
   onNavigateArticle,
   onSelectTool,
 }) => {
+  const { t, currentLanguage } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [viewSavedOnly, setViewSavedOnly] = useState<boolean>(false);
@@ -405,10 +408,10 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             <button
               onClick={onNavigateHome}
               className="flex items-center space-x-2 text-slate-600 dark:text-slate-300 hover:text-orange-500 dark:hover:text-amber-400 transition font-bold text-xs sm:text-sm cursor-pointer"
-              title="Return to PDFSun Tools Grid"
+              title={t("blog.backToHub", "Return to PDFSun Tools Grid")}
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>All PDF Tools</span>
+              <span>{t("nav.allTools", "All PDF Tools")}</span>
             </button>
 
             <span className="text-slate-300 dark:text-slate-700">|</span>
@@ -419,12 +422,12 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                 className="flex items-center space-x-1.5 text-orange-600 dark:text-amber-400 hover:underline font-bold text-xs sm:text-sm cursor-pointer"
               >
                 <BookOpen className="w-4 h-4" />
-                <span>Blog Index</span>
+                <span>{t("blog.backToArticles", "Blog Index")}</span>
               </button>
             ) : (
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-amber-400 border border-orange-500/20">
-                  Knowledge Hub
+                  {t("blog.badge", "Knowledge Hub")}
                 </span>
               </div>
             )}
@@ -436,7 +439,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Launch Studio</span>
+              <span>{t("blog.launchStudio", "Launch Studio")}</span>
             </button>
           </div>
         </div>
@@ -460,7 +463,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                   onClick={onNavigateHome}
                   className="hover:text-orange-500 dark:hover:text-amber-400 transition"
                 >
-                  Home
+                  {t("nav.home", "Home")}
                 </button>
               </li>
               <li className="text-slate-400">/</li>
@@ -469,7 +472,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                   onClick={onNavigateBlog}
                   className="hover:text-orange-500 dark:hover:text-amber-400 transition"
                 >
-                  Blog & Guides
+                  {t("blog.badge", "Blog & Guides")}
                 </button>
               </li>
               <li className="text-slate-400">/</li>
@@ -483,7 +486,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           <header className="space-y-4 mb-8">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-amber-400 border border-orange-500/20">
-                {activePost.category}
+                {t(`blog.categories.${activePost.category.toLowerCase()}`, activePost.category)}
               </span>
               <span className="inline-flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/15 px-2.5 py-0.5 rounded-lg border border-amber-500/20 space-x-1">
                 <Clock className="w-3.5 h-3.5" />
@@ -518,7 +521,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Lead Web Engineer & Client-Side Architect • PDFSun Research
+                    Lead Web Engineer &amp; Client-Side Architect • PDFSun Research
                   </p>
                 </div>
               </div>
@@ -541,7 +544,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                       savedSlugs.includes(activePost.slug) ? "fill-current" : ""
                     }`}
                   />
-                  <span>{savedSlugs.includes(activePost.slug) ? "Saved" : "Save Guide"}</span>
+                  <span>{savedSlugs.includes(activePost.slug) ? t("blog.saved", "Saved") : t("blog.saveArticle", "Save Guide")}</span>
                 </button>
 
                 {/* Native Web Share Button */}
@@ -553,11 +556,21 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                   title="Share article via Web Share API or copy link"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>Share Guide</span>
+                  <span>{t("blog.share", "Share Guide")}</span>
                 </button>
               </div>
             </div>
           </header>
+
+          {/* Explicit Content Policy Fallback Banner when Reading Technical English Article */}
+          {currentLanguage !== "en" && (
+            <aside className="mb-6 p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs flex items-center space-x-3">
+              <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <p className="leading-relaxed">
+                {t("blog.fallbackNotice", "Notice: This in-depth technical guide is provided in English with full diagrams and code samples. Navigation controls, search, and UI features are localized in your selected language.")}
+              </p>
+            </aside>
+          )}
 
           {/* Hero Feature Image */}
           <div className="mb-8 rounded-3xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 bg-slate-900">
@@ -957,15 +970,13 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
             <span className="px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-amber-400 border border-orange-500/20 inline-flex items-center space-x-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Official Knowledge Series & Guides</span>
+              <span>{t("blog.badge", "Official Knowledge Series & Guides")}</span>
             </span>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
-              Mastering Document Security, WebAssembly &amp; PDF Engineering
+              {t("blog.title", "Mastering Document Security, WebAssembly & PDF Engineering")}
             </h1>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-              Explore in-depth technical blueprints, optimization benchmarks, and
-              privacy-first tutorials designed for students, legal teams, and
-              enterprises.
+              {t("blog.subtitle", "Explore in-depth technical blueprints, optimization benchmarks, and privacy-first tutorials designed for students, legal teams, and enterprises.")}
             </p>
 
             {/* Search & Filter Bar */}
@@ -974,7 +985,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
                 <input
                   type="text"
-                  placeholder="Search 10 comprehensive guides, WASM tutorials, OCR tips..."
+                  placeholder={t("blog.searchPlaceholder", "Search 10 comprehensive guides, WASM tutorials, OCR tips...")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:border-orange-500 dark:focus:border-amber-400 shadow-xs"
@@ -1002,7 +1013,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                       : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
                   }`}
                 >
-                  {cat}
+                  {t(`blog.categories.${cat.toLowerCase()}`, cat)}
                 </button>
               );
             })}
@@ -1025,7 +1036,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                   viewSavedOnly || savedSlugs.length > 0 ? "fill-current" : ""
                 }`}
               />
-              <span>Saved Guides</span>
+              <span>{t("blog.savedGuides", "Saved Guides")}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                   viewSavedOnly
@@ -1141,7 +1152,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                         By {post.author}
                       </span>
                       <span className="text-xs font-black text-orange-600 dark:text-amber-400 flex items-center space-x-1 group-hover:translate-x-1 transition">
-                        <span>Read Guide</span>
+                        <span>{t("blog.readGuide", "Read Guide")}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
@@ -1157,10 +1168,10 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                     <Bookmark className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    No Saved Guides in Your Browser Yet
+                    {t("blog.noSavedGuides", "No Saved Guides in Your Browser Yet")}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Click the bookmark ribbon icon on any guide card to save it for quick offline reference without account registration.
+                    {t("blog.noSavedGuidesDesc", "Click the bookmark ribbon icon on any guide card to save it for quick offline reference without account registration.")}
                   </p>
                   <button
                     type="button"
@@ -1170,17 +1181,17 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                     }}
                     className="px-4 py-2 rounded-xl bg-orange-500 text-white font-bold text-xs hover:bg-orange-600 transition cursor-pointer"
                   >
-                    Browse All Guides
+                    {t("blog.clearSearch", "Browse All Guides")}
                   </button>
                 </div>
               ) : (
                 <>
                   <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    No articles found matching &quot;{searchQuery}&quot;
+                    {t("blog.noSearchResults", "No articles found matching your query.")}
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Try searching for keywords like &quot;WASM&quot;, &quot;Compression&quot;, &quot;OCR&quot;, or &quot;Encryption&quot;.
+                    {t("blog.noSearchResultsSub", "Try searching for keywords like \"WASM\", \"Compression\", \"OCR\", or \"Encryption\".")}
                   </p>
                 </>
               )}

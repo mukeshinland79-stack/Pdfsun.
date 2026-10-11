@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { CategoryId, ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
 
 export interface BreadcrumbItem {
   name: string;
@@ -81,6 +82,7 @@ export function BreadcrumbNav({
   baseUrl = SITE_URL,
   className = "",
 }: BreadcrumbNavProps) {
+  const { t, getToolName, getCategoryName } = useLanguage();
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return typeof window !== "undefined" ? window.location.pathname : "/";
   });
@@ -118,20 +120,20 @@ export function BreadcrumbNav({
   // Construct dynamic breadcrumb hierarchy
   const breadcrumbItems: BreadcrumbItem[] = useMemo(() => {
     const items: BreadcrumbItem[] = [
-      { name: "Home", url: "/" },
-      { name: "PDF Tools", url: "/#tools" },
+      { name: t("nav.home", "Home"), url: "/" },
+      { name: t("nav.allTools", "PDF Tools"), url: "/#tools" },
     ];
 
     if (effectiveActiveTool) {
       items.push({
-        name: effectiveActiveTool.name,
+        name: getToolName(effectiveActiveTool),
         url: `/${effectiveActiveTool.slug}`,
         isCurrent: true,
       });
     } else if (selectedCategory && selectedCategory !== "all") {
       const catInfo = CATEGORY_META[selectedCategory] || { name: selectedCategory };
       items.push({
-        name: catInfo.name,
+        name: getCategoryName(selectedCategory) || catInfo.name,
         url: `/#tools?category=${selectedCategory}`,
         isCurrent: !searchQuery.trim(),
       });
