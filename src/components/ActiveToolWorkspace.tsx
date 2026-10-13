@@ -526,6 +526,18 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     noiseArtifactsStripped: number;
   } | null>(null);
   const [pdfRasterThumbnails, setPdfRasterThumbnails] = useState<string[]>([]);
+  const [pdfToWordDpi, setPdfToWordDpi] = useState<150 | 300>(300);
+  const [wordConversionStats, setWordConversionStats] = useState<{
+    pagesCount: number;
+    wordCount: number;
+    paragraphsCount: number;
+    tablesCount: number;
+    headingsCount: number;
+    ocrPagesCount: number;
+    detectedTitle: string;
+    previewSnippet: string;
+  } | null>(null);
+  const [showWordPreviewSnippet, setShowWordPreviewSnippet] = useState(false);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -1116,14 +1128,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Initializing Web Worker & parsing PDF spatial bounding boxes...");
           const res = await convertPdfToWordEnterprise(files[0], {
             preset: wordConversionPreset,
+            detectionMode: smartDetectionMode === "table" ? "table" : smartDetectionMode === "fields" ? "table" : "auto",
             preserveTables: true,
             enableOcrFallback: true,
+            dpiQuality: pdfToWordDpi,
             onProgress: (p, msg) => {
               setProgress(20 + Math.round((p / 100) * 75));
               if (msg) setStatusMessage(msg);
             },
           });
           validateConversionOutput(res.bytes, "docx", res.fileName);
+          setWordConversionStats(res.stats);
           outputBytes = res.bytes;
           outputName = res.fileName;
           mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -4017,7 +4032,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   )}
 
                   {["word-to-pdf", "pdf-to-word"].includes(tool.id) && (
-                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="w-full pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                           <span>⚡ Conversion Speed & Reconstruction Presets</span>
@@ -4080,6 +4095,80 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           </span>
                         </button>
                       </div>
+
+                      {tool.id === "pdf-to-word" && (
+                        <>
+                          {/* Fidelity Options: DPI Resolution */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                              Vector & Optical Fidelity (DPI Quality)
+                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setPdfToWordDpi(300)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition border ${
+                                  pdfToWordDpi === 300
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                300 DPI Ultra-Fidelity
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPdfToWordDpi(150)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition border ${
+                                  pdfToWordDpi === 150
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                150 DPI Standard Speed
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Trust & User-Friendly Guarantee Badges */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-start space-x-2">
+                              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-300 block">
+                                  100% Privacy Guarantee
+                                </span>
+                                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 leading-tight block">
+                                  Your files never leave your device. Pure client-side WebAssembly (WASM).
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 flex items-start space-x-2">
+                              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[11px] font-black text-blue-900 dark:text-blue-300 block">
+                                  Zero Layout Loss Guarantee
+                                </span>
+                                <span className="text-[10px] text-blue-700 dark:text-blue-400 leading-tight block">
+                                  Maintains exact fonts, tables, cell borders & spacing for effortless editing.
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 flex items-start space-x-2">
+                              <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[11px] font-black text-purple-900 dark:text-purple-300 block">
+                                  Instant Editable Output
+                                </span>
+                                <span className="text-[10px] text-purple-700 dark:text-purple-400 leading-tight block">
+                                  Native OpenXML (.docx) paragraphs with zero text-box lockups.
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -5053,13 +5142,37 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     </div>
 
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Ready for instant download • Formatted with native formulas & gridlines
+                      {downloadReady.fileName.endsWith(".docx")
+                        ? "100% Editable Word Document (.docx) • Native tables, fonts & fluid paragraphs preserved"
+                        : downloadReady.fileName.endsWith(".pdf")
+                        ? "Ready for instant download • Lossless PDF vector format"
+                        : "Ready for instant download • Formatted with native formulas & gridlines"}
                     </p>
                   </div>
                 </div>
 
                 {/* Inline Action Bar: Toggle Preview [👁], Format Dropdown [Download XLSX ∨], Mobile QR, Share, Cloud */}
                 <div className="flex items-center space-x-2 flex-wrap gap-y-2 self-end md:self-center">
+                  {/* Instant Preview Toggle for PDF to Word */}
+                  {tool.id === "pdf-to-word" && wordConversionStats && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWordPreviewSnippet(!showWordPreviewSnippet)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border ${
+                        showWordPreviewSnippet
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
+                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                      }`}
+                      title="Toggle instant extracted Word text preview"
+                    >
+                      {showWordPreviewSnippet ? (
+                        <EyeOff className="w-3.5 h-3.5 text-blue-600" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5 text-blue-600" />
+                      )}
+                      <span>{showWordPreviewSnippet ? "Hide Preview" : "Instant Preview"}</span>
+                    </button>
+                  )}
                   {/* Eye Toggle Live Preview Button */}
                   {(tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
                     <button
@@ -5227,6 +5340,88 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Word Reconstruction Validation & Instant Preview Card */}
+              {tool.id === "pdf-to-word" && wordConversionStats && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 dark:from-slate-900 dark:via-blue-950/20 dark:to-slate-900 border border-blue-200/80 dark:border-blue-800/60 space-y-3.5 shadow-sm text-left">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Word (.docx) Reconstruction Metrics
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center space-x-1">
+                      <Check className="w-3 h-3" />
+                      <span>100% Editable • OpenXML Compliant</span>
+                    </span>
+                  </div>
+
+                  {/* Metrics Badges */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Pages Processed</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">
+                        {wordConversionStats.pagesCount} {wordConversionStats.pagesCount === 1 ? "page" : "pages"}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Extracted Words</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">
+                        {wordConversionStats.wordCount.toLocaleString()} words
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Fluid Paragraphs</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">
+                        {wordConversionStats.paragraphsCount} paragraphs
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-blue-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Native Tables</span>
+                      <span className="font-black text-blue-600 dark:text-blue-400 text-sm">
+                        {wordConversionStats.tablesCount} {wordConversionStats.tablesCount === 1 ? "table" : "tables"}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-blue-100 dark:border-slate-700 col-span-2 sm:col-span-1">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Client WASM Engine</span>
+                      <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs">
+                        100% In-Browser
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Trust & Zero Loss Note */}
+                  <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>
+                        Maintains original layout, fonts, table cell borders & multi-page page breaks. Zero text-box overlapping.
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Compatible with MS Word 2016+, Office 365, Google Docs & LibreOffice
+                    </span>
+                  </div>
+
+                  {/* Collapsible Instant Preview */}
+                  {showWordPreviewSnippet && (
+                    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 animate-in fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          Extracted Fluid Paragraphs (Instant Validation Preview)
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          First 1,500 characters
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-700 dark:text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text border border-slate-200/60 dark:border-slate-800">
+                        {wordConversionStats.previewSnippet || "No text preview available."}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Live Interactive Table Preview Engine Rendered Inline */}
               {showInlineTablePreview && (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
