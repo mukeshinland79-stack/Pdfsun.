@@ -1189,7 +1189,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Analyzing spatial grid coordinates & text bounding boxes...");
           const format = postProcessFormatChoice === "csv" ? "csv" : "xlsx";
           const res = await convertPdfToExcelEnterprise(files[0], {
-            preset: smartDetectionMode === "invoice" ? "table" : smartDetectionMode,
+            preset: (smartDetectionMode === "invoice" ? "table" : smartDetectionMode) as "auto" | "table" | "fields",
             outputFormat: format,
             enableOcrFallback: true,
             onProgress: (p, msg) => {
