@@ -44,7 +44,7 @@ if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.work
 }
 
 export type PdfToWordPreset = "max_accuracy" | "high_speed" | "compact_vector";
-export type LayoutDetectionMode = "auto" | "table" | "flow";
+export type LayoutDetectionMode = "auto" | "table" | "flow" | "invoice" | "fields";
 
 export interface PdfToWordOptions {
   preset?: PdfToWordPreset;
@@ -97,6 +97,8 @@ export interface ReconstructedParagraph {
     headers: string[];
     rows: string[][];
     colWidthsPct: number[];
+    isBorderless?: boolean;
+    headerStyle?: "navy" | "clean" | "borderless";
   };
 }
 
@@ -548,14 +550,14 @@ function reconstructDocumentBlocks(
   while (i < lines.length) {
     const line = lines[i];
 
-    // 1. Table Detection: Check if current line + subsequent lines form a grid
-    if (options.preserveTables && isPossibleTableRow(line)) {
+    // 1. Table & Multi-Column Detection: Check if current line + subsequent lines form a grid or invoice row
+    if (options.preserveTables && isPossibleTableRow(line, options.detectionMode)) {
       const tableLines: ReconstructedLine[] = [line];
       let j = i + 1;
 
       while (
         j < lines.length &&
-        isPossibleTableRow(lines[j]) &&
+        isPossibleTableRow(lines[j], options.detectionMode) &&
         lines[j].page === line.page &&
         lines[j].columnIdx === line.columnIdx
       ) {
@@ -564,7 +566,7 @@ function reconstructDocumentBlocks(
       }
 
       if (tableLines.length >= 2) {
-        const tableBlock = parseTableFromLines(tableLines, line.page);
+        const tableBlock = parseTableFromLines(tableLines, line.page, options.detectionMode);
         if (tableBlock) {
           blocks.push(tableBlock);
           i = j;
@@ -649,7 +651,7 @@ function reconstructDocumentBlocks(
         lineGap > next.fontSize * 2.2 ||
         isNextHeading ||
         isNextBullet ||
-        (options.preserveTables && isPossibleTableRow(next))
+        (options.preserveTables && isPossibleTableRow(next, options.detectionMode))
       ) {
         break;
       }
@@ -676,17 +678,19 @@ function reconstructDocumentBlocks(
 }
 
 /**
- * Checks if a line contains multiple horizontally separated tokens that could indicate a table row
+ * Checks if a line contains multiple horizontally separated tokens that could indicate a table row or multi-column layout
  */
-function isPossibleTableRow(line: ReconstructedLine): boolean {
+function isPossibleTableRow(line: ReconstructedLine, mode?: LayoutDetectionMode): boolean {
   if (line.tokens.length < 2) return false;
 
+  // Strict gap check for invoices/forms (20px) vs standard documents
+  const gapThreshold = mode === "invoice" ? 20 : mode === "fields" ? 20 : 18;
   let significantGaps = 0;
   for (let i = 1; i < line.tokens.length; i++) {
     const prev = line.tokens[i - 1];
     const curr = line.tokens[i];
     const gap = curr.x - (prev.x + prev.width);
-    if (gap > 18) significantGaps++;
+    if (gap >= gapThreshold) significantGaps++;
   }
 
   return significantGaps >= 1;
@@ -695,7 +699,11 @@ function isPossibleTableRow(line: ReconstructedLine): boolean {
 /**
  * Parses consecutive candidate lines into a structured table with headers and data rows
  */
-function parseTableFromLines(lines: ReconstructedLine[], pageNum: number): ReconstructedParagraph | null {
+function parseTableFromLines(
+  lines: ReconstructedLine[],
+  pageNum: number,
+  mode: LayoutDetectionMode = "auto"
+): ReconstructedParagraph | null {
   if (lines.length < 2) return null;
 
   const allXPositions: number[] = [];
@@ -707,9 +715,9 @@ function parseTableFromLines(lines: ReconstructedLine[], pageNum: number): Recon
 
   allXPositions.sort((a, b) => a - b);
 
-  // Cluster X positions into column start corridors
+  // Cluster X positions into column start corridors using spatial mode-aware threshold
   const colStarts: number[] = [];
-  const colTolerance = 25;
+  const colTolerance = mode === "invoice" || mode === "fields" ? 20 : 25;
 
   for (const x of allXPositions) {
     const existing = colStarts.find((cx) => Math.abs(cx - x) <= colTolerance);
@@ -756,6 +764,9 @@ function parseTableFromLines(lines: ReconstructedLine[], pageNum: number): Recon
   const colCount = colStarts.length;
   const colWidthsPct = new Array(colCount).fill(Math.floor(100 / colCount));
 
+  // Determine if this is a borderless layout (e.g. invoices, forms, tax details)
+  const isBorderless = mode === "invoice" || mode === "fields";
+
   return {
     type: "table",
     lines,
@@ -768,27 +779,43 @@ function parseTableFromLines(lines: ReconstructedLine[], pageNum: number): Recon
       headers,
       rows,
       colWidthsPct,
+      isBorderless,
+      headerStyle: isBorderless ? "clean" : "navy",
     },
   };
 }
 
 /**
- * Builds a native Microsoft Word Table with clean borders, shading & cell padding
+ * Builds a native Microsoft Word Table with clean OpenXML borderless tables or styled borders
+ * In invoice mode, produces 100% layout fidelity with BorderStyle.NONE to eliminate arbitrary grid lines.
  */
 function buildNativeWordTable(tableData: {
   headers: string[];
   rows: string[][];
   colWidthsPct: number[];
+  isBorderless?: boolean;
+  headerStyle?: "navy" | "clean" | "borderless";
 }): DocxTable {
   const tableRows: TableRow[] = [];
   const colCount = tableData.headers.length;
+  const isBorderless = tableData.isBorderless || tableData.headerStyle === "clean";
 
   // Header Row
   const headerCells = tableData.headers.map((hText, cIdx) => {
     return new TableCell({
       width: { size: tableData.colWidthsPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
-      shading: { type: ShadingType.CLEAR, fill: "1E3A8A" }, // Navy blue header
-      margins: { top: 120, bottom: 120, left: 140, right: 140 },
+      shading: isBorderless ? undefined : { type: ShadingType.CLEAR, fill: "1E3A8A" }, // Navy blue header for normal grids
+      borders: isBorderless
+        ? {
+            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
+            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          }
+        : undefined,
+      margins: isBorderless
+        ? { top: 80, bottom: 80, left: 100, right: 100 }
+        : { top: 120, bottom: 120, left: 140, right: 140 },
       children: [
         new Paragraph({
           alignment: AlignmentType.LEFT,
@@ -796,7 +823,7 @@ function buildNativeWordTable(tableData: {
             new TextRun({
               text: hText || " ",
               bold: true,
-              color: "FFFFFF",
+              color: isBorderless ? "0F172A" : "FFFFFF",
               size: 20, // 10pt
             }),
           ],
@@ -807,23 +834,32 @@ function buildNativeWordTable(tableData: {
 
   tableRows.push(new TableRow({ children: headerCells, tableHeader: true }));
 
-  // Data Rows with alternating row background
+  // Data Rows with alternating row background for standard tables, clean borderless for invoices
   for (let rIdx = 0; rIdx < tableData.rows.length; rIdx++) {
     const row = tableData.rows[rIdx];
-    const isAlt = rIdx % 2 === 1;
+    const isAlt = !isBorderless && rIdx % 2 === 1;
 
     const cells = row.map((cellText, cIdx) => {
       const isNum = /^[$\u20ac\u00a3\u20b9]?[0-9,]+(\.[0-9]+)?%?$/.test(cellText.trim());
       return new TableCell({
         width: { size: tableData.colWidthsPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
         shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
-        margins: { top: 100, bottom: 100, left: 140, right: 140 },
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-          bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-          left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-          right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-        },
+        margins: isBorderless
+          ? { top: 60, bottom: 60, left: 100, right: 100 }
+          : { top: 100, bottom: 100, left: 140, right: 140 },
+        borders: isBorderless
+          ? {
+              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            }
+          : {
+              top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+            },
         children: [
           new Paragraph({
             alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,

@@ -27,7 +27,7 @@ if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.work
   (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 }
 
-export type DetectionMode = "auto" | "table" | "fields";
+export type DetectionMode = "auto" | "table" | "fields" | "invoice";
 
 export interface BoundingBox {
   x: number;

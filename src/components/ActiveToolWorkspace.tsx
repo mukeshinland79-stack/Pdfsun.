@@ -1129,7 +1129,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Initializing Web Worker & parsing PDF spatial bounding boxes...");
           const res = await convertPdfToWordEnterprise(files[0], {
             preset: wordConversionPreset,
-            detectionMode: smartDetectionMode === "table" ? "table" : smartDetectionMode === "fields" ? "table" : "auto",
+            detectionMode: smartDetectionMode === "invoice" ? "invoice" : smartDetectionMode === "table" ? "table" : smartDetectionMode === "fields" ? "fields" : "auto",
             preserveTables: true,
             enableOcrFallback: true,
             dpiQuality: pdfToWordDpi,
@@ -1189,7 +1189,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Analyzing spatial grid coordinates & text bounding boxes...");
           const format = postProcessFormatChoice === "csv" ? "csv" : "xlsx";
           const res = await convertPdfToExcelEnterprise(files[0], {
-            preset: smartDetectionMode,
+            preset: smartDetectionMode === "invoice" ? "table" : smartDetectionMode,
             outputFormat: format,
             enableOcrFallback: true,
             onProgress: (p, msg) => {
@@ -3936,7 +3936,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   <label className="text-[11px] font-bold text-slate-600">
                     Detection Strategy & Layout Model
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                     <button
                       type="button"
                       onClick={() => setSmartDetectionMode("auto")}
@@ -3956,6 +3956,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                     <button
                       type="button"
+                      onClick={() => setSmartDetectionMode("invoice")}
+                      className={`tool-option-card p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        smartDetectionMode === "invoice"
+                          ? "bg-[#fffbeb] border-orange-500 shadow-sm ring-1 ring-orange-500/50 active"
+                          : "bg-[#f8fafc] border-slate-200 hover:border-orange-500/40 hover:bg-[#fffbeb]/50"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800">
+                        🧾 Tax Invoice & Form
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-1 leading-snug">
+                        Spatial multi-column clustering with borderless OpenXML tables for 100% fidelity.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setSmartDetectionMode("table")}
                       className={`tool-option-card p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                         smartDetectionMode === "table"
@@ -3964,10 +3981,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       }`}
                     >
                       <span className="text-xs font-bold text-slate-800">
-                        📊 Table Focus
+                        📊 Table Grid Focus
                       </span>
                       <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                        Prioritizes columnar alignment, cell boundaries & invoice item grids.
+                        Prioritizes columnar alignment, cell boundaries & structured item grids.
                       </span>
                     </button>
 
