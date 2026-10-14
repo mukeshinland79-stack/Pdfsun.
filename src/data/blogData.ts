@@ -98,7 +98,7 @@ Modern enterprise data governance frameworks penalize organizations that transmi
 
 To experience true zero-knowledge document productivity:
 
-1. **Access the Required Tool**: Navigate to [PDF Merge](https://pdfsun.in/merge-pdf), [Compress PDF](https://pdfsun.in/compress-pdf), or [Protect PDF](https://pdfsun.in/protect-pdf).
+1. **Access the Required Tool**: Navigate to [PDF Merge](https://www.pdfsun.in/merge-pdf), [Compress PDF](https://www.pdfsun.in/compress-pdf), or [Protect PDF](https://www.pdfsun.in/protect-pdf).
 2. **Load Your Files Locally**: Drag and drop your documents. Files load instantaneously into your browser session with no upload delay.
 3. **Configure Your Preferences**: Adjust page order, choose compression presets, or enter encryption passphrases as needed.
 4. **Instant Local Save**: Click the action button to process the file and save the output directly back to your device storage.
@@ -192,7 +192,7 @@ Intelligent compression achieves dramatic file size reduction while preserving c
 
 ## Step-by-Step Tutorial: Compressing PDFs for Strict Portals
 
-1. **Open the Compression Tool**: Visit [PDFSun Compress PDF Tool](https://pdfsun.in/compress-pdf).
+1. **Open the Compression Tool**: Visit [PDFSun Compress PDF Tool](https://www.pdfsun.in/compress-pdf).
 2. **Add Your File**: Drag and drop your document into the private workspace.
 3. **Choose Your Target Compression Tier**:
    - **Extreme Compression (Target 50KB - 100KB)**: Calibrated for government exams, civil service recruitment forms, and strict portal caps.
@@ -290,7 +290,7 @@ When you drag your cursor across the page, you can highlight, copy, and search w
 
 ## Step-by-Step Guide: Making Scanned PDFs Searchable
 
-1. **Open the Tool**: Visit [PDFSun OCR Tool](https://pdfsun.in/ocr-pdf).
+1. **Open the Tool**: Visit [PDFSun OCR Tool](https://www.pdfsun.in/ocr-pdf).
 2. **Add Your Scanned File**: Drag and drop your scanned document or smartphone photo PDF.
 3. **Choose Primary Language**: Select your document's language (such as English, Spanish, German, Hindi, French, or Japanese).
 4. **Start Recognition**: Click **Start OCR**. Watch the real-time progress indicator as pages are processed locally on your device.
@@ -368,7 +368,7 @@ To stay competitive, modern knowledge workers are turning to **AI-powered PDF ut
 Traditional reading is passive; **AI Chat with PDF** makes document exploration conversational and interactive.
 
 ### How It Works:
-Load any textbook, medical journal, or investment prospectus into [AI Chat with PDF](https://pdfsun.in/ai-chat-pdf). The engine parses the entire document structure into a high-capacity memory context. You can then converse directly with your document:
+Load any textbook, medical journal, or investment prospectus into [AI Chat with PDF](https://www.pdfsun.in/ai-chat-pdf). The engine parses the entire document structure into a high-capacity memory context. You can then converse directly with your document:
 - *"Summarize the experimental methodology in Section 3 and explain why the control group was chosen."*
 - *"Find all indemnification clauses in this contract and highlight any uncapped liabilities."*
 - *"Create a bulleted cheat sheet of key formulas from Chapter 2 for quick exam revision."*
@@ -511,7 +511,7 @@ To ensure absolute confidentiality, documents must be secured using **256-bit Ad
 
 ## Step-by-Step Guide: Encrypting PDFs on PDFSun
 
-1. Open [PDFSun Protect PDF](https://pdfsun.in/protect-pdf).
+1. Open [PDFSun Protect PDF](https://www.pdfsun.in/protect-pdf).
 2. Drag and drop the confidential file into the workspace.
 3. Enter your secure passphrase and confirm it.
 4. (Optional) Set an Owner Password to restrict printing, copying, or form editing.
@@ -613,7 +613,7 @@ Turn a 90-page institutional investor report into a bulleted executive brief tai
 
 ## How to Chat with Documents on PDFSun
 
-1. Open [PDFSun AI Chat PDF](https://pdfsun.in/ai-chat-pdf).
+1. Open [PDFSun AI Chat PDF](https://www.pdfsun.in/ai-chat-pdf).
 2. Upload your PDF report, whitepaper, or textbook chapter.
 3. Choose a recommended quick-prompt (e.g., *Executive Summary*, *Key Risks*, *Flashcards*) or type your own question.
 4. Receive instant, cited responses and export your synthesized notes directly to Word or Markdown.`,
@@ -700,7 +700,7 @@ At **PDFSun**, our conversion engine employs an intelligent dual-mode approach t
 
 ## Step-by-Step Guide: Converting PDF Tables to Excel
 
-1. Navigate to [PDFSun PDF to Excel](https://pdfsun.in/pdf-to-excel).
+1. Navigate to [PDFSun PDF to Excel](https://www.pdfsun.in/pdf-to-excel).
 2. Drag and drop your financial statement, inventory report, or invoice PDF.
 3. Select your output preference: **Microsoft Excel (.xlsx)** or **Raw CSV (.csv)**.
 4. Click **Convert to Excel**. The in-browser parser structures the table grid in seconds.
@@ -801,10 +801,10 @@ A thorough sanitization process purges digital fingerprints across multiple stru
 
 ## Step-by-Step Guide: Sanitizing PDF Metadata on PDFSun
 
-1. Open [PDFSun Edit PDF Metadata](https://pdfsun.in/edit-metadata).
+1. Open [PDFSun Edit PDF Metadata](https://www.pdfsun.in/edit-metadata).
 2. Drag and drop your document. View the extracted list of hidden metadata keys: author names, software tools, creation timestamps, and company tags.
 3. Click **Wipe All Metadata** to completely remove document properties and metadata streams.
-4. (Optional) Run the document through [Flatten PDF](https://pdfsun.in/flatten-pdf) to merge all interactive layers and comments into permanent static pixels.
+4. (Optional) Run the document through [Flatten PDF](https://www.pdfsun.in/flatten-pdf) to merge all interactive layers and comments into permanent static pixels.
 5. Download your sanitized, privacy-hardened PDF. You can now distribute it publicly with complete confidence that no digital fingerprints remain.`,
   },
 
@@ -888,22 +888,22 @@ By implementing structured document productivity protocols, you can cut your adm
 ## The 4 Golden Rules of High-Efficiency Document Management
 
 ### 1. Optimize First, Distribute Second
-Never send a PDF straight out of a scanner or word processor without optimization. Running a quick 1-second pass through [PDFSun Compress PDF](https://pdfsun.in/compress-pdf) strips redundant font libraries and downsizes bloated imagery, preventing email bounces and ensuring instant opening on mobile devices.
+Never send a PDF straight out of a scanner or word processor without optimization. Running a quick 1-second pass through [PDFSun Compress PDF](https://www.pdfsun.in/compress-pdf) strips redundant font libraries and downsizes bloated imagery, preventing email bounces and ensuring instant opening on mobile devices.
 
 ### 2. Make Every Scanned Page Searchable
-Whenever you receive a photocopied contract or smartphone scan, run it immediately through [PDFSun OCR](https://pdfsun.in/ocr-pdf). Having selectable, searchable text transforms dead pixels into an interactive asset you can search, copy, and cross-reference using Ctrl+F.
+Whenever you receive a photocopied contract or smartphone scan, run it immediately through [PDFSun OCR](https://www.pdfsun.in/ocr-pdf). Having selectable, searchable text transforms dead pixels into an interactive asset you can search, copy, and cross-reference using Ctrl+F.
 
 ### 3. Maintain Master Document Backups
 Before performing permanent operations (such as permanently splitting pages or flattening interactive forms), always preserve an unmodified copy of the original source document in a designated archive folder.
 
 ### 4. Leverage AI for Rapid Triage
-When faced with a 100-page regulatory filing or academic monograph, do not read from page 1. Upload the file to [PDFSun AI Chat](https://pdfsun.in/ai-chat-pdf), prompt the engine for an executive synthesis of core arguments, and use citations to jump directly to the relevant sections.
+When faced with a 100-page regulatory filing or academic monograph, do not read from page 1. Upload the file to [PDFSun AI Chat](https://www.pdfsun.in/ai-chat-pdf), prompt the engine for an executive synthesis of core arguments, and use citations to jump directly to the relevant sections.
 
 ---
 
 ## Conclusion: Build Your Digital Utility Toolkit
 
-True digital productivity is about eliminating friction. Keep [PDFSun.in](https://pdfsun.in/) bookmarked in your browser for fast, private, client-side document processing whenever you need it.`,
+True digital productivity is about eliminating friction. Keep [PDFSun.in](https://www.pdfsun.in/) bookmarked in your browser for fast, private, client-side document processing whenever you need it.`,
   },
 
   /* =========================================================================
@@ -988,8 +988,8 @@ Modern Progressive Web App technology combines the accessibility of the web with
 
 ## Step-by-Step Guide: Converting Images to PDF Offline
 
-1. **Install to Your Device**: Visit [PDFSun.in](https://pdfsun.in/) and tap **Install App** (or select *Add to Home Screen* in Safari on iOS).
-2. **Open the Image Converter**: Navigate to [JPG to PDF](https://pdfsun.in/jpg-to-pdf) or [PNG to PDF](https://pdfsun.in/png-to-pdf).
+1. **Install to Your Device**: Visit [PDFSun.in](https://www.pdfsun.in/) and tap **Install App** (or select *Add to Home Screen* in Safari on iOS).
+2. **Open the Image Converter**: Navigate to [JPG to PDF](https://www.pdfsun.in/jpg-to-pdf) or [PNG to PDF](https://www.pdfsun.in/png-to-pdf).
 3. **Select Photos**: Tap **Choose Images** and select photos directly from your photo library or take a live picture with your device camera.
 4. **Customize Layout**:
    - Choose your target page size: **A4** (international standard) or **US Letter** (North America).

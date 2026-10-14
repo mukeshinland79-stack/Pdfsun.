@@ -22,7 +22,7 @@ interface PageSeoMetadata {
  */
 export function getSeoMetadataForPath(rawPath: string, queryParams: Record<string, any> = {}): PageSeoMetadata {
   const cleanPath = (rawPath.split("?")[0] || "/").replace(/\/+$/, "") || "/";
-  const baseUrl = "https://pdfsun.in";
+  const baseUrl = "https://www.pdfsun.in";
   const defaultOgImage = `${baseUrl}/og-image.png`;
 
   // 1. Home Page (/)

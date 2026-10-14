@@ -4052,15 +4052,15 @@ app.use((req, res, next) => {
     res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
   }
 
-  // 301 Permanent Redirect all alternate hostnames (www.pdfsun.in, pdfsun.com, www.pdfsun.com) and HTTP to https://pdfsun.in
+  // 301 Permanent Redirect all alternate hostnames (pdfsun.in non-www, pdfsun.com, www.pdfsun.com) and HTTP to https://www.pdfsun.in
   if (
     process.env.NODE_ENV === "production" &&
     !host.includes("localhost") &&
     !host.includes("127.0.0.1") &&
     !host.includes("run.app")
   ) {
-    if (host === "www.pdfsun.in" || host === "pdfsun.com" || host === "www.pdfsun.com" || proto === "http") {
-      return res.redirect(301, `https://pdfsun.in${req.originalUrl}`);
+    if (host === "pdfsun.in" || host === "pdfsun.com" || host === "www.pdfsun.com" || proto === "http") {
+      return res.redirect(301, `https://www.pdfsun.in${req.originalUrl}`);
     }
   }
 
@@ -4112,11 +4112,11 @@ Allow: /android-chrome*
 Allow: /site.webmanifest
 Disallow: /api/admin/
 
-Sitemap: https://pdfsun.in/sitemap.xml
-Sitemap: https://pdfsun.in/sitemap-blog.xml
-Sitemap: https://pdfsun.in/blog-sitemap.xml
-Sitemap: https://pdfsun.in/sitemap-compress-sizes.xml
-Sitemap: https://pdfsun.in/sitemap-pseo.xml
+Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-blog.xml
+Sitemap: https://www.pdfsun.in/blog-sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
+Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
 `);
 });
 
@@ -4128,7 +4128,7 @@ app.get(["/sitemap-blog.xml", "/blog-sitemap.xml"], (req, res) => {
   const today = new Date().toISOString().split("T")[0];
 
   const blogIndexEntry = `  <url>
-    <loc>https://pdfsun.in/blog</loc>
+    <loc>https://www.pdfsun.in/blog</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
@@ -4136,7 +4136,7 @@ app.get(["/sitemap-blog.xml", "/blog-sitemap.xml"], (req, res) => {
 
   const blogArticles = BLOG_POSTS.map((post) => {
     return `  <url>
-    <loc>https://pdfsun.in/blog/${post.slug}</loc>
+    <loc>https://www.pdfsun.in/blog/${post.slug}</loc>
     <lastmod>${post.lastModified || today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -4159,7 +4159,7 @@ app.get("/sitemap-compress-sizes.xml", (req, res) => {
 
   const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
     return `  <url>
-    <loc>https://pdfsun.in/compress-pdf-to-${size}</loc>
+    <loc>https://www.pdfsun.in/compress-pdf-to-${size}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -4181,7 +4181,7 @@ app.get("/sitemap-pseo.xml", (req, res) => {
 
   const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
     return `  <url>
-    <loc>https://pdfsun.in/${page.slug}</loc>
+    <loc>https://www.pdfsun.in/${page.slug}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
@@ -4222,7 +4222,7 @@ app.get("/sitemap.xml", (req, res) => {
       const urlPath = slug ? `/${slug}` : "";
 
       return `  <url>
-    <loc>https://pdfsun.in${urlPath}</loc>
+    <loc>https://www.pdfsun.in${urlPath}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>

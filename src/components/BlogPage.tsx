@@ -228,12 +228,12 @@ export const BlogPage: React.FC<BlogPageProps> = ({
       "@graph": [
         {
           "@type": "BlogPosting",
-          "@id": `https://pdfsun.in/blog/${activePost.slug}#article`,
+          "@id": `https://www.pdfsun.in/blog/${activePost.slug}#article`,
           isPartOf: {
             "@type": "WebSite",
-            "@id": "https://pdfsun.in/#website",
+            "@id": "https://www.pdfsun.in/#website",
             name: "PDFSun.in",
-            url: "https://pdfsun.in",
+            url: "https://www.pdfsun.in",
           },
           headline: activePost.title,
           description: activePost.excerpt,
@@ -242,21 +242,21 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           dateModified: `${activePost.lastModified || "2026-09-14"}T12:00:00+00:00`,
           mainEntityOfPage: {
             "@type": "WebPage",
-            "@id": `https://pdfsun.in/blog/${activePost.slug}`,
+            "@id": `https://www.pdfsun.in/blog/${activePost.slug}`,
           },
           author: {
             "@type": "Person",
             name: activePost.author,
             jobTitle: "Senior Web Security & Technical SEO Architect",
-            url: "https://pdfsun.in/about-us",
+            url: "https://www.pdfsun.in/about-us",
           },
           publisher: {
             "@type": "Organization",
             name: "PDFSun",
-            url: "https://pdfsun.in",
+            url: "https://www.pdfsun.in",
             logo: {
               "@type": "ImageObject",
-              url: "https://pdfsun.in/assets/favicon-512x512.png",
+              url: "https://www.pdfsun.in/assets/favicon-512x512.png",
             },
           },
           articleSection: activePost.category,
@@ -269,19 +269,19 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               "@type": "ListItem",
               position: 1,
               name: "Home",
-              item: "https://pdfsun.in",
+              item: "https://www.pdfsun.in",
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Blog & Guides",
-              item: "https://pdfsun.in/blog",
+              item: "https://www.pdfsun.in/blog",
             },
             {
               "@type": "ListItem",
               position: 3,
               name: activePost.title,
-              item: `https://pdfsun.in/blog/${activePost.slug}`,
+              item: `https://www.pdfsun.in/blog/${activePost.slug}`,
             },
           ],
         },
@@ -304,21 +304,21 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     return JSON.stringify({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      "@id": "https://pdfsun.in/blog#collection",
+      "@id": "https://www.pdfsun.in/blog#collection",
       name: "PDFSun Master Knowledge Base & Document Guides",
       description:
         "Authoritative technical guides, tutorials, and security analyses on in-browser WebAssembly PDF processing, compression, encryption, and client-side document management.",
-      url: "https://pdfsun.in/blog",
+      url: "https://www.pdfsun.in/blog",
       isPartOf: {
         "@type": "WebSite",
-        "@id": "https://pdfsun.in/#website",
+        "@id": "https://www.pdfsun.in/#website",
         name: "PDFSun.in",
-        url: "https://pdfsun.in",
+        url: "https://www.pdfsun.in",
       },
       hasPart: BLOG_POSTS.map((post) => ({
         "@type": "BlogPosting",
         headline: post.title,
-        url: `https://pdfsun.in/blog/${post.slug}`,
+        url: `https://www.pdfsun.in/blog/${post.slug}`,
         datePublished: "2026-09-01",
       })),
     });
@@ -331,11 +331,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         <Helmet>
           <title>{`${activePost.title} | PDFSun Knowledge Base`}</title>
           <meta name="description" content={activePost.excerpt} />
-          <link rel="canonical" href={`https://pdfsun.in/blog/${activePost.slug}`} />
+          <link rel="canonical" href={`https://www.pdfsun.in/blog/${activePost.slug}`} />
           <meta property="og:title" content={activePost.title} />
           <meta property="og:description" content={activePost.excerpt} />
           <meta property="og:type" content="article" />
-          <meta property="og:url" content={`https://pdfsun.in/blog/${activePost.slug}`} />
+          <meta property="og:url" content={`https://www.pdfsun.in/blog/${activePost.slug}`} />
           <meta property="og:image" content={activePost.image} />
           <meta property="article:published_time" content="2026-09-01T08:00:00Z" />
           <meta property="article:author" content={activePost.author} />
@@ -354,14 +354,14 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             name="description"
             content="Explore comprehensive, authoritative guides on client-side PDF compression, WebAssembly security, OCR, encryption, and digital document workflows with zero cloud data retention."
           />
-          <link rel="canonical" href="https://pdfsun.in/blog" />
+          <link rel="canonical" href="https://www.pdfsun.in/blog" />
           <meta property="og:title" content="PDFSun Blog & Technical Guides" />
           <meta
             property="og:description"
             content="Master document privacy and high-speed in-browser WebAssembly PDF tools."
           />
           <meta property="og:type" content="website" />
-          <meta property="og:url" content="https://pdfsun.in/blog" />
+          <meta property="og:url" content="https://www.pdfsun.in/blog" />
           {blogIndexJsonLd && (
             <script type="application/ld+json">{blogIndexJsonLd}</script>
           )}

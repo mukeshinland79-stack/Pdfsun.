@@ -187,12 +187,12 @@ export const UniversalToolActionBar: React.FC<UniversalToolActionBarProps> = ({
         return (
           <button
             type="button"
-            disabled
-            aria-label="File downloaded successfully"
-            className="w-full sm:w-auto min-w-[210px] px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-900 dark:bg-slate-800 text-emerald-400 border border-emerald-500/40 shadow-inner cursor-default flex items-center justify-center gap-2 select-none"
+            onClick={handleResetOrCancel}
+            aria-label="File downloaded successfully. Click to process another document."
+            className="w-full sm:w-auto min-w-[210px] px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-900 dark:bg-slate-800 hover:bg-slate-850 text-emerald-400 border border-emerald-500/40 hover:border-emerald-400 shadow-inner cursor-pointer transition-all flex items-center justify-center gap-2 select-none"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 fill-emerald-500/20 shrink-0" />
-            <span>Downloaded</span>
+            <span>Downloaded ✓ (New File)</span>
           </button>
         );
 

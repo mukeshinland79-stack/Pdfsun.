@@ -727,7 +727,7 @@ function MainApp() {
 
   const pageTitle = activeTool ? `${activeTool.name} - Free Online PDF Tool | PDFSun` : "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
   const pageDescription = activeTool ? `${activeTool.description} Free PDF converter, merge PDF online, compress PDF size with PDFSun.` : "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.";
-  const canonicalUrl = activeTool ? `https://pdfsun.in/${activeTool.slug}` : "https://pdfsun.in";
+  const canonicalUrl = activeTool ? `https://www.pdfsun.in/${activeTool.slug}` : "https://www.pdfsun.in";
 
   const adPlacements = calculateAdPlacements(ALL_TOOLS.length, activeTool !== null, userProfile !== null, typeof window !== "undefined" ? window.innerWidth : 1200);
 
@@ -744,7 +744,7 @@ function MainApp() {
       <SEOManager
         activeTool={activeTool}
         tools={ALL_TOOLS}
-        baseUrl="https://pdfsun.in"
+        baseUrl="https://www.pdfsun.in"
         currentPage={gridPagination.page}
         totalPages={gridPagination.totalPages}
         isTodayInHistoryActive={todayInHistoryOpen}
@@ -763,7 +763,7 @@ function MainApp() {
           <meta property="og:url" content={canonicalUrl} />
           <meta property="og:title" content={pageTitle} />
           <meta property="og:description" content={pageDescription} />
-          <meta property="og:image" content="https://pdfsun.in/og-image.png" />
+          <meta property="og:image" content="https://www.pdfsun.in/og-image.png" />
         </Helmet>
       )}
 
@@ -850,7 +850,7 @@ function MainApp() {
               onOpenPricing={handleOpenPricing}
               onOpenBlog={handleNavigateBlog}
               activeTool={activeTool}
-              baseUrl="https://pdfsun.in"
+              baseUrl="https://www.pdfsun.in"
             />
 
             <ToolGrid

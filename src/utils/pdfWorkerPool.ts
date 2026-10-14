@@ -177,6 +177,7 @@ class PDFWorkerPool {
       }
 
       const worker = availableWorker.worker!;
+      let taskTimer: any = null;
 
       const handleMessage = (e: MessageEvent) => {
         const { taskId: resId, type, percent, resultBuffer, error } = e.data;
@@ -210,14 +211,25 @@ class PDFWorkerPool {
 
       const handleError = (err: ErrorEvent) => {
         cleanup();
-        this.releaseWorker(availableWorker);
-        task.reject(err);
+        this.terminateAndRespawnWorker(availableWorker);
+        task.reject(new Error("Worker thread encountered an unexpected crash or memory limit."));
       };
 
       const cleanup = () => {
+        if (taskTimer) {
+          clearTimeout(taskTimer);
+          taskTimer = null;
+        }
         worker.removeEventListener("message", handleMessage);
         worker.removeEventListener("error", handleError);
       };
+
+      // 45-Second Timeout Watcher
+      taskTimer = setTimeout(() => {
+        cleanup();
+        this.terminateAndRespawnWorker(availableWorker);
+        task.reject(new Error("Worker processing timed out (exceeded 45s safety limit). Try splitting pages or using compressed input."));
+      }, 45000);
 
       worker.addEventListener("message", handleMessage);
       worker.addEventListener("error", handleError);
@@ -246,6 +258,31 @@ class PDFWorkerPool {
    * Release worker after task completion and trigger processing of remaining queue
    */
   private releaseWorker(workerInstance: WorkerInstance): void {
+    workerInstance.isBusy = false;
+    workerInstance.currentTaskId = null;
+    this.processNextTask();
+  }
+
+  /**
+   * Safely terminate a crashed or timed out worker and replace it with a fresh worker instance
+   */
+  private terminateAndRespawnWorker(workerInstance: WorkerInstance): void {
+    try {
+      if (workerInstance.worker) {
+        workerInstance.worker.terminate();
+      }
+    } catch {}
+
+    try {
+      if (typeof window !== "undefined" && window.Worker) {
+        workerInstance.worker = new Worker(new URL("./pdfWorker.ts", import.meta.url), { type: "module" });
+      } else {
+        workerInstance.worker = null;
+      }
+    } catch {
+      workerInstance.worker = null;
+    }
+
     workerInstance.isBusy = false;
     workerInstance.currentTaskId = null;
     this.processNextTask();

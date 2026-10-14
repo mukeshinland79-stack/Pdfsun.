@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   X,
@@ -193,6 +193,10 @@ import {
   trackGAToolSwitch,
   trackGAAiToolUsed,
 } from "../utils/analytics";
+import {
+  evaluateMemorySafety,
+  purgeAllGuardedBlobUrls,
+} from "../utils/memoryGuard";
 
 export interface ExtendedFileState extends FileValidationResult {
   progress: number;
@@ -331,9 +335,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     [downloadReady, tool.id]
   );
 
-  // Clean up memory and file references on unmount
+  // Pre-flight memory safety analyzer
+  const memoryReport = useMemo(() => evaluateMemorySafety(files), [files]);
+
+  // Clean up memory, Object URLs, and file references on unmount
   useEffect(() => {
     return () => {
+      purgeAllGuardedBlobUrls();
       setDownloadReady(null);
       setFiles([]);
       setFileStates([]);
@@ -1500,6 +1508,35 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           mimeType = "application/zip";
           break;
 
+        case "macro-automator":
+          setStatusMessage("Executing multi-action automated macro pipeline (Compress + Watermark + Page Numbers + Flatten)...");
+          let mBytes = await compressPdf(files[0], 0.75, (p) => setProgress(45 + Math.round((p / 100) * 12)));
+          let mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          mBytes = await watermarkPdf(
+            mFile,
+            {
+              type: "text",
+              text: "CONFIDENTIAL",
+              opacity: 0.15,
+              fontSize: 42,
+              angle: 45,
+              position: "center",
+            },
+            0.15,
+            42,
+            (p) => setProgress(57 + Math.round((p / 100) * 12))
+          );
+          mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          mBytes = await addPageNumbers(mFile, "bottom-center", (p) => setProgress(69 + Math.round((p / 100) * 12)));
+          mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          outputBytes = await flattenPdf(
+            mFile,
+            { mode: "smart" },
+            (p) => setProgress(81 + Math.round((p / 100) * 18))
+          );
+          outputName = `PDFSun_Automated_Pipeline_${files[0].name.replace(/\.[^/.]+$/, "")}.pdf`;
+          break;
+
         case "scan-to-pdf":
           if (!files || files.length === 0) {
             throw new Error("Please upload or capture image frames to scan into a PDF document.");
@@ -1945,6 +1982,32 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Pre-flight Memory Guard Banner */}
+          {memoryReport.warningMessage && (
+            <div
+              className={`p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between ${
+                memoryReport.severity === "danger"
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+                  : "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <ShieldCheck
+                  className={`w-4 h-4 shrink-0 ${
+                    memoryReport.severity === "danger" ? "text-rose-500" : "text-blue-500"
+                  }`}
+                />
+                <div>
+                  <span className="font-bold">Memory Guard Active: </span>
+                  <span>{memoryReport.warningMessage}</span>
+                </div>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white dark:bg-slate-800 border border-current shrink-0 ml-2">
+                RAM: {memoryReport.deviceMemoryGb}GB
+              </span>
+            </div>
+          )}
 
           {/* Validation Warning / Error Banner */}
           {batchWarning && (
@@ -5846,6 +5909,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           )}
         </div>
 
+        {/* Zero-Retention Privacy Assurance Notice */}
+        <div className="mx-auto max-w-4xl px-4 py-2 my-2 text-center">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 font-medium">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>100% Client-Side Privacy: Documents processed locally in your browser via WebAssembly. Files never upload to any server.</span>
+          </p>
+        </div>
+
         {/* Universal SaaS-Grade Dynamic Action Bar */}
         <UniversalToolActionBar
           toolName={translatedToolName}
@@ -5856,9 +5927,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             if (isProcessing) {
               handleCancelProcess();
             } else if (downloadReady) {
+              purgeAllGuardedBlobUrls();
               setDownloadReady(null);
               setDownloadSuccessBadge(false);
             } else {
+              purgeAllGuardedBlobUrls();
               onClose();
             }
           }}
