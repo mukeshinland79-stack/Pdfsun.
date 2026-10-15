@@ -40,7 +40,7 @@ export interface BreadcrumbNavProps {
   className?: string;
 }
 
-const SITE_URL = "https://www.pdfsun.in";
+const SITE_URL = "https://pdfsun.in";
 
 const CATEGORY_META: Record<CategoryId, { name: string; icon: React.FC<{ className?: string }> }> = {
   all: { name: "All Tools", icon: Layers },

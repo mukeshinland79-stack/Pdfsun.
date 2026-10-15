@@ -60,23 +60,6 @@ export interface MergedHeaderRegion {
   text: string;
 }
 
-export interface PdfToExcelAuditReport {
-  autoQualityEnhanced: boolean;
-  deskewAngle: number;
-  contrastBoosted: boolean;
-  tableHsnDetected: boolean;
-  qrCodePreserved: boolean;
-  multiTabCreated: boolean;
-  totalTabs: number;
-  tabNames: string[];
-  totalRows: number;
-  totalCols: number;
-  formulasEmbeddedCount: number;
-  grandTotalFormatted?: string;
-  invoiceNumber?: string;
-  tabsPreviewData?: Record<string, string[][]>;
-}
-
 /**
  * Non-blocking event loop yield for locked 60 FPS UI
  */
@@ -156,7 +139,6 @@ export async function convertPdfToExcelEnterprise(
   previewRows: string[][];
   totalRows: number;
   totalCols: number;
-  auditReport?: PdfToExcelAuditReport;
 }> {
   const {
     preset = "auto",
@@ -491,75 +473,6 @@ export async function convertPdfToExcelEnterprise(
       rawGridMatrix: paddedGrid,
     });
 
-    const tabsPreviewData: Record<string, string[][]> = {
-      "Summary & Tax": [
-        ["KEY / FIELD", "DETAILS & AUDIT DATA"],
-        ["Document Type", invoiceData.documentTitle || "TAX INVOICE"],
-        ["Invoice Number", invoiceData.invoiceNumber || "INV-2026-001"],
-        ["Invoice Date", invoiceData.invoiceDate || new Date().toISOString().split("T")[0]],
-        ["Payment Due Date", invoiceData.dueDate || "Due on Receipt"],
-        ["Supplier / Seller", invoiceData.supplier.name || "PDFSun Certified Partner"],
-        ["Supplier GSTIN", invoiceData.supplier.gstin || "27ABCDE1234F1Z5"],
-        ["Customer (Buyer)", invoiceData.customer.billedToName || "Corporate Client Ltd"],
-        ["Buyer GSTIN", invoiceData.customer.billedToGstin || "27XXXXX1234X1ZX"],
-        ["Taxable Amount", "₹" + invoiceData.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })],
-        ["Total GST Tax", "₹" + invoiceData.totalTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })],
-        ["Grand Total", "₹" + invoiceData.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })],
-        ["Embedded QR Code", detectedQrCodes.length > 0 ? "Preserved (Cell Block F2:G8)" : "Verified Digital Format"],
-      ],
-      "Line Items": [
-        ["S.NO", "ITEM DESCRIPTION", "HSN/SAC", "QTY", "RATE (₹)", "TAXABLE (₹)", "TOTAL (₹)"],
-        ...invoiceData.lineItems.map((item, idx) => [
-          String(item.sNo || idx + 1),
-          item.description,
-          item.hsnSac,
-          item.quantity.toFixed(2),
-          "₹" + item.rate.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-          "₹" + item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-          "₹" + item.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-        ]),
-        ["TOTAL", "", "", "=SUM(D2:D...)", "", "=SUM(F2:F...)", "=SUM(G2:G...)"],
-      ],
-      "Customer & Vehicle": [
-        ["FIELD", "DETAILS"],
-        ["Buyer (Billed To)", invoiceData.customer.billedToName || "Corporate Client Ltd"],
-        ["Buyer GSTIN", invoiceData.customer.billedToGstin || "27AAACG0000A1Z5"],
-        ["Billing Address", invoiceData.customer.billedToAddress || "Suite 500, Cyber City"],
-        ["Consignee (Shipped To)", invoiceData.customer.shippedToName || "Corporate Client Warehouse"],
-        ["Delivery Address", invoiceData.customer.shippedToAddress || "Plot 42, Logistics Hub"],
-        ["Transporter Name", invoiceData.transport.transporterName || "VRL Logistics Ltd"],
-        ["Vehicle / Truck No", invoiceData.transport.vehicleNumber || "MH 12 AB 9988"],
-        ["E-Way Bill Number", invoiceData.transport.eWayBillNumber || "451278963214"],
-      ],
-      "Terms & Notes": [
-        ["SECTION", "TERMS & BANKING INFORMATION"],
-        ["Bank Name", invoiceData.bankDetails.bankName || "HDFC Bank Ltd"],
-        ["Account Holder", invoiceData.bankDetails.accountName || invoiceData.supplier.name || "Authorized Partner"],
-        ["Account Number", invoiceData.bankDetails.accountNumber || "50200012345678"],
-        ["IFSC Code", invoiceData.bankDetails.ifscCode || "HDFC0001234"],
-        ["Branch", invoiceData.bankDetails.branch || "Mumbai"],
-        ...invoiceData.termsAndConditions.map((term, i) => [`Condition ${i + 1}`, term]),
-      ],
-      "Raw Grid Matrix": paddedGrid.slice(0, 50),
-    };
-
-    const auditReport: PdfToExcelAuditReport = {
-      autoQualityEnhanced: true,
-      deskewAngle: 0.0,
-      contrastBoosted: true,
-      tableHsnDetected: true,
-      qrCodePreserved: detectedQrCodes.length > 0,
-      multiTabCreated: true,
-      totalTabs: 4,
-      tabNames: ["Summary & Tax", "Line Items", "Customer & Vehicle", "Terms & Notes"],
-      totalRows: paddedGrid.length,
-      totalCols: paddedGrid[0]?.length || totalCols,
-      formulasEmbeddedCount: invoiceData.lineItems.length * 2 + 3,
-      grandTotalFormatted: "₹" + invoiceData.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      invoiceNumber: invoiceData.invoiceNumber,
-      tabsPreviewData,
-    };
-
     if (onProgress) onProgress(100, "Multi-tab corporate Excel workbook ready!");
 
     return {
@@ -568,7 +481,6 @@ export async function convertPdfToExcelEnterprise(
       previewRows: paddedGrid.slice(0, 50),
       totalRows: paddedGrid.length,
       totalCols: paddedGrid[0]?.length || totalCols,
-      auditReport,
     };
   }
 
@@ -744,27 +656,12 @@ export async function convertPdfToExcelEnterprise(
 
   if (onProgress) onProgress(100, "PDF to Excel reconstruction complete!");
 
-  const auditReport: PdfToExcelAuditReport = {
-    autoQualityEnhanced: true,
-    deskewAngle: 0.0,
-    contrastBoosted: true,
-    tableHsnDetected: true,
-    qrCodePreserved: detectedQrCodes.length > 0,
-    multiTabCreated: false,
-    totalTabs: 1,
-    tabNames: ["Table_Data"],
-    totalRows: paddedGrid.length,
-    totalCols: paddedGrid[0]?.length || totalCols,
-    formulasEmbeddedCount: numericColumns.size,
-  };
-
   return {
     bytes,
     fileName: `${baseName}.xlsx`,
     previewRows: paddedGrid.slice(0, 50),
     totalRows: paddedGrid.length,
     totalCols: paddedGrid[0]?.length || totalCols,
-    auditReport,
   };
 }
 

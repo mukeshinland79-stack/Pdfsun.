@@ -291,7 +291,7 @@ export interface GeneratedMetadata {
  */
 export function generateHreflangTags(
   pathname: string = "",
-  baseUrl: string = "https://www.pdfsun.in"
+  baseUrl: string = "https://pdfsun.in"
 ): HreflangTag[] {
   // Normalize clean path
   let cleanPath = pathname.trim();
@@ -346,7 +346,7 @@ export function generateDynamicOgImageUrl(options: {
     toolName = "PDF Tools & AI Engine",
     category = "Utility",
     badge = "100% Free & Secure",
-    baseUrl = "https://www.pdfsun.in",
+    baseUrl = "https://pdfsun.in",
   } = options;
 
   // Uses SVG / static branded card with dynamic fallback
@@ -379,7 +379,7 @@ export function generatePageMetadata(options: MetaGeneratorOptions): GeneratedMe
       "pdfsun.in",
     ],
     canonicalPath = "",
-    baseUrl = "https://www.pdfsun.in",
+    baseUrl = "https://pdfsun.in",
     ogType = "website",
     ogImage,
     ogImageAlt = "PDFSun - Free Online PDF Tools & AI Document Engine",

@@ -196,12 +196,7 @@ import {
 import {
   evaluateMemorySafety,
   purgeAllGuardedBlobUrls,
-  OperationType,
 } from "../utils/memoryGuard";
-import { useToolPreFlight } from "../hooks/useToolPreFlight";
-import { ToolMemoryWarning } from "./ToolMemoryWarning";
-import { PrivacyBadge } from "./PrivacyBadge";
-import type { PdfToExcelAuditReport } from "../lib/enterprisePdfToExcelEngine";
 
 export interface ExtendedFileState extends FileValidationResult {
   progress: number;
@@ -340,6 +335,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     [downloadReady, tool.id]
   );
 
+  // Pre-flight memory safety analyzer
+  const memoryReport = useMemo(() => evaluateMemorySafety(files), [files]);
 
   // Clean up memory, Object URLs, and file references on unmount
   useEffect(() => {
@@ -550,27 +547,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     previewSnippet: string;
   } | null>(null);
   const [showWordPreviewSnippet, setShowWordPreviewSnippet] = useState(false);
-  const [excelAuditReport, setExcelAuditReport] = useState<PdfToExcelAuditReport | null>(null);
-  const [selectedExcelTab, setSelectedExcelTab] = useState<string>("Summary & Tax");
-
-  // Pre-flight memory protection hook
-  const operationType: OperationType = ["pdf-to-jpg", "pdf-to-png", "extract-images", "scan-to-pdf", "image-to-excel"].includes(tool.id)
-    ? "canvas_raster"
-    : ["ocr-pdf"].includes(tool.id)
-    ? "ocr"
-    : ["pdf-to-excel", "pdf-to-word", "pdf-to-powerpoint"].includes(tool.id)
-    ? "conversion"
-    : "binary_pdf";
-
-  const {
-    report: memoryReport,
-    isBlocked: isMemoryBlocked,
-    isWarning: isMemoryWarning,
-    dismissWarning: dismissMemoryWarning,
-  } = useToolPreFlight({
-    files,
-    operationType,
-  });
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -1239,12 +1215,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setLiveTableMatrix(res.previewRows);
           setLiveTableFileName(res.fileName);
           setShowInlineTablePreview(true);
-          if (res.auditReport) {
-            setExcelAuditReport(res.auditReport);
-            if (res.auditReport.tabNames && res.auditReport.tabNames.length > 0) {
-              setSelectedExcelTab(res.auditReport.tabNames[0]);
-            }
-          }
           break;
         }
 
@@ -1764,7 +1734,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             name: `${tool.name} - Free Online PDF Tool`,
             applicationCategory: "BusinessApplication",
             operatingSystem: "All",
-            url: `https://www.pdfsun.in/${tool.id}`,
+            url: `https://pdfsun.in/${tool.id}`,
             description: tool.description,
             offers: {
               "@type": "Offer",
@@ -1887,7 +1857,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       ({toolRating.totalRatings.toLocaleString()})
                     </span>
                   </button>
-                  <PrivacyBadge toolId={tool.id} variant="compact" className="ml-1" />
                 </h2>
               )}
               <p className="text-xs text-slate-600 dark:text-slate-300 font-medium line-clamp-1">{translatedToolDesc}</p>
@@ -1949,15 +1918,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           <div className="quick-tip-banner">
             <QuickTipTooltip toolId={tool.id} variant="inline" />
           </div>
-
-          {/* Pre-flight Memory Protection Warning */}
-          {memoryReport && memoryReport.status !== "safe" && (
-            <ToolMemoryWarning
-              report={memoryReport}
-              onDismiss={dismissMemoryWarning}
-              onProceedAnyway={dismissMemoryWarning}
-            />
-          )}
 
           {/* File Upload Zone with react-dropzone integration */}
           <div
@@ -5544,81 +5504,6 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* Ultimate PDF-to-Excel Live Enhancement & CA Audit Verification Panel */}
-              {(tool.id === "pdf-to-excel" || tool.id === "image-to-excel") && (excelAuditReport || liveTableMatrix.length > 0) && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-slate-900/[0.03] to-amber-500/10 dark:from-emerald-950/30 dark:via-slate-900/50 dark:to-amber-950/20 border-2 border-emerald-500/30 space-y-3.5 shadow-sm animate-in fade-in">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                        XLSX
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
-                            Enterprise Multi-Tab Excel Reconstructed
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                            100% Precision Verified
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Corporate dark slate headers • Dynamic formulas injected • Zero manual corrections required
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Tab Switcher */}
-                    {excelAuditReport?.tabNames && excelAuditReport.tabNames.length > 1 && (
-                      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                        {excelAuditReport.tabNames.map((tab) => (
-                          <button
-                            key={tab}
-                            type="button"
-                            onClick={() => {
-                              setSelectedExcelTab(tab);
-                              if (excelAuditReport.tabsPreviewData && excelAuditReport.tabsPreviewData[tab]) {
-                                setLiveTableMatrix(excelAuditReport.tabsPreviewData[tab]);
-                              }
-                            }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                              selectedExcelTab === tab
-                                ? "bg-emerald-600 text-white shadow-sm"
-                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                            }`}
-                          >
-                            {tab}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 5 Core Trust Pillars */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <span className="text-emerald-500">🟢</span>
-                      <span>Auto-Quality Enhancement Active (Deskew & Contrast Boosted)</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <span className="text-emerald-500">🟢</span>
-                      <span>Table & HSN Structure Detected with 100% Accuracy</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <span className="text-emerald-500">🟢</span>
-                      <span>Multi-Tab Excel Output Generated ({excelAuditReport?.totalTabs || 4} Tabs Created)</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <span className="text-emerald-500">🟢</span>
-                      <span>Zero Manual Correction: Dynamic Formulas (=SUM, =PRODUCT)</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 sm:col-span-2 lg:col-span-1">
-                      <span className="text-emerald-500">🟢</span>
-                      <span>QR Code & Legal Stamp Preserved ({excelAuditReport?.qrCodePreserved ? "Embedded in Cell" : "Verified"})</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Live Interactive Table Preview Engine Rendered Inline */}
               {showInlineTablePreview && (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
                 <div className="mt-3">
@@ -6053,7 +5938,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           isProcessing={isProcessing || isLocked}
           isReady={Boolean(downloadReady)}
           isDownloaded={downloadSuccessBadge}
-          disabled={isProcessing || isLocked || isValidating || isMemoryBlocked || (files.length === 0 && !["txt-to-pdf", "scan-to-pdf"].includes(tool.id))}
+          disabled={isProcessing || isLocked || isValidating || (files.length === 0 && !["txt-to-pdf", "scan-to-pdf"].includes(tool.id))}
           rating={4.9}
           reviewsCount={128}
           likeCount={likeCount}

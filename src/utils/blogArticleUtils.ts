@@ -179,7 +179,7 @@ export async function shareArticleContent(options: {
   slug: string;
   url?: string;
 }): Promise<{ success: boolean; method: "native" | "clipboard" | "error"; message: string }> {
-  const articleUrl = options.url || `https://www.pdfsun.in/blog/${options.slug}`;
+  const articleUrl = options.url || `https://pdfsun.in/blog/${options.slug}`;
 
   // 1. Try Native Web Share API first
   if (

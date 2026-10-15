@@ -66,7 +66,7 @@ export const TestimonialsSection: React.FC = () => {
                 <meta itemProp="name" content="PDFSun - Online PDF Tools" />
                 <meta itemProp="applicationCategory" content="UtilitiesApplication" />
                 <meta itemProp="operatingSystem" content="All" />
-                <meta itemProp="url" content="https://www.pdfsun.in" />
+                <meta itemProp="url" content="https://pdfsun.in" />
               </div>
 
               <div className="space-y-3">

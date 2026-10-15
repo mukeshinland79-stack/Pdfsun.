@@ -104,7 +104,7 @@ const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [
       provider: "azure",
       tenantUrl: "nordicconsulting.onmicrosoft.com",
       entityId: "urn:pdfsun:sp:nordicconsulting.se",
-      assertionUrl: "https://www.pdfsun.in/api/v1/auth/saml/callback",
+      assertionUrl: "https://pdfsun.in/api/v1/auth/saml/callback",
       requestId: "_pdfsun_az_44821c",
     },
   },
