@@ -4030,7 +4030,7 @@ app.all("/api/admin/feedback/action", async (req, res) => {
   }
 });
 
-// Security Headers & Canonical Domain Middleware (Strictly enforces https://pdfsun.in non-www)
+// Security Headers & Canonical Domain Middleware (Strictly enforces https://www.pdfsun.in)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");

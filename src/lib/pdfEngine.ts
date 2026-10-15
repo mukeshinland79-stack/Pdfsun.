@@ -54,6 +54,7 @@ import {
   convertPdfToExcelEnterprise,
   PdfToExcelPreset,
   PdfToExcelOptions,
+  type PdfToExcelAuditReport,
 } from "./enterprisePdfToExcelEngine";
 import {
   convertPowerPointToPdfEnterprise,
@@ -139,6 +140,7 @@ export {
   convertPdfToWordEnterprise,
   convertExcelToPdfEnterprise,
   convertPdfToExcelEnterprise,
+  type PdfToExcelAuditReport,
   convertPowerPointToPdfEnterprise,
   convertPdfToPowerPointEnterprise,
   convertImageToNotepadEnterprise,
