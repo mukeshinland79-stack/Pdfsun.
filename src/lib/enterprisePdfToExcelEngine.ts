@@ -2,20 +2,17 @@
  * PDFSun Enterprise PDF to Excel (.xlsx / .csv) Data Reconstruction Engine
  * 
  * Complies with Ultimate Master Architect Executive Mandate:
- * 1. Automatic Document Quality Enhancement (Auto-Deskew, Binarization, Contrast Normalization).
- * 2. Multi-Page Layout Splitting & Contextual Multi-Tab Generation (Summary & Tax, Line Items, Customer & Vehicle, Terms).
- * 3. Embedded QR Code & Visual Asset Preservation in Excel cells.
- * 4. Market-Demand Grid Structuring (Dark Slate Headers, Auto-Calculated =SUM() Totals, Currency/Tax Formatting).
- * 5. Spatial grid bounding-box analysis and robust data-type auto-casting.
+ * - Module 2: Ultimate PDF to Excel Data Reconstruction Engine
+ *   1. Spatial grid bounding-box analysis (AI-Assisted structure parsing).
+ *   2. Automatic data-type casting engine (Currency, Float/Int, Dates, %, Protected IDs).
+ *   3. WASM Table OCR fallback for scanned statements, bills & invoices.
+ * - Module 3: Expanded UI Presets & Zero-Knowledge Ephemeral Memory Isolation.
  */
 
 import * as pdfjsLib from "pdfjs-dist";
 import ExcelJS from "exceljs";
 import { createWorker } from "tesseract.js";
 import { normalizeExcelCell, ensurePaddedMatrix, verifyTableStructure } from "./enterpriseExcelGenerator";
-import { enhancePageQualityAndExtractAssets, ExtractedQrCode } from "./documentQualityEnhancer";
-import { parseInvoiceStructureFromGrid } from "./invoiceLayoutSplitter";
-import { generateEnterpriseMultiTabWorkbook } from "./enterpriseMultiTabExcelGenerator";
 
 // Ensure pdf.js worker is registered
 if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
@@ -24,7 +21,7 @@ if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.work
   }/pdf.worker.min.mjs`;
 }
 
-export type PdfToExcelPreset = "auto" | "table" | "fields" | "invoice" | "per-page";
+export type PdfToExcelPreset = "auto" | "table" | "fields";
 
 export interface PdfToExcelOptions {
   preset?: PdfToExcelPreset;
@@ -73,15 +70,15 @@ const yieldToEventLoop = (): Promise<void> =>
   });
 
 /**
- * Enhanced OCR Fallback with Auto-Deskew & Contrast Normalization for scanned PDF pages
+ * OCR Fallback for scanned/rasterized PDF pages
  */
-async function performEnhancedWasmOcrOnPage(
+async function performWasmOcrOnPage(
   page: any,
   viewport: any,
   onProgress?: (msg: string) => void
-): Promise<{ tokens: SpatialTextToken[]; qrCodes: ExtractedQrCode[] }> {
+): Promise<SpatialTextToken[]> {
   try {
-    if (onProgress) onProgress("Running high-accuracy contrast enhancement & auto-deskew...");
+    if (onProgress) onProgress("Running client-side WASM OCR on scanned page...");
     const canvas = document.createElement("canvas");
     const scale = 2.0; // 2x high-resolution rendering for sharp character recognition
     const scaledViewport = page.getViewport({ scale });
@@ -89,16 +86,24 @@ async function performEnhancedWasmOcrOnPage(
     canvas.height = scaledViewport.height;
 
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return { tokens: [], qrCodes: [] };
+    if (!ctx) return [];
 
-    await (page.render as any)({ canvasContext: ctx, viewport: scaledViewport, canvas }).promise;
+    await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
 
-    // Run Pre-processing: Auto-Deskew, Contrast Normalization & QR Code scanner
-    const qualityResult = await enhancePageQualityAndExtractAssets(canvas);
+    // Grayscale & contrast enhancement
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const contrast = gray > 140 ? 255 : gray < 80 ? 0 : gray;
+      d[i] = contrast;
+      d[i + 1] = contrast;
+      d[i + 2] = contrast;
+    }
+    ctx.putImageData(imgData, 0, 0);
 
-    if (onProgress) onProgress("Executing client-side OCR on enhanced document layer...");
     const worker = await createWorker("eng");
-    const ret = await worker.recognize(qualityResult.enhancedCanvas);
+    const ret = await worker.recognize(canvas);
     await worker.terminate();
 
     const tokens: SpatialTextToken[] = [];
@@ -120,10 +125,10 @@ async function performEnhancedWasmOcrOnPage(
       });
     }
 
-    return { tokens, qrCodes: qualityResult.qrCodes };
+    return tokens;
   } catch (err) {
-    console.warn("[PDFSun OCR Fallback] Enhanced OCR failed or unavailable:", err);
-    return { tokens: [], qrCodes: [] };
+    console.warn("[PDFSun OCR Fallback] OCR failed or unavailable:", err);
+    return [];
   }
 }
 
@@ -160,7 +165,6 @@ export async function convertPdfToExcelEnterprise(
 
   const totalPages = pdf.numPages;
   const allTokens: SpatialTextToken[] = [];
-  const detectedQrCodes: ExtractedQrCode[] = [];
 
   // 1. Spatial Coordinate Extraction across all pages
   for (let pNum = 1; pNum <= totalPages; pNum++) {
@@ -172,27 +176,6 @@ export async function convertPdfToExcelEnterprise(
 
     const page = await pdf.getPage(pNum);
     const viewport = page.getViewport({ scale: 1.0 });
-
-    // Quick visual asset & QR scan on first 2 pages
-    if (pNum <= 2 && typeof document !== "undefined") {
-      try {
-        const qrCanvas = document.createElement("canvas");
-        const qrVp = page.getViewport({ scale: 1.5 });
-        qrCanvas.width = qrVp.width;
-        qrCanvas.height = qrVp.height;
-        const qCtx = qrCanvas.getContext("2d", { willReadFrequently: true });
-        if (qCtx) {
-          await (page.render as any)({ canvasContext: qCtx, viewport: qrVp, canvas: qrCanvas }).promise;
-          const enh = await enhancePageQualityAndExtractAssets(qrCanvas);
-          if (enh.qrCodes.length > 0) {
-            detectedQrCodes.push(...enh.qrCodes);
-          }
-        }
-      } catch (qrScanErr) {
-        console.warn("[PDFSun] QR scan notice:", qrScanErr);
-      }
-    }
-
     const textContent = await (page.getTextContent as any)({ normalizeWhitespace: true });
     const rawItems = textContent.items as any[];
 
@@ -225,14 +208,11 @@ export async function convertPdfToExcelEnterprise(
 
     // WASM Table OCR Fallback if page is flat/scanned image
     if (pageCharCount < 25 && enableOcrFallback && typeof window !== "undefined") {
-      const ocrResult = await performEnhancedWasmOcrOnPage(page, viewport, (msg) => {
+      const ocrTokens = await performWasmOcrOnPage(page, viewport, (msg) => {
         if (onProgress) onProgress(35, msg);
       });
-      if (ocrResult.tokens.length > 0) {
-        pageTokens = ocrResult.tokens;
-      }
-      if (ocrResult.qrCodes.length > 0) {
-        detectedQrCodes.push(...ocrResult.qrCodes);
+      if (ocrTokens.length > 0) {
+        pageTokens = ocrTokens;
       }
     }
 
@@ -247,7 +227,7 @@ export async function convertPdfToExcelEnterprise(
   if (onProgress) onProgress(55, "Calculating column corridors & multi-line cell alignments...");
   await yieldToEventLoop();
 
-  // Baseline row clustering (tolerance 4.0pt)
+  // Baseline row clustering (tolerance 3.5pt)
   allTokens.sort((a, b) => (a.page !== b.page ? a.page - b.page : a.y0 - b.y0 || a.x0 - b.x0));
 
   const rawRows: Array<{ page: number; y: number; height: number; tokens: SpatialTextToken[] }> = [];
@@ -277,6 +257,7 @@ export async function convertPdfToExcelEnterprise(
   }
 
   // Detect Column Corridors across the document
+  // First, group words on each row that are close horizontally (<= 14pt) into cell phrases
   interface PdfCellPhrase {
     text: string;
     x0: number;
@@ -311,6 +292,7 @@ export async function convertPdfToExcelEnterprise(
 
     rowPhrases.push({ page: r.page, y: r.y, phrases });
 
+    // Collect phrase start positions
     if (phrases.length >= 2 || preset === "table") {
       for (const p of phrases) {
         xAnchors.push(p.x0);
@@ -329,6 +311,7 @@ export async function convertPdfToExcelEnterprise(
     if (matchIdx === -1) {
       colCenters.push(x);
     } else {
+      // Gentle running centroid
       colCenters[matchIdx] = (colCenters[matchIdx] * 2 + x) / 3;
     }
   }
@@ -336,6 +319,7 @@ export async function convertPdfToExcelEnterprise(
   colCenters.sort((a, b) => a - b);
   const totalCols = Math.max(colCenters.length, 1);
 
+  // Find column index for a given x position
   const getColIndex = (x: number): number => {
     let bestIdx = 0;
     let minDiff = Infinity;
@@ -360,11 +344,11 @@ export async function convertPdfToExcelEnterprise(
     const r = rawRows[rIdx];
     const rowCells = new Array(totalCols).fill("");
 
-    // Banner header spanning multiple columns
+    // Check if this row is a banner header spanning multiple columns
     if (r.tokens.length === 1 && totalCols > 3 && r.tokens[0].text.length > 25) {
       rowCells[0] = r.tokens[0].text;
       mergedHeaders.push({
-        rowIdx: finalGrid.length + 1,
+        rowIdx: finalGrid.length + 1, // 1-indexed for ExcelJS
         startColIdx: 1,
         endColIdx: totalCols,
         text: r.tokens[0].text,
@@ -382,7 +366,8 @@ export async function convertPdfToExcelEnterprise(
       }
     }
 
-    // Multi-line cell reconciliation with previous row
+    // Check multi-line cell reconciliation with previous row
+    // If current row has content in only 1 or 2 columns and is immediately under the previous row
     if (
       finalGrid.length > 0 &&
       r.tokens.length <= 2 &&
@@ -401,6 +386,7 @@ export async function convertPdfToExcelEnterprise(
         }
       }
 
+      // If all content was absorbed, don't push duplicate row
       if (canReconcile && rowCells.every((cell) => !cell)) {
         continue;
       }
@@ -416,16 +402,7 @@ export async function convertPdfToExcelEnterprise(
     console.info("[PDFSun PDF to Excel Audit]", audit.warnings);
   }
 
-  // Full document text for smart schema analysis
-  const fullDocumentText = allTokens.map((t) => t.text).join(" ");
-  const isInvoiceDetected =
-    preset === "invoice" ||
-    (preset === "auto" &&
-      /\b(invoice|tax\s*invoice|bill\s*of\s*supply|gstin|cgst|sgst|igst|hsn|e-?way\s*bill)\b/i.test(
-        fullDocumentText
-      ));
-
-  // 4. Output Formatting (CSV or Multi-Tab OpenXML XLSX)
+  // 4. Output Formatting (CSV or OpenXML XLSX)
   if (outputFormat === "csv") {
     if (onProgress) onProgress(85, "Encoding UTF-8 CSV with universal spreadsheet BOM...");
     await yieldToEventLoop();
@@ -445,7 +422,7 @@ export async function convertPdfToExcelEnterprise(
       .join("\r\n");
 
     const encoder = new TextEncoder();
-    const csvBytes = encoder.encode("\uFEFF" + csvContent); // UTF-8 BOM
+    const csvBytes = encoder.encode("\uFEFF" + csvContent); // UTF-8 BOM for universal Excel compatibility
 
     if (onProgress) onProgress(100, "CSV spreadsheet ready!");
 
@@ -458,34 +435,8 @@ export async function convertPdfToExcelEnterprise(
     };
   }
 
-  // 5. Intelligent Multi-Tab Invoice Generation (When Invoice detected or selected)
-  if (isInvoiceDetected && outputFormat === "xlsx") {
-    if (onProgress) {
-      onProgress(85, "Structuring 4-tab corporate workbook (Summary, Line Items, Customer & Vehicle, Terms)...");
-    }
-    await yieldToEventLoop();
-
-    const invoiceData = parseInvoiceStructureFromGrid(paddedGrid, fullDocumentText);
-    const multiTabBytes = await generateEnterpriseMultiTabWorkbook(invoiceData, {
-      workbookTitle: `${baseName} - Multi-Tab Excel`,
-      creator: "PDFSun.in Enterprise Excel Engine",
-      qrCode: detectedQrCodes[0],
-      rawGridMatrix: paddedGrid,
-    });
-
-    if (onProgress) onProgress(100, "Multi-tab corporate Excel workbook ready!");
-
-    return {
-      bytes: multiTabBytes,
-      fileName: `${baseName}_MultiTab.xlsx`,
-      previewRows: paddedGrid.slice(0, 50),
-      totalRows: paddedGrid.length,
-      totalCols: paddedGrid[0]?.length || totalCols,
-    };
-  }
-
-  // 6. Standard Single-Tab / Structured Table Generation with Auto-Calculated =SUM() Totals
-  if (onProgress) onProgress(85, "Casting numeric data types, dates & generating OpenXML stream with formula totals...");
+  // 5. Native OpenXML Excel (.xlsx) Generation with Dynamic Type Casting
+  if (onProgress) onProgress(85, "Casting numeric data types, dates & generating OpenXML stream...");
   await yieldToEventLoop();
 
   const workbook = new ExcelJS.Workbook();
@@ -516,9 +467,6 @@ export async function convertPdfToExcelEnterprise(
     width: Math.max(len + 4, 12),
   }));
 
-  // Track numeric columns to build automated =SUM() formulas
-  const numericColumns = new Set<number>();
-
   // Render Data Rows with Automatic Data-Type Auto-Casting
   for (let rIdx = 0; rIdx < paddedGrid.length; rIdx++) {
     const rowData = paddedGrid[rIdx];
@@ -532,6 +480,7 @@ export async function convertPdfToExcelEnterprise(
       const cell = row.getCell(cIdx + 1);
 
       if (isHeaderRow) {
+        // Styled Navy Blue Header with Bold White Text
         cell.value = rawVal || `Column ${cIdx + 1}`;
         cell.font = {
           name: "Calibri",
@@ -556,12 +505,9 @@ export async function convertPdfToExcelEnterprise(
           right: { style: "thin", color: { argb: "FF475569" } },
         };
       } else {
+        // Automatic Data-Type Casting Engine
         const normalized = normalizeExcelCell(rawVal);
         cell.value = normalized.value;
-
-        if (normalized.type === "number") {
-          numericColumns.add(cIdx + 1);
-        }
 
         if (normalized.numFmt) {
           cell.numFmt = normalized.numFmt;
@@ -575,7 +521,7 @@ export async function convertPdfToExcelEnterprise(
 
         cell.alignment = normalized.alignment;
 
-        // Alternating zebra striping
+        // Alternating row background
         if (rIdx % 2 === 1) {
           cell.fill = {
             type: "pattern",
@@ -600,46 +546,8 @@ export async function convertPdfToExcelEnterprise(
       if (merge.rowIdx <= paddedGrid.length && merge.startColIdx < merge.endColIdx) {
         worksheet.mergeCells(merge.rowIdx, merge.startColIdx, merge.rowIdx, merge.endColIdx);
       }
-    } catch {}
-  }
-
-  // Auto-calculated =SUM() Total row for numeric tables
-  if (paddedGrid.length > 2 && numericColumns.size > 0) {
-    const totalRow = worksheet.addRow([]);
-    totalRow.height = 24;
-    totalRow.getCell(1).value = "TOTAL";
-    totalRow.getCell(1).font = { bold: true, size: 11, color: { argb: "FF0F172A" } };
-
-    numericColumns.forEach((colNum) => {
-      const colLetter = getExcelColLetter(colNum);
-      const cell = totalRow.getCell(colNum);
-      cell.value = { formula: `SUM(${colLetter}2:${colLetter}${paddedGrid.length})` };
-      cell.font = { bold: true, size: 11, color: { argb: "FF0F172A" } };
-      cell.numFmt = "#,##0.00";
-    });
-
-    totalRow.eachCell((c) => {
-      c.border = {
-        top: { style: "thin", color: { argb: "FF0F172A" } },
-        bottom: { style: "double", color: { argb: "FF0F172A" } },
-      };
-    });
-  }
-
-  // Embed detected QR code in worksheet if present
-  if (detectedQrCodes.length > 0 && detectedQrCodes[0].imageBase64) {
-    try {
-      const cleanBase64 = detectedQrCodes[0].imageBase64.replace(/^data:image\/\w+;base64,/, "");
-      const qrId = workbook.addImage({
-        base64: cleanBase64,
-        extension: "png",
-      });
-      worksheet.addImage(qrId, {
-        tl: { col: totalCols, row: 1 },
-        ext: { width: 120, height: 120 },
-      });
-    } catch (e) {
-      console.warn("Table QR embed notice:", e);
+    } catch {
+      // Ignore boundary merge clashes
     }
   }
 
@@ -663,15 +571,4 @@ export async function convertPdfToExcelEnterprise(
     totalRows: paddedGrid.length,
     totalCols: paddedGrid[0]?.length || totalCols,
   };
-}
-
-function getExcelColLetter(colIdx: number): string {
-  let letter = "";
-  let temp = colIdx;
-  while (temp > 0) {
-    const mod = (temp - 1) % 26;
-    letter = String.fromCharCode(65 + mod) + letter;
-    temp = Math.floor((temp - mod) / 26);
-  }
-  return letter;
 }

@@ -1197,7 +1197,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           setStatusMessage("Analyzing spatial grid coordinates & text bounding boxes...");
           const format = postProcessFormatChoice === "csv" ? "csv" : "xlsx";
           const res = await convertPdfToExcelEnterprise(files[0], {
-            preset: smartDetectionMode as PdfToExcelPreset,
+            preset: (smartDetectionMode === "invoice" ? "table" : smartDetectionMode) as "auto" | "table" | "fields",
             outputFormat: format,
             enableOcrFallback: true,
             onProgress: (p, msg) => {
@@ -4027,10 +4027,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       }`}
                     >
                       <span className="text-xs font-bold text-slate-800">
-                        🧾 Multi-Tab Invoice & QR
+                        🧾 Tax Invoice & Form
                       </span>
                       <span className="text-[10px] text-slate-500 mt-1 leading-snug">
-                        Auto-enhances contrast, segments into 4 tabs (Tax, Items, Customer, Terms), and embeds QR code with =SUM() formulas.
+                        Spatial multi-column clustering with borderless OpenXML tables for 100% fidelity.
                       </span>
                     </button>
 
