@@ -133,7 +133,7 @@ export const DEFAULT_HOW_TO_GUIDES: Record<
 /**
  * 1. WebSite Schema with Sitelinks Searchbox
  */
-export function buildWebSiteSchema(baseUrl: string = "https://pdfsun.in") {
+export function buildWebSiteSchema(baseUrl: string = "https://www.pdfsun.in") {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -191,7 +191,7 @@ export function buildOrganizationSchema(baseUrl: string = "https://www.pdfsun.in
  */
 export function buildWebApplicationSchema(
   tool?: ToolItem | null,
-  baseUrl: string = "https://pdfsun.in"
+  baseUrl: string = "https://www.pdfsun.in"
 ) {
   const isTool = !!tool;
   const name = isTool ? `${tool.name} - Free Online PDF Tool` : "PDFSun - Free Online PDF Tools & AI Engine";
@@ -259,7 +259,7 @@ export function buildWebApplicationSchema(
  */
 export function buildHowToSchema(
   toolOrPseo?: ToolItem | PSEOLandingPage | null,
-  baseUrl: string = "https://pdfsun.in"
+  baseUrl: string = "https://www.pdfsun.in"
 ) {
   if (!toolOrPseo) {
     // Default to Merge PDF HowTo
@@ -359,7 +359,7 @@ export function buildFaqPageSchema(
  */
 export function buildBreadcrumbSchema(
   items: Array<{ name: string; path: string }>,
-  baseUrl: string = "https://pdfsun.in"
+  baseUrl: string = "https://www.pdfsun.in"
 ) {
   return {
     "@context": "https://schema.org",
@@ -383,7 +383,7 @@ export function buildCompleteSchemaGraph(options: {
   faqs?: Array<{ question: string; answer: string }>;
   baseUrl?: string;
 }) {
-  const { tool, pseoPage, faqs = [], baseUrl = "https://pdfsun.in" } = options;
+  const { tool, pseoPage, faqs = [], baseUrl = "https://www.pdfsun.in" } = options;
 
   const graph: any[] = [
     buildWebSiteSchema(baseUrl),

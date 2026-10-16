@@ -27,6 +27,9 @@ const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /api/admin/
 
+User-agent: Mediapartners-Google
+Allow: /
+
 Sitemap: https://www.pdfsun.in/sitemap.xml
 Sitemap: https://www.pdfsun.in/sitemap-blog.xml
 Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
@@ -93,6 +96,8 @@ const staticPages = [
   { loc: `${BASE_URL}/pricing`, priority: "0.9", changefreq: "weekly" },
   { loc: `${BASE_URL}/privacy-policy`, priority: "0.5", changefreq: "monthly" },
   { loc: `${BASE_URL}/terms-of-service`, priority: "0.5", changefreq: "monthly" },
+  { loc: `${BASE_URL}/cookie-policy`, priority: "0.5", changefreq: "monthly" },
+  { loc: `${BASE_URL}/refund-policy`, priority: "0.5", changefreq: "monthly" },
   { loc: `${BASE_URL}/about-us`, priority: "0.6", changefreq: "monthly" },
   { loc: `${BASE_URL}/contact-us`, priority: "0.6", changefreq: "monthly" },
   { loc: `${BASE_URL}/today-in-history`, priority: "0.8", changefreq: "daily" },

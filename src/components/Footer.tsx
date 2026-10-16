@@ -262,58 +262,88 @@ export const Footer: React.FC<FooterProps> = ({
             </h4>
             <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("privacy")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                <a
+                  href="/privacy-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("privacy");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
                 >
                   {t("privacyPolicy", "Privacy Policy")}
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("terms")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                <a
+                  href="/terms-of-service"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("terms");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
                 >
                   {t("termsOfService", "Terms of Service")}
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("refund")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left text-blue-700 dark:text-blue-400 font-medium"
+                <a
+                  href="/refund-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("refund");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left text-blue-700 dark:text-blue-400 font-medium block"
                 >
                   {t("refundPolicy", "Refund Policy")}
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("cookie")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                <a
+                  href="/cookie-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("cookie");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
                 >
                   {t("cookiePolicy", "Cookie Policy")}
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("about")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                <a
+                  href="/about-us"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("about");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
                 >
                   {t("aboutUs", "About Us")}
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenPolicy("disclaimer")}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                <a
+                  href="/contact-us"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("contact");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("contactUs", "Contact Us")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/disclaimer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("disclaimer");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
                 >
                   {t("disclaimer", "Disclaimer")}
-                </button>
+                </a>
               </li>
             </ul>
           </div>

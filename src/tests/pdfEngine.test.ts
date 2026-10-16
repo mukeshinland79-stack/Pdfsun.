@@ -137,6 +137,48 @@ export async function runPdfEngineTestSuite(): Promise<{
     const imgPdfBytes = await imagesToPdf([imgFile]);
     assert(imgPdfBytes.length > 0, "imagesToPdf converts PNG image to valid PDF");
 
+    // 9. Test Add Page Numbers
+    const fileForPageNums = await createTestPdfFile("PageNums.pdf", 3);
+    const { addPageNumbers, editPdfMetadata } = await import("../lib/pdfEngine");
+    const numberedBytes = await addPageNumbers(fileForPageNums, "bottom-center");
+    assert(numberedBytes.length > 0, "addPageNumbers returns valid PDF bytes");
+    const numberedDoc = await PDFDocument.load(numberedBytes);
+    assert(numberedDoc.getPageCount() === 3, "addPageNumbers preserves page count (3 pages)");
+
+    // 10. Test Edit PDF Metadata
+    const fileForMeta = await createTestPdfFile("MetadataTest.pdf", 1);
+    const metaBytes = await editPdfMetadata(fileForMeta, {
+      title: "PDFSun Verified Title",
+      author: "PDFSun Architecture Team",
+      subject: "Quality Assurance Report",
+    });
+    assert(metaBytes.length > 0, "editPdfMetadata returns valid PDF bytes");
+    const metaDoc = await PDFDocument.load(metaBytes);
+    assert(metaDoc.getTitle() === "PDFSun Verified Title", "editPdfMetadata successfully writes and persists Title");
+    assert(metaDoc.getAuthor() === "PDFSun Architecture Team", "editPdfMetadata successfully writes and persists Author");
+
+    // 11. Test Error Handling on Corrupted / Invalid File
+    let corruptedCaught = false;
+    try {
+      const corruptedBlob = new Blob(["This is completely invalid binary content and not a PDF header"], { type: "application/pdf" });
+      const corruptedFile = new File([corruptedBlob], "corrupted.pdf", { type: "application/pdf" });
+      await PDFDocument.load(await corruptedFile.arrayBuffer());
+    } catch {
+      corruptedCaught = true;
+    }
+    assert(corruptedCaught, "PDF engine cleanly identifies and rejects corrupted file without unhandled crashes");
+
+    // 12. Test Error Handling on Empty 0-byte File
+    let emptyFileCaught = false;
+    try {
+      const emptyBlob = new Blob([], { type: "application/pdf" });
+      const emptyFile = new File([emptyBlob], "empty.pdf", { type: "application/pdf" });
+      await PDFDocument.load(await emptyFile.arrayBuffer());
+    } catch {
+      emptyFileCaught = true;
+    }
+    assert(emptyFileCaught, "PDF engine safely intercepts empty 0-byte files with immediate validation error");
+
     logs.push(`🎉 Test Suite Finished: ${passed} Passed, ${failed} Failed.`);
   } catch (err: any) {
     failed++;

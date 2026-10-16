@@ -749,13 +749,13 @@ export async function resolveEnterpriseOrgPlan(
 export function buildSamlAuthRequest(domain: string, provider: SSOProviderType) {
   const requestId = `_pdfsun_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
   const issueInstant = new Date().toISOString();
-  const entityId = `https://pdfsun.in/sso/saml/${domain}`;
+  const entityId = `https://www.pdfsun.in/sso/saml/${domain}`;
   
   return {
     requestId,
     issueInstant,
     entityId,
-    assertionConsumerServiceUrl: "https://pdfsun.in/api/v1/auth/saml/callback",
+    assertionConsumerServiceUrl: "https://www.pdfsun.in/api/v1/auth/saml/callback",
     protocolBinding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
     provider,
   };

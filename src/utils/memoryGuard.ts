@@ -3,21 +3,37 @@
  * 
  * Provides:
  * 1. Pre-flight RAM analysis based on navigator.deviceMemory & hardwareConcurrency
- * 2. Automatic threshold detection to enable chunked streaming before browser OOM crashes
- * 3. Graceful user-facing warnings for large payloads on low-memory devices
- * 4. Zero-leak Blob Object URL registry and automatic unmount cleanup
+ * 2. Classifies pre-flight into: safe | warning | blocked
+ * 3. Operation-aware pressure estimation (canvas rasterization, OCR vs binary parsing)
+ * 4. Recovery paths (split PDF, compress first, lower DPI, process selected pages, ZIP output)
+ * 5. Canvas and Blob lifecycle cleanup (width=0, height=0, revokeObjectURL)
  */
 
+export type PreFlightStatus = "safe" | "warning" | "blocked";
+export type OperationType = "canvas_raster" | "binary_pdf" | "ocr" | "conversion" | "general";
+
+export interface RecoveryOption {
+  id: "compress" | "split" | "lower_dpi" | "select_pages" | "zip_stream";
+  label: string;
+  actionUrl?: string;
+  recommended: boolean;
+}
+
 export interface MemorySafetyReport {
+  status: PreFlightStatus;
   safe: boolean;
   severity: "none" | "info" | "warning" | "danger";
   requiresStreaming: boolean;
   recommendedChunkSize: number; // in bytes
   warningMessage?: string;
+  recoveryOptions: RecoveryOption[];
   deviceMemoryGb: number;
+  hardwareConcurrency: number;
   totalSizeBytes: number;
+  totalSizeMb: number;
   formattedTotalSize: string;
   filesCount: number;
+  estimatedMemoryPressureMb: number;
 }
 
 // Global registry of active object URLs to guarantee revocation and zero memory leaks
@@ -59,6 +75,24 @@ export function purgeAllGuardedBlobUrls(): void {
   trackedObjectUrls.clear();
 }
 
+/**
+ * Immediately frees GPU/RAM resources held by an HTML5 canvas.
+ * Setting width and height to 0 unallocates bitmap memory buffers in Chrome/Safari/Firefox.
+ */
+export function releaseCanvasMemory(canvas: HTMLCanvasElement | null | undefined): void {
+  if (!canvas) return;
+  try {
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    canvas.width = 0;
+    canvas.height = 0;
+  } catch (err) {
+    console.warn("[MemoryGuard] Error releasing canvas memory:", err);
+  }
+}
+
 // Set up automatic cleanup on page unload / pagehide
 if (typeof window !== "undefined") {
   window.addEventListener("pagehide", () => {
@@ -76,23 +110,51 @@ export function formatMemoryBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+export interface PreFlightOptions {
+  files: File[];
+  operationType?: OperationType;
+  estimatedPages?: number;
+}
+
 /**
- * Estimates safe memory execution boundaries for input files.
- * Protects client-side WASM and Web Workers from crashing browser tabs.
+ * Comprehensive pre-flight memory estimation that classifies into safe, warning, or blocked.
+ * Calculates memory multipliers based on operation type (e.g., rasterizing canvas requires 4-8x file size in raw RGBA bitmap).
  */
-export function evaluateMemorySafety(files: File[]): MemorySafetyReport {
+export function evaluatePreFlight(options: PreFlightOptions): MemorySafetyReport {
+  const { files, operationType = "general", estimatedPages = 0 } = options;
   const totalSizeBytes = files.reduce((acc, f) => acc + (f.size || 0), 0);
+  const totalSizeMb = totalSizeBytes / (1024 * 1024);
   const formattedTotalSize = formatMemoryBytes(totalSizeBytes);
   const filesCount = files.length;
 
   // Retrieve client device memory (GB) or assume 4GB standard baseline if undefined
   let deviceMemoryGb = 4;
   if (typeof navigator !== "undefined" && "deviceMemory" in navigator) {
-    deviceMemoryGb = Number((navigator as any).deviceMemory) || 4;
+    const mem = Number((navigator as any).deviceMemory);
+    if (!isNaN(mem) && mem > 0) {
+      deviceMemoryGb = mem;
+    }
   }
 
-  // Calculate streaming chunk size dynamically based on RAM
-  // Low RAM (<= 2GB) -> 2MB chunks; Standard (<= 4GB) -> 5MB chunks; High (> 4GB) -> 10MB chunks
+  // Retrieve concurrency
+  let hardwareConcurrency = 4;
+  if (typeof navigator !== "undefined" && "hardwareConcurrency" in navigator) {
+    hardwareConcurrency = navigator.hardwareConcurrency || 4;
+  }
+
+  // Calculate memory multiplier based on operation type:
+  // - canvas_raster / ocr: A single A4 page rendered at 200 DPI produces ~35MB raw RGBA bitmap in memory.
+  // - conversion / binary_pdf: typically 2x - 3x buffer overhead.
+  let multiplier = 2;
+  if (operationType === "canvas_raster" || operationType === "ocr") {
+    multiplier = 6;
+  } else if (operationType === "conversion") {
+    multiplier = 3.5;
+  }
+
+  const estimatedPressureMb = totalSizeMb * multiplier + (estimatedPages > 0 ? estimatedPages * 15 : 0);
+
+  // Recommended chunk size based on RAM
   let recommendedChunkSize = 5 * 1024 * 1024;
   if (deviceMemoryGb <= 2) {
     recommendedChunkSize = 2 * 1024 * 1024;
@@ -100,105 +162,68 @@ export function evaluateMemorySafety(files: File[]): MemorySafetyReport {
     recommendedChunkSize = 10 * 1024 * 1024;
   }
 
-  // Define device-tier limits
-  // Tier 1: Low-memory device (<= 2GB RAM e.g. budget mobile)
-  if (deviceMemoryGb <= 2) {
-    if (totalSizeBytes > 80 * 1024 * 1024) {
-      return {
-        safe: false,
-        severity: "danger",
-        requiresStreaming: true,
-        recommendedChunkSize,
-        warningMessage: `Selected files (${formattedTotalSize}) exceed safe memory on this device (${deviceMemoryGb}GB RAM). Processing may stall. Consider compressing or processing fewer pages.`,
-        deviceMemoryGb,
-        totalSizeBytes,
-        formattedTotalSize,
-        filesCount,
-      };
-    }
-    if (totalSizeBytes > 25 * 1024 * 1024) {
-      return {
-        safe: true,
-        severity: "warning",
-        requiresStreaming: true,
-        recommendedChunkSize,
-        warningMessage: `Large payload detected (${formattedTotalSize}). Memory Guard activated streaming mode to preserve 60fps performance.`,
-        deviceMemoryGb,
-        totalSizeBytes,
-        formattedTotalSize,
-        filesCount,
-      };
-    }
+  const recoveryOptions: RecoveryOption[] = [];
+
+  // Determine Safe Thresholds relative to device RAM
+  // Available browser heap is typically ~25%-35% of total device RAM
+  const safeHeapLimitMb = (deviceMemoryGb * 1024) * 0.3;
+  const hardBlockedLimitMb = (deviceMemoryGb * 1024) * 0.65;
+
+  let status: PreFlightStatus = "safe";
+  let severity: "none" | "info" | "warning" | "danger" = "none";
+  let requiresStreaming = false;
+  let warningMessage: string | undefined;
+
+  if (estimatedPressureMb > hardBlockedLimitMb || (deviceMemoryGb <= 2 && totalSizeMb > 120) || totalSizeMb > 450) {
+    status = "blocked";
+    severity = "danger";
+    requiresStreaming = true;
+    warningMessage = `Document payload (${formattedTotalSize}, ~${Math.round(estimatedPressureMb)} MB working memory) exceeds safe execution quota for this device (${deviceMemoryGb}GB RAM). Processing would trigger a browser crash.`;
+    
+    recoveryOptions.push(
+      { id: "compress", label: "Compress PDF First (Reduce Size)", actionUrl: "/compress-pdf", recommended: true },
+      { id: "split", label: "Split PDF into Smaller Batches", actionUrl: "/split-pdf", recommended: true },
+      { id: "lower_dpi", label: "Lower Resolution / DPI", recommended: false },
+      { id: "select_pages", label: "Process Selected Pages", recommended: false }
+    );
+  } else if (estimatedPressureMb > safeHeapLimitMb || (deviceMemoryGb <= 2 && totalSizeMb > 30) || totalSizeMb > 80) {
+    status = "warning";
+    severity = "warning";
+    requiresStreaming = true;
+    warningMessage = `Large document batch detected (${formattedTotalSize}). Memory Guard activated single-page streaming buffers to prevent slowdown.`;
+
+    recoveryOptions.push(
+      { id: "compress", label: "Compress First", actionUrl: "/compress-pdf", recommended: false },
+      { id: "zip_stream", label: "Stream Output as ZIP", recommended: true }
+    );
+  } else if (totalSizeMb > 25) {
+    status = "safe";
+    severity = "info";
+    requiresStreaming = true;
+    warningMessage = `Document batch (${formattedTotalSize}) running with active memory protection.`;
   }
 
-  // Tier 2: Standard memory device (3GB - 4GB RAM)
-  if (deviceMemoryGb <= 4) {
-    if (totalSizeBytes > 200 * 1024 * 1024) {
-      return {
-        safe: false,
-        severity: "danger",
-        requiresStreaming: true,
-        recommendedChunkSize,
-        warningMessage: `Document batch is very large (${formattedTotalSize}). To avoid browser memory crash, please process in smaller batches or compress first.`,
-        deviceMemoryGb,
-        totalSizeBytes,
-        formattedTotalSize,
-        filesCount,
-      };
-    }
-    if (totalSizeBytes > 50 * 1024 * 1024) {
-      return {
-        safe: true,
-        severity: "info",
-        requiresStreaming: true,
-        recommendedChunkSize,
-        warningMessage: `Streaming mode enabled (${formattedTotalSize}). In-browser memory isolation active.`,
-        deviceMemoryGb,
-        totalSizeBytes,
-        formattedTotalSize,
-        filesCount,
-      };
-    }
-  }
-
-  // Tier 3: High-spec desktop / workstation (> 4GB RAM)
-  if (totalSizeBytes > 400 * 1024 * 1024) {
-    return {
-      safe: false,
-      severity: "danger",
-      requiresStreaming: true,
-      recommendedChunkSize,
-      warningMessage: `Document payload (${formattedTotalSize}) exceeds safe single-pass browser quota. Consider splitting or compressing first.`,
-      deviceMemoryGb,
-      totalSizeBytes,
-      formattedTotalSize,
-      filesCount,
-    };
-  }
-
-  if (totalSizeBytes > 80 * 1024 * 1024) {
-    return {
-      safe: true,
-      severity: "info",
-      requiresStreaming: true,
-      recommendedChunkSize,
-      warningMessage: `Processing large document (${formattedTotalSize}) using chunked streaming buffers.`,
-      deviceMemoryGb,
-      totalSizeBytes,
-      formattedTotalSize,
-      filesCount,
-    };
-  }
-
-  // Standard safe execution
   return {
-    safe: true,
-    severity: "none",
-    requiresStreaming: false,
+    status,
+    safe: status !== "blocked",
+    severity,
+    requiresStreaming,
     recommendedChunkSize,
+    warningMessage,
+    recoveryOptions,
     deviceMemoryGb,
+    hardwareConcurrency,
     totalSizeBytes,
+    totalSizeMb,
     formattedTotalSize,
     filesCount,
+    estimatedMemoryPressureMb: Math.round(estimatedPressureMb),
   };
+}
+
+/**
+ * Backward compatible alias for evaluateMemorySafety
+ */
+export function evaluateMemorySafety(files: File[]): MemorySafetyReport {
+  return evaluatePreFlight({ files, operationType: "general" });
 }

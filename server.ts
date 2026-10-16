@@ -4030,7 +4030,7 @@ app.all("/api/admin/feedback/action", async (req, res) => {
   }
 });
 
-// Security Headers & Canonical Domain Middleware (Strictly enforces https://pdfsun.in non-www)
+// Security Headers & Canonical Domain Middleware (Strictly enforces https://www.pdfsun.in)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -4067,7 +4067,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Dynamic Robots.txt (Strictly compliant with Google Search Favicon & Bing Webmaster Rules)
+// Official Google AdSense ads.txt endpoint
+app.get("/ads.txt", (req, res) => {
+  res.set("Content-Type", "text/plain; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+  res.send("google.com, pub-4189458265489554, DIRECT, f08c47fec0942fa0\n");
+});
+
+// Dynamic Robots.txt (Strictly compliant with Google Search Favicon, AdSense & Bing Rules)
 app.get("/robots.txt", (req, res) => {
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
@@ -4087,6 +4094,9 @@ Allow: /*.webp
 Allow: /assets/
 Disallow: /api/admin/
 Disallow: /api/internal/
+
+User-agent: Mediapartners-Google
+Allow: /
 
 User-agent: Googlebot-Favicon
 Allow: /favicon.ico
@@ -4201,7 +4211,7 @@ app.get("/sitemap.xml", (req, res) => {
   res.set("X-Content-Type-Options", "nosniff");
   
   // Collect unique slugs from all tools, blog posts, pSEO landing pages, popular compress sizes, plus root and static pages
-  const staticSlugs = ["", "blog", "privacy-policy", "terms-of-service", "about-us", "contact-us", "today-in-history", "pricing"];
+  const staticSlugs = ["", "blog", "privacy-policy", "terms-of-service", "about-us", "contact-us", "cookie-policy", "refund-policy", "today-in-history", "pricing"];
   const toolSlugs = ALL_TOOLS.map((t) => t.slug).filter(Boolean);
   const blogSlugs = BLOG_POSTS.map((b) => `blog/${b.slug}`);
   const pseoSlugs = PSEO_LANDING_PAGES.map((p) => p.slug);
@@ -4219,7 +4229,7 @@ app.get("/sitemap.xml", (req, res) => {
       const isCompressSize = slug.startsWith("compress-pdf-to-");
       const priority = isHome ? "1.0" : isBlogIndex ? "0.95" : isBlogArticle ? "0.9" : isCompressSize ? "0.9" : isTool ? "0.8" : "0.7";
       const changefreq = isHome ? "daily" : isBlogIndex ? "daily" : "weekly";
-      const urlPath = slug ? `/${slug}` : "";
+      const urlPath = slug ? `/${slug}` : "/";
 
       return `  <url>
     <loc>https://www.pdfsun.in${urlPath}</loc>
@@ -4297,7 +4307,7 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false },
-      appType: "spa",
+      appType: "custom",
     });
     app.use(vite.middlewares);
     app.use("*", async (req, res, next) => {
@@ -4315,7 +4325,8 @@ async function startServer() {
         if (fs.existsSync(indexPath)) {
           let template = fs.readFileSync(indexPath, "utf-8");
           template = await vite.transformIndexHtml(url, template);
-          template = injectSeoTagsIntoHtml(template, req.path, req.query as Record<string, any>);
+          const routePath = (req.originalUrl || req.path).split("?")[0];
+          template = injectSeoTagsIntoHtml(template, routePath, req.query as Record<string, any>);
           res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(template);
         } else {
           next();
@@ -4354,7 +4365,8 @@ async function startServer() {
       if (fs.existsSync(indexPath)) {
         try {
           let template = fs.readFileSync(indexPath, "utf-8");
-          template = injectSeoTagsIntoHtml(template, req.path, req.query as Record<string, any>);
+          const routePath = (req.originalUrl || req.path).split("?")[0];
+          template = injectSeoTagsIntoHtml(template, routePath, req.query as Record<string, any>);
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           return res.status(200).send(template);
         } catch (e) {

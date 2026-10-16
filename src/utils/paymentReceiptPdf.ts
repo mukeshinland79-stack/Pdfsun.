@@ -321,7 +321,7 @@ export function generatePaymentReceiptPdf(transaction: PaymentTransaction, userE
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184);
-  doc.text("PDFSun.in • Support: support@pdfsun.in • Canonical Domain: https://pdfsun.in", margin, footerY);
+  doc.text("PDFSun.in • Support: support@pdfsun.in • Canonical Domain: https://www.pdfsun.in", margin, footerY);
   doc.text(`Generated on ${formattedDate} • Page 1 of 1`, pageWidth - margin, footerY, { align: "right" });
 
   // Save/Download File

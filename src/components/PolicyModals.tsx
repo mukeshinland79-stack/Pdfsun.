@@ -17,23 +17,36 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
     title = "Privacy Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p><strong>Effective Date: 2026</strong></p>
-        <p>At <strong>PDFSun</strong>, owned and operated by <strong>Mukesh Kalonia</strong>, we take user privacy and document confidentiality with top-tier enterprise care.</p>
-        <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Local Client Processing</h4>
-        <p>Whenever you merge, split, rotate, watermark, protect, or organize PDF files on PDFSun, the processing is performed 100% locally in your browser using client-side WebAssembly routines. Your document binary data never reaches our servers.</p>
-        <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. AI Document Processing</h4>
-        <p>When using Gemini AI tools (AI Chat, AI Summarizer, AI Translation, Flashcards), document text chunks are transmitted securely over TLS HTTPS strictly for inference. We do NOT retain, log, or train models on your uploaded documents.</p>
-        <h4 className="font-bold text-sm text-slate-900 dark:text-white">3. Auto-Deletion Guarantee</h4>
-        <p>Temporary file caches associated with multi-file conversions or AI streams are automatically purged immediately upon task completion.</p>
-        <h4 className="font-bold text-sm text-slate-900 dark:text-white">4. Contact Support</h4>
-        <p>For privacy inquiries, contact Owner Mukesh Kalonia at <a href="mailto:mukeshkalonia241@gmail.com" className="text-orange-500 font-bold underline">mukeshkalonia241@gmail.com</a>.</p>
+        <p><strong>Effective Date: 2026 • Canonical Domain: https://www.pdfsun.in/</strong></p>
+        <p>At <strong>PDFSun (pdfsun.in)</strong>, owned and operated by <strong>Mukesh Kalonia</strong>, we treat user privacy, document confidentiality, and data minimization as foundational engineering principles.</p>
+        
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Local Client-Side Processing (Zero Server Ingress)</h4>
+        <p>All core PDF utilities (including Merge, Split, Compress, Rotate, Protect, Watermark, Add Page Numbers, Edit Metadata, and Reorder) execute 100% locally inside your web browser sandbox using compiled WebAssembly (WASM). Your original documents, file bytes, and processed outputs are never transmitted to, processed by, or stored on our servers.</p>
+        
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. AI Document Processing &amp; Transient In-Memory Inference</h4>
+        <p>When you explicitly utilize Gemini AI utilities (such as AI Chat with PDF, AI Summarizer, or AI Document Translation), document text passages are transmitted securely over encrypted TLS HTTPS strictly for ephemeral computational inference. PDFSun enforces zero server-side disk persistence: text passages are immediately purged from memory upon completion and are never used to train public foundation models.</p>
+        
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">3. Google AdSense &amp; Third-Party Advertising Cookies</h4>
+        <p>PDFSun partners with third-party advertising vendors, including <strong>Google AdSense</strong>, to display non-intrusive advertisements across the platform:</p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li>Third-party vendors, including Google, use cookies (such as the DoubleClick cookie) to serve advertisements based on a user&apos;s prior visits to this website or other websites across the Internet.</li>
+          <li>Google&apos;s use of advertising cookies enables it and its certified partners to serve relevant ads based on browsing history.</li>
+          <li><strong>Document Privacy Guarantee:</strong> Advertisers and advertising cookies have <strong>absolute zero access</strong> to your uploaded files, document contents, filenames, or extracted text. Document manipulation is strictly sandboxed in local browser memory.</li>
+          <li><strong>Opt-Out Rights:</strong> Users may opt out of personalized advertising at any time by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline font-semibold">Google Ads Settings</a>. Alternatively, you can opt out of third-party vendor cookies for personalized advertising by visiting <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline font-semibold">www.aboutads.info</a>.</li>
+        </ul>
+
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">4. Cookies &amp; Local Storage</h4>
+        <p>PDFSun uses first-party browser local storage strictly for essential user preferences: saving your active theme (light/dark/eye-protection), tool favorites, and recent local activity history. We do not sell or monetize personal browsing history.</p>
+
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">5. Contact Support &amp; Grievance Redressal</h4>
+        <p>For any privacy-related inquiries, data rights requests, or feedback, you can reach Platform Operator Mukesh Kalonia directly at <a href="mailto:mukeshinland79@gmail.com" className="text-blue-600 dark:text-blue-400 font-bold underline font-mono">mukeshinland79@gmail.com</a> or <a href="mailto:mukeshkalonia241@gmail.com" className="text-blue-600 dark:text-blue-400 font-bold underline font-mono">mukeshkalonia241@gmail.com</a>.</p>
       </div>
     );
   } else if (policy === "terms") {
     title = "Terms & Conditions - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>By accessing or using <strong>PDFSun</strong>, you agree to comply with and be bound by these Terms & Conditions established for PDFSun platform services.</p>
+        <p>By accessing or using <strong>PDFSun (https://www.pdfsun.in/)</strong>, you agree to comply with and be bound by these Terms & Conditions established for PDFSun platform services.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Acceptable Use</h4>
         <p>You agree not to upload malicious files, copyrighted material without permission, or attempt reverse engineering of PDFSun engines.</p>
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. Service Availability</h4>
@@ -44,7 +57,12 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
     title = "Cookie Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>PDFSun uses essential local storage cookies solely to save your dark mode preference, recent tool conversion log, and favorite tool list on your local device.</p>
+        <p><strong>Effective Date: 2026 • PDFSun (pdfsun.in)</strong></p>
+        <p>This Cookie Policy explains how PDFSun uses cookies and similar client-side storage technologies to ensure seamless platform operation and support our free online services.</p>
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">1. Essential Local Storage</h4>
+        <p>We use browser local storage exclusively to save your interface preferences (such as dark mode, eye protection theme), language selection, and your offline tool conversion history. These preferences never leave your device.</p>
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white">2. Advertising &amp; Analytics Cookies</h4>
+        <p>Third-party partners, including Google AdSense, may place and read cookies on your browser to measure ad impressions and serve contextual advertisements. You can control or disable advertising cookies via your browser settings or by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">Google Ads Settings</a> and <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">aboutads.info</a>.</p>
       </div>
     );
   } else if (policy === "refund") {

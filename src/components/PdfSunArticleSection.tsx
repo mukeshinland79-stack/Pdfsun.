@@ -161,7 +161,7 @@ export const PdfSunArticleSection: React.FC<PdfSunArticleSectionProps> = ({
       const articleUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}/blog/${post.slug}`
-          : `https://pdfsun.in/blog/${post.slug}`;
+          : `https://www.pdfsun.in/blog/${post.slug}`;
 
       // 1. Try Native Web Share API first for supported browsers (mobile browsers, Safari, modern Chromium)
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {

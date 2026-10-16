@@ -42,7 +42,7 @@ export const TestimonialsSection: React.FC = () => {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>{t("reviews.badge", t("testimonials.badge", "Loved by 500,000+ Users"))}</span>
+            <span>{t("reviews.badge", t("testimonials.badge", "User Experiences & Testimonials"))}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">

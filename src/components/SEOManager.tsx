@@ -29,7 +29,7 @@ export function getToolFAQs(tool: ToolItem): ToolFAQ[] {
 export const SEOManager: React.FC<SEOManagerProps> = ({
   activeTool,
   tools,
-  baseUrl = "https://pdfsun.in",
+  baseUrl = "https://www.pdfsun.in",
   currentPage,
   totalPages,
   isTodayInHistoryActive = false,

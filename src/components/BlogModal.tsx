@@ -74,7 +74,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
   }, [searchQuery, activeCategory]);
 
   const handleShare = async (post: BlogPost) => {
-    const url = `https://pdfsun.in/blog/${post.slug}`;
+    const url = `https://www.pdfsun.in/blog/${post.slug}`;
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(url);

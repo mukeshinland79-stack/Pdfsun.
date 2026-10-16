@@ -437,26 +437,116 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
     };
   }
 
-  // 8. Static legal / policy pages (/privacy-policy, /terms-of-service, /about-us, /contact-us)
-  const staticTitles: Record<string, string> = {
-    "/privacy-policy": "Privacy Policy - Military-Grade In-Browser Document Protection | PDFSun",
-    "/terms-of-service": "Terms of Service | PDFSun",
-    "/about-us": "About PDFSun - The Zero-Knowledge Client-Side PDF Engine",
-    "/contact-us": "Contact PDFSun Support & Partnerships",
+  // 8. Static legal / policy pages (/privacy-policy, /terms-of-service, /about-us, /contact-us, /cookie-policy, /refund-policy)
+  const staticPolicies: Record<string, { title: string; desc: string; html: string }> = {
+    "/privacy-policy": {
+      title: "Privacy Policy - Military-Grade In-Browser Document Protection | PDFSun",
+      desc: "Official PDFSun Privacy Policy. Zero server upload, 100% client-side WebAssembly processing, Gemini AI privacy, and Google AdSense cookie disclosures.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>Privacy Policy - PDFSun (pdfsun.in)</h1>
+          <p><strong>Effective Date: 2026 • Canonical URL: https://www.pdfsun.in/privacy-policy</strong></p>
+          <p>At PDFSun, operated by Mukesh Kalonia, user privacy and document confidentiality are fundamental engineering commitments.</p>
+          <h2>1. Local Client-Side Processing (Zero Server Ingress)</h2>
+          <p>All core PDF utilities (including Merge, Split, Compress, Rotate, Protect, Watermark, Add Page Numbers, Edit Metadata, and Reorder) execute 100% locally inside your web browser sandbox using compiled WebAssembly (WASM). Your original documents, file bytes, and processed outputs are never transmitted to, processed on, or stored in remote cloud servers.</p>
+          <h2>2. AI Document Processing &amp; Ephemeral Inference</h2>
+          <p>When you explicitly utilize Gemini AI utilities (such as AI Chat with PDF, AI Summarizer, or AI Document Translation), document text passages are transmitted securely over encrypted TLS HTTPS strictly for ephemeral computational inference. PDFSun enforces zero server-side disk persistence: text passages are immediately purged from memory upon completion and are never used to train public foundation models.</p>
+          <h2>3. Google AdSense &amp; Third-Party Advertising Cookies</h2>
+          <p>PDFSun partners with third-party advertising vendors, including Google AdSense, to display non-intrusive advertisements:</p>
+          <ul>
+            <li>Third-party vendors, including Google, use cookies (such as DoubleClick and DART cookies) to serve advertisements based on a user's prior visits to this website or other websites across the Internet.</li>
+            <li>Google's use of advertising cookies enables it and its certified partners to serve relevant ads based on browsing history.</li>
+            <li><strong>Document Privacy Guarantee:</strong> Advertisers and advertising cookies have absolute zero access to your uploaded files, document contents, filenames, or extracted text. Document manipulation is strictly sandboxed in local browser memory.</li>
+            <li><strong>Opt-Out Rights:</strong> Users may opt out of personalized advertising at any time by visiting <a href="https://www.google.com/settings/ads">Google Ads Settings</a> or <a href="https://www.aboutads.info">aboutads.info</a>.</li>
+          </ul>
+          <h2>4. Cookies &amp; Local Storage</h2>
+          <p>PDFSun uses first-party browser local storage strictly for essential user preferences: saving your active theme (light/dark/eye-protection), tool favorites, and recent local activity history.</p>
+          <h2>5. Contact Support &amp; Grievance Redressal</h2>
+          <p>For any privacy-related inquiries, contact Platform Operator Mukesh Kalonia at <a href="mailto:mukeshinland79@gmail.com">mukeshinland79@gmail.com</a>.</p>
+        </article>
+      `,
+    },
+    "/terms-of-service": {
+      title: "Terms of Service | PDFSun",
+      desc: "Official Terms of Service for PDFSun (pdfsun.in). Acceptable use guidelines, browser stability, and service terms.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>Terms of Service - PDFSun (pdfsun.in)</h1>
+          <p>By accessing or using PDFSun (https://www.pdfsun.in/), you agree to comply with and be bound by these Terms of Service.</p>
+          <h2>1. Acceptable Use</h2>
+          <p>You agree not to upload malicious files, copyrighted material without permission, or attempt reverse engineering of PDFSun engines.</p>
+          <h2>2. Service Availability</h2>
+          <p>While we guarantee maximum uptime and browser client stability, PDFSun is provided 'as is' without warranties of any kind.</p>
+          <h2>3. Intellectual Property</h2>
+          <p>All platform software, branding, logos, and custom WebAssembly algorithms are the exclusive intellectual property of PDFSun and its operator.</p>
+        </article>
+      `,
+    },
+    "/about-us": {
+      title: "About PDFSun - The Zero-Knowledge Client-Side PDF Engine",
+      desc: "Learn about PDFSun, founded by Mukesh Kalonia. High-speed client-side WebAssembly document processing with 100% privacy.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>About PDFSun - Mission &amp; Technology</h1>
+          <p>PDFSun (pdfsun.in) is an independent, high-performance web document platform engineered to provide individuals, students, researchers, and global enterprises with fast, secure, and intuitive PDF productivity utilities.</p>
+          <h2>Our Core Mission: 100% In-Browser Privacy</h2>
+          <p>Unlike traditional online converters that upload sensitive documents to remote servers, PDFSun leverages state-of-the-art WebAssembly (WASM) and multi-threaded Web Workers to execute document merges, splits, compressions, and conversions directly on your local device CPU, eliminating server data leaks entirely.</p>
+          <h2>Founder &amp; Engineering Leadership</h2>
+          <p>PDFSun was founded and is actively maintained by <strong>Mukesh Kalonia</strong>, a Senior Software Engineer specializing in modern WebAssembly runtimes, distributed systems, and AI workflows.</p>
+        </article>
+      `,
+    },
+    "/contact-us": {
+      title: "Contact PDFSun Support & Partnerships",
+      desc: "Contact the PDFSun engineering and support team. Inquiries, bug reports, and partnership support with 24 business hour response.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>Contact Us &amp; Support - PDFSun</h1>
+          <p>We welcome your questions, partnership inquiries, bug reports, and feedback. Our dedicated support team responds within 24 business hours.</p>
+          <p><strong>Official Support Email:</strong> <a href="mailto:mukeshinland79@gmail.com">mukeshinland79@gmail.com</a> / <a href="mailto:mukeshkalonia241@gmail.com">mukeshkalonia241@gmail.com</a></p>
+          <p><strong>Platform Operator:</strong> Mukesh Kalonia (Headquarters: Rajasthan, India)</p>
+        </article>
+      `,
+    },
+    "/cookie-policy": {
+      title: "Cookie Policy | PDFSun",
+      desc: "Official Cookie Policy for PDFSun (pdfsun.in). Explains essential storage and third-party advertising cookies.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>Cookie Policy - PDFSun (pdfsun.in)</h1>
+          <p>This Cookie Policy explains how PDFSun uses cookies and client-side storage technologies.</p>
+          <h2>1. Essential Storage</h2>
+          <p>We use local storage to save your theme preferences, language, and offline tool history on your device.</p>
+          <h2>2. Advertising Cookies</h2>
+          <p>Google AdSense may use cookies to serve ads based on user visits. You can opt out via Google Ads Settings or aboutads.info.</p>
+        </article>
+      `,
+    },
+    "/refund-policy": {
+      title: "Refund Policy | PDFSun",
+      desc: "Official 14-day refund policy for PDFSun Pro Sun and Team Enterprise subscription purchases.",
+      html: `
+        <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
+          <h1>Refund Policy - PDFSun (pdfsun.in)</h1>
+          <p>We offer a 14-day refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Contact mukeshinland79@gmail.com for prompt assistance.</p>
+        </article>
+      `,
+    },
   };
 
-  if (staticTitles[cleanPath]) {
+  const activeStaticPolicy = staticPolicies[cleanPath];
+  if (activeStaticPolicy) {
     return {
-      title: staticTitles[cleanPath],
-      description: `Official document information and compliance policies for PDFSun (pdfsun.in). 100% local WebAssembly processing.`,
+      title: activeStaticPolicy.title,
+      description: activeStaticPolicy.desc,
       canonicalUrl: `${baseUrl}${cleanPath}`,
-      ogTitle: staticTitles[cleanPath],
-      ogDescription: `PDFSun official policies and information.`,
+      ogTitle: activeStaticPolicy.title,
+      ogDescription: activeStaticPolicy.desc,
       ogType: "website",
       ogImage: defaultOgImage,
-      keywords: "pdfsun policy, pdf privacy, terms of service, pdfsun contact",
+      keywords: "pdfsun policy, pdf privacy, terms of service, pdfsun contact, cookie policy, refund policy",
       jsonLdSchemas: [],
-      crawlableHtml: `<article><h1>${staticTitles[cleanPath]}</h1><p>PDFSun compliance and information page.</p></article>`,
+      crawlableHtml: activeStaticPolicy.html,
     };
   }
 

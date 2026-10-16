@@ -1,12 +1,12 @@
 {
   "projectId": "pdfsun-app",
-  "appId": "1:125719086147:web:d1e5ed9cfbb065d36a80f6",
+  "appId": "1:125719086147:web:ccbcb4674ebddbbb6a80f6",
   "apiKey": "AIzaSyAeO3-CIUwMOPKeJEpqSpAmj8jIh9jiUw4",
   "authDomain": "pdfsun-app.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-pdfsun-e0caf114-300b-43d2-802a-29f68a091c7f",
   "storageBucket": "pdfsun-app.firebasestorage.app",
   "messagingSenderId": "125719086147",
   "measurementId": "",
-  "oAuthClientId": "",
+  "oAuthClientId": "125719086147-gbki2nlm8ovgck64k80r26jtt95bmri7.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

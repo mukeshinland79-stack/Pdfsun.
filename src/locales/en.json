@@ -1,11 +1,13 @@
 {
+  "heroTitle": "Everything You Need to Work With PDF Files",
+  "heroSub": "Merge, split, compress, and manage PDF files with simple, private online tools.",
   "hub": {
     "enterpriseAiTitle": "Enterprise AI & Next-Gen Document Engine",
     "enterpriseAiSub": "AI PDF Chat, Voice Dictation, Summarization, and Mobile Integration",
     "engineChroniclesTitle": "PDFSun Engine & Daily Chronicles",
     "engineChroniclesSub": "Client-Side WebAssembly Architecture, Historical Insights & World-Class Document Intelligence",
-    "formatsReviewsTitle": "Supported Formats & Verified User Reviews",
-    "formatsReviewsSub": "4.9/5 Rating from 18,420+ global professionals and students",
+    "formatsReviewsTitle": "Supported Formats & User Experiences",
+    "formatsReviewsSub": "High-fidelity conversions and trusted document privacy across PDF, Word, Excel, and image formats",
     "faqsTitle": "Frequently Asked Questions (FAQ)",
     "faqsSub": "Security, file limits, browser privacy, and WebAssembly processing",
     "expand": "Expand",
@@ -92,7 +94,7 @@
     "archiveNote": "Explore all 10+ In-Depth Engineering White Papers, WebAssembly security architectures & document workflow cheat sheets."
   },
   "reviews": {
-    "badge": "Loved by 500,000+ Users",
+    "badge": "Trusted Document Reviews",
     "title": "Supported Formats & Verified User Reviews",
     "subtitle": "See what students and industry professionals say about PDFSun efficiency, privacy, and Gemini AI capabilities.",
     "quote_aarav": "PDFSun AI Notes Generator and AI Chat saved me hundreds of hours during exam prep. Combining research papers and querying formulas is flawless!",
@@ -108,7 +110,7 @@
     "tag": "PDFSun Weekly Insights",
     "title": "Stay Ahead with AI & PDF",
     "titleHighlight": "Productivity Hacks",
-    "subtitle": "Join over 150,000+ professionals, students, and legal teams. Get exclusive tutorials, Gemini 3.6 AI prompt workflows, and early access to new PDFSun tools—delivered once a week.",
+    "subtitle": "Join thousands of professionals, students, and legal teams. Get practical document tutorials, AI prompt workflows, and early access to new PDFSun tools—delivered once a week.",
     "perksTitle": "SUBSCRIBER PERKS",
     "perk1": "Early access to new Gemini 3.6 AI PDF utilities",
     "perk2": "Exclusive document compression & security workflows",

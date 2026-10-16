@@ -454,6 +454,48 @@ function MainApp() {
     }
   }, [activeTool, activePseoPage]);
 
+  const handleOpenPolicy = useCallback((policy: PolicyType) => {
+    setActivePolicy(policy);
+    const policyUrlMap: Record<PolicyType, string> = {
+      privacy: "/privacy-policy",
+      terms: "/terms-of-service",
+      about: "/about-us",
+      contact: "/contact-us",
+      cookie: "/cookie-policy",
+      refund: "/refund-policy",
+      disclaimer: "/disclaimer",
+    };
+    const targetUrl = policyUrlMap[policy];
+    if (targetUrl && typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+      window.history.pushState({}, "", targetUrl);
+    }
+  }, []);
+
+  const handleClosePolicy = useCallback(() => {
+    setActivePolicy(null);
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname;
+      const policyPaths = [
+        "/privacy-policy",
+        "/privacy",
+        "/terms-of-service",
+        "/terms",
+        "/about-us",
+        "/about",
+        "/contact-us",
+        "/contact",
+        "/cookie-policy",
+        "/cookie",
+        "/refund-policy",
+        "/refund",
+        "/disclaimer",
+      ];
+      if (policyPaths.includes(p)) {
+        window.history.pushState({}, "", "/");
+      }
+    }
+  }, []);
+
   const handleExitBlogToHome = useCallback(() => {
     setBlogViewActive(false);
     setBlogActiveSlug(null);
@@ -508,6 +550,29 @@ function MainApp() {
       } else {
         setBlogViewActive(false);
         setBlogActiveSlug(null);
+      }
+
+      const policyRoutes: Record<string, PolicyType> = {
+        "/privacy-policy": "privacy",
+        "/privacy": "privacy",
+        "/terms-of-service": "terms",
+        "/terms": "terms",
+        "/about-us": "about",
+        "/about": "about",
+        "/contact-us": "contact",
+        "/contact": "contact",
+        "/cookie-policy": "cookie",
+        "/cookie": "cookie",
+        "/refund-policy": "refund",
+        "/refund": "refund",
+        "/disclaimer": "disclaimer",
+      };
+
+      if (policyRoutes[effectivePath]) {
+        setActivePolicy(policyRoutes[effectivePath]);
+        setActiveTool(null);
+        setActivePseoPage(null);
+        return;
       }
 
       if (effectivePath === "/pricing" || window.location.hash === "#pricing" || params.get("view") === "pricing") {
@@ -927,7 +992,7 @@ function MainApp() {
       </main>
 
       <Footer
-        onOpenPolicy={(p) => setActivePolicy(p)}
+        onOpenPolicy={handleOpenPolicy}
         onOpenAllTools={() => {
           handleExitBlogToHome();
           setSelectedCategory("all");
@@ -1018,7 +1083,7 @@ function MainApp() {
 
       {userProfile && <ProfileAvatarModal isOpen={avatarModalOpen} onClose={() => setAvatarModalOpen(false)} userEmail={userProfile.email} userName={userProfile.name} currentPhotoURL={userProfile.photoURL} currentAvatar={userProfile.avatar} onPhotoUpdated={(newPhotoURL) => updateAvatar(newPhotoURL)} />}
 
-      <PricingSection isOpen={pricingModalOpen} onClose={handleClosePricing} isModal={true} onOpenPolicy={(p) => setActivePolicy(p)} userProfile={userProfile} />
+      <PricingSection isOpen={pricingModalOpen} onClose={handleClosePricing} isModal={true} onOpenPolicy={handleOpenPolicy} userProfile={userProfile} />
       <BlogModal
         isOpen={blogModalOpen}
         onClose={() => {
@@ -1034,7 +1099,7 @@ function MainApp() {
       <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
       <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
       <PaymentSuccessModal isOpen={paymentSuccessModalOpen} onClose={() => setPaymentSuccessModalOpen(false)} userProfile={userProfile} onRefreshProfile={() => handleInstantProUnlock()} onStartProcessing={() => { handleInstantProUnlock(); setPaymentSuccessModalOpen(false); document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" }); }} />
-      <PolicyModals policy={activePolicy} onClose={() => setActivePolicy(null)} />
+      <PolicyModals policy={activePolicy} onClose={handleClosePolicy} />
       <RecentHistoryModal isOpen={historyModalOpen} onClose={() => setHistoryModalOpen(false)} history={history} onClearHistory={clearHistory} />
       <SearchModal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} onSelectTool={handleSelectTool} favorites={favorites} />
       <KeyboardShortcutsModal isOpen={shortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} shortcuts={shortcuts} shortcutsEnabled={shortcutsEnabled} onToggleEnabled={toggleShortcutsEnabled} onUpdateShortcut={updateShortcutKeyCombo} onResetToDefaults={resetToDefaults} />

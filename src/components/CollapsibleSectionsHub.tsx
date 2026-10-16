@@ -151,7 +151,7 @@ export const CollapsibleSectionsHub: React.FC<CollapsibleSectionsHubProps> = ({
                   {t("hub.formatsReviewsTitle", "Supported Formats & Verified User Reviews")}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("hub.formatsReviewsSub", "4.9/5 Rating from 18,420+ global professionals and students")}
+                  {t("hub.formatsReviewsSub", "High-fidelity conversions and trusted document privacy across PDF, Word, Excel, and image formats")}
                 </p>
               </div>
             </div>
