@@ -143,6 +143,7 @@ import {
   ImageToPdfQuality,
   NotepadExtractionResult,
 } from "../lib/pdfEngine";
+import { redactPdfPermanently } from "../lib/enterpriseRedactionEngine";
 import {
   analyzeDocumentStructure,
   convertToSmartExcel,
@@ -406,6 +407,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [pdfPassword, setPdfPassword] = useState("");
   const [pdfPasswordConfirm, setPdfPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [redactionTerms, setRedactionTerms] = useState("confidential, SSN, secret");
+  const [redactPresetSsn, setRedactPresetSsn] = useState(true);
+  const [redactPresetEmail, setRedactPresetEmail] = useState(true);
+  const [redactPresetPhone, setRedactPresetPhone] = useState(false);
+  const [redactPresetCreditCard, setRedactPresetCreditCard] = useState(true);
   const [metaTitle, setMetaTitle] = useState("");
   const [metaAuthor, setMetaAuthor] = useState("Mukesh Kalonia");
   const [ocrResultText, setOcrResultText] = useState("");
@@ -1503,15 +1509,38 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "unlock-pdf":
-          setStatusMessage("Removing restrictions and unlocking PDF...");
-          outputBytes = await unlockPdfDocument(files[0], (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          setStatusMessage("Removing restrictions and decrypting PDF...");
+          outputBytes = await unlockPdfDocument(files[0], pdfPassword, (p) => setProgress(45 + Math.round((p / 100) * 50)));
           outputName = `PDFSun_Unlocked_${files[0].name}`;
           break;
 
         case "redact-pdf":
-          setStatusMessage("Blacking out confidential sections & sensitive data...");
-          outputBytes = await redactPdfContent(files[0], splitRange, (p) => setProgress(45 + Math.round((p / 100) * 50)));
-          outputName = `PDFSun_Redacted_${files[0].name}`;
+          setStatusMessage("Permanently sanitizing document streams & burning redactions...");
+          {
+            const presets: Array<"ssn" | "email" | "phone" | "creditCard"> = [];
+            if (redactPresetSsn) presets.push("ssn");
+            if (redactPresetEmail) presets.push("email");
+            if (redactPresetPhone) presets.push("phone");
+            if (redactPresetCreditCard) presets.push("creditCard");
+
+            const termsList = redactionTerms
+              ? redactionTerms.split(",").map((s) => s.trim()).filter(Boolean)
+              : [];
+
+            const redactResult = await redactPdfPermanently(
+              files[0],
+              {
+                terms: termsList,
+                regexPresets: presets,
+                redactionColor: { r: 0, g: 0, b: 0 },
+                redactionLabel: "REDACTED",
+                sanitizeMetadata: true,
+              },
+              (p) => setProgress(45 + Math.round((p / 100) * 50))
+            );
+            outputBytes = redactResult.pdfBytes;
+            outputName = `PDFSun_Sanitized_${files[0].name}`;
+          }
           break;
 
         case "repair-pdf":
@@ -3871,6 +3900,117 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Passwords do not match</span>
                   </p>
                 )}
+              </div>
+            )}
+
+            {tool.id === "unlock-pdf" && (
+              <div className="space-y-3.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center space-x-2">
+                    <Unlock className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Document Decryption Credentials</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold px-2 py-0.5 rounded bg-emerald-500/10">
+                    Client-Side Decryption
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Password (leave blank if unknown or unencrypted)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={pdfPassword}
+                      onChange={(e) => setPdfPassword(e.target.value)}
+                      placeholder="Enter password to unlock document..."
+                      className="w-full px-3 py-2 pr-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tool.id === "redact-pdf" && (
+              <div className="space-y-3.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center space-x-2">
+                    <ShieldCheck className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>Permanent Data Stream Redaction</span>
+                  </div>
+                  <span className="text-[10px] text-rose-600 dark:text-rose-400 font-extrabold px-2 py-0.5 rounded bg-rose-500/10">
+                    True Stream Purge
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Sensitive Terms to Permanently Eradicate (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={redactionTerms}
+                    onChange={(e) => setRedactionTerms(e.target.value)}
+                    placeholder="e.g. Confidential, John Doe, SSN, 123-45-6789"
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-500"
+                  />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Underlying characters and stream glyphs are permanently deleted from the PDF so they cannot be selected, searched, or extracted.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    One-Click Compliance Auto-Sanitization Presets:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetSsn}
+                        onChange={(e) => setRedactPresetSsn(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">SSN / Tax ID</span>
+                    </label>
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetEmail}
+                        onChange={(e) => setRedactPresetEmail(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Email Addresses</span>
+                    </label>
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetCreditCard}
+                        onChange={(e) => setRedactPresetCreditCard(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Credit Cards</span>
+                    </label>
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetPhone}
+                        onChange={(e) => setRedactPresetPhone(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Phone Numbers</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
 

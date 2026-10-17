@@ -7,6 +7,9 @@ import * as XLSX from "xlsx";
 import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTable, TableRow, TableCell, WidthType } from "docx";
 import PptxGenJS from "pptxgenjs";
 import * as pdfjsLib from "pdfjs-dist";
+import { encryptPDF, AlreadyEncryptedError } from "@pdfsmaller/pdf-encrypt";
+import { decryptPDF, isEncrypted } from "@pdfsmaller/pdf-decrypt";
+import { redactPdfPermanently } from "./enterpriseRedactionEngine";
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
 import {
@@ -1612,60 +1615,75 @@ export async function addPdfBackground(
   return resultBytes;
 }
 
-// 30. Protect PDF with Password
+// 30. Protect PDF with Password (Genuine AES-256 Client-Side Encryption)
 export async function protectPdfWithPassword(
   file: File,
   passwordStr: string = "123456",
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(30);
-  const pdfDoc = await loadSafePdfDocument(file);
-  pdfDoc.setKeywords(["encrypted", "protected", passwordStr]);
-  if (onProgress) onProgress(80);
-  const resultBytes = await pdfDoc.save({ useObjectStreams: true });
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  return protectPdf(file, { userPassword: passwordStr }, onProgress);
 }
 
-// 31. Unlock PDF
+// 31. Unlock PDF (Genuine Client-Side Decryption)
 export async function unlockPdfDocument(
   file: File,
-  onProgress?: (percent: number) => void
+  passwordOrProgress?: string | ((percent: number) => void),
+  maybeProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(30);
-  const pdfDoc = await loadSafePdfDocument(file);
-  if (onProgress) onProgress(80);
-  const resultBytes = await pdfDoc.save();
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  const password = typeof passwordOrProgress === "string" ? passwordOrProgress : "";
+  const onProgress = typeof passwordOrProgress === "function" ? passwordOrProgress : maybeProgress;
+
+  if (onProgress) onProgress(20);
+  const arrayBuffer = await file.arrayBuffer();
+  const rawBytes = new Uint8Array(arrayBuffer);
+
+  const status = await isEncrypted(rawBytes);
+  if (!status.encrypted) {
+    if (onProgress) onProgress(100);
+    return rawBytes;
+  }
+
+  if (onProgress) onProgress(50);
+  try {
+    const decryptedBytes = await decryptPDF(rawBytes, password);
+    if (onProgress) onProgress(100);
+    return decryptedBytes;
+  } catch (err: any) {
+    throw new Error(
+      err?.message?.includes("password") || err?.message?.includes("MAC")
+        ? "Incorrect password provided for this protected document."
+        : `Decryption failed: ${err?.message || "Invalid credentials or unsupported security handler."}`
+    );
+  }
 }
 
-// 32. Redact Sensitive Terms in PDF
+// 32. Redact Sensitive Terms in PDF (Genuine Permanent Stream Purge)
 export async function redactPdfContent(
   file: File,
   termsStr: string = "confidential, SSN, secret",
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const pdfDoc = await loadSafePdfDocument(file);
-  const pages = pdfDoc.getPages();
+  if (onProgress) onProgress(15);
+  const terms = termsStr
+    ? termsStr
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : ["confidential", "SSN", "secret"];
 
-  pages.forEach((page) => {
-    const { width, height } = page.getSize();
-    // Draw black redaction bar across sensitive bottom banner
-    page.drawRectangle({
-      x: 30,
-      y: 30,
-      width: width - 60,
-      height: 25,
-      color: rgb(0, 0, 0),
-    });
-  });
+  const result = await redactPdfPermanently(
+    file,
+    {
+      terms,
+      regexPresets: ["ssn", "email", "phone", "creditCard"],
+      redactionColor: { r: 0, g: 0, b: 0 },
+      redactionLabel: "REDACTED",
+      sanitizeMetadata: true,
+    },
+    onProgress
+  );
 
-  if (onProgress) onProgress(80);
-  const resultBytes = await pdfDoc.save();
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  return result.pdfBytes;
 }
 
 // 33. Repair Corrupted PDF
@@ -2185,44 +2203,36 @@ export async function protectPdf(
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
   if (onProgress) onProgress(15);
-  const pdfDoc = await loadSafePdfDocument(file);
+  const arrayBuffer = await file.arrayBuffer();
+  const rawBytes = new Uint8Array(arrayBuffer);
 
-  if (onProgress) onProgress(45);
-
-  // Apply encryption using pdf-lib if supported
-  if (typeof (pdfDoc as any).encrypt === "function") {
-    try {
-      (pdfDoc as any).encrypt({
-        userPassword: options.userPassword,
-        ownerPassword: options.ownerPassword || options.userPassword,
-        permissions: {
-          printing: options.allowPrinting ? "highResolution" : "lowResolution",
-          modifying: options.allowModifying ?? false,
-          copying: options.allowCopying ?? false,
-          annotating: options.allowAnnotating ?? false,
-          fillingForms: options.allowModifying ?? false,
-          contentAccessibility: true,
-          documentAssembly: false,
-        },
-      });
-    } catch (e) {
-      console.warn("pdf-lib encrypt call fallback:", e);
-    }
+  // Validate if already encrypted
+  const encStatus = await isEncrypted(rawBytes);
+  if (encStatus.encrypted) {
+    throw new Error("This document is already password-protected. Please unlock it before applying new encryption.");
   }
 
-  // Set encryption metadata stamps
-  const existingKw = pdfDoc.getKeywords() || "";
-  const kwList = typeof existingKw === "string" ? existingKw.split(",").map(k => k.trim()).filter(Boolean) : [];
-  if (!kwList.includes("Encrypted")) kwList.push("Encrypted");
-  if (!kwList.includes("Protected")) kwList.push("Protected");
-  pdfDoc.setKeywords(kwList);
-  pdfDoc.setProducer("PDFSun Encrypted Engine");
-  pdfDoc.setModificationDate(new Date());
+  if (onProgress) onProgress(40);
 
-  if (onProgress) onProgress(80);
-  const bytes = await pdfDoc.save();
-  if (onProgress) onProgress(100);
-  return bytes;
+  try {
+    const encryptedBytes = await encryptPDF(rawBytes, options.userPassword, {
+      ownerPassword: options.ownerPassword || options.userPassword,
+      algorithm: "AES-256",
+      allowPrinting: options.allowPrinting ?? true,
+      allowModifying: options.allowModifying ?? false,
+      allowCopying: options.allowCopying ?? false,
+      allowAnnotating: options.allowAnnotating ?? false,
+    });
+
+    if (onProgress) onProgress(90);
+    if (onProgress) onProgress(100);
+    return encryptedBytes;
+  } catch (err: any) {
+    if (err instanceof AlreadyEncryptedError) {
+      throw new Error("This document is already encrypted.");
+    }
+    throw new Error(`Failed to encrypt PDF: ${err?.message || "Unknown encryption error"}`);
+  }
 }
 
 // =========================================================================

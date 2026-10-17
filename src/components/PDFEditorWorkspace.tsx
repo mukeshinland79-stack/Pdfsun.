@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
+import { redactPdfPermanently, RedactionBox } from "../lib/enterpriseRedactionEngine";
 import {
   Highlighter,
   Pen,
@@ -996,6 +997,8 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
       const timesFont = await outDoc.embedFont(StandardFonts.TimesRoman);
       const courierFont = await outDoc.embedFont(StandardFonts.Courier);
 
+      const redactionBoxes: RedactionBox[] = [];
+
       for (let i = 0; i < total; i++) {
         const meta = activePages[i];
         let targetPage: any;
@@ -1015,9 +1018,16 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         const pageAnns = annotations[meta.pageIndex];
 
         if (pageAnns) {
-          // 1. Burn Redactions (Blackout boxes)
+          // 1. Burn Redactions (Blackout boxes & permanent stream purge)
           for (const shape of pageAnns.shapes) {
             if (shape.type === "redact") {
+              redactionBoxes.push({
+                pageIndex: i,
+                x: shape.x,
+                y: pHeight - shape.y - shape.height,
+                width: shape.width,
+                height: shape.height,
+              });
               targetPage.drawRectangle({
                 x: shape.x,
                 y: pHeight - shape.y - shape.height,
@@ -1148,7 +1158,18 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         setExportProgress(Math.round(10 + ((i + 1) / total) * 80));
       }
 
-      const outputBytes = await outDoc.save();
+      let outputBytes = await outDoc.save();
+
+      // If any redactions were applied, execute permanent stream purge to eradicate underlying text & graphics
+      if (redactionBoxes.length > 0) {
+        setExportProgress(92);
+        const sanitizeResult = await redactPdfPermanently(outputBytes, {
+          boxes: redactionBoxes,
+          sanitizeMetadata: true,
+        });
+        outputBytes = sanitizeResult.pdfBytes;
+      }
+
       setExportProgress(100);
 
       const outName = `${file.name.replace(/\.[^/.]+$/, "")}_edited_pdfsun.pdf`;
