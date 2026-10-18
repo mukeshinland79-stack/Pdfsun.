@@ -6,6 +6,7 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
 import { mergePdfsCore } from "../lib/pdfMergeEngine";
 import { splitPdfCore } from "../lib/pdfSplitEngine";
+import { compressPdfEnterprise } from "../lib/enterpriseCompressionEngine";
 
 self.onmessage = async (e: MessageEvent) => {
   const { taskId, action, payload } = e.data;
@@ -71,15 +72,16 @@ self.onmessage = async (e: MessageEvent) => {
       );
       return;
     } else if (action === "compress") {
-      const { fileBuffer } = payload;
+      const { fileBuffer, quality = "medium" } = payload;
       const bytes = new Uint8Array(fileBuffer);
-      const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      pdf.setTitle("");
-      pdf.setAuthor("");
-      pdf.setSubject("");
-      pdf.setKeywords([]);
-      self.postMessage({ taskId, type: "progress", percent: 70 });
-      resultBuffer = await pdf.save({ useObjectStreams: true });
+      const preset = quality === "high" ? "low" : quality === "low" ? "extreme" : "recommended";
+      const compRes = await compressPdfEnterprise(bytes, {
+        preset,
+        onProgress: (percent) => {
+          self.postMessage({ taskId, type: "progress", percent });
+        },
+      });
+      resultBuffer = compRes.pdfBytes;
     } else if (action === "rotate") {
       const { fileBuffer, rotationAngle = 90 } = payload;
       const bytes = new Uint8Array(fileBuffer);

@@ -1166,6 +1166,7 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         const sanitizeResult = await redactPdfPermanently(outputBytes, {
           boxes: redactionBoxes,
           sanitizeMetadata: true,
+          strategy: "auto",
         });
         outputBytes = sanitizeResult.pdfBytes;
       }

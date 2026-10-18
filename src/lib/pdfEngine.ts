@@ -10,6 +10,11 @@ import * as pdfjsLib from "pdfjs-dist";
 import { encryptPDF, AlreadyEncryptedError } from "@pdfsmaller/pdf-encrypt";
 import { decryptPDF, isEncrypted } from "@pdfsmaller/pdf-decrypt";
 import { redactPdfPermanently } from "./enterpriseRedactionEngine";
+import { compressPdfEnterprise, CompressionResult, CompressionOptions } from "./enterpriseCompressionEngine";
+import { convertEpubToPdfEnterprise } from "./enterpriseEpubEngine";
+import { convertRtfToPdfEnterprise } from "./enterpriseRtfEngine";
+import { convertXmlToPdfEnterprise } from "./enterpriseXmlEngine";
+import { convertHtmlToPdfEnterprise } from "./enterpriseHtmlEngine";
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
 import {
@@ -276,25 +281,20 @@ export async function splitPdf(
 export async function compressPdf(
   file: File,
   qualityFactor: number = 0.7,
-  onProgress?: (percent: number) => void,
-  preset: "extreme" | "recommended" | "low" = "recommended"
+  onProgress?: (percent: number, msg?: string) => void,
+  preset: "extreme" | "recommended" | "low" = "recommended",
+  targetMaxKB?: number | null
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const pdfDoc = await loadSafePdfDocument(file);
-
-  // Compress streams and set Aservus engine metadata
-  if (onProgress) onProgress(60);
-  pdfDoc.setTitle("");
-  pdfDoc.setAuthor("");
-  pdfDoc.setSubject("");
-  pdfDoc.setKeywords([]);
-  pdfDoc.setProducer("Pdfsun.in Aservus Engine");
-  pdfDoc.setCreator("Pdfsun.in Aservus Engine");
-
-  const resultBytes = await pdfDoc.save({ useObjectStreams: true });
-  if (onProgress) onProgress(100);
-  return resultBytes;
+  const result = await compressPdfEnterprise(file, {
+    preset,
+    qualityFactor,
+    targetMaxKB,
+    onProgress,
+  });
+  return result.pdfBytes;
 }
+
+export { compressPdfEnterprise, type CompressionResult, type CompressionOptions };
 
 // 4. Rotate PDF
 export async function rotatePdf(
@@ -1122,24 +1122,10 @@ export async function htmlToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const htmlContent = await fileToText(file);
-  if (onProgress) onProgress(50);
-
-  // Clean HTML tags for PDF rendering
-  const cleanText = htmlContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, "\n")
-    .replace(/\n\s*\n/g, "\n\n")
-    .trim();
-
-  if (!cleanText) {
-    throw new Error(`The HTML document "${file.name}" contains no renderable text.`);
-  }
-
-  const pdfBytes = textToPdf(cleanText, file.name.replace(/\.[^/.]+$/, ""));
-  if (onProgress) onProgress(100);
-  return pdfBytes;
+  const result = await convertHtmlToPdfEnterprise(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  return result.pdfBytes;
 }
 
 // 22. Remove Specific PDF Pages
@@ -1750,39 +1736,26 @@ export async function convertToPdfA(
   return resultBytes;
 }
 
-// 37. EPUB / RTF / XML to PDF Converters
+// 37. EPUB / RTF / XML to PDF Converters (Enterprise Hardened Engines)
 export async function epubToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const text = await fileToText(file);
-  if (!text || !text.trim()) {
-    throw new Error(`The EPUB file "${file.name}" is empty or unreadable.`);
-  }
-  const pdfBytes = textToPdf(text, file.name.replace(/\.[^/.]+$/, ""));
-  if (onProgress) onProgress(100);
-  return pdfBytes;
+  const result = await convertEpubToPdfEnterprise(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  return result.pdfBytes;
 }
 
 export async function rtfToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const text = await fileToText(file);
-  const cleanRtf = text.replace(/\\par/g, "\n").replace(/\\?[a-z0-9]+/gi, "").trim();
-  if (!cleanRtf) {
-    throw new Error(`The RTF document "${file.name}" contains no readable text.`);
-  }
-  const pdfBytes = textToPdf(cleanRtf, file.name.replace(/\.[^/.]+$/, ""));
-  if (onProgress) onProgress(100);
-  return pdfBytes;
+  const result = await convertRtfToPdfEnterprise(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  return result.pdfBytes;
 }
 
 export async function xmlToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
-  if (onProgress) onProgress(20);
-  const text = await fileToText(file);
-  if (!text || !text.trim()) {
-    throw new Error(`The XML file "${file.name}" is empty or invalid.`);
-  }
-  const pdfBytes = textToPdf(text, file.name.replace(/\.[^/.]+$/, ""));
-  if (onProgress) onProgress(100);
-  return pdfBytes;
+  const result = await convertXmlToPdfEnterprise(file, (p) => {
+    if (onProgress) onProgress(p);
+  });
+  return result.pdfBytes;
 }
 
 // 38. AI Document Generator Helpers (Summary, Resume, Notes, Flashcards)

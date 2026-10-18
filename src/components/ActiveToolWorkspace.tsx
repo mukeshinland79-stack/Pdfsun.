@@ -412,6 +412,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [redactPresetEmail, setRedactPresetEmail] = useState(true);
   const [redactPresetPhone, setRedactPresetPhone] = useState(false);
   const [redactPresetCreditCard, setRedactPresetCreditCard] = useState(true);
+  const [redactionStrategy, setRedactionStrategy] = useState<"auto" | "deep_raster" | "vector_stream">("auto");
+  const [redactionPassword, setRedactionPassword] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
   const [metaAuthor, setMetaAuthor] = useState("Mukesh Kalonia");
   const [ocrResultText, setOcrResultText] = useState("");
@@ -1020,8 +1022,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "compress-pdf":
-          setStatusMessage("Compressing PDF structure & streams...");
-          outputBytes = await compressPdf(files[0], 0.7, (p) => setProgress(45 + Math.round((p / 100) * 50)));
+          setStatusMessage("Optimizing embedded images, streams & PDF structure...");
+          outputBytes = await compressPdf(
+            files[0],
+            0.7,
+            (p, msg) => {
+              if (msg) setStatusMessage(msg);
+              setProgress(45 + Math.round((p / 100) * 50));
+            },
+            compressPreset,
+            targetMaxKB
+          );
           outputName = `PDFSun_Compressed_${files[0].name}`;
           break;
 
@@ -1535,8 +1546,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 redactionColor: { r: 0, g: 0, b: 0 },
                 redactionLabel: "REDACTED",
                 sanitizeMetadata: true,
+                password: redactionPassword || pdfPassword,
+                strategy: redactionStrategy,
               },
-              (p) => setProgress(45 + Math.round((p / 100) * 50))
+              (p, msg) => {
+                if (msg) setStatusMessage(msg);
+                setProgress(45 + Math.round((p / 100) * 50));
+              }
             );
             outputBytes = redactResult.pdfBytes;
             outputName = `PDFSun_Sanitized_${files[0].name}`;
@@ -4010,6 +4026,41 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Phone Numbers</span>
                     </label>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Sanitization Strategy
+                    </label>
+                    <select
+                      value={redactionStrategy}
+                      onChange={(e) => setRedactionStrategy(e.target.value as any)}
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="auto">Auto (Smart Hybrid - Stream & Scanned)</option>
+                      <option value="deep_raster">Deep Pixel Burn (Hardened for Scanned PDFs & CID Fonts)</option>
+                      <option value="vector_stream">Vector Stream Only (Preserve Clean Text)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Document Password (if encrypted)
+                    </label>
+                    <input
+                      type="password"
+                      value={redactionPassword}
+                      onChange={(e) => setRedactionPassword(e.target.value)}
+                      placeholder="Authorized password..."
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  <span className="font-bold">Scanned Document & Font Notice: </span>
+                  When redacting scanned documents or custom CID fonts, Deep Pixel Burn completely replaces affected pages with sanitized high-DPI images to guarantee underlying image XObjects cannot be extracted. Unaffected pages retain 100% original vector crispness.
                 </div>
               </div>
             )}

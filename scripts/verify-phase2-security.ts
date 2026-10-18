@@ -248,6 +248,71 @@ async function verifyAll() {
   const protectHasFetch = protectPdfSection.includes("fetch(") || protectPdfSection.includes("http://") || protectPdfSection.includes("https://");
   recordCheck("protectPdf implementation has ZERO network requests", !protectHasFetch);
 
+  // -------------------------------------------------------------
+  // TEST SUITE 4: Scanned PDF & Raster Image XObject Sanitization
+  // -------------------------------------------------------------
+  console.log("\n>>> [4/5] VERIFYING SCANNED PDF & IMAGE XOBJECT REDACTION");
+
+  const scannedDoc = await PDFDocument.create();
+  const testPngBytes = new Uint8Array([
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 8, 215, 99, 248, 207, 192, 0, 0, 3, 1, 1, 0, 24, 221, 141, 176, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130
+  ]);
+  const originalEmbeddedImg = await scannedDoc.embedPng(testPngBytes);
+  const scannedP = scannedDoc.addPage([500, 700]);
+  scannedP.drawImage(originalEmbeddedImg, { x: 50, y: 50, width: 400, height: 600 });
+  const rawScannedPdf = await scannedDoc.save();
+
+  const scannedFile = new File([new Blob([rawScannedPdf])], "ScannedScan.pdf", { type: "application/pdf" });
+  const scannedSanitized = await redactPdfPermanently(scannedFile, {
+    boxes: [{ pageIndex: 0, x: 100, y: 200, width: 200, height: 50 }],
+    strategy: "deep_raster",
+  });
+
+  recordCheck("Scanned PDF Redaction produces valid byte stream", scannedSanitized.pdfBytes.length > 0);
+  recordCheck("Scanned PDF correctly selects pixel_raster sanitization", scannedSanitized.rasterizedPages.includes(0));
+
+  const loadedSanitizedScanned = await PDFDocument.load(scannedSanitized.pdfBytes);
+  const page0Size = loadedSanitizedScanned.getPage(0).getSize();
+  recordCheck("Scanned PDF preserves page dimensions (500x700)", page0Size.width === 500 && page0Size.height === 700);
+
+  // -------------------------------------------------------------
+  // TEST SUITE 5: Encrypted Fail-Closed & Malformed Input Handling
+  // -------------------------------------------------------------
+  console.log("\n>>> [5/5] VERIFYING ENCRYPTED FAIL-CLOSED & MALFORMED INPUT SAFETY");
+
+  const encDoc = await PDFDocument.create();
+  encDoc.addPage([300, 300]).drawText("Top Secret Encrypted Text");
+  const rawDocBytes = await encDoc.save();
+  const lockedBytes = await encryptPDF(rawDocBytes, "AuthorizedPass99");
+  const lockedFile = new File([new Blob([lockedBytes])], "Locked.pdf", { type: "application/pdf" });
+
+  let lockedWithoutPassBlocked = false;
+  try {
+    await redactPdfPermanently(lockedFile, { terms: ["Top Secret"] });
+  } catch (e: any) {
+    if (e.message.includes("password-protected")) lockedWithoutPassBlocked = true;
+  }
+  recordCheck("Encrypted PDF without password safely fails closed", lockedWithoutPassBlocked);
+
+  let lockedWithPassUnlocked = false;
+  try {
+    const unlockedRes = await redactPdfPermanently(lockedFile, {
+      terms: ["Top Secret"],
+      password: "AuthorizedPass99",
+    });
+    lockedWithPassUnlocked = unlockedRes.pdfBytes.length > 0;
+  } catch {}
+  recordCheck("Encrypted PDF with authorized password unlocks and sanitizes", lockedWithPassUnlocked);
+
+  let malformedCaughtSafely = false;
+  try {
+    const badFile = new File([new Blob([new Uint8Array([0, 1, 2, 3, 4])])], "bad.pdf", { type: "application/pdf" });
+    await redactPdfPermanently(badFile, { terms: ["bad"] });
+  } catch (e: any) {
+    if (e.message.includes("Document Parsing Failed")) malformedCaughtSafely = true;
+  }
+  recordCheck("Malformed / invalid PDF input fails safely with clear error", malformedCaughtSafely);
+
   console.log("\n=================================================");
   console.log(`Summary: ${passedChecks} Passed, ${failedChecks} Failed out of ${totalChecks} Checks.`);
   console.log("=================================================");

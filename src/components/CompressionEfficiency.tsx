@@ -23,20 +23,10 @@ export const CompressionEfficiency: React.FC<CompressionEfficiencyProps> = ({
   fileName,
   className = "",
 }) => {
-  // Ensure non-negative saved calculation
-  const savedBytes = Math.max(0, originalSize - compressedSize);
-  const rawPercentage = originalSize > 0 ? (savedBytes / originalSize) * 100 : 0;
-  
-  // If compressed size turns out slightly larger due to PDF stream re-wrapping, format realistically
-  const percentage = Math.min(99, Math.max(12, Math.round(rawPercentage)));
-  
-  // Adjusted display compressed size for visual clarity if original equaled output
-  const displayCompressedSize =
-    compressedSize >= originalSize && originalSize > 0
-      ? Math.round(originalSize * ((100 - percentage) / 100))
-      : compressedSize;
-      
-  const displaySavedBytes = Math.max(0, originalSize - displayCompressedSize);
+  const isAlreadyOptimized = compressedSize >= originalSize;
+  const actualCompressedSize = isAlreadyOptimized ? originalSize : compressedSize;
+  const savedBytes = Math.max(0, originalSize - actualCompressedSize);
+  const percentage = originalSize > 0 && !isAlreadyOptimized ? Math.round((savedBytes / originalSize) * 100) : 0;
 
   return (
     <div
@@ -58,20 +48,24 @@ export const CompressionEfficiency: React.FC<CompressionEfficiencyProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">
-              {fileName ? `Optimized ${fileName}` : "PDF document successfully compressed"}
+              {isAlreadyOptimized
+                ? "Document is already maximally compact"
+                : fileName
+                ? `Optimized ${fileName}`
+                : "PDF document successfully compressed"}
             </p>
           </div>
         </div>
 
-        {/* Big Percentage Reduction Badge */}
+        {/* Honest Percentage Reduction Badge */}
         <div className="flex items-center space-x-2 bg-emerald-500/15 dark:bg-emerald-500/25 px-3.5 py-2 rounded-2xl border border-emerald-500/40 self-start sm:self-auto">
           <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-emerald-500 shrink-0" />
           <div className="text-right">
             <div className="text-xs font-black text-emerald-800 dark:text-emerald-200">
-              {percentage}% Size Saved
+              {isAlreadyOptimized ? "Already Optimized" : `${percentage}% Size Saved`}
             </div>
             <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-              -{formatBytes(displaySavedBytes)} smaller
+              {isAlreadyOptimized ? "Zero size inflation" : `-${formatBytes(savedBytes)} smaller`}
             </div>
           </div>
         </div>
@@ -107,7 +101,7 @@ export const CompressionEfficiency: React.FC<CompressionEfficiencyProps> = ({
                 Compressed
               </div>
               <div className="text-xs font-black text-emerald-700 dark:text-emerald-300">
-                {formatBytes(displayCompressedSize)}
+                {formatBytes(actualCompressedSize)}
               </div>
             </div>
           </div>
@@ -124,7 +118,7 @@ export const CompressionEfficiency: React.FC<CompressionEfficiencyProps> = ({
                 Total Saved
               </div>
               <div className="text-xs font-black text-emerald-800 dark:text-emerald-200">
-                {formatBytes(displaySavedBytes)}
+                {formatBytes(savedBytes)}
               </div>
             </div>
           </div>
