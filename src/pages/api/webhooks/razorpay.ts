@@ -11,11 +11,16 @@ import {
   resolvePaymentProduct,
 } from "../../../config/paymentProducts";
 
+import {
+  isWebhookSecretConfigured,
+  verifyWebhookSignature,
+} from "../../../server/razorpayService";
+
 /**
  * Secure POST handler for Razorpay Webhooks (src/pages/api/webhooks/razorpay.ts)
  * 
  * Verifies:
- * 1. Cryptographic HMAC-SHA256 signature using process.env.RAZORPAY_WEBHOOK_SECRET
+ * 1. Cryptographic HMAC-SHA256 signature using process.env.RAZORPAY_WEBHOOK_SECRET (fail closed)
  * 2. Strict idempotency by checking the Firestore 'transactions' collection for existing payment IDs
  * 3. Payment status is 'captured'
  * 4. Cross-references Order ID, amount, and currency with Firestore records
@@ -27,31 +32,27 @@ export default async function handleRazorpayWebhook(req: Request, res: Response)
   }
 
   try {
-    // 1. Signature Verification with RAZORPAY_WEBHOOK_SECRET
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
-    const signature = (req.headers["x-razorpay-signature"] as string) || "";
-
-    if (webhookSecret && signature) {
-      const rawBodyString = (req as any).rawBody
-        ? (req as any).rawBody.toString("utf-8")
-        : typeof req.body === "string"
-        ? req.body
-        : JSON.stringify(req.body);
-
-      const expectedSignature = crypto
-        .createHmac("sha256", webhookSecret)
-        .update(rawBodyString)
-        .digest("hex");
-
-      const sigBuffer = Buffer.from(signature, "utf-8");
-      const expectedBuffer = Buffer.from(expectedSignature, "utf-8");
-
-      if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-        console.error("[Razorpay Webhook API] Invalid HMAC-SHA256 Signature!");
-        return res.status(400).json({ success: false, error: "Invalid Razorpay webhook signature." });
-      }
-      console.log("[Razorpay Webhook API] HMAC-SHA256 Signature verified successfully.");
+    // 1. Signature Verification with RAZORPAY_WEBHOOK_SECRET (Fail closed if secret missing or signature invalid)
+    if (!isWebhookSecretConfigured()) {
+      console.error("[Razorpay Webhook API] Webhook rejected: RAZORPAY_WEBHOOK_SECRET is not configured or is a placeholder.");
+      return res.status(503).json({ success: false, error: "Razorpay webhook signature verification is unavailable: gateway secret not configured." });
     }
+
+    const signature = (req.headers["x-razorpay-signature"] as string) || "";
+    if (!signature) {
+      console.error("[Razorpay Webhook API] Webhook rejected: Missing x-razorpay-signature header.");
+      return res.status(400).json({ success: false, error: "Missing x-razorpay-signature header." });
+    }
+
+    const rawBody = (req as any).rawBody || (typeof req.body === "string" ? req.body : JSON.stringify(req.body));
+    const isValidSignature = verifyWebhookSignature(rawBody, signature);
+    if (!isValidSignature) {
+      console.error("[Razorpay Webhook API] Invalid HMAC-SHA256 Signature!");
+      return res.status(400).json({ success: false, error: "Invalid Razorpay webhook signature." });
+    }
+
+    console.log("[Razorpay Webhook API] HMAC-SHA256 Signature verified successfully.");
+
 
     // 2. Validate Event Structure
     const eventBody = typeof req.body === "string" ? JSON.parse(req.body) : req.body;

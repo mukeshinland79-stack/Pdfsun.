@@ -359,16 +359,16 @@ export async function reconcilePaymentWithFirestore(
     orderVerifiedInFirestore: false,
   };
 
-  // 1. Signature Verification Requirement Check
-  if (input.signatureVerified === false) {
-    console.error(`[Payment Reconciliation REJECTED] Signature verification failed for ${input.paymentId}`);
+  // 1. Signature Verification Requirement Check (Fail closed: must be strictly true)
+  if (input.signatureVerified !== true) {
+    console.error(`[Payment Reconciliation REJECTED] Signature verification failed or unverified for ${input.paymentId}`);
     return {
       success: false,
       reconciled: false,
       paymentId: input.paymentId,
       userEmail: normalizedEmail,
       status: "INVALID_SIGNATURE",
-      error: "Webhook or checkout HMAC-SHA256 signature verification failed",
+      error: "Webhook or checkout HMAC-SHA256 signature verification failed or signature was not verified",
       details,
     };
   }

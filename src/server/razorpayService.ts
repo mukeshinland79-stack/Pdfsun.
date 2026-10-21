@@ -124,8 +124,49 @@ export async function createSubscriptionInstance(params: {
 }
 
 /**
+ * Check whether a valid, non-placeholder Razorpay secret key is configured.
+ */
+export function isRazorpaySecretConfigured(): boolean {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return false;
+  const s = secret.trim().toLowerCase();
+  if (
+    s === "" ||
+    s.includes("placeholder") ||
+    s.includes("your_live_key_secret") ||
+    s.includes("change_me") ||
+    s.includes("xxxxxxxx") ||
+    s.length < 8
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Check whether a valid Razorpay webhook secret is configured.
+ */
+export function isWebhookSecretConfigured(): boolean {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return false;
+  const s = secret.trim().toLowerCase();
+  if (
+    s === "" ||
+    s.includes("placeholder") ||
+    s.includes("your_live_key_secret") ||
+    s.includes("change_me") ||
+    s.includes("xxxxxxxx") ||
+    s.length < 4
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Verifies Razorpay Subscription Payment Signature
  * Formula: HMAC_SHA256(razorpay_payment_id + "|" + razorpay_subscription_id, secret)
+ * STRICT SECURITY: Fails closed if secret is missing/placeholder or signature mismatch.
  */
 export function verifySubscriptionSignature(params: {
   razorpay_payment_id: string;
@@ -133,36 +174,90 @@ export function verifySubscriptionSignature(params: {
   razorpay_signature: string;
 }): boolean {
   const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = params;
-  const secret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!secret || secret.includes("placeholder") || secret.includes("your_live_key_secret")) {
-    console.log("[RazorpayService] Development mode: RAZORPAY_KEY_SECRET not set, verified in sandbox mode.");
-    return true;
+  if (!isRazorpaySecretConfigured()) {
+    console.error("[RazorpayService] Payment verification failed closed: RAZORPAY_KEY_SECRET is not configured or is a placeholder.");
+    return false;
   }
 
   if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature) {
     return false;
   }
 
-  const generatedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
-    .digest("hex");
+  const secret = process.env.RAZORPAY_KEY_SECRET!;
+  try {
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
+      .digest("hex");
 
-  return generatedSignature === razorpay_signature;
+    const sigBuffer = Buffer.from(razorpay_signature, "utf-8");
+    const generatedBuffer = Buffer.from(generatedSignature, "utf-8");
+
+    if (sigBuffer.length !== generatedBuffer.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(sigBuffer, generatedBuffer);
+  } catch (err) {
+    console.error("[RazorpayService] Subscription signature verification error:", err);
+    return false;
+  }
+}
+
+/**
+ * Verifies Razorpay Standard Order Payment Signature
+ * Formula: HMAC_SHA256(razorpay_order_id + "|" + razorpay_payment_id, secret)
+ * STRICT SECURITY: Fails closed if secret is missing/placeholder or signature mismatch.
+ */
+export function verifyOrderSignature(params: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}): boolean {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = params;
+  if (!isRazorpaySecretConfigured()) {
+    console.error("[RazorpayService] Order payment verification failed closed: RAZORPAY_KEY_SECRET is not configured or is a placeholder.");
+    return false;
+  }
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return false;
+  }
+
+  const secret = process.env.RAZORPAY_KEY_SECRET!;
+  try {
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    const sigBuffer = Buffer.from(razorpay_signature, "utf-8");
+    const generatedBuffer = Buffer.from(generatedSignature, "utf-8");
+
+    if (sigBuffer.length !== generatedBuffer.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(sigBuffer, generatedBuffer);
+  } catch (err) {
+    console.error("[RazorpayService] Order signature verification error:", err);
+    return false;
+  }
 }
 
 /**
  * Verifies Webhook HMAC-SHA256 Signature using RAZORPAY_WEBHOOK_SECRET
+ * STRICT SECURITY: Fails closed if secret is missing/placeholder or signature is missing/invalid.
  */
 export function verifyWebhookSignature(rawBody: string | Buffer, signature: string): boolean {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
-  if (!secret) {
-    console.warn("[RazorpayService] RAZORPAY_WEBHOOK_SECRET not configured. Accepting webhook in sandbox/development mode.");
-    return true;
+  if (!isWebhookSecretConfigured()) {
+    console.error("[RazorpayService] Webhook rejected: RAZORPAY_WEBHOOK_SECRET is not configured or is a placeholder.");
+    return false;
   }
-  if (!signature) return false;
+  if (!signature) {
+    console.error("[RazorpayService] Webhook rejected: Missing x-razorpay-signature header.");
+    return false;
+  }
 
+  const secret = (process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET)!;
   try {
     const rawString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf-8");
     const expectedSignature = crypto.createHmac("sha256", secret).update(rawString).digest("hex");
@@ -180,4 +275,5 @@ export function verifyWebhookSignature(rawBody: string | Buffer, signature: stri
     return false;
   }
 }
+
 

@@ -108,17 +108,8 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
         })} (${days} Days Active)`;
       }
 
-      // Persist state in storage
-      try {
-        localStorage.setItem("pdfsun_user_plan_v1", product.productName);
-        localStorage.setItem("pdfsun_pro_plan", "pro");
-        localStorage.setItem("pdfsun_user_is_pro", "true");
-        localStorage.setItem("pdfsun_last_payment_amount", String(product.displayPriceINR));
-        localStorage.setItem("pdfsun_last_payment_id", pId);
-        if (product.credits) {
-          localStorage.setItem("pdfsun_user_credits_v1", String(product.credits));
-        }
-      } catch {}
+      // Session display state only - entitlement is verified server-side
+
 
       setPaymentDetails({
         paymentId: pId,

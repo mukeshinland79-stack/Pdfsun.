@@ -58,8 +58,11 @@ import { authRouter, handleVerifySession, handleLogout } from "./src/server/auth
 import {
   createSubscriptionInstance,
   verifySubscriptionSignature,
+  verifyOrderSignature,
   verifyWebhookSignature,
   resolveRazorpayPlanId,
+  isRazorpaySecretConfigured,
+  isWebhookSecretConfigured,
 } from "./src/server/razorpayService";
 import {
   PDFSUN_PAYMENT_PRODUCTS,
@@ -1942,28 +1945,31 @@ const handleRazorpayWebhook = async (req: express.Request, res: express.Response
       return res.status(400).json({ success: false, error: "Invalid webhook payload: missing 'payload' object property" });
     }
 
-    // 2. Cryptographic Signature Verification with RAZORPAY_WEBHOOK_SECRET
-    const signature = (req.headers["x-razorpay-signature"] as string) || "";
-    let signatureVerified = false;
-
-    if (signature) {
-      const rawBodyString = (req as any).rawBody
-        ? (req as any).rawBody.toString("utf-8")
-        : typeof req.body === "string"
-        ? req.body
-        : JSON.stringify(req.body);
-
-      const isValid = verifyWebhookSignature(rawBodyString, signature);
-      if (!isValid) {
-        console.warn("[Razorpay Webhook] Invalid HMAC-SHA256 Signature using RAZORPAY_WEBHOOK_SECRET!");
-        return res.status(400).json({ success: false, error: "Invalid Razorpay Webhook HMAC-SHA256 Signature" });
-      }
-      signatureVerified = true;
-      console.log(`[Razorpay Webhook] HMAC-SHA256 Signature successfully validated!`);
-    } else {
-      // In development or when webhook secret is optional
-      signatureVerified = true;
+    // 2. Cryptographic Signature Verification with RAZORPAY_WEBHOOK_SECRET (Fail closed)
+    if (!isWebhookSecretConfigured()) {
+      console.error("[Razorpay Webhook] Webhook rejected: RAZORPAY_WEBHOOK_SECRET is not configured or is a placeholder.");
+      return res.status(503).json({ success: false, error: "Razorpay webhook signature verification is unavailable: gateway secret not configured." });
     }
+
+    const signature = (req.headers["x-razorpay-signature"] as string) || "";
+    if (!signature) {
+      console.warn("[Razorpay Webhook] Missing x-razorpay-signature header!");
+      return res.status(400).json({ success: false, error: "Missing Razorpay Webhook HMAC-SHA256 Signature header" });
+    }
+
+    const rawBodyString = (req as any).rawBody
+      ? (req as any).rawBody.toString("utf-8")
+      : typeof req.body === "string"
+      ? req.body
+      : JSON.stringify(req.body);
+
+    const isValid = verifyWebhookSignature(rawBodyString, signature);
+    if (!isValid) {
+      console.warn("[Razorpay Webhook] Invalid HMAC-SHA256 Signature using RAZORPAY_WEBHOOK_SECRET!");
+      return res.status(400).json({ success: false, error: "Invalid Razorpay Webhook HMAC-SHA256 Signature" });
+    }
+    const signatureVerified = true;
+    console.log(`[Razorpay Webhook] HMAC-SHA256 Signature successfully validated!`);
 
     // 3. Extract Event or Payment ID for Idempotency check
     const eventId =
@@ -2176,6 +2182,26 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
 
     console.log(`[Razorpay Verification] Verifying payment ${razorpay_payment_id} for plan ${planId} (${userEmail})`);
 
+    // Strict Fail-Closed Check: Secret must be configured and valid
+    if (!isRazorpaySecretConfigured()) {
+      console.error("[Razorpay Verification] Payment verification unavailable: RAZORPAY_KEY_SECRET is not configured or is a placeholder.");
+      return res.status(503).json({
+        success: false,
+        verified: false,
+        error: "Payment verification unavailable: Razorpay gateway secrets are not configured in production environment.",
+      });
+    }
+
+    // Strict Fail-Closed Check: Payment ID, signature, and either subscription_id or order_id must be provided
+    if (!razorpay_payment_id || !razorpay_signature || (!razorpay_subscription_id && !razorpay_order_id)) {
+      console.warn("[Razorpay Verification] Verification failed: missing required payment ID, signature, or order/subscription ID.");
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: "Missing required Razorpay payment credentials or cryptographic signature for verification.",
+      });
+    }
+
     let signatureVerified = false;
 
     // 1. Subscription-based signature verification
@@ -2186,21 +2212,23 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
         razorpay_signature,
       });
     } else if (razorpay_order_id && razorpay_signature) {
-      const secret = process.env.RAZORPAY_KEY_SECRET;
-      if (secret && !secret.includes("placeholder") && !secret.includes("your_live_key_secret")) {
-        const generatedSignature = crypto
-          .createHmac("sha256", secret)
-          .update(razorpay_order_id + "|" + razorpay_payment_id)
-          .digest("hex");
-        signatureVerified = generatedSignature === razorpay_signature;
-      } else {
-        signatureVerified = true;
-      }
-    } else {
-      signatureVerified = true; // sandbox/link verification
+      signatureVerified = verifyOrderSignature({
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      });
     }
 
-    const pId = razorpay_payment_id || `pay_rzp_${Date.now()}`;
+    if (!signatureVerified) {
+      console.error(`[Razorpay Verification] Invalid signature for payment ${razorpay_payment_id}`);
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: "Cryptographic signature verification failed: invalid payment signature.",
+      });
+    }
+
+    const pId = razorpay_payment_id;
     const productConfig = resolvePaymentProduct({
       planId,
       amountPaise: Number(amountPaise),
@@ -2208,6 +2236,17 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
     });
     const normalizedPlanId = productConfig.internalProductId;
     const verifiedAmountPaise = Number(amountPaise) || productConfig.displayPriceINR * 100;
+
+    // Validate minimum required amount against product catalog
+    const expectedPaise = productConfig.displayPriceINR * 100;
+    if (verifiedAmountPaise < expectedPaise) {
+      console.error(`[Razorpay Verification] Amount mismatch: expected ${expectedPaise} paise, received ${verifiedAmountPaise} paise.`);
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: `Payment amount ₹${verifiedAmountPaise / 100} is less than required plan price ₹${expectedPaise / 100}.`,
+      });
+    }
 
     // Execute full Firestore database reconciliation & entitlement grant
     const reconResult = await reconcilePaymentWithFirestore({
@@ -2219,9 +2258,19 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
       currency,
       status: "captured",
       planId: normalizedPlanId,
-      signatureVerified,
+      signatureVerified: true,
       source: "client_verify",
     });
+
+    if (!reconResult.success) {
+      console.error(`[Razorpay Verification] Reconciliation failed for ${pId}:`, reconResult.error);
+      return res.status(400).json({
+        success: false,
+        verified: true,
+        error: reconResult.error || "Payment reconciliation failed.",
+        details: reconResult.details,
+      });
+    }
 
     try {
       recordServerAuditLog({
@@ -2367,28 +2416,28 @@ app.all("/api/user/subscription", (req, res) => {
   }
 });
 
-// Endpoint to activate / renew user plan directly
-app.post("/api/user/activate-plan", (req, res) => {
+// Endpoint to activate / renew user plan directly (ADMIN ONLY - protected with dual owner verification)
+app.post("/api/user/activate-plan", verifyDualOwnerAccess, (req, res) => {
   try {
     const { userId, planId, paymentId } = req.body || {};
     if (!userId || !planId) {
       return res.status(400).json({ success: false, error: "userId and planId are required" });
     }
 
-    const pId = paymentId || `pay_rzp_${Date.now()}`;
+    const pId = paymentId || `pay_admin_${Date.now()}`;
     const result = recordVerifiedTransaction({
       paymentId: pId,
       userEmail: userId,
       amountPaise: 0,
       status: "COMPLETED",
       planId,
-      paymentMethod: "Direct System Activation",
+      paymentMethod: "Manual Owner Admin Grant",
       signatureVerified: true,
     });
 
     res.json({
       success: true,
-      message: "Subscription activated successfully",
+      message: "Subscription granted by admin successfully",
       subscription: result.subscription,
     });
   } catch (err: any) {
@@ -2551,22 +2600,13 @@ app.post("/api/enterprise/inquiry", (req, res) => {
   }
 });
 
-// Fallback Endpoint for Manual Real-Time Sync Payment Status
+// Synchronize payment status strictly from verified transactions store
 app.post("/api/user/sync-payment-status", (req, res) => {
   try {
-    const { email, userId, paymentId } = req.body || {};
-    const targetEmail = (email || userId || "mukeshinland79@gmail.com").toString().toLowerCase().trim();
-
-    if (paymentId) {
-      recordVerifiedTransaction({
-        paymentId,
-        userEmail: targetEmail,
-        amountPaise: 19900,
-        status: "COMPLETED",
-        planId: "pro-monthly",
-        paymentMethod: "Manual Sync / UPI",
-        signatureVerified: true,
-      });
+    const { email, userId } = req.body || {};
+    const targetEmail = (email || userId || "").toString().toLowerCase().trim();
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, error: "email or userId is required" });
     }
 
     const userTxList = getUserTransactions(targetEmail);

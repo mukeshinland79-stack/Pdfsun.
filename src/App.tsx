@@ -649,34 +649,68 @@ function MainApp() {
     }
   }, [authLoading, canAccessAdmin, isAuthenticated]);
 
-  // Payment Handler
+  // Payment Verification Handler: Never activate plans based solely on unverified query params or browser state
   useEffect(() => {
     if (typeof window !== "undefined" && !paymentHandledRef.current) {
       const params = new URLSearchParams(window.location.search);
       const isPaymentPath = window.location.pathname === "/payment-success" || window.location.pathname.startsWith("/payment/");
-      const isPaymentQuery = params.has("razorpay_payment_id") || params.has("payment_id") || params.get("payment_status") === "success";
+      const paymentId = params.get("razorpay_payment_id") || params.get("payment_id");
+      const signature = params.get("razorpay_signature");
+      const orderId = params.get("razorpay_order_id");
+      const subscriptionId = params.get("razorpay_subscription_id");
+      const rawPlan = params.get("plan") || params.get("plan_id") || "pro-monthly";
 
-      if (isPaymentPath || isPaymentQuery) {
+      const hasPaymentParams = Boolean(
+        isPaymentPath ||
+        params.has("razorpay_payment_id") ||
+        params.has("payment_id") ||
+        params.get("payment_status") === "success" ||
+        params.get("payment") === "success"
+      );
+
+      if (hasPaymentParams) {
         paymentHandledRef.current = true;
-        const rawPlan = params.get("plan") || localStorage.getItem("pdfsun_last_checkout_plan") || "";
-        const rawAmount = params.get("amount") || localStorage.getItem("pdfsun_last_checkout_amount") || "";
-        const paymentId = params.get("razorpay_payment_id") || params.get("payment_id") || `pay_rzp_${Date.now()}`;
 
-        const resolvedProduct = resolvePaymentProduct({
-          planId: rawPlan,
-          amountINR: rawAmount ? Number(rawAmount.replace(/[^0-9.]/g, "")) : undefined,
-        });
-
-        handleInstantProUnlock(resolvedProduct.productName);
-        setPaymentSuccessModalOpen(true);
-        trackGAPaymentSuccess(resolvedProduct.internalProductId, paymentId, resolvedProduct.displayPriceINR, "INR");
+        // If cryptographic signature exists, verify with server
+        if (paymentId && signature && (orderId || subscriptionId)) {
+          fetch("/api/razorpay/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: paymentId,
+              razorpay_signature: signature,
+              razorpay_order_id: orderId || undefined,
+              razorpay_subscription_id: subscriptionId || undefined,
+              planId: rawPlan,
+              userEmail: userProfile?.email || "user@pdfsun.in",
+            }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.success && data.verified) {
+                if (userProfile?.email) syncSubscription(userProfile.email);
+                setPaymentSuccessModalOpen(true);
+              } else {
+                console.error("[Payment Security] Payment verification rejected by server:", data.error);
+              }
+            })
+            .catch((err) => {
+              console.error("[Payment Security] Payment verification network error:", err);
+            });
+        } else {
+          // Fake or unverified query parameters: check authentic server subscription state only
+          console.warn("[Payment Security] Unverified payment parameters detected. Querying server authoritative status.");
+          if (userProfile?.email) {
+            syncSubscription(userProfile.email);
+          }
+        }
 
         try {
           window.history.replaceState({}, document.title, isPaymentPath ? "/" : window.location.pathname);
         } catch (e) {}
       }
     }
-  }, [handleInstantProUnlock]);
+  }, [userProfile?.email, syncSubscription]);
 
   const { shortcuts, shortcutsEnabled, toggleShortcutsEnabled, updateShortcutKeyCombo, resetToDefaults } = useKeyboardShortcutsManager({
     onSelectTool: (tool) => handleSelectTool(tool),

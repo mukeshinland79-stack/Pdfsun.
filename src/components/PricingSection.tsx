@@ -118,13 +118,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       "@type": "Brand",
       "name": "PDFSun"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "1280",
-      "bestRating": "5",
-      "worstRating": "1"
-    },
     "offers": [
       {
         "@type": "Offer",
@@ -588,31 +581,67 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     }
   };
 
-  // Check URL query parameters for return from Razorpay Checkout
+  // Check URL query parameters for return from Razorpay Checkout with STRICT cryptographic server verification
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const isSuccess =
-        params.get("payment") === "success" ||
-        params.has("razorpay_payment_id") ||
-        params.has("payment_id") ||
-        params.has("plan_activated");
+      const paymentId = params.get("razorpay_payment_id") || params.get("payment_id");
+      const signature = params.get("razorpay_signature");
+      const orderId = params.get("razorpay_order_id");
+      const subscriptionId = params.get("razorpay_subscription_id");
       const returnedPlanId = params.get("plan") || params.get("plan_id") || params.get("plan_activated");
-      const returnedPaymentId = params.get("razorpay_payment_id") || params.get("payment_id");
 
-      if (isSuccess && returnedPlanId) {
-        const matched =
-          plans.find((p) => p.id === returnedPlanId) ||
-          (returnedPlanId === "enterprise-sso" ? enterprisePlanTier : null);
-        const planName = matched?.name || (returnedPlanId === "flexi" ? "Flex Pass" : "Pro Sun Plan");
-        activatePlanLocally(returnedPlanId, planName, returnedPaymentId || undefined);
+      const hasPaymentParams = Boolean(
+        params.get("payment") === "success" ||
+        paymentId ||
+        signature ||
+        params.has("plan_activated")
+      );
+
+      if (hasPaymentParams) {
+        // If legitimate cryptographic signature exists, verify with server
+        if (paymentId && signature && (orderId || subscriptionId)) {
+          setIsProcessing(true);
+          fetch("/api/razorpay/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: paymentId,
+              razorpay_signature: signature,
+              razorpay_order_id: orderId || undefined,
+              razorpay_subscription_id: subscriptionId || undefined,
+              planId: returnedPlanId || "pro-monthly",
+              userEmail: currentUserId || "user@pdfsun.in",
+            }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.success && data.verified) {
+                fetchUserSubscription();
+                if (onSuccessUpgrade) onSuccessUpgrade();
+              } else {
+                console.error("[Payment Security] Payment verification rejected by server:", data.error);
+              }
+            })
+            .catch((err) => {
+              console.error("[Payment Security] Verification network error:", err);
+            })
+            .finally(() => {
+              setIsProcessing(false);
+            });
+        } else {
+          // Fake or unverified payment query parameters detected: DO NOT ACTIVATE!
+          console.warn("[Payment Security] Unverified payment query parameters rejected. Server verification required.");
+          // Refresh legitimate server status without activating fake parameters
+          fetchUserSubscription();
+        }
 
         // Clean query params gracefully
         const cleanUrl = window.location.pathname + (window.location.hash || "");
         window.history.replaceState({}, "", cleanUrl);
       }
     }
-  }, [plans, enterprisePlanTier]);
+  }, [plans, enterprisePlanTier, currentUserId, fetchUserSubscription, onSuccessUpgrade]);
 
   const effectiveActiveSubscription = useMemo(() => {
     const getPlanDefaultAmount = (pid: string) => {
@@ -624,41 +653,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       return "₹0";
     };
 
-    if (localSubscription && localSubscription.status === "active") {
-      return {
-        ...localSubscription,
-        amountPaid: localSubscription.amountPaid || getPlanDefaultAmount(localSubscription.planId),
-      };
-    }
+    // Strict security: rely only on active, non-expired server-side subscription
     if (userSubscription && (userSubscription.status === "active" || userSubscription.status === "Plan Activated")) {
-      const plan = plans.find((p) => p.id === userSubscription.plan_id) || (userSubscription.plan_id === "enterprise-sso" ? enterprisePlanTier : null);
-      const planName = plan?.name || "PDFSun Active Plan";
-      return {
-        planId: userSubscription.plan_id,
-        planName,
-        status: "active",
-        activatedOn: "Live",
-        expiresOn: userSubscription.expires_at ? new Date(userSubscription.expires_at).toLocaleDateString("en-IN") : "Active",
-        dailyUsageLimit: "UNLIMITED",
-        amountPaid: (userSubscription as any).amount_paid || getPlanDefaultAmount(userSubscription.plan_id),
-      };
-    }
-    if (activePlanId && activePlanId !== "free") {
-      const plan = plans.find((p) => p.id === activePlanId) || (activePlanId === "enterprise-sso" ? enterprisePlanTier : null);
-      if (plan) {
+      const isExpired = userSubscription.expires_at ? new Date(userSubscription.expires_at) <= new Date() : false;
+      if (!isExpired) {
+        const plan = plans.find((p) => p.id === userSubscription.plan_id) || (userSubscription.plan_id === "enterprise-sso" ? enterprisePlanTier : null);
+        const planName = plan?.name || "PDFSun Active Plan";
         return {
-          planId: plan.id,
-          planName: plan.name,
+          planId: userSubscription.plan_id,
+          planName,
           status: "active",
-          activatedOn: "Live",
-          expiresOn: new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-IN"),
+          activatedOn: userSubscription.activated_at ? new Date(userSubscription.activated_at).toLocaleDateString("en-IN") : "Live",
+          expiresOn: userSubscription.expires_at ? new Date(userSubscription.expires_at).toLocaleDateString("en-IN") : "Active",
           dailyUsageLimit: "UNLIMITED",
-          amountPaid: getPlanDefaultAmount(plan.id),
+          amountPaid: (userSubscription as any).amount_paid || getPlanDefaultAmount(userSubscription.plan_id),
         };
       }
     }
     return null;
-  }, [localSubscription, userSubscription, activePlanId, plans, enterprisePlanTier]);
+  }, [userSubscription, plans, enterprisePlanTier]);
 
   const handleSelectPlan = async (plan: PlanTier) => {
     if (plan.disabled || plan.id === "free" || plan.billingType === "free") return;
@@ -719,9 +732,37 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   setIsProcessing(false);
                 },
               },
-              handler: function (response: any) {
-                activatePlanLocally(plan.id, plan.name, response.razorpay_payment_id);
-                setIsProcessing(false);
+              handler: async function (response: any) {
+                setIsProcessing(true);
+                try {
+                  const verifyRes = await fetch("/api/razorpay/verify-payment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_order_id: response.razorpay_order_id || orderData.orderId,
+                      razorpay_signature: response.razorpay_signature,
+                      razorpay_subscription_id: response.razorpay_subscription_id || orderData.subscriptionId,
+                      planId: plan.id,
+                      userEmail: currentUserId || "user@pdfsun.in",
+                      amountPaise,
+                      currency,
+                    }),
+                  });
+                  const verifyData = await verifyRes.json();
+                  if (verifyData.success && verifyData.verified) {
+                    await fetchUserSubscription();
+                    if (onSuccessUpgrade) {
+                      onSuccessUpgrade();
+                    }
+                  } else {
+                    console.error("[Razorpay Modal] Server payment verification rejected:", verifyData.error);
+                  }
+                } catch (vErr) {
+                  console.error("[Razorpay Modal] Server verification network error:", vErr);
+                } finally {
+                  setIsProcessing(false);
+                }
               },
             });
 
