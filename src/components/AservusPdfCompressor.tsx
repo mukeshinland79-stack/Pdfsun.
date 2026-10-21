@@ -492,6 +492,10 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
         {/* Inner Content Area */}
         <div className="p-6 sm:p-10 relative z-10">
+          {/* Explicit UI Trust Badge */}
+          <div className="flex items-center justify-center gap-2 py-2 px-4 mb-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-xs text-center">
+            <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
+          </div>
 
           {/* Hero Heading Banner */}
           <div className="text-center mb-8">

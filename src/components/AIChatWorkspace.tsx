@@ -1053,6 +1053,11 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
           <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden min-h-0 relative w-full">
             {/* Left Column: File Drop & Text Preview */}
             <div className="md:col-span-4 p-3.5 sm:p-4 border-r border-slate-200 bg-slate-50/60 flex flex-col space-y-3 overflow-y-auto min-h-0 min-w-0 scrollbar-thin">
+              {/* Explicit UI Trust Badge */}
+              <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold shadow-2xs text-center">
+                <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
+              </div>
+
               {/* Document Picker */}
               <div
                 {...getRootProps()}

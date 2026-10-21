@@ -100,8 +100,7 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
           </div>
 
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            Zero Server Uploads
+            <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
           </span>
         </div>
 

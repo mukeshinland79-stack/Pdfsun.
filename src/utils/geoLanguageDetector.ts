@@ -36,6 +36,7 @@ export const TOP_30_LANGUAGES: SupportedLanguage[] = [
   { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷", direction: "rtl", hreflang: "fa", popularCountries: ["IR", "AF", "TJ"] },
   { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", flag: "🇲🇾", hreflang: "ms", popularCountries: ["MY", "BN", "SG"] },
   { code: "el", name: "Greek", nativeName: "Ελληνικά", flag: "🇬🇷", hreflang: "el", popularCountries: ["GR", "CY"] },
+  { code: "he", name: "Hebrew", nativeName: "עברית", flag: "🇮🇱", direction: "rtl", hreflang: "he", popularCountries: ["IL"] },
 ];
 
 /**

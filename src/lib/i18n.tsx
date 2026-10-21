@@ -61,6 +61,7 @@ export const SUPPORTED_LANGUAGES: ReadonlyArray<LanguageOption> = [
   { code: "ms", name: "Malay", nativeName: "Bahasa Melayu", dir: "ltr", flag: "🇲🇾" },
   { code: "it", name: "Italian", nativeName: "Italiano", dir: "ltr", flag: "🇮🇹" },
   { code: "el", name: "Greek", nativeName: "Ελληνικά", dir: "ltr", flag: "🇬🇷" },
+  { code: "he", name: "Hebrew", nativeName: "עברית", dir: "rtl", flag: "🇮🇱", isRtl: true },
 ];
 
 export const RTL_LANGUAGES = ["ar", "ur", "fa", "he"];

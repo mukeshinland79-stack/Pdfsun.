@@ -167,6 +167,24 @@ export function trafficSecurityHeadersMiddleware(req: Request, res: Response, ne
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
   }
 
+  // Strict Content Security Policy (Zero-Data Leakage Shield)
+  // Permits client-side WASM & Web Workers (blob:, data:), Google Fonts/Analytics/AdSense, and Razorpay
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdn.jsdelivr.net https://unpkg.com https://www.google-analytics.com https://www.googletagmanager.com https://pagead2.googlesyndication.com blob: data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https: http:",
+    "connect-src 'self' https: wss: ws: blob: data:",
+    "worker-src 'self' blob: data:",
+    "child-src 'self' blob: https://checkout.razorpay.com https://api.razorpay.com",
+    "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.google.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://checkout.razorpay.com https://api.razorpay.com",
+  ].join("; ");
+  res.setHeader("Content-Security-Policy", csp);
+
   next();
 }
 

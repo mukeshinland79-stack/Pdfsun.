@@ -1,3 +1,12 @@
+// Standard Uint8Array.prototype.toHex polyfill for pdfjs fingerprinting compatibility across runtimes
+if (typeof (Uint8Array.prototype as any).toHex === "undefined") {
+  (Uint8Array.prototype as any).toHex = function (this: Uint8Array) {
+    return Array.from(this)
+      .map((b: number) => b.toString(16).padStart(2, "0"))
+      .join("");
+  };
+}
+
 import { PDFDocument, rgb, degrees, StandardFonts, PDFName } from "pdf-lib";
 import { jsPDF } from "jspdf";
 import JSZip from "jszip";
@@ -169,6 +178,9 @@ if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
 
 // Helper to read File as ArrayBuffer
 export async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
+  if (typeof file.arrayBuffer === "function") {
+    return file.arrayBuffer();
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as ArrayBuffer);
@@ -179,6 +191,9 @@ export async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
 
 // Helper to read File as Text
 export async function fileToText(file: File): Promise<string> {
+  if (typeof file.text === "function") {
+    return file.text();
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
@@ -763,7 +778,11 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
 
   try {
     const arrayBuffer = await fileToArrayBuffer(file);
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const loadingTask = pdfjsLib.getDocument({
+      data: arrayBuffer,
+      useSystemFonts: true,
+      disableFontFace: true,
+    });
     const pdf = await loadingTask.promise;
     let fullText = "";
 

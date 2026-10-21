@@ -697,6 +697,11 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
       {/* Main Content Area */}
       <div className="p-4 sm:p-6 md:p-8 space-y-6 bg-white">
+        {/* Explicit UI Trust Badge */}
+        <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-xs text-center">
+          <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
+        </div>
+
         {/* File Dropzone or Selected File Header */}
         {!file ? (
           <div className="space-y-4">

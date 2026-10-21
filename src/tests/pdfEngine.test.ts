@@ -582,7 +582,8 @@ export async function runPdfEngineTestSuite(): Promise<{
     const loadedXmlPdf = await PDFDocument.load(xmlResult.pdfBytes);
     assert(loadedXmlPdf.getPageCount() >= 1, "XML to PDF produces valid structured PDF document");
 
-    const xmlPdfText = await extractTextFromPdfFile(new File([new Blob([xmlResult.pdfBytes])], "rendered_xml.pdf", { type: "application/pdf" }));
+    const xmlPdfTextRaw = await extractTextFromPdfFile(new File([new Blob([xmlResult.pdfBytes])], "rendered_xml.pdf", { type: "application/pdf" }));
+    const xmlPdfText = xmlPdfTextRaw.replace(/\s+/g, " ");
     assert(xmlPdfText.includes("<company") && xmlPdfText.includes("CORP-99"), "XML output renders root tag and attributes");
     assert(xmlPdfText.includes("<division") && xmlPdfText.includes("Engineering Core"), "XML output renders nested parent container elements");
     assert(xmlPdfText.includes("<member") && xmlPdfText.includes("Dev One"), "XML output renders nested child text nodes");

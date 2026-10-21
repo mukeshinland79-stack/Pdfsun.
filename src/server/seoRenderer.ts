@@ -253,7 +253,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
       jsonLdSchemas: [
         {
           "@context": "https://schema.org",
-          "@type": "WebApplication",
+          "@type": ["WebApplication", "SoftwareApplication"],
           "name": pseoPage.headline,
           "url": `${baseUrl}/${pseoPage.slug}`,
           "description": pseoPage.seoDescription,
@@ -280,6 +280,22 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
             "name": f.question,
             "acceptedAnswer": { "@type": "Answer", "text": f.answer },
           })),
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": "Compress PDF", "item": `${baseUrl}/compress-pdf` },
+            { "@type": "ListItem", "position": 3, "name": pseoPage.headline, "item": `${baseUrl}/${pseoPage.slug}` },
+          ],
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "PDFSun",
+          "url": baseUrl,
+          "logo": `${baseUrl}/logo.png`,
         },
       ],
       crawlableHtml: `
@@ -315,7 +331,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
       jsonLdSchemas: [
         {
           "@context": "https://schema.org",
-          "@type": "WebApplication",
+          "@type": ["WebApplication", "SoftwareApplication"],
           "name": matchedPseo.headline,
           "url": `${baseUrl}/${matchedPseo.slug}`,
           "description": matchedPseo.seoDescription,
@@ -342,6 +358,22 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
             "name": f.question,
             "acceptedAnswer": { "@type": "Answer", "text": f.answer },
           })),
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": "PDF Tools", "item": `${baseUrl}/#tools` },
+            { "@type": "ListItem", "position": 3, "name": matchedPseo.headline, "item": `${baseUrl}/${matchedPseo.slug}` },
+          ],
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "PDFSun",
+          "url": baseUrl,
+          "logo": `${baseUrl}/logo.png`,
         },
       ],
       crawlableHtml: `
@@ -386,7 +418,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
       jsonLdSchemas: [
         {
           "@context": "https://schema.org",
-          "@type": "WebApplication",
+          "@type": ["WebApplication", "SoftwareApplication"],
           "name": `${matchedTool.name} - PDFSun`,
           "url": `${baseUrl}/${matchedTool.slug}`,
           "description": matchedTool.description,
@@ -418,6 +450,22 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
             "name": f.question,
             "acceptedAnswer": { "@type": "Answer", "text": f.answer },
           })),
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": "PDF Tools", "item": `${baseUrl}/#tools` },
+            { "@type": "ListItem", "position": 3, "name": matchedTool.name, "item": `${baseUrl}/${matchedTool.slug}` },
+          ],
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "PDFSun",
+          "url": baseUrl,
+          "logo": `${baseUrl}/logo.png`,
         },
       ],
       crawlableHtml: `

@@ -1995,6 +1995,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             <QuickTipTooltip toolId={tool.id} variant="inline" />
           </div>
 
+          {/* Explicit UI Trust Badge */}
+          <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-sm text-center">
+            <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
+          </div>
+
           {/* Pre-flight Memory Protection Warning */}
           {memoryReport && memoryReport.status !== "safe" && (
             <ToolMemoryWarning

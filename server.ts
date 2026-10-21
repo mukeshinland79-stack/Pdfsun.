@@ -372,8 +372,25 @@ app.get([
 // Mount /assets static directory for any additional asset resolution
 app.use("/assets", express.static(path.join(process.cwd(), "public/assets"), { maxAge: "365d", immutable: true }));
 
+// Explicit static serving of root public/ directory with strict XML Content-Type header enforcement
+app.use(
+  express.static(path.join(process.cwd(), "public"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".xml")) {
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+      }
+    },
+  })
+);
+
 // Trailing Slash Normalization (HTTP 307 preserves POST method and body payload)
 app.use((req, res, next) => {
+  // Prevent redirection loops or trailing-slash stripping on XML sitemaps and text feeds
+  if (req.path.includes(".xml") || req.path.includes(".txt")) {
+    return next();
+  }
   if (req.path.length > 1 && req.path.endsWith("/")) {
     const query = req.url.slice(req.path.length);
     const safePath = req.path.slice(0, -1);
@@ -4038,6 +4055,21 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
 
+  // Strict Content Security Policy (CSP) enforcing zero data leakage while allowing trusted CDNs, GA4, AdSense, and Razorpay
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://checkout.razorpay.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; " +
+    "img-src 'self' data: blob: https://www.pdfsun.in https://*.google.com https://*.google-analytics.com https://pagead2.googlesyndication.com https://*.razorpay.com; " +
+    "connect-src 'self' blob: data: https://*.googleapis.com https://*.google-analytics.com https://*.googlesyndication.com https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com https://firestore.googleapis.com wss: ws:; " +
+    "worker-src 'self' blob:; " +
+    "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; " +
+    "object-src 'none'; " +
+    "base-uri 'self';"
+  );
+
   const host = req.headers.host || "";
   const proto = req.headers["x-forwarded-proto"] || req.protocol;
 
@@ -4124,17 +4156,17 @@ Disallow: /api/admin/
 
 Sitemap: https://www.pdfsun.in/sitemap.xml
 Sitemap: https://www.pdfsun.in/sitemap-blog.xml
-Sitemap: https://www.pdfsun.in/blog-sitemap.xml
 Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
 `);
 });
 
 // Dedicated Blog & Technical Guides Sitemap (for Google Search Console indexing & AdSense review)
-app.get(["/sitemap-blog.xml", "/blog-sitemap.xml"], (req, res) => {
-  res.set("Content-Type", "application/xml; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
-  res.set("X-Content-Type-Options", "nosniff");
+app.get(["/sitemap-blog.xml", "/sitemap-blog.xml/", "/blog-sitemap.xml", "/blog-sitemap.xml/"], (req, res) => {
+  res.status(200);
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   const today = new Date().toISOString().split("T")[0];
 
   const blogIndexEntry = `  <url>
@@ -4153,7 +4185,7 @@ app.get(["/sitemap-blog.xml", "/blog-sitemap.xml"], (req, res) => {
   </url>`;
   }).join("\n");
 
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+  return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${blogIndexEntry}
 ${blogArticles}
@@ -4161,10 +4193,11 @@ ${blogArticles}
 });
 
 // Dedicated Programmatic Target Sizes Sitemap (for Google Search Console monitoring)
-app.get("/sitemap-compress-sizes.xml", (req, res) => {
-  res.set("Content-Type", "application/xml; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
-  res.set("X-Content-Type-Options", "nosniff");
+app.get(["/sitemap-compress-sizes.xml", "/sitemap-compress-sizes.xml/"], (req, res) => {
+  res.status(200);
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   const today = new Date().toISOString().split("T")[0];
 
   const compressUrls = POPULAR_COMPRESS_SIZES.map((size) => {
@@ -4176,17 +4209,18 @@ app.get("/sitemap-compress-sizes.xml", (req, res) => {
   </url>`;
   }).join("\n");
 
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+  return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${compressUrls}
 </urlset>`);
 });
 
 // Dedicated pSEO Landing Pages Sitemap
-app.get("/sitemap-pseo.xml", (req, res) => {
-  res.set("Content-Type", "application/xml; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
-  res.set("X-Content-Type-Options", "nosniff");
+app.get(["/sitemap-pseo.xml", "/sitemap-pseo.xml/"], (req, res) => {
+  res.status(200);
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   const today = new Date().toISOString().split("T")[0];
 
   const pseoUrls = PSEO_LANDING_PAGES.map((page) => {
@@ -4198,17 +4232,18 @@ app.get("/sitemap-pseo.xml", (req, res) => {
   </url>`;
   }).join("\n");
 
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+  return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pseoUrls}
 </urlset>`);
 });
 
 // Dynamic Sitemap.xml
-app.get("/sitemap.xml", (req, res) => {
-  res.set("Content-Type", "application/xml; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
-  res.set("X-Content-Type-Options", "nosniff");
+app.get(["/sitemap.xml", "/sitemap.xml/"], (req, res) => {
+  res.status(200);
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
   
   // Collect unique slugs from all tools, blog posts, pSEO landing pages, popular compress sizes, plus root and static pages
   const staticSlugs = ["", "blog", "privacy-policy", "terms-of-service", "about-us", "contact-us", "cookie-policy", "refund-policy", "today-in-history", "pricing"];
@@ -4240,7 +4275,7 @@ app.get("/sitemap.xml", (req, res) => {
     })
     .join("\n");
 
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+  return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${sitemapEntries}
 </urlset>`);
@@ -4320,6 +4355,19 @@ async function startServer() {
           statusCode: 404,
         });
       }
+
+      // Hard guard: XML sitemap endpoints must NEVER return the HTML SPA document
+      if (url.endsWith(".xml") || url.includes(".xml")) {
+        const cleanName = path.basename(url.split("?")[0]);
+        const publicFile = path.join(process.cwd(), "public", cleanName);
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        if (fs.existsSync(publicFile)) {
+          return res.status(200).sendFile(publicFile);
+        }
+        return res.status(404).send('<?xml version="1.0" encoding="UTF-8"?><error>Sitemap not found</error>');
+      }
+
       try {
         const indexPath = path.resolve(process.cwd(), "index.html");
         if (fs.existsSync(indexPath)) {
@@ -4345,6 +4393,10 @@ async function startServer() {
         setHeaders: (res, filePath) => {
           if (filePath.endsWith(".html")) {
             res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+          } else if (filePath.endsWith(".xml")) {
+            res.setHeader("Content-Type", "application/xml; charset=utf-8");
+            res.setHeader("X-Content-Type-Options", "nosniff");
+            res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
           } else {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
           }
@@ -4360,6 +4412,22 @@ async function startServer() {
           statusCode: 404,
         });
       }
+
+      // Hard guard: XML sitemap endpoints must NEVER return the HTML SPA document
+      if (req.path.endsWith(".xml") || req.path.includes(".xml")) {
+        const cleanName = path.basename(req.path.split("?")[0]);
+        const publicFile = path.join(process.cwd(), "public", cleanName);
+        const distFile = path.join(distPath, cleanName);
+        const targetFile = fs.existsSync(publicFile) ? publicFile : fs.existsSync(distFile) ? distFile : null;
+
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        if (targetFile) {
+          return res.status(200).sendFile(targetFile);
+        }
+        return res.status(404).send('<?xml version="1.0" encoding="UTF-8"?><error>Sitemap not found</error>');
+      }
+
       res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
       const indexPath = path.join(distPath, "index.html");
       if (fs.existsSync(indexPath)) {

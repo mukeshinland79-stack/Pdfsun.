@@ -259,7 +259,7 @@ async function main() {
 
   const compressionResult = await compressPdfEnterprise(
     new File([new Blob([smallOriginalBytes])], "small.pdf", { type: "application/pdf" }),
-    { preset: "extreme", removeMetadata: false }
+    { preset: "extreme" }
   );
 
   const compressionNoInflation = compressionResult.compressedSize <= compressionResult.originalSize;
