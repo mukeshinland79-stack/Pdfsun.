@@ -44,6 +44,7 @@ interface PricingSectionProps {
   isProUser?: boolean;
   onOpenPolicy?: (policy: "privacy" | "terms" | "cookie" | "refund" | "about") => void;
   userProfile?: UserProfile | null;
+  onOpenDashboard?: () => void;
 }
 
 export interface PlanTier {
@@ -89,6 +90,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   isProUser = false,
   onOpenPolicy,
   userProfile,
+  onOpenDashboard,
 }) => {
   const { t } = useLanguage();
   const currentUserId = userProfile?.email ? userProfile.email.toLowerCase().trim() : "";
@@ -165,6 +167,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [refundTxId, setRefundTxId] = useState("");
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
@@ -175,6 +178,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     plan_id: string;
     user_id: string;
     expires_at?: string;
+    activated_at?: string;
+    payment_id?: string;
+    transaction_id?: string;
+    paymentId?: string;
+    transactionId?: string;
+    trueAmountPaid?: number;
+    amount_paid?: string;
   } | null>(null);
 
   // Enterprise Sales Consultation Modal State
@@ -224,7 +234,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       if (res.ok) {
         const data = await res.json();
         if ((data.active || data.isPro || data.status === "Plan Activated" || data.status === "active") && data.subscription) {
-          setUserSubscription(data.subscription);
+          setUserSubscription({
+            ...data.subscription,
+            transaction_id: data.transactionId || data.subscription.payment_id || data.subscription.order_id,
+            payment_id: data.subscription.payment_id || data.transactionId,
+            trueAmountPaid: data.trueAmountPaid,
+          });
           if (data.subscription.plan_id) {
             setActivePlanId(data.subscription.plan_id);
           }
@@ -280,7 +295,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     },
     {
       id: "flexi",
-      name: t("pricing.plans.flexi.name", "Flex Pass"),
+      name: t("pricing.plans.flexi.name", "Flexi Pack"),
       badge: t("pricing.plans.flexi.badge", "7 DAYS • PAY-AS-YOU-GO"),
       badgeBg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
       description: t("pricing.plans.flexi.desc", "Pay-as-you-go access, valid for 7 days. No recurring auto-debit."),
@@ -314,7 +329,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         t("pricing.plans.flexi.f4", "All premium PDF & AI OCR tools"),
         t("pricing.plans.flexi.f5", "Instant Dynamic QR with Auto-Amount"),
       ],
-      cta: t("pricing.plans.flexi.cta", "Get Flex Pass (₹99)"),
+      cta: t("pricing.plans.flexi.cta", "Get Flexi Pack (₹99)"),
     },
     {
       id: "pro-monthly",
@@ -602,6 +617,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         // If legitimate cryptographic signature exists, verify with server
         if (paymentId && signature && (orderId || subscriptionId)) {
           setIsProcessing(true);
+          setVerificationError(null);
           fetch("/api/razorpay/verify-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -617,13 +633,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             .then((r) => r.json())
             .then((data) => {
               if (data.success && data.verified) {
+                setVerificationError(null);
                 fetchUserSubscription();
                 if (onSuccessUpgrade) onSuccessUpgrade();
               } else {
+                setVerificationError(data.error || "Payment verification could not be validated by authoritative server.");
                 console.error("[Payment Security] Payment verification rejected by server:", data.error);
               }
             })
             .catch((err) => {
+              setVerificationError("Network error occurred during payment verification. Please check your connection.");
               console.error("[Payment Security] Verification network error:", err);
             })
             .finally(() => {
@@ -644,13 +663,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   }, [plans, enterprisePlanTier, currentUserId, fetchUserSubscription, onSuccessUpgrade]);
 
   const effectiveActiveSubscription = useMemo(() => {
-    const getPlanDefaultAmount = (pid: string) => {
-      if (pid === "flexi") return "₹99";
-      if (pid === "pro-monthly") return "₹199";
-      if (pid === "pro-yearly") return "₹1,499";
-      if (pid === "enterprise") return "₹3,999";
-      if (pid === "enterprise-sso") return "₹9,999";
-      return "₹0";
+    const getPlanPaiseAndINR = (pid: string) => {
+      if (pid === "flexi") return { inr: "₹99", paise: "9,900 paise" };
+      if (pid === "pro-monthly") return { inr: "₹199", paise: "19,900 paise" };
+      if (pid === "pro-yearly") return { inr: "₹1,499", paise: "149,900 paise" };
+      if (pid === "enterprise") return { inr: "₹3,999", paise: "399,900 paise" };
+      if (pid === "enterprise-sso") return { inr: "₹9,999", paise: "999,900 paise" };
+      return { inr: "₹0", paise: "0 paise" };
     };
 
     // Strict security: rely only on active, non-expired server-side subscription
@@ -659,6 +678,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       if (!isExpired) {
         const plan = plans.find((p) => p.id === userSubscription.plan_id) || (userSubscription.plan_id === "enterprise-sso" ? enterprisePlanTier : null);
         const planName = plan?.name || "PDFSun Active Plan";
+        const pricing = getPlanPaiseAndINR(userSubscription.plan_id);
+        const amountDisplay = (userSubscription as any).amount_paid 
+          ? (userSubscription as any).amount_paid 
+          : `${pricing.inr} (${pricing.paise})`;
+        const paymentReference = 
+          userSubscription.payment_id || 
+          userSubscription.transaction_id || 
+          (userSubscription as any).paymentId || 
+          (userSubscription as any).transactionId || 
+          "pay_auth_verified";
+
         return {
           planId: userSubscription.plan_id,
           planName,
@@ -666,7 +696,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           activatedOn: userSubscription.activated_at ? new Date(userSubscription.activated_at).toLocaleDateString("en-IN") : "Live",
           expiresOn: userSubscription.expires_at ? new Date(userSubscription.expires_at).toLocaleDateString("en-IN") : "Active",
           dailyUsageLimit: "UNLIMITED",
-          amountPaid: (userSubscription as any).amount_paid || getPlanDefaultAmount(userSubscription.plan_id),
+          amountPaid: amountDisplay,
+          paymentId: paymentReference,
         };
       }
     }
@@ -1048,22 +1079,113 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
           {/* 2. MAIN 5 PRICING PLANS GRID */}
           <section id="pricing-plans-grid" className="space-y-4">
-            {/* Instant Active Plan Status Card Display (Directly Above Pricing Cards) */}
+            {/* Processing / Verifying State Banner */}
+            {isProcessing && (
+              <div className="bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-500 rounded-2xl p-4 mb-6 text-amber-900 dark:text-amber-200 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-sm tracking-wide uppercase">
+                      PAYMENT PROCESSING — PLEASE WAIT
+                    </h4>
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      Authoritative server verification in progress. Confirming Razorpay signature and entitlements...
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchUserSubscription()}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow transition shrink-0 cursor-pointer"
+                >
+                  Check Verification Status
+                </button>
+              </div>
+            )}
+
+            {/* Verification Notice / Error Banner */}
+            {verificationError && (
+              <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-500 rounded-2xl p-4 mb-6 text-rose-900 dark:text-rose-200 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-bold text-sm flex items-center gap-2">
+                    ⚠️ Payment Verification Notice
+                  </h4>
+                  <p className="text-xs text-rose-800 dark:text-rose-300 mt-1">
+                    {verificationError}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setVerificationError(null)}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow transition cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Authoritative Active Plan Status Card Display */}
             {effectiveActiveSubscription && effectiveActiveSubscription.planId !== "free" && (
-              <div className="bg-emerald-50 border-2 border-emerald-500 rounded-xl p-4 mb-6 text-emerald-900 shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-lg flex items-center gap-2">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 rounded-2xl p-5 mb-6 text-emerald-900 dark:text-emerald-200 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-emerald-200 dark:border-emerald-800/60">
+                  <span className="font-black text-lg flex items-center gap-2">
                     ✅ PLAN ACTIVATED: {effectiveActiveSubscription.planName}
                   </span>
-                  <span className="px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full">
-                    ACTIVE
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white text-xs font-black uppercase tracking-wider rounded-full shadow-sm w-fit">
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    ACTIVE (VERIFIED)
                   </span>
                 </div>
-                <div className="mt-2 text-sm grid grid-cols-2 gap-2 text-emerald-800">
-                  <p><strong>Activated On:</strong> {effectiveActiveSubscription.activatedOn}</p>
-                  <p><strong>Expires On:</strong> {effectiveActiveSubscription.expiresOn}</p>
-                  <p><strong>Amount Paid:</strong> {effectiveActiveSubscription.amountPaid || "₹1,499"}</p>
-                  <p><strong>Payment Status:</strong> SUCCESS</p>
+                <div className="mt-3 text-xs sm:text-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-emerald-800 dark:text-emerald-300">
+                  <div>
+                    <span className="block text-[11px] text-emerald-700/80 dark:text-emerald-400 font-semibold uppercase">Activated On</span>
+                    <strong className="text-emerald-950 dark:text-emerald-100">{effectiveActiveSubscription.activatedOn}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-emerald-700/80 dark:text-emerald-400 font-semibold uppercase">Expires On</span>
+                    <strong className="text-emerald-950 dark:text-emerald-100">{effectiveActiveSubscription.expiresOn}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-emerald-700/80 dark:text-emerald-400 font-semibold uppercase">Verified Amount</span>
+                    <strong className="text-emerald-950 dark:text-emerald-100">{effectiveActiveSubscription.amountPaid}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-emerald-700/80 dark:text-emerald-400 font-semibold uppercase">Reference ID</span>
+                    <strong className="font-mono text-xs text-emerald-950 dark:text-emerald-100 truncate block" title={effectiveActiveSubscription.paymentId}>
+                      {effectiveActiveSubscription.paymentId}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Post-Activation Actions */}
+                <div className="mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800/60 flex flex-wrap items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onClose) onClose();
+                      const toolsEl = document.getElementById("tools") || document.getElementById("pricing-plans-grid");
+                      toolsEl?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white dark:bg-emerald-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100 text-xs font-bold hover:bg-emerald-100 transition shadow-sm cursor-pointer"
+                  >
+                    Explore Tools
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenDashboard) {
+                        onOpenDashboard();
+                      } else {
+                        window.dispatchEvent(new CustomEvent("pdfsun-open-dashboard"));
+                        if (onClose) onClose();
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md cursor-pointer"
+                  >
+                    Go to Dashboard →
+                  </button>
                 </div>
               </div>
             )}

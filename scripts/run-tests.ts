@@ -11,18 +11,29 @@ if (typeof (globalThis as any).DOMMatrix === "undefined") {
 }
 
 import { runPdfEngineTestSuite } from "../src/tests/pdfEngine.test";
+import { runSecurityRemediationTestSuite } from "../src/tests/securityRemediation.test";
 
 async function main() {
   console.log("Starting PDFSun automated QA test verification...");
-  const results = await runPdfEngineTestSuite();
-  for (const log of results.logs) {
+  const pdfResults = await runPdfEngineTestSuite();
+  for (const log of pdfResults.logs) {
     console.log(log);
   }
-  if (results.failed > 0) {
-    console.error(`QA Suite Failed with ${results.failed} failures.`);
+
+  console.log("\nStarting Security Remediation test verification...");
+  const secResults = await runSecurityRemediationTestSuite();
+  for (const log of secResults.logs) {
+    console.log(log);
+  }
+
+  const totalFailed = pdfResults.failed + secResults.failed;
+  const totalPassed = pdfResults.passed + secResults.passed;
+
+  if (totalFailed > 0) {
+    console.error(`QA Suite Failed with ${totalFailed} total failures.`);
     process.exit(1);
   } else {
-    console.log(`All ${results.passed} tests passed successfully.`);
+    console.log(`\nAll ${totalPassed} tests passed successfully (${pdfResults.passed} engine + ${secResults.passed} security).`);
     process.exit(0);
   }
 }

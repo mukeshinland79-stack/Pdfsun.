@@ -141,13 +141,6 @@ export function detectActivePlanTier(): keyof typeof PLAN_LIMITS {
       }
     }
 
-    const savedPlan = (localStorage.getItem(PRO_PLAN_KEY) || "").toLowerCase();
-    if (savedPlan.includes("enterprise-sso")) return "enterprise-sso";
-    if (savedPlan.includes("enterprise")) return "enterprise";
-    if (savedPlan.includes("annual") || savedPlan.includes("yearly")) return "pro-yearly";
-    if (savedPlan.includes("flex")) return "flexi";
-    if (savedPlan === "pro" || savedPlan.includes("pro")) return "pro-monthly";
-    if (savedPlan === "owner") return "owner";
   } catch {}
   return "free";
 }

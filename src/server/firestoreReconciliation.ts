@@ -415,14 +415,16 @@ export async function reconcilePaymentWithFirestore(
         details.orderVerifiedInFirestore = true;
         console.log(`[Firestore Reconcile] Cross-verified payment against internal Firestore order ${input.orderId}`);
 
-        // Validate order amount
+        // Validate order amount (exact match required)
         if (
           verifiedOrderData.amountPaise &&
           receivedAmountPaise > 0 &&
-          receivedAmountPaise < verifiedOrderData.amountPaise
+          receivedAmountPaise !== verifiedOrderData.amountPaise
         ) {
+          const isUnderpaid = receivedAmountPaise < verifiedOrderData.amountPaise;
+          const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
           console.error(
-            `[Payment Reconciliation REJECTED] Order amount mismatch for ${input.orderId}: expected ₹${verifiedOrderData.amountPaise / 100}, received ₹${receivedAmountPaise / 100}`
+            `[Payment Reconciliation REJECTED] Order amount mismatch (${mismatchType}) for ${input.orderId}: expected ₹${verifiedOrderData.amountPaise / 100}, received ₹${receivedAmountPaise / 100}`
           );
           return {
             success: false,
@@ -430,7 +432,7 @@ export async function reconcilePaymentWithFirestore(
             paymentId: input.paymentId,
             userEmail: normalizedEmail,
             status: "ORDER_AMOUNT_MISMATCH",
-            error: `Payment amount ₹${receivedAmountPaise / 100} does not match internal order amount ₹${verifiedOrderData.amountPaise / 100}`,
+            error: `Payment amount ₹${receivedAmountPaise / 100} does not match internal order amount ₹${verifiedOrderData.amountPaise / 100} (${mismatchType})`,
             details,
           };
         }
@@ -448,10 +450,12 @@ export async function reconcilePaymentWithFirestore(
     }
   }
 
-  // 4. Amount Verification Check
-  if (receivedAmountPaise > 0 && receivedAmountPaise < expectedAmountPaise) {
+  // 4. Exact Amount Verification Check (Rejects both underpayment and unexplained overpayment)
+  if (receivedAmountPaise > 0 && receivedAmountPaise !== expectedAmountPaise) {
+    const isUnderpaid = receivedAmountPaise < expectedAmountPaise;
+    const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
     console.error(
-      `[Payment Reconciliation REJECTED] Amount mismatch for ${input.paymentId}: expected ${expectedAmountPaise} paise, received ${receivedAmountPaise} paise.`
+      `[Payment Reconciliation REJECTED] Amount mismatch (${mismatchType}) for ${input.paymentId}: expected ${expectedAmountPaise} paise, received ${receivedAmountPaise} paise.`
     );
     return {
       success: false,
@@ -459,7 +463,7 @@ export async function reconcilePaymentWithFirestore(
       paymentId: input.paymentId,
       userEmail: normalizedEmail,
       status: "AMOUNT_MISMATCH",
-      error: `Payment amount ₹${receivedAmountPaise / 100} is less than required ₹${expectedAmountPaise / 100} for ${matchedProduct.productName}`,
+      error: `Payment amount ₹${receivedAmountPaise / 100} does not match required ₹${expectedAmountPaise / 100} (${mismatchType}) for ${matchedProduct.productName}`,
       details,
     };
   }

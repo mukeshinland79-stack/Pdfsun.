@@ -39,7 +39,7 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
           <span>{t("copilot.headline", "PDFSun AI Document Copilot")}</span>
         </h3>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-medium">
-          {t("copilot.description", "Summarize, analyze, and chat with massive PDF files in real time using 100% private, client-side WebAssembly processing.")}
+          {t("copilot.description", "Summarize, analyze, and chat with PDF documents in real time powered by Gemini AI with fast client-side text extraction.")}
         </p>
 
         {/* Key Tags */}
@@ -47,7 +47,7 @@ export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaun
           {[
             { label: t("copilot.instantChat", "Instant AI Chat"), icon: Zap },
             { label: t("copilot.multiLang", "Multi-Language Translation"), icon: Globe },
-            { label: t("copilot.zeroServer", "Zero Server Uploads"), icon: Lock },
+            { label: "Powered by Gemini AI", icon: Sparkles },
           ].map((tag, idx) => {
             const TagIcon = tag.icon;
             return (

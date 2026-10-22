@@ -60,12 +60,6 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
             "price": "0",
             "priceCurrency": "USD",
           },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "32450",
-            "bestRating": "5",
-          },
         },
       ],
       crawlableHtml: `
@@ -425,12 +419,6 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
           "applicationCategory": "UtilitiesApplication",
           "operatingSystem": "All",
           "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "14200",
-            "bestRating": "5",
-          },
         },
         {
           "@context": "https://schema.org",

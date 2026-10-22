@@ -16,8 +16,9 @@ export interface PaymentProduct {
   type: "one-time" | "subscription" | "enterprise";
   displayPriceINR: number;
   displayPriceUSD: number;
+  pricePaise: number;
   billingInterval?: "monthly" | "yearly" | "one-time";
-  durationDays?: number; // Days of validity (e.g. 7 days for Flex Pass)
+  durationDays?: number; // Days of validity (e.g. 7 days for Flexi Pack)
   credits?: number; // One-time credits granted
   razorpayPaymentLink: string;
   razorpayPlanIdEnvVar?: string;
@@ -34,10 +35,11 @@ export interface PaymentProduct {
 export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
   flexi: {
     internalProductId: "flexi",
-    productName: "Flex Pass",
+    productName: "Flexi Pack",
     type: "one-time",
     displayPriceINR: 99,
     displayPriceUSD: 1.99,
+    pricePaise: 9900,
     billingInterval: "one-time",
     durationDays: 7,
     credits: 50,
@@ -53,7 +55,7 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
       "All premium PDF & AI OCR tools",
       "Dynamic QR payment with verified Razorpay checkout",
     ],
-    ctaText: "Buy Flex Pass (₹99)",
+    ctaText: "Buy Flexi Pack (₹99)",
     guaranteeText: "Valid for 7 Full Days (Instant Activation)",
     popular: false,
   },
@@ -63,7 +65,9 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
     type: "subscription",
     displayPriceINR: 199,
     displayPriceUSD: 3.99,
+    pricePaise: 19900,
     billingInterval: "monthly",
+    durationDays: 30,
     razorpayPaymentLink: "https://rzp.io/rzp/pdfsun-monthly",
     razorpayPlanIdEnvVar: "RAZORPAY_PRO_MONTHLY_PLAN_ID",
     badge: "FLEXIBLE RECURRING",
@@ -87,7 +91,9 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
     type: "subscription",
     displayPriceINR: 1499,
     displayPriceUSD: 24.99,
+    pricePaise: 149900,
     billingInterval: "yearly",
+    durationDays: 365,
     razorpayPaymentLink: "https://rzp.io/rzp/pdfsun-annual",
     razorpayPlanIdEnvVar: "RAZORPAY_PRO_YEARLY_PLAN_ID",
     badge: "MOST POPULAR • SAVE 40%",
@@ -111,7 +117,9 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
     type: "subscription",
     displayPriceINR: 3999,
     displayPriceUSD: 59,
+    pricePaise: 399900,
     billingInterval: "yearly",
+    durationDays: 365,
     seats: 5,
     razorpayPaymentLink: "https://rzp.io/rzp/pdfsun-enterprise",
     razorpayPlanIdEnvVar: "RAZORPAY_ENTERPRISE_PLAN_ID",
@@ -136,7 +144,9 @@ export const PDFSUN_PAYMENT_PRODUCTS: Record<string, PaymentProduct> = {
     type: "subscription",
     displayPriceINR: 9999,
     displayPriceUSD: 149,
+    pricePaise: 999900,
     billingInterval: "yearly",
+    durationDays: 365,
     seats: 20,
     razorpayPaymentLink: "https://rzp.io/rzp/DTBivZF",
     razorpayPlanIdEnvVar: "RAZORPAY_ENTERPRISE_SSO_PLAN_ID",
@@ -237,7 +247,15 @@ export function resolvePaymentProduct(params: ResolvePaymentProductParams = {}):
     }
   }
 
-  // 3. Match by exact or rounded Amount (INR / Paise)
+  // 3. Match by exact Integer Paise or rounded Amount (INR / Paise)
+  if (typeof amountPaise === "number" && amountPaise > 0) {
+    if (amountPaise === 9900) return PDFSUN_PAYMENT_PRODUCTS.flexi;
+    if (amountPaise === 19900) return PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    if (amountPaise === 149900) return PDFSUN_PAYMENT_PRODUCTS["pro-yearly"];
+    if (amountPaise === 399900) return PDFSUN_PAYMENT_PRODUCTS.enterprise;
+    if (amountPaise === 999900) return PDFSUN_PAYMENT_PRODUCTS["enterprise-sso"];
+  }
+
   const calcAmountINR =
     typeof amountINR === "number" && amountINR > 0
       ? Math.round(amountINR)

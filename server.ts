@@ -2043,7 +2043,16 @@ async function handlePaymentReconciliation(req: express.Request, res: express.Re
       return res.status(400).json({ success: false, error: "Missing required paymentId parameter" });
     }
 
-    const signatureVerified = Boolean(signature) ? true : true;
+    // Strict signature verification: verify against configured gateway secret
+    let signatureVerified = false;
+    if (signature && (orderId || subscriptionId)) {
+      signatureVerified = orderId
+        ? verifyOrderSignature({ razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature })
+        : subscriptionId
+        ? verifySubscriptionSignature({ razorpay_subscription_id: subscriptionId, razorpay_payment_id: paymentId, razorpay_signature: signature })
+        : false;
+    }
+
     const resolvedProduct = resolvePaymentProduct({
       planId,
       amountPaise: Number(amountPaise),
@@ -2070,8 +2079,8 @@ async function handlePaymentReconciliation(req: express.Request, res: express.Re
   }
 }
 
-app.post("/api/payments/reconcile", handlePaymentReconciliation);
-app.post("/api/razorpay/reconcile", handlePaymentReconciliation);
+app.post("/api/payments/reconcile", verifyDualOwnerAccess, handlePaymentReconciliation);
+app.post("/api/razorpay/reconcile", verifyDualOwnerAccess, handlePaymentReconciliation);
 
 // Product Catalog Endpoint
 app.get("/api/products", (req, res) => {
@@ -2237,14 +2246,16 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
     const normalizedPlanId = productConfig.internalProductId;
     const verifiedAmountPaise = Number(amountPaise) || productConfig.displayPriceINR * 100;
 
-    // Validate minimum required amount against product catalog
+    // Validate exact required amount against product catalog (rejects underpayment and unexplained overpayment)
     const expectedPaise = productConfig.displayPriceINR * 100;
-    if (verifiedAmountPaise < expectedPaise) {
-      console.error(`[Razorpay Verification] Amount mismatch: expected ${expectedPaise} paise, received ${verifiedAmountPaise} paise.`);
+    if (verifiedAmountPaise !== expectedPaise) {
+      const isUnderpaid = verifiedAmountPaise < expectedPaise;
+      const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
+      console.error(`[Razorpay Verification] Amount mismatch (${mismatchType}): expected ${expectedPaise} paise, received ${verifiedAmountPaise} paise.`);
       return res.status(400).json({
         success: false,
         verified: false,
-        error: `Payment amount ₹${verifiedAmountPaise / 100} is less than required plan price ₹${expectedPaise / 100}.`,
+        error: `Payment amount ₹${verifiedAmountPaise / 100} does not match required plan price ₹${expectedPaise / 100} (${mismatchType}).`,
       });
     }
 

@@ -354,13 +354,6 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
             "priceCurrency": "USD",
             "availability": "https://schema.org/InStock",
           },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "18420",
-            "bestRating": "5",
-            "worstRating": "1",
-          },
           "author": {
             "@type": "Organization",
             "@id": `${baseUrl}/#organization`,
@@ -447,11 +440,6 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD",
-          },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "950",
           },
         },
       })),

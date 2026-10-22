@@ -1117,7 +1117,17 @@ function MainApp() {
 
       {userProfile && <ProfileAvatarModal isOpen={avatarModalOpen} onClose={() => setAvatarModalOpen(false)} userEmail={userProfile.email} userName={userProfile.name} currentPhotoURL={userProfile.photoURL} currentAvatar={userProfile.avatar} onPhotoUpdated={(newPhotoURL) => updateAvatar(newPhotoURL)} />}
 
-      <PricingSection isOpen={pricingModalOpen} onClose={handleClosePricing} isModal={true} onOpenPolicy={handleOpenPolicy} userProfile={userProfile} />
+      <PricingSection
+        isOpen={pricingModalOpen}
+        onClose={handleClosePricing}
+        isModal={true}
+        onOpenPolicy={handleOpenPolicy}
+        userProfile={userProfile}
+        onOpenDashboard={() => {
+          handleClosePricing();
+          setUserDashboardOpen(true);
+        }}
+      />
       <BlogModal
         isOpen={blogModalOpen}
         onClose={() => {
