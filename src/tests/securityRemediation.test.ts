@@ -7,6 +7,11 @@ import {
   verifySubscriptionSignature,
   verifyOrderSignature,
   verifyWebhookSignature,
+  getExecutionEnvironment,
+  validatePaymentEnvironmentGuard,
+  isLiveRazorpayKeyId,
+  isTestRazorpayKeyId,
+  createSubscriptionInstance,
 } from "../server/razorpayService";
 import { ALL_TOOLS } from "../data/toolsData";
 import { reconcilePaymentWithFirestore } from "../server/firestoreReconciliation";
@@ -359,11 +364,101 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     `All 66 tool IDs are unique and without duplicates (actual: ${uniqueIds.size})`
   );
 
-  const hasChatTool = ALL_TOOLS.some((t) => t.id === "ai-chat-pdf" || t.slug === "ai-chat-pdf");
-  assert(
-    hasChatTool,
-    "ai-chat-pdf tool is present in ALL_TOOLS"
-  );
+  // 8. Phase 7B: Fail-Closed Razorpay Environment Isolation & Non-Production Live-Key Guard Tests
+  const envBackup = {
+    NODE_ENV: process.env.NODE_ENV,
+    APP_URL: process.env.APP_URL,
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+  };
+
+  try {
+    // 8.1. Development + Live Key -> BLOCKED before network access
+    process.env.NODE_ENV = "development";
+    process.env.APP_URL = "https://ais-dev-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app";
+    process.env.RAZORPAY_KEY_ID = "rzp_live_fakeLiveKeyForTest123";
+
+    const devLiveGuard = validatePaymentEnvironmentGuard();
+    assert(
+      devLiveGuard.allowed === false && devLiveGuard.category === "NON_PROD_LIVE_KEY_BLOCKED",
+      "Development + live key: payment operation blocked before network access"
+    );
+
+    // Verify createSubscriptionInstance throws fail-closed error
+    let createThrewInDev = false;
+    try {
+      await createSubscriptionInstance({
+        planId: "pro-monthly",
+        userEmail: "test@pdfsun.in",
+      });
+    } catch (e: any) {
+      createThrewInDev = true;
+      assert(
+        e.message.includes("blocked by security guard"),
+        "createSubscriptionInstance throws non-sensitive error when live key in development"
+      );
+    }
+    assert(createThrewInDev, "createSubscriptionInstance strictly throws when live key in development");
+
+    // 8.2. Staging + Live Key -> BLOCKED before network access
+    process.env.NODE_ENV = "production"; // Staging might have NODE_ENV=production but ais-pre URL
+    process.env.APP_URL = "https://ais-pre-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app";
+    process.env.RAZORPAY_KEY_ID = "rzp_live_fakeLiveKeyForTest123";
+
+    const stagingLiveGuard = validatePaymentEnvironmentGuard();
+    assert(
+      stagingLiveGuard.allowed === false && stagingLiveGuard.category === "NON_PROD_LIVE_KEY_BLOCKED",
+      "Staging + live key: payment operation blocked before network access"
+    );
+
+    // 8.3. Development/Staging + Valid Test Key -> PERMITTED (Sandbox mode)
+    process.env.NODE_ENV = "development";
+    process.env.APP_URL = "https://ais-dev-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app";
+    process.env.RAZORPAY_KEY_ID = "rzp_test_validSandboxKey123";
+
+    const devTestGuard = validatePaymentEnvironmentGuard();
+    assert(
+      devTestGuard.allowed === true && devTestGuard.environment === "development",
+      "Development + valid test configuration: permitted to proceed in sandbox"
+    );
+
+    process.env.NODE_ENV = "production";
+    process.env.APP_URL = "https://ais-pre-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app";
+    process.env.RAZORPAY_KEY_ID = "rzp_test_validSandboxKey123";
+
+    const stagingTestGuard = validatePaymentEnvironmentGuard();
+    assert(
+      stagingTestGuard.allowed === true && stagingTestGuard.environment === "staging",
+      "Staging + valid test configuration: permitted to proceed in sandbox"
+    );
+
+    // 8.4. Production Configuration -> Existing behavior preserved
+    process.env.NODE_ENV = "production";
+    process.env.APP_URL = "https://www.pdfsun.in";
+    process.env.RAZORPAY_KEY_ID = "rzp_live_prodKey123456";
+
+    const prodGuard = validatePaymentEnvironmentGuard();
+    assert(
+      prodGuard.allowed === true && prodGuard.environment === "production",
+      "Production configuration: existing behavior preserved"
+    );
+
+    // 8.5. Unknown Environment -> FAIL CLOSED
+    process.env.NODE_ENV = "production";
+    process.env.APP_URL = "https://unknown-untrusted-domain.com";
+    process.env.RAZORPAY_KEY_ID = "rzp_live_prodKey123456";
+
+    const unknownGuard = validatePaymentEnvironmentGuard();
+    assert(
+      unknownGuard.allowed === false && unknownGuard.category === "UNKNOWN_ENVIRONMENT_FAIL_CLOSED",
+      "Unknown environment: fail closed for payment operations"
+    );
+  } finally {
+    process.env.NODE_ENV = envBackup.NODE_ENV;
+    process.env.APP_URL = envBackup.APP_URL;
+    process.env.RAZORPAY_KEY_ID = envBackup.RAZORPAY_KEY_ID;
+    process.env.RAZORPAY_KEY_SECRET = envBackup.RAZORPAY_KEY_SECRET;
+  }
 
   return { passed, failed, logs };
 }

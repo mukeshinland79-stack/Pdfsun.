@@ -63,6 +63,8 @@ import {
   resolveRazorpayPlanId,
   isRazorpaySecretConfigured,
   isWebhookSecretConfigured,
+  validatePaymentEnvironmentGuard,
+  getExecutionEnvironment,
 } from "./src/server/razorpayService";
 import {
   PDFSUN_PAYMENT_PRODUCTS,
@@ -2020,8 +2022,8 @@ const handleRazorpayWebhook = async (req: express.Request, res: express.Response
   }
 };
 
-// 1. Razorpay Webhook Endpoints
-app.post("/api/razorpay-webhook", handleRazorpayWebhook);
+// 1. Razorpay Webhook Endpoints (Unified secure validation)
+app.post("/api/razorpay-webhook", handleRazorpayWebhookHandler);
 app.post("/api/webhooks/razorpay", handleRazorpayWebhookHandler);
 
 // Dedicated Secure Server-Side Database Payment Reconciliation Endpoints
@@ -2093,11 +2095,22 @@ app.get("/api/products", (req, res) => {
 // 2. Razorpay Order & Standard Order Creation Endpoint (INR ₹)
 app.post("/api/create-razorpay-order", async (req, res) => {
   try {
+    const guard = validatePaymentEnvironmentGuard(req.headers.host);
+    if (!guard.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: guard.error,
+        category: guard.category,
+        environment: guard.environment,
+      });
+    }
+
     const { planId = "pro-monthly", userEmail = "user@pdfsun.in", userName } = req.body;
     const subResult = await createSubscriptionInstance({
       planId,
       userEmail,
       userName,
+      requestHost: req.headers.host,
     });
 
     const orderId = "order_rzp_" + Math.random().toString(36).substring(2, 12);
@@ -2136,12 +2149,23 @@ app.post("/api/create-razorpay-order", async (req, res) => {
 // 3. Official Razorpay Subscription Creation Endpoints (/api/create-subscription and /api/razorpay/create-subscription)
 async function handleCreateSubscription(req: express.Request, res: express.Response) {
   try {
+    const guard = validatePaymentEnvironmentGuard(req.headers.host);
+    if (!guard.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: guard.error,
+        category: guard.category,
+        environment: guard.environment,
+      });
+    }
+
     const { planId = "pro-monthly", userEmail = "user@pdfsun.in", userName, totalCount = 12 } = req.body;
     const result = await createSubscriptionInstance({
       planId,
       userEmail,
       userName,
       totalCount,
+      requestHost: req.headers.host,
     });
 
     // Save subscription order in Firestore
@@ -3887,6 +3911,16 @@ app.post("/api/admin/toggle-gateway", verifyDualOwnerAccess, (req, res) => {
 });
 
 app.post("/api/admin/refund", verifyDualOwnerAccess, async (req, res) => {
+  const guard = validatePaymentEnvironmentGuard(req.headers.host);
+  if (!guard.allowed) {
+    return res.status(403).json({
+      success: false,
+      error: guard.error,
+      category: guard.category,
+      environment: guard.environment,
+    });
+  }
+
   const { transactionId, paymentId, amount, reason } = req.body || {};
   const targetId = transactionId || paymentId;
 

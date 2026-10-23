@@ -35,6 +35,141 @@ export function getRazorpayClient(): Razorpay {
   return razorpayClient;
 }
 
+export type ExecutionEnvironment = "production" | "staging" | "development" | "test" | "unknown";
+
+/**
+ * Robust, evidence-based runtime environment classifier.
+ * Never relies on NODE_ENV alone. Inspects APP_URL, canonical domain, host headers, and runtime indicators.
+ */
+export function getExecutionEnvironment(requestHost?: string): ExecutionEnvironment {
+  // 1. Explicit automated test runner mode
+  if (process.env.NODE_ENV === "test" || process.env.VITEST || process.env.JEST_WORKER_ID) {
+    return "test";
+  }
+
+  const appUrl = (process.env.APP_URL || "").trim().toLowerCase();
+  const host = (requestHost || "").trim().toLowerCase();
+
+  // 2. Production Positive Identification:
+  // Must positively match the canonical production domain (pdfsun.in / www.pdfsun.in)
+  // AND must not match preview / staging markers.
+  const isCanonicalAppUrl = appUrl === "https://www.pdfsun.in" || appUrl === "https://pdfsun.in";
+  const isCanonicalHost = host === "pdfsun.in" || host === "www.pdfsun.in";
+  const hasPreviewMarker =
+    appUrl.includes("run.app") ||
+    appUrl.includes("localhost") ||
+    appUrl.includes("127.0.0.1") ||
+    host.includes("run.app") ||
+    host.includes("localhost") ||
+    host.includes("127.0.0.1");
+
+  if ((isCanonicalAppUrl || isCanonicalHost) && !hasPreviewMarker && process.env.NODE_ENV === "production") {
+    return "production";
+  }
+
+  // 3. Staging / Pre-Production Positive Identification:
+  if (
+    appUrl.includes("ais-pre-") ||
+    host.includes("ais-pre-") ||
+    appUrl.includes("staging") ||
+    host.includes("staging")
+  ) {
+    return "staging";
+  }
+
+  // 4. Development Positive Identification:
+  if (
+    appUrl.includes("ais-dev-") ||
+    host.includes("ais-dev-") ||
+    appUrl.includes("localhost") ||
+    host.includes("localhost") ||
+    appUrl.includes("127.0.0.1") ||
+    host.includes("127.0.0.1") ||
+    process.env.NODE_ENV === "development"
+  ) {
+    return "development";
+  }
+
+  // 5. If markers conflict or cannot be positively identified, fail closed as unknown
+  return "unknown";
+}
+
+export function isLiveRazorpayKeyId(keyId?: string): boolean {
+  const k = (keyId || process.env.RAZORPAY_KEY_ID || "").trim();
+  return k.startsWith("rzp_live");
+}
+
+export function isTestRazorpayKeyId(keyId?: string): boolean {
+  const k = (keyId || process.env.RAZORPAY_KEY_ID || "").trim();
+  return k.startsWith("rzp_test");
+}
+
+export interface EnvironmentGuardResult {
+  allowed: boolean;
+  environment: ExecutionEnvironment;
+  category?: string;
+  error?: string;
+}
+
+/**
+ * Non-Production Live-Key Guard (Fail-Closed)
+ *
+ * Rules:
+ * - In 'test' mode: Mock/simulated tests are permitted without blocking.
+ * - In 'production': Live key is permitted. Existing production behavior is preserved.
+ * - In 'development' or 'staging': If a live Razorpay key is detected, money-moving operations
+ *   are strictly BLOCKED before any gateway network request.
+ * - In 'unknown' environment: Fails safely (fail closed) for payment creation operations.
+ * - Logs ONLY the environment name and failure category (never secrets or credentials).
+ */
+export function validatePaymentEnvironmentGuard(requestHost?: string): EnvironmentGuardResult {
+  const env = getExecutionEnvironment(requestHost);
+  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+  const isLiveKey = isLiveRazorpayKeyId(keyId);
+
+  // 1. Safe automated test runner
+  if (env === "test") {
+    return { allowed: true, environment: env };
+  }
+
+  // 2. Production Environment
+  if (env === "production") {
+    if (isTestRazorpayKeyId(keyId)) {
+      console.warn(`[Security Guard] Warning: Test key detected in production environment.`);
+    }
+    return { allowed: true, environment: env };
+  }
+
+  // 3. Development or Staging with Live Key -> STRICT FAIL-CLOSED BLOCK
+  if ((env === "development" || env === "staging") && isLiveKey) {
+    console.error(
+      `[Security Guard] Blocked payment operation: Live Razorpay key detected in non-production environment (${env}). Category: NON_PROD_LIVE_KEY_BLOCKED`
+    );
+    return {
+      allowed: false,
+      environment: env,
+      category: "NON_PROD_LIVE_KEY_BLOCKED",
+      error: "Payment operation blocked by security guard: Live payment credentials cannot be used in a development or staging environment.",
+    };
+  }
+
+  // 4. Unknown environment -> STRICT FAIL-CLOSED BLOCK for live keys or unverified state
+  if (env === "unknown") {
+    console.error(
+      `[Security Guard] Blocked payment operation: Environment cannot be positively identified. Category: UNKNOWN_ENVIRONMENT_FAIL_CLOSED`
+    );
+    return {
+      allowed: false,
+      environment: env,
+      category: "UNKNOWN_ENVIRONMENT_FAIL_CLOSED",
+      error: "Payment operation blocked by security guard: Runtime environment could not be positively verified.",
+    };
+  }
+
+  // 5. Development or Staging with Test key (or unconfigured keyId) -> Permitted to proceed safely in sandbox
+  return { allowed: true, environment: env };
+}
+
 /**
  * Resolves the verified Razorpay Plan ID from environment
  * If no plan ID is set in environment, returns undefined (never invents fake plan IDs)
@@ -59,6 +194,7 @@ export async function createSubscriptionInstance(params: {
   userName?: string;
   totalCount?: number;
   quantity?: number;
+  requestHost?: string;
 }): Promise<{
   subscriptionId: string;
   keyId: string;
@@ -68,7 +204,14 @@ export async function createSubscriptionInstance(params: {
   planName: string;
   hostedLink: string;
 }> {
-  const { planId, userEmail, userName, totalCount = 12, quantity = 1 } = params;
+  const { planId, userEmail, userName, totalCount = 12, quantity = 1, requestHost } = params;
+
+  // Enforce Non-Production Live-Key Guard before any money-moving operation
+  const guard = validatePaymentEnvironmentGuard(requestHost);
+  if (!guard.allowed) {
+    console.error(`[RazorpayService] createSubscriptionInstance blocked: ${guard.category} in environment '${guard.environment}'`);
+    throw new Error(guard.error || "Payment creation blocked by environment guard.");
+  }
   const normalizedKey = planId.toLowerCase().trim();
   const product: PaymentProduct = PDFSUN_PAYMENT_PRODUCTS[normalizedKey] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
   const targetPlanId = resolveRazorpayPlanId(planId);
