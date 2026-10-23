@@ -14,7 +14,7 @@ import { BLOG_POSTS } from "./src/data/blogData";
 import { injectSeoTagsIntoHtml } from "./src/server/seoRenderer";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
-import { adminAuth, generateAdminJwtToken } from "./src/server/middleware/adminAuth";
+import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken } from "./src/server/middleware/adminAuth";
 import {
   getCommentsHandler,
   addCommentHandler,
@@ -218,14 +218,6 @@ function applyRuntimeConfigUpdates(newConfig: SystemConfig) {
 
 // Dual-Owner RBAC Middleware for Server-side Endpoints
 function verifyDualOwnerAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const userEmail = (
-    req.headers["x-user-email"] ||
-    req.headers["x-owner-email"] ||
-    req.body?.userEmail ||
-    req.query?.userEmail ||
-    ""
-  ).toString().toLowerCase().trim();
-
   const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
@@ -235,11 +227,17 @@ function verifyDualOwnerAccess(req: express.Request, res: express.Response, next
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-  const isVerifiedDualOwner = DUAL_OWNER_EMAILS.includes(userEmail);
-  const isCorrectSecretKey = providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345");
+  const isCorrectSecretKey = Boolean(
+    providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345")
+  );
 
-  // Strict Cloaking Requirement: Return 404 Not Found if unauthorized
-  if (!isVerifiedDualOwner && !isCorrectSecretKey) {
+  const decodedJwt = providedToken ? verifyAdminJwtToken(providedToken) : null;
+  const isVerifiedJwtOwner = Boolean(
+    decodedJwt && (decodedJwt.role === "owner" || decodedJwt.role === "admin" || DUAL_OWNER_EMAILS.includes(decodedJwt.email?.toLowerCase()))
+  );
+
+  // Fail-Closed: Client-supplied email header alone NEVER establishes owner privileges without valid credentials
+  if (!isCorrectSecretKey && !isVerifiedJwtOwner) {
     return res.status(404).json({
       error: `Cannot ${req.method} ${req.originalUrl}`,
       message: "Not Found",
@@ -2483,24 +2481,44 @@ app.post("/api/user/activate-plan", verifyDualOwnerAccess, (req, res) => {
 // Endpoint for Owner Payment Audit Log (Strictly enforces AGENTS_md Section 3)
 app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
   try {
-    const requesterEmail = (
-      req.headers["x-user-email"] ||
-      req.query.email ||
-      ""
-    ).toString().toLowerCase().trim();
+    const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+    const cookieToken = req.headers.cookie
+      ?.split("; ")
+      .find((row) => row.startsWith("pdfsun_admin_session="))
+      ?.split("=")[1];
 
-    // Verify owner permission
-    const isOwner =
-      DUAL_OWNER_EMAILS.includes(requesterEmail) ||
-      requesterEmail === "mukeshinland79@gmail.com" ||
-      requesterEmail === "mukeshkalonia241@gmail.com";
+    const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+    const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
+
+    const isCorrectSecretKey = Boolean(
+      providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345")
+    );
+
+    const decodedJwt = providedToken ? verifyAdminJwtToken(providedToken) : null;
+    const isVerifiedJwtOwner = Boolean(
+      decodedJwt && (decodedJwt.role === "owner" || DUAL_OWNER_EMAILS.includes(decodedJwt.email?.toLowerCase()))
+    );
+
+    // Fail closed: Client-supplied email header without verified credentials cannot establish owner privileges
+    const isOwner = isCorrectSecretKey || isVerifiedJwtOwner;
+
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        error: "Unauthorized: Access to Owner Payment Audit Log is restricted to verified owner mukeshinland79@gmail.com.",
+        ownerEmail: "mukeshinland79@gmail.com",
+        isOwner: false,
+        count: 0,
+        logs: [],
+      });
+    }
 
     const logs = await getOwnerPaymentAuditLogs();
 
     res.json({
       success: true,
       ownerEmail: "mukeshinland79@gmail.com",
-      isOwner,
+      isOwner: true,
       count: logs.length,
       logs,
     });

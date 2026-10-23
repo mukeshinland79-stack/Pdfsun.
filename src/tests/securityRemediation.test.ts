@@ -14,7 +14,10 @@ import {
   createSubscriptionInstance,
 } from "../server/razorpayService";
 import { ALL_TOOLS } from "../data/toolsData";
-import { reconcilePaymentWithFirestore } from "../server/firestoreReconciliation";
+import {
+  reconcilePaymentWithFirestore,
+  verifyRazorpayTransactionDetails,
+} from "../server/firestoreReconciliation";
 
 export interface SecurityTestResult {
   passed: number;
@@ -459,6 +462,120 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     process.env.RAZORPAY_KEY_ID = envBackup.RAZORPAY_KEY_ID;
     process.env.RAZORPAY_KEY_SECRET = envBackup.RAZORPAY_KEY_SECRET;
   }
+
+  // 9. Phase 8: Transaction Details & Gateway Verification Tests
+  const zeroAmountTest = await verifyRazorpayTransactionDetails({
+    paymentId: "pay_zero_test",
+    amountPaise: 0,
+    currency: "INR",
+  });
+  assert(
+    zeroAmountTest.isValid === false,
+    "verifyRazorpayTransactionDetails strictly rejects non-positive or 0 amount"
+  );
+
+  const invalidCurrencyTest = await verifyRazorpayTransactionDetails({
+    paymentId: "pay_curr_test",
+    amountPaise: 19900,
+    currency: "EUR",
+  });
+  assert(
+    invalidCurrencyTest.isValid === false,
+    "verifyRazorpayTransactionDetails strictly rejects unsupported foreign currencies"
+  );
+
+  const validDetailsTest = await verifyRazorpayTransactionDetails({
+    paymentId: "pay_valid_details_test",
+    amountPaise: 19900,
+    currency: "INR",
+  });
+  assert(
+    validDetailsTest.isValid === true,
+    "verifyRazorpayTransactionDetails validates valid amount and currency"
+  );
+
+  // 10. Phase 8: Sitemap 404 Guard & XML Integrity
+  const serverCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
+  assert(
+    serverCode.includes("sitemap.xml") &&
+    serverCode.includes("sitemap-blog.xml") &&
+    serverCode.includes("sitemap-compress-sizes.xml") &&
+    serverCode.includes("sitemap-pseo.xml"),
+    "server.ts defines routes for all 4 authoritative sitemaps"
+  );
+
+  assert(
+    serverCode.includes("<error>Sitemap not found</error>") &&
+    serverCode.includes('res.status(404).send(\'<?xml version="1.0" encoding="UTF-8"?><error>Sitemap not found</error>\')'),
+    "server.ts XML guard strictly returns 404 XML for unknown .xml files (never HTML SPA)"
+  );
+
+  // 11. Phase 8: Fake Query Parameter & Replay Attack Immunity
+  const appCode = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf-8");
+  assert(
+    appCode.includes("if (paymentId && signature && (orderId || subscriptionId))") &&
+    appCode.includes("fetch(\"/api/razorpay/verify-payment\""),
+    "App.tsx enforces server signature verification before triggering payment activation modal"
+  );
+
+  // 12. Phase 9: Firestore Rules & Owner Payment Audit Ledger Invariants
+  const rulesPath = path.join(process.cwd(), "firestore.rules");
+  const rulesCode = fs.readFileSync(rulesPath, "utf-8");
+
+  assert(
+    rulesCode.includes("match /owner_payment_audit_logs/{logId}") &&
+    rulesCode.includes('request.auth.token.email == "mukeshinland79@gmail.com"') &&
+    rulesCode.includes("allow delete: if false;"),
+    "firestore.rules strictly restricts owner_payment_audit_logs read to mukeshinland79@gmail.com and forbids delete (immutable/tamper-proof)"
+  );
+
+  assert(
+    rulesCode.includes("match /payments/{paymentId}") &&
+    rulesCode.includes('resource.data.userEmail == request.auth.token.email ||') &&
+    rulesCode.includes('request.auth.token.email == "mukeshinland79@gmail.com"'),
+    "firestore.rules enforces user isolation for payments: users can only read their own payments"
+  );
+
+  assert(
+    rulesCode.includes("match /transactions/{paymentId}") &&
+    rulesCode.includes('resource.data.userEmail == request.auth.token.email ||') &&
+    rulesCode.includes('request.auth.token.email == "mukeshinland79@gmail.com"'),
+    "firestore.rules enforces user isolation for transactions: users can only read their own records"
+  );
+
+  assert(
+    rulesCode.includes("match /user_subscriptions/{userId}") &&
+    rulesCode.includes("userId == request.auth.uid ||") &&
+    rulesCode.includes("userId == request.auth.token.email ||"),
+    "firestore.rules enforces subscription isolation: users can only read their own subscription documents"
+  );
+
+  // 13. Phase 9: Owner Payment Audit Logs Server Endpoint Authorization
+  assert(
+    serverCode.includes('app.get("/api/admin/owner-payment-audit-logs"') &&
+    serverCode.includes("isOwner = isCorrectSecretKey || isVerifiedJwtOwner") &&
+    serverCode.includes("return res.status(403).json"),
+    "server.ts owner-payment-audit-logs endpoint requires verified credentials and rejects unauthorized requests with 403"
+  );
+
+  assert(
+    serverCode.includes("Client-supplied email header without verified credentials cannot establish owner privileges"),
+    "server.ts strictly forbids client-supplied email header from establishing owner privileges"
+  );
+
+  // 14. Phase 9: Cross-User Entitlement Isolation & Webhook Idempotency
+  const reconCode = fs.readFileSync(path.join(process.cwd(), "src/server/firestoreReconciliation.ts"), "utf-8");
+  assert(
+    reconCode.includes('status: "USER_MISMATCH"') &&
+    reconCode.includes("Payment was already processed and claimed by another user account"),
+    "firestoreReconciliation.ts strictly rejects cross-user claims where a payment belongs to another user"
+  );
+
+  assert(
+    reconCode.includes("alreadyReconciled = true") &&
+    reconCode.includes("if (!alreadyReconciled)"),
+    "firestoreReconciliation.ts enforces idempotency: duplicate events do not grant duplicate entitlements"
+  );
 
   return { passed, failed, logs };
 }

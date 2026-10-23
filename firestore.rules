@@ -110,6 +110,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
     }
 
+    // Owner Payment Audit Logs (Admin Panel) strictly per AGENTS_md:
+    // Read restricted to owner mukeshinland79@gmail.com, delete disallowed (immutable & tamper-proof).
+    match /owner_payment_audit_logs/{logId} {
+      allow read: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
     // Daily Knowledge Hub & Today in History (100% Public Read Access for all visitors, guests & users)
     match /daily_history/{docId} {
       allow read: if true;

@@ -160,6 +160,24 @@
         "lastUpdated": { "type": "string", "format": "date-time", "description": "Last engagement update timestamp" }
       },
       "required": ["eventId", "views", "engagementScore"]
+    },
+    "owner_payment_audit_logs": {
+      "title": "Owner Payment Audit Logs",
+      "description": "Immutable audit log of all received payment notifications and payloads for owner admin portal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique audit log ID" },
+        "userId": { "type": "string", "description": "User ID / email" },
+        "email": { "type": "string", "description": "User email address" },
+        "paymentGatewayRefId": { "type": "string", "description": "Payment Gateway Reference ID" },
+        "dateTime": { "type": "string", "format": "date-time", "description": "Date & Time received" },
+        "exactPlanPurchased": { "type": "string", "description": "Exact plan purchased" },
+        "actualAmountReceived": { "type": "number", "description": "Actual amount received in INR" },
+        "currency": { "type": "string", "description": "Payment currency (INR)" },
+        "status": { "type": "string", "description": "Payment status (SUCCESS, PENDING, FAILED)" },
+        "ownerEmail": { "type": "string", "description": "Target owner email" }
+      },
+      "required": ["id", "userId", "email", "paymentGatewayRefId", "dateTime", "exactPlanPurchased", "actualAmountReceived"]
     }
   },
   "firestore": {
@@ -202,6 +220,10 @@
     "/orders/{orderId}": {
       "schema": "orders",
       "description": "Internal payment order records"
+    },
+    "/owner_payment_audit_logs/{logId}": {
+      "schema": "owner_payment_audit_logs",
+      "description": "Immutable owner payment audit log records for mukeshinland79@gmail.com"
     }
   }
 }
