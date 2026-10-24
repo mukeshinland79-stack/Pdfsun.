@@ -14,7 +14,7 @@ import { BLOG_POSTS } from "./src/data/blogData";
 import { injectSeoTagsIntoHtml } from "./src/server/seoRenderer";
 import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
-import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken } from "./src/server/middleware/adminAuth";
+import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken, isValidAdminSecret, isVerifiedOwnerIdentity } from "./src/server/middleware/adminAuth";
 import {
   getCommentsHandler,
   addCommentHandler,
@@ -163,7 +163,7 @@ let totalBytesTransferred = 0;
 
 // Baseline System Configuration Defaults
 const defaultConfig: SystemConfig = {
-  ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || "12345",
+  ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || "",
   TEMP_STORAGE_RETENTION_MINUTES: 60,
   MAX_STORAGE_USAGE_THRESHOLD: 90,
   HEAVY_TRANSFORMATION_LIMIT: 1000,
@@ -218,7 +218,7 @@ function applyRuntimeConfigUpdates(newConfig: SystemConfig) {
 
 // Dual-Owner RBAC Middleware for Server-side Endpoints
 function verifyDualOwnerAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
     .find((row) => row.startsWith("pdfsun_admin_session="))
@@ -227,14 +227,8 @@ function verifyDualOwnerAccess(req: express.Request, res: express.Response, next
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-  const isCorrectSecretKey = Boolean(
-    providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345")
-  );
-
-  const decodedJwt = providedToken ? verifyAdminJwtToken(providedToken) : null;
-  const isVerifiedJwtOwner = Boolean(
-    decodedJwt && (decodedJwt.role === "owner" || decodedJwt.role === "admin" || DUAL_OWNER_EMAILS.includes(decodedJwt.email?.toLowerCase()))
-  );
+  const isCorrectSecretKey = isValidAdminSecret(providedToken, currentSystemConfig.ADMIN_SECRET_KEY);
+  const isVerifiedJwtOwner = isVerifiedOwnerIdentity(providedToken);
 
   // Fail-Closed: Client-supplied email header alone NEVER establishes owner privileges without valid credentials
   if (!isCorrectSecretKey && !isVerifiedJwtOwner) {
@@ -2481,7 +2475,7 @@ app.post("/api/user/activate-plan", verifyDualOwnerAccess, (req, res) => {
 // Endpoint for Owner Payment Audit Log (Strictly enforces AGENTS_md Section 3)
 app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
   try {
-    const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+    const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
     const cookieToken = req.headers.cookie
       ?.split("; ")
       .find((row) => row.startsWith("pdfsun_admin_session="))
@@ -2490,14 +2484,8 @@ app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
     const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
     const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-    const isCorrectSecretKey = Boolean(
-      providedToken && (providedToken === currentSystemConfig.ADMIN_SECRET_KEY || providedToken === "12345")
-    );
-
-    const decodedJwt = providedToken ? verifyAdminJwtToken(providedToken) : null;
-    const isVerifiedJwtOwner = Boolean(
-      decodedJwt && (decodedJwt.role === "owner" || DUAL_OWNER_EMAILS.includes(decodedJwt.email?.toLowerCase()))
-    );
+    const isCorrectSecretKey = isValidAdminSecret(providedToken, currentSystemConfig.ADMIN_SECRET_KEY);
+    const isVerifiedJwtOwner = isVerifiedOwnerIdentity(providedToken);
 
     // Fail closed: Client-supplied email header without verified credentials cannot establish owner privileges
     const isOwner = isCorrectSecretKey || isVerifiedJwtOwner;
@@ -3877,7 +3865,7 @@ app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (req, res) => {
 
 app.post("/api/admin/reveal-account", verifyDualOwnerAccess, (req, res) => {
   const { password } = req.body || {};
-  if (password === "12345" || password === currentSystemConfig.ADMIN_SECRET_KEY || req.headers["x-admin-token"] === "12345") {
+  if (isValidAdminSecret(password, currentSystemConfig.ADMIN_SECRET_KEY)) {
     return res.json({
       success: true,
       accountNumber: financeHubSettings.bankDetails.accountNumberFull,

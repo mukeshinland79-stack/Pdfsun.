@@ -139,12 +139,22 @@ export const FinanceHub: React.FC = () => {
   const fetchOwnerAuditLogs = async () => {
     setLoadingAuditLogs(true);
     try {
-      const res = await fetch('/api/admin/owner-payment-audit-logs', {
-        headers: {
-          'x-user-email': 'mukeshinland79@gmail.com',
-          'x-admin-token': '12345',
-        },
-      });
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("pdfsun_auth_token")
+        )) || "";
+
+      const headers: Record<string, string> = {
+        'x-user-email': 'mukeshinland79@gmail.com',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+        headers['x-admin-token'] = storedToken;
+      }
+
+      const res = await fetch('/api/admin/owner-payment-audit-logs', { headers });
       if (res.ok) {
         const payload = await res.json();
         if (payload.success && Array.isArray(payload.logs)) {
@@ -160,12 +170,22 @@ export const FinanceHub: React.FC = () => {
 
   const fetchFinanceData = async () => {
     try {
-      const response = await fetch('/api/admin/finance-hub', {
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'x-admin-token': '12345'
-        }
-      });
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("pdfsun_auth_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        'x-user-email': 'mukeshinland79@gmail.com',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+        headers['x-admin-token'] = storedToken;
+      }
+
+      const response = await fetch('/api/admin/finance-hub', { headers });
       if (response.ok) {
         const result = await response.json();
         setData(result);
@@ -181,7 +201,7 @@ export const FinanceHub: React.FC = () => {
 
   const handleRevealAccount = async () => {
     if (!showAccountNo) {
-      const pass = prompt("सुरक्षा सत्यापन: अपना एडमिन पासवर्ड या सीक्रेट कुंजी दर्ज करें (Default: 12345):");
+      const pass = prompt("सुरक्षा सत्यापन: अपना एडमिन पासवर्ड या सीक्रेट कुंजी दर्ज करें:");
       if (!pass) return;
       
       try {
@@ -200,16 +220,11 @@ export const FinanceHub: React.FC = () => {
           setRealAccountNo(accountNumber || "1215882900113493");
           setShowAccountNo(true);
           showToast("खाता संख्या सफलतापूर्वक अनलॉक की गई!", "success");
-        } else if (pass === "12345" || pass === "admin") {
-          setRealAccountNo("1215882900113493");
-          setShowAccountNo(true);
-          showToast("खाता संख्या अनलॉक की गई!", "success");
         } else {
           showToast("गलत पासवर्ड! एक्सेस अस्वीकृत।", "error");
         }
       } catch (e) {
-        setRealAccountNo("1215882900113493");
-        setShowAccountNo(true);
+        showToast("नेटवर्क त्रुटि: खाता संख्या अनलॉक करने में असमर्थ।", "error");
       }
     } else {
       setShowAccountNo(false);
@@ -227,13 +242,22 @@ export const FinanceHub: React.FC = () => {
     
     setProcessingPayout(true);
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+        headers['x-admin-token'] = storedToken;
+      }
       const res = await fetch('/api/admin/withdraw', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'x-admin-token': '12345'
-        },
+        headers,
         body: JSON.stringify({ amount: withdrawAmount })
       });
 
@@ -280,13 +304,22 @@ export const FinanceHub: React.FC = () => {
 
     setSwitchingGateway(true);
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+        headers['x-admin-token'] = storedToken;
+      }
       const res = await fetch('/api/admin/toggle-gateway', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'x-admin-token': '12345'
-        },
+        headers,
         body: JSON.stringify({ gateway: targetGateway })
       });
 
@@ -309,13 +342,22 @@ export const FinanceHub: React.FC = () => {
 
     setProcessingRefundId(txId);
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+        headers['x-admin-token'] = storedToken;
+      }
       const res = await fetch('/api/admin/refund', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'x-admin-token': '12345'
-        },
+        headers,
         body: JSON.stringify({ transactionId: txId, reason: 'Customer requested refund via Finance Hub' })
       });
 

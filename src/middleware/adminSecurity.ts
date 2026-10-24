@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { isValidAdminSecret, isVerifiedOwnerIdentity } from "../server/middleware/adminAuth";
 
 /**
  * Enterprise Zero-Trust Admin Cloaking & Security Middleware for PDFSun
@@ -10,7 +11,7 @@ import { Request, Response, NextFunction } from "express";
  * 3. Enforce session hijacking protection via IP & User-Agent fingerprint consistency.
  */
 
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "pdfsun_owner_super_secret_key_2026";
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "";
 
 export const DUAL_OWNER_EMAILS = [
   "mukeshkalonia241@gmail.com",
@@ -56,23 +57,13 @@ export function getClientIp(req: Request): string {
 
 /**
  * Strict Dual-Owner Security Middleware
- * Verifies that the requesting user's session email belongs exclusively to:
- * 1. mukeshkalonia241@gmail.com
- * 2. mukeshinland79@gmail.com
- *
- * If any other user or non-owner admin attempts to request or access these settings,
- * returns a 404 Not Found response to cloak the endpoint.
+ * Verifies that the requesting user's session proves authentic owner credentials:
+ * 1. Verified cryptographic JWT for owner email
+ * 2. Timing-safe valid ADMIN_SECRET_KEY
+ * Client-supplied email header ALONE cannot establish owner privilege.
  */
 export function dualOwnerSecurityMiddleware(req: Request, res: Response, next: NextFunction) {
-  const userEmail = (
-    req.headers["x-user-email"] ||
-    req.headers["x-owner-email"] ||
-    req.body?.userEmail ||
-    req.query?.userEmail ||
-    ""
-  ).toString().toLowerCase().trim();
-
-  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
     .find((row) => row.startsWith("pdfsun_admin_session="))
@@ -81,11 +72,11 @@ export function dualOwnerSecurityMiddleware(req: Request, res: Response, next: N
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-  const isDualOwner = DUAL_OWNER_EMAILS.includes(userEmail);
-  const isValidAdminToken = providedToken && (providedToken === process.env.ADMIN_SECRET_KEY || providedToken === "12345");
+  const isVerifiedJwt = isVerifiedOwnerIdentity(providedToken);
+  const isValidSecret = isValidAdminSecret(providedToken);
 
-  // Must match either verified dual owner email OR valid secret key provided with owner email
-  if (!isDualOwner && !isValidAdminToken) {
+  // Must have cryptographically verified identity or timing-safe valid secret key
+  if (!isVerifiedJwt && !isValidSecret) {
     if (req.accepts("html")) {
       return sendStealth404(req, res);
     }
@@ -96,7 +87,7 @@ export function dualOwnerSecurityMiddleware(req: Request, res: Response, next: N
   }
 
   (req as any).dualOwnerSession = {
-    email: userEmail || "verified-dual-owner",
+    email: "verified-dual-owner",
     authenticatedAt: Date.now(),
     clientIp: getClientIp(req),
     role: "Dual-Owner",
@@ -109,7 +100,7 @@ export function dualOwnerSecurityMiddleware(req: Request, res: Response, next: N
  * Core Admin Security Middleware
  */
 export function adminSecurityMiddleware(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
     .find((row) => row.startsWith("pdfsun_admin_session="))
@@ -118,9 +109,8 @@ export function adminSecurityMiddleware(req: Request, res: Response, next: NextF
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-  // Validate ADMIN_SECRET_KEY
-  if (!providedToken || providedToken !== ADMIN_SECRET_KEY) {
-    // Return generic 404 to obscure endpoint existence
+  // Validate ADMIN_SECRET_KEY with timing-safe check
+  if (!isValidAdminSecret(providedToken) && !isVerifiedOwnerIdentity(providedToken)) {
     return sendStealth404(req, res);
   }
 
@@ -136,12 +126,6 @@ export function adminSecurityMiddleware(req: Request, res: Response, next: NextF
     role: "Owner",
   };
 
-  // Set Secure HTTP-only cookie for session persistence
-  res.setHeader(
-    "Set-Cookie",
-    `pdfsun_admin_session=${ADMIN_SECRET_KEY}; HttpOnly; Secure; SameSite=Strict; Path=/`
-  );
-
   next();
 }
 
@@ -150,7 +134,7 @@ export function adminSecurityMiddleware(req: Request, res: Response, next: NextF
  * Returns JSON 404 when unauthorized
  */
 export function requireAdminApiAuth(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
+  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
     .find((row) => row.startsWith("pdfsun_admin_session="))
@@ -159,7 +143,7 @@ export function requireAdminApiAuth(req: Request, res: Response, next: NextFunct
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
-  if (!providedToken || providedToken !== ADMIN_SECRET_KEY) {
+  if (!isValidAdminSecret(providedToken) && !isVerifiedOwnerIdentity(providedToken)) {
     return res.status(404).json({
       error: "Cannot " + req.method + " " + req.originalUrl,
     });

@@ -1,9 +1,45 @@
 import { Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { DUAL_OWNER_EMAILS } from "../../types";
 
 // JWT Secret Key configuration with fallback for production runtime
 const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Super_Admin_Secret_JWT_Key_2026";
+
+/**
+ * Timing-safe, fail-closed validation of the administrative secret key.
+ * Strictly rejects missing, placeholder ('your_admin_secret_key'), weak (< 16 chars),
+ * or known insecure test tokens ('12345').
+ */
+export function isValidAdminSecret(providedSecret: string | undefined | null, configuredOverride?: string): boolean {
+  if (!providedSecret || typeof providedSecret !== "string") return false;
+  const configured = (configuredOverride !== undefined ? configuredOverride : (process.env.ADMIN_SECRET_KEY || "")).trim();
+  // Fail-closed against missing, placeholder, weak (< 16 chars), or insecure defaults
+  if (!configured || configured === "12345" || configured === "your_admin_secret_key" || configured.length < 16) {
+    return false;
+  }
+  const provTrimmed = providedSecret.trim();
+  if (provTrimmed === "12345") return false;
+
+  const provBuf = Buffer.from(provTrimmed);
+  const confBuf = Buffer.from(configured);
+  if (provBuf.length !== confBuf.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(provBuf, confBuf);
+}
+
+/**
+ * Validates whether the supplied token or credential proves authentic owner identity.
+ * Rejects client-supplied headers without cryptographically verified JWT.
+ */
+export function isVerifiedOwnerIdentity(providedToken: string | undefined | null): boolean {
+  if (!providedToken || typeof providedToken !== "string") return false;
+  const decoded = verifyAdminJwtToken(providedToken.trim());
+  if (!decoded) return false;
+  const email = (decoded.email || "").toLowerCase().trim();
+  return decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email) || email === "mukeshinland79@gmail.com";
+}
 
 export interface AdminJwtPayload {
   id?: string;
@@ -84,9 +120,8 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
     }
 
     // Direct secret key override check (e.g., dual-owner emergency secret header)
-    const secretKeyHeader = req.headers["x-admin-secret"] || req.headers["x-secret-key"];
-    const expectedSecret = process.env.ADMIN_SECRET_KEY;
-    if (expectedSecret && expectedSecret !== "12345" && typeof secretKeyHeader === "string" && secretKeyHeader === expectedSecret) {
+    const secretKeyHeader = req.headers["x-admin-secret"] || req.headers["x-secret-key"] || req.headers["x-admin-token"];
+    if (typeof secretKeyHeader === "string" && isValidAdminSecret(secretKeyHeader)) {
       req.isAdminAuthenticated = true;
       req.adminUser = {
         email: "owner@pdfsun.in",

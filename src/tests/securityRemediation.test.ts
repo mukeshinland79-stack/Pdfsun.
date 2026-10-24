@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
 import {
@@ -18,6 +19,11 @@ import {
   reconcilePaymentWithFirestore,
   verifyRazorpayTransactionDetails,
 } from "../server/firestoreReconciliation";
+import {
+  isValidAdminSecret,
+  isVerifiedOwnerIdentity,
+  generateAdminJwtToken,
+} from "../server/middleware/adminAuth";
 
 export interface SecurityTestResult {
   passed: number;
@@ -575,6 +581,192 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     reconCode.includes("alreadyReconciled = true") &&
     reconCode.includes("if (!alreadyReconciled)"),
     "firestoreReconciliation.ts enforces idempotency: duplicate events do not grant duplicate entitlements"
+  );
+
+  // 15. Phase 10: Firestore Audit Ledger Hardening & Client Write Denial
+  assert(
+    rulesCode.includes("match /owner_payment_audit_logs/{logId}") &&
+    rulesCode.includes("allow create, update, delete: if false;"),
+    "firestore.rules strictly denies all client-side create, update, and delete on owner_payment_audit_logs (write: false)"
+  );
+
+  assert(
+    rulesCode.includes("match /orders/{orderId}") &&
+    rulesCode.includes("allow create, update, delete: if false;"),
+    "firestore.rules strictly denies all client-side create, update, and delete on orders"
+  );
+
+  assert(
+    !rulesCode.includes("match /owner_payment_audit_logs/{logId} {\n      allow read: if isSignedIn() && request.auth.token.email == \"mukeshinland79@gmail.com\";\n      allow create, update: if true;"),
+    "firestore.rules has completely eliminated active 'allow create, update: if true;' on owner_payment_audit_logs"
+  );
+
+  // 16. Phase 10: Admin Secret Hardening & Fallback Elimination
+  const financeHubCode = fs.readFileSync(path.join(process.cwd(), "src/components/FinanceHub.tsx"), "utf-8");
+  assert(
+    !financeHubCode.includes("'x-admin-token': '12345'"),
+    "FinanceHub.tsx has removed hardcoded '12345' token from audit log fetching"
+  );
+
+  assert(
+    !serverCode.includes('ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || "12345"'),
+    "server.ts default config does not accept '12345' as default ADMIN_SECRET_KEY"
+  );
+
+  assert(
+    !serverCode.includes('providedToken === "12345"'),
+    "server.ts does not permit hardcoded '12345' token in RBAC or audit log endpoints"
+  );
+
+  // 17. Phase 10: Cryptographic Admin Secret & Identity Validation Tests
+  const secureKeyForTest = "production_grade_secret_key_99381029482";
+  assert(
+    isValidAdminSecret("12345", "12345") === false,
+    "isValidAdminSecret strictly rejects known weak '12345' default token"
+  );
+
+  assert(
+    isValidAdminSecret("12345", secureKeyForTest) === false,
+    "isValidAdminSecret strictly rejects '12345' when secure secret is configured"
+  );
+
+  assert(
+    isValidAdminSecret(undefined, secureKeyForTest) === false,
+    "isValidAdminSecret fails closed when token is undefined"
+  );
+
+  assert(
+    isValidAdminSecret("your_admin_secret_key", "your_admin_secret_key") === false,
+    "isValidAdminSecret fails closed on placeholder secret key"
+  );
+
+  assert(
+    isValidAdminSecret("short", "short") === false,
+    "isValidAdminSecret fails closed on weak secrets under 16 characters"
+  );
+
+  assert(
+    isValidAdminSecret(secureKeyForTest, secureKeyForTest) === true,
+    "isValidAdminSecret correctly validates authentic secret using timing-safe comparison"
+  );
+
+  // 18. Phase 10: Owner Cryptographic JWT Authentication & Spoofing Immunity
+  assert(
+    isVerifiedOwnerIdentity(undefined) === false,
+    "isVerifiedOwnerIdentity strictly rejects undefined token"
+  );
+
+  assert(
+    isVerifiedOwnerIdentity("untrusted_spoofed_token_string") === false,
+    "isVerifiedOwnerIdentity strictly rejects untrusted raw token strings"
+  );
+
+  const ownerJwt = generateAdminJwtToken({
+    email: "mukeshinland79@gmail.com",
+    role: "owner",
+  });
+  assert(
+    isVerifiedOwnerIdentity(ownerJwt) === true,
+    "isVerifiedOwnerIdentity successfully validates cryptographically signed owner JWT"
+  );
+
+  const nonOwnerJwt = generateAdminJwtToken({
+    email: "attacker@randomdomain.com",
+    role: "admin",
+  });
+  assert(
+    isVerifiedOwnerIdentity(nonOwnerJwt) === false,
+    "isVerifiedOwnerIdentity rejects non-owner admin JWT from accessing owner audit logs"
+  );
+
+  // 19. Phase 10A: JWT Signature Forgery, Malformation & Expiration Rejection
+  const forgedSecretJwt = jwt.sign(
+    { email: "mukeshinland79@gmail.com", role: "owner", hasAdminAccess: true },
+    "attacker_wrong_signing_secret_9999"
+  );
+  assert(
+    isVerifiedOwnerIdentity(forgedSecretJwt) === false,
+    "isVerifiedOwnerIdentity strictly rejects JWT signed with forged or invalid secret key"
+  );
+
+  const expiredJwt = jwt.sign(
+    { email: "mukeshinland79@gmail.com", role: "owner", hasAdminAccess: true },
+    process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Super_Admin_Secret_JWT_Key_2026",
+    { expiresIn: "-10s" }
+  );
+  assert(
+    isVerifiedOwnerIdentity(expiredJwt) === false,
+    "isVerifiedOwnerIdentity strictly rejects expired JWT tokens"
+  );
+
+  assert(
+    isVerifiedOwnerIdentity("ey.invalid.structure") === false,
+    "isVerifiedOwnerIdentity strictly rejects malformed or truncated JWT tokens"
+  );
+
+  // 20. Phase 10A: Alternative Endpoints & Secondary Middleware Hardening
+  const adminSecurityPath = path.join(process.cwd(), "src/middleware/adminSecurity.ts");
+  const adminSecurityCode = fs.readFileSync(adminSecurityPath, "utf-8");
+
+  assert(
+    !serverCode.includes('password === "12345"'),
+    "server.ts /api/admin/reveal-account does not contain hardcoded '12345' password bypass"
+  );
+
+  assert(
+    !adminSecurityCode.includes('providedToken === "12345"'),
+    "adminSecurity.ts does not permit '12345' token bypass"
+  );
+
+  assert(
+    !adminSecurityCode.includes('const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "pdfsun_owner_super_secret_key_2026"'),
+    "adminSecurity.ts does not use insecure static default fallback for ADMIN_SECRET_KEY"
+  );
+
+  assert(
+    adminSecurityCode.includes("dualOwnerSecurityMiddleware") &&
+    adminSecurityCode.includes("isVerifiedJwt = isVerifiedOwnerIdentity(providedToken)") &&
+    adminSecurityCode.includes("isValidSecret = isValidAdminSecret(providedToken)"),
+    "adminSecurity.ts enforces verified owner identity or timing-safe secret, rejecting unauthenticated headers"
+  );
+
+  // 21. Phase 10A: Full Elimination of 12345 Across All Client Components
+  const ssoHandlerCode = fs.readFileSync(path.join(process.cwd(), "src/utils/SSOHandler.ts"), "utf-8");
+  assert(
+    !ssoHandlerCode.includes('"x-admin-token": "12345"'),
+    "SSOHandler.ts does not contain hardcoded '12345' token"
+  );
+
+  const auditLogManagerCode = fs.readFileSync(path.join(process.cwd(), "src/components/AuditLogManager.tsx"), "utf-8");
+  assert(
+    !auditLogManagerCode.includes('"x-admin-token": "12345"'),
+    "AuditLogManager.tsx does not contain hardcoded '12345' token"
+  );
+
+  const adminPanelCode = fs.readFileSync(path.join(process.cwd(), "src/components/AdminPanel.tsx"), "utf-8");
+  assert(
+    !adminPanelCode.includes('ADMIN_SECRET_KEY: "12345"') &&
+    !adminPanelCode.includes('"x-admin-token": "12345"'),
+    "AdminPanel.tsx does not contain hardcoded '12345' secret or token"
+  );
+
+  const serverConfigFormCode = fs.readFileSync(path.join(process.cwd(), "src/components/ServerSystemConfigForm.tsx"), "utf-8");
+  assert(
+    !serverConfigFormCode.includes('ADMIN_SECRET_KEY: "12345"') &&
+    !serverConfigFormCode.includes('"x-admin-token": config.ADMIN_SECRET_KEY || "12345"'),
+    "ServerSystemConfigForm.tsx does not contain hardcoded '12345' secret or token"
+  );
+
+  const apiThrottlingCode = fs.readFileSync(path.join(process.cwd(), "src/components/ApiThrottlingManager.tsx"), "utf-8");
+  assert(
+    !apiThrottlingCode.includes('"x-admin-token": "12345"'),
+    "ApiThrottlingManager.tsx does not contain hardcoded '12345' token"
+  );
+
+  const commentModCode = fs.readFileSync(path.join(process.cwd(), "src/components/AdminCommentModeration.tsx"), "utf-8");
+  assert(
+    !commentModCode.includes('"x-admin-token": "12345"'),
+    "AdminCommentModeration.tsx does not contain hardcoded '12345' token"
   );
 
   return { passed, failed, logs };

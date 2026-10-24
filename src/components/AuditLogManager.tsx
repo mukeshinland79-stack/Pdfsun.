@@ -356,12 +356,20 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
   const fetchLiveAuditLogs = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/admin/audit-logs", {
-        headers: {
-          "x-user-email": activeEmail,
-          "x-admin-token": "12345",
-        },
-      });
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "x-user-email": activeEmail,
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
+      const res = await fetch("/api/admin/audit-logs", { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.logs) && data.logs.length > 0) {
@@ -593,13 +601,23 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
     };
 
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-user-email": activeEmail,
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
       await fetch("/api/admin/audit-logs/clear", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": activeEmail,
-          "x-admin-token": "12345",
-        },
+        headers,
         body: JSON.stringify({ mode: purgeMode }),
       });
     } catch (e) {

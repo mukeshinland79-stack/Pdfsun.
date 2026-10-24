@@ -127,12 +127,21 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const res = await fetch("/api/admin/traffic-security-summary", {
-          headers: {
-            "x-user-email": userEmail,
-            "x-admin-token": "12345",
-          },
-        });
+        const storedToken =
+          (typeof window !== "undefined" && (
+            localStorage.getItem("pdfsun_admin_token") ||
+            sessionStorage.getItem("pdfsun_admin_token") ||
+            localStorage.getItem("token")
+          )) || "";
+        const headers: Record<string, string> = {
+          "x-user-email": userEmail,
+        };
+        if (storedToken) {
+          headers["Authorization"] = `Bearer ${storedToken}`;
+          headers["x-admin-token"] = storedToken;
+        }
+
+        const res = await fetch("/api/admin/traffic-security-summary", { headers });
         if (res.ok) {
           const data = await res.json();
           if (data.summary) {
@@ -153,12 +162,21 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch("/api/admin/system-config", {
-          headers: {
-            "x-user-email": userEmail,
-            "x-admin-token": "12345",
-          },
-        });
+        const storedToken =
+          (typeof window !== "undefined" && (
+            localStorage.getItem("pdfsun_admin_token") ||
+            sessionStorage.getItem("pdfsun_admin_token") ||
+            localStorage.getItem("token")
+          )) || "";
+        const headers: Record<string, string> = {
+          "x-user-email": userEmail,
+        };
+        if (storedToken) {
+          headers["Authorization"] = `Bearer ${storedToken}`;
+          headers["x-admin-token"] = storedToken;
+        }
+
+        const res = await fetch("/api/admin/system-config", { headers });
         if (res.ok) {
           const data = await res.json();
           if (data.config) {
@@ -219,13 +237,24 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
     };
 
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-user-email": userEmail,
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
+
       const res = await fetch("/api/admin/system-config", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": userEmail,
-          "x-admin-token": "12345",
-        },
+        headers,
         body: JSON.stringify(payload),
       });
 

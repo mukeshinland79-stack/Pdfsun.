@@ -100,21 +100,22 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
     }
 
-    // Internal Orders Collection
+    // Internal Orders Collection (Managed strictly by server-side APIs)
     match /orders/{orderId} {
       allow read: if isSignedIn() && (
         resource.data.userEmail == request.auth.token.email ||
         request.auth.token.email == "mukeshinland79@gmail.com"
       );
-      allow create, update: if true;
-      allow delete: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+      allow create, update, delete: if false;
     }
 
     // Owner Payment Audit Logs (Admin Panel) strictly per AGENTS_md:
-    // Read restricted to owner mukeshinland79@gmail.com, delete disallowed (immutable & tamper-proof).
+    // Read restricted to owner mukeshinland79@gmail.com.
+    // Untrusted client-side writes are strictly forbidden (immutable & tamper-proof).
+    // All creation, updates, and deletions by client SDKs are denied (write: false).
     match /owner_payment_audit_logs/{logId} {
       allow read: if isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
-      allow create, update: if true;
+      allow create, update: if false;
       allow delete: if false;
     }
 

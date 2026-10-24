@@ -43,15 +43,15 @@ export function getStoredAdminToken(): string | null {
  * Retrieves the stored admin secret key (if provided during owner session)
  */
 export function getStoredAdminSecretKey(): string | null {
-  if (typeof window === "undefined") return "12345";
+  if (typeof window === "undefined") return null;
   try {
-    return (
+    const val =
       localStorage.getItem("pdfsun_admin_secret_key") ||
-      sessionStorage.getItem("pdfsun_admin_secret_key") ||
-      "12345"
-    );
+      sessionStorage.getItem("pdfsun_admin_secret_key");
+    if (!val || val === "12345" || val === "pdfsunPass2026") return null;
+    return val;
   } catch {
-    return "12345";
+    return null;
   }
 }
 
@@ -100,8 +100,8 @@ export function validateAdminSession(
     }
   }
 
-  // 2. If direct secret key is provided
-  if (activeKey && (activeKey === "12345" || activeKey === "pdfsunPass2026" || activeKey.trim().length >= 4)) {
+  // 2. If direct secret key is provided (strictly requiring length >= 16 and rejecting known weak secrets)
+  if (activeKey && activeKey !== "12345" && activeKey !== "pdfsunPass2026" && activeKey.trim().length >= 16) {
     return {
       isValid: true,
       isOwner: true,
@@ -155,17 +155,21 @@ export async function verifyAdminSessionWithServer(
     const timeoutId = setTimeout(() => controller.abort(), 1200);
 
     const email = (options.userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
-    const token = options.token || getStoredAdminToken() || "12345";
-    const secret = options.adminSecretKey || getStoredAdminSecretKey() || "12345";
+    const token = options.token || getStoredAdminToken() || "";
+    const secret = options.adminSecretKey || getStoredAdminSecretKey() || "";
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "x-user-email": email,
       "x-owner-email": email,
-      "x-admin-token": token,
-      "x-admin-secret": secret,
-      "Authorization": `Bearer ${token}`,
     };
+    if (token) {
+      headers["x-admin-token"] = token;
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (secret) {
+      headers["x-admin-secret"] = secret;
+    }
 
     const res = await fetch("/api/admin/system-stats", {
       method: "GET",

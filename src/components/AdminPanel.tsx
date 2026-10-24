@@ -487,7 +487,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleExportBackup = async () => {
     let liveSystemConfig: SystemConfig = {
-      ADMIN_SECRET_KEY: "12345",
+      ADMIN_SECRET_KEY: "",
       TEMP_STORAGE_RETENTION_MINUTES: 60,
       MAX_STORAGE_USAGE_THRESHOLD: 90,
       HEAVY_TRANSFORMATION_LIMIT: 1000,
@@ -497,12 +497,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     };
 
     try {
-      const res = await fetch("/api/admin/system-config", {
-        headers: {
-          "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
-          "x-admin-token": "12345",
-        },
-      });
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
+
+      const res = await fetch("/api/admin/system-config", { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
@@ -564,13 +573,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         if (json.systemConfigSecretsAndLimits) {
           // Attempt to update server configuration via API
           try {
+            const storedToken =
+              (typeof window !== "undefined" && (
+                localStorage.getItem("pdfsun_admin_token") ||
+                sessionStorage.getItem("pdfsun_admin_token") ||
+                localStorage.getItem("token")
+              )) || "";
+            const tokenToUse = json.systemConfigSecretsAndLimits.ADMIN_SECRET_KEY || storedToken;
+            const headers: Record<string, string> = {
+              "Content-Type": "application/json",
+              "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
+            };
+            if (tokenToUse) {
+              headers["Authorization"] = `Bearer ${tokenToUse}`;
+              headers["x-admin-token"] = tokenToUse;
+            }
             await fetch("/api/admin/system-config", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
-                "x-admin-token": json.systemConfigSecretsAndLimits.ADMIN_SECRET_KEY || "12345",
-              },
+              headers,
               body: JSON.stringify(json.systemConfigSecretsAndLimits),
             });
           } catch (apiErr) {

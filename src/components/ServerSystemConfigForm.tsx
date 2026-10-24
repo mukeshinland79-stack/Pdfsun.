@@ -27,7 +27,7 @@ interface ServerSystemConfigFormProps {
 }
 
 const DEFAULT_CONFIG: SystemConfig = {
-  ADMIN_SECRET_KEY: "12345",
+  ADMIN_SECRET_KEY: "",
   TEMP_STORAGE_RETENTION_MINUTES: 60,
   MAX_STORAGE_USAGE_THRESHOLD: 90,
   HEAVY_TRANSFORMATION_LIMIT: 1000,
@@ -49,16 +49,31 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
   const currentUserEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isDualOwner = DUAL_OWNER_EMAILS.includes(currentUserEmail);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const storedToken =
+      (typeof window !== "undefined" && (
+        localStorage.getItem("pdfsun_admin_token") ||
+        sessionStorage.getItem("pdfsun_admin_token") ||
+        localStorage.getItem("token")
+      )) || "";
+    const tokenToUse = config.ADMIN_SECRET_KEY || storedToken;
+    const headers: Record<string, string> = {
+      "x-user-email": currentUserEmail || "mukeshkalonia241@gmail.com",
+    };
+    if (tokenToUse) {
+      headers["Authorization"] = `Bearer ${tokenToUse}`;
+      headers["x-admin-token"] = tokenToUse;
+    }
+    return headers;
+  };
+
   // Fetch live server system configuration on component mount
   const fetchLiveConfig = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
       const res = await fetch("/api/admin/system-config", {
-        headers: {
-          "x-user-email": currentUserEmail || "mukeshkalonia241@gmail.com",
-          "x-admin-token": config.ADMIN_SECRET_KEY || "12345",
-        },
+        headers: getAuthHeaders(),
       });
 
       if (res.status === 404) {
@@ -91,13 +106,13 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
     setErrorMessage(null);
 
     try {
+      const headers = {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json",
+      };
       const res = await fetch("/api/admin/system-config", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": currentUserEmail || "mukeshkalonia241@gmail.com",
-          "x-admin-token": config.ADMIN_SECRET_KEY || "12345",
-        },
+        headers,
         body: JSON.stringify(config),
       });
 
@@ -132,13 +147,13 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
     setErrorMessage(null);
 
     try {
+      const headers = {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json",
+      };
       const res = await fetch("/api/admin/system-config/reset", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": currentUserEmail || "mukeshkalonia241@gmail.com",
-          "x-admin-token": config.ADMIN_SECRET_KEY || "12345",
-        },
+        headers,
       });
 
       if (res.ok) {

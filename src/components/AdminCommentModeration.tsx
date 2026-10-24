@@ -53,11 +53,21 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
   const fetchAdminComments = async () => {
     setLoading(true);
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "x-user-email": currentUserEmail.toLowerCase().trim(),
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
       const res = await fetch(`/api/admin/comments?status=${statusTab === "banned_ips" ? "all" : statusTab}`, {
-        headers: {
-          "x-user-email": currentUserEmail.toLowerCase().trim(),
-          "x-admin-token": "12345"
-        }
+        headers
       });
       if (res.ok) {
         const data = await res.json();
@@ -81,13 +91,23 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
   // Execute One-Click Action
   const handleCommentAction = async (commentId: string, action: "approve" | "reject" | "delete" | "ban_ip", ipToBan?: string) => {
     try {
+      const storedToken =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("pdfsun_admin_token") ||
+          sessionStorage.getItem("pdfsun_admin_token") ||
+          localStorage.getItem("token")
+        )) || "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-user-email": currentUserEmail.toLowerCase().trim(),
+      };
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+        headers["x-admin-token"] = storedToken;
+      }
       const res = await fetch("/api/admin/comments/action", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": currentUserEmail.toLowerCase().trim(),
-          "x-admin-token": "12345"
-        },
+        headers,
         body: JSON.stringify({ commentId, action, ipToBan })
       });
       const data = await res.json();
@@ -112,7 +132,7 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
         headers: {
           "Content-Type": "application/json",
           "x-user-email": currentUserEmail.toLowerCase().trim(),
-          "x-admin-token": "12345"
+          ...(typeof window !== "undefined" && (localStorage.getItem("pdfsun_admin_token") || sessionStorage.getItem("pdfsun_admin_token")) ? { "x-admin-token": localStorage.getItem("pdfsun_admin_token") || sessionStorage.getItem("pdfsun_admin_token") || "" } : {})
         },
         body: JSON.stringify({ ids: selectedIds, action })
       });
@@ -136,7 +156,7 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
         headers: {
           "Content-Type": "application/json",
           "x-user-email": currentUserEmail.toLowerCase().trim(),
-          "x-admin-token": "12345"
+          ...(typeof window !== "undefined" && (localStorage.getItem("pdfsun_admin_token") || sessionStorage.getItem("pdfsun_admin_token")) ? { "x-admin-token": localStorage.getItem("pdfsun_admin_token") || sessionStorage.getItem("pdfsun_admin_token") || "" } : {})
         },
         body: JSON.stringify({ action: "unban_ip", ipToBan: ip })
       });

@@ -45,13 +45,23 @@ export function recordSSOAuditLogEntry(entry: {
 
   // Also post to backend if available
   try {
+    const storedToken =
+      (typeof window !== "undefined" && (
+        localStorage.getItem("pdfsun_admin_token") ||
+        sessionStorage.getItem("pdfsun_admin_token") ||
+        localStorage.getItem("token")
+      )) || "";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-user-email": entry.adminOperator || "mukeshinland79@gmail.com",
+    };
+    if (storedToken) {
+      headers["Authorization"] = `Bearer ${storedToken}`;
+      headers["x-admin-token"] = storedToken;
+    }
     fetch("/api/admin/audit-logs", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-email": entry.adminOperator || "mukeshinland79@gmail.com",
-        "x-admin-token": "12345",
-      },
+      headers,
       body: JSON.stringify(newLog),
     }).catch(() => {});
   } catch {
