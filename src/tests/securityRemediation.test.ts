@@ -769,5 +769,51 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     "AdminCommentModeration.tsx does not contain hardcoded '12345' token"
   );
 
+  // 22. Phase 10D.2: Public Build Artifact & Source Map Guard Verification
+  const serverCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
+  assert(
+    serverCode.includes('base === "server.cjs"') &&
+    serverCode.includes('base === "server.cjs.map"') &&
+    serverCode.includes('base.endsWith(".cjs")') &&
+    serverCode.includes('base.endsWith(".map")'),
+    "server.ts contains strict middleware guard blocking server.cjs and server.cjs.map"
+  );
+
+  // Functional verification of the artifact blocking logic
+  function isArtifactBlocked(testPath: string): boolean {
+    let rawPath = testPath || "";
+    try {
+      rawPath = decodeURIComponent(rawPath);
+    } catch {
+      // Malformed URI encoding
+    }
+    const normalized = path.normalize(rawPath).toLowerCase().replace(/\\/g, "/");
+    const base = path.basename(normalized);
+
+    return (
+      base === "server.cjs" ||
+      base === "server.cjs.map" ||
+      base.startsWith("server.cjs") ||
+      normalized.includes("server.cjs") ||
+      base.endsWith(".cjs") ||
+      base.endsWith(".cjs.map") ||
+      (base.endsWith(".map") && normalized.includes("server"))
+    );
+  }
+
+  assert(isArtifactBlocked("/server.cjs"), "Artifact guard strictly blocks /server.cjs");
+  assert(isArtifactBlocked("/server.cjs.map"), "Artifact guard strictly blocks /server.cjs.map");
+  assert(isArtifactBlocked("/SERVER.CJS"), "Artifact guard blocks case variations /SERVER.CJS");
+  assert(isArtifactBlocked("/SERVER.CJS.MAP"), "Artifact guard blocks case variations /SERVER.CJS.MAP");
+  assert(isArtifactBlocked("/%73erver.cjs"), "Artifact guard blocks URI-encoded /%73erver.cjs");
+  assert(isArtifactBlocked("/dist/server.cjs"), "Artifact guard blocks subpath /dist/server.cjs");
+  assert(isArtifactBlocked("/dist/server.cjs.map"), "Artifact guard blocks subpath /dist/server.cjs.map");
+  assert(!isArtifactBlocked("/assets/index.js"), "Artifact guard permits legitimate public asset /assets/index.js");
+  assert(!isArtifactBlocked("/assets/index.css"), "Artifact guard permits legitimate public asset /assets/index.css");
+  assert(!isArtifactBlocked("/robots.txt"), "Artifact guard permits legitimate public asset /robots.txt");
+  assert(!isArtifactBlocked("/sitemap.xml"), "Artifact guard permits legitimate public asset /sitemap.xml");
+  assert(!isArtifactBlocked("/site.webmanifest"), "Artifact guard permits legitimate public asset /site.webmanifest");
+  assert(!isArtifactBlocked("/sw.js"), "Artifact guard permits legitimate public asset /sw.js");
+
   return { passed, failed, logs };
 }

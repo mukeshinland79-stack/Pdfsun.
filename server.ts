@@ -4430,6 +4430,37 @@ async function startServer() {
     });
   });
 
+  // Strict Security Guard: Block public access to backend bundles, server source maps, and server artifacts
+  app.use((req, res, next) => {
+    let rawPath = req.path || "";
+    try {
+      rawPath = decodeURIComponent(rawPath);
+    } catch {
+      // Malformed URI encoding
+    }
+    const normalized = path.normalize(rawPath).toLowerCase().replace(/\\/g, "/");
+    const base = path.basename(normalized);
+
+    if (
+      base === "server.cjs" ||
+      base === "server.cjs.map" ||
+      base.startsWith("server.cjs") ||
+      normalized.includes("server.cjs") ||
+      base.endsWith(".cjs") ||
+      base.endsWith(".cjs.map") ||
+      (base.endsWith(".map") && normalized.includes("server"))
+    ) {
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.status(404).json({
+        success: false,
+        error: "Resource not found.",
+        statusCode: 404,
+      });
+    }
+    next();
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false },
