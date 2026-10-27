@@ -770,12 +770,12 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
   );
 
   // 22. Phase 10D.2: Public Build Artifact & Source Map Guard Verification
-  const serverCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
+  const serverArtifactGuardCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
   assert(
-    serverCode.includes('base === "server.cjs"') &&
-    serverCode.includes('base === "server.cjs.map"') &&
-    serverCode.includes('base.endsWith(".cjs")') &&
-    serverCode.includes('base.endsWith(".map")'),
+    serverArtifactGuardCode.includes('base === "server.cjs"') &&
+    serverArtifactGuardCode.includes('base === "server.cjs.map"') &&
+    serverArtifactGuardCode.includes('base.endsWith(".cjs")') &&
+    serverArtifactGuardCode.includes('base.endsWith(".map")'),
     "server.ts contains strict middleware guard blocking server.cjs and server.cjs.map"
   );
 

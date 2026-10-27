@@ -63,6 +63,9 @@ import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
 import { useLanguage } from "../lib/i18n";
 import { callTranslateApi } from "../lib/safeApi";
 import { useToolRatings } from "../hooks/useToolRatings";
+import { DocumentFidelityBadge } from "./DocumentFidelityBadge";
+import { GoldenFileVerificationModal } from "./GoldenFileVerificationModal";
+import { IndianGovtPortalPresetSelector, INDIAN_GOVT_PRESETS } from "./IndianGovtPortalPresetSelector";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -412,6 +415,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [redactPresetEmail, setRedactPresetEmail] = useState(true);
   const [redactPresetPhone, setRedactPresetPhone] = useState(false);
   const [redactPresetCreditCard, setRedactPresetCreditCard] = useState(true);
+  const [redactPresetAadhaar, setRedactPresetAadhaar] = useState(true);
+  const [redactPresetPan, setRedactPresetPan] = useState(true);
+  const [showVerificationStudio, setShowVerificationStudio] = useState(false);
+  const [selectedGovtPresetId, setSelectedGovtPresetId] = useState<string | undefined>(undefined);
   const [redactionStrategy, setRedactionStrategy] = useState<"auto" | "deep_raster" | "vector_stream">("auto");
   const [redactionPassword, setRedactionPassword] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
@@ -1528,11 +1535,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         case "redact-pdf":
           setStatusMessage("Permanently sanitizing document streams & burning redactions...");
           {
-            const presets: Array<"ssn" | "email" | "phone" | "creditCard"> = [];
+            const presets: Array<"ssn" | "email" | "phone" | "creditCard" | "aadhaar" | "pan"> = [];
             if (redactPresetSsn) presets.push("ssn");
             if (redactPresetEmail) presets.push("email");
             if (redactPresetPhone) presets.push("phone");
             if (redactPresetCreditCard) presets.push("creditCard");
+            if (redactPresetAadhaar) presets.push("aadhaar");
+            if (redactPresetPan) presets.push("pan");
 
             const termsList = redactionTerms
               ? redactionTerms.split(",").map((s) => s.trim()).filter(Boolean)
@@ -3675,6 +3684,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
             {tool.id === "compress-pdf" && (
               <div className="space-y-3">
+                {/* Indian Government & Recruitment Portal Compression Presets */}
+                <IndianGovtPortalPresetSelector
+                  selectedPresetId={selectedGovtPresetId}
+                  onSelectPreset={(preset) => {
+                    setSelectedGovtPresetId(preset.id);
+                    setTargetMaxKB(preset.targetSizeKB);
+                    setCompressPreset("extreme");
+                  }}
+                  className="mb-1"
+                />
+
                 {/* Target File Size Optimizer (pSEO Preset Support) */}
                 <div className="space-y-1.5 p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60">
                   <div className="flex items-center justify-between">
@@ -4029,6 +4049,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         className="rounded text-rose-500 focus:ring-rose-500"
                       />
                       <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Phone Numbers</span>
+                    </label>
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetAadhaar}
+                        onChange={(e) => setRedactPresetAadhaar(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">Aadhaar (UID)</span>
+                    </label>
+                    <label className="flex items-center space-x-1.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={redactPresetPan}
+                        onChange={(e) => setRedactPresetPan(e.target.checked)}
+                        className="rounded text-rose-500 focus:ring-rose-500"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200">PAN Card No.</span>
                     </label>
                   </div>
                 </div>
@@ -5658,6 +5696,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               </div>
 
+              {/* Document Fidelity & Integrity Guarantees Badge */}
+              <DocumentFidelityBadge
+                toolId={tool.id}
+                sourceFileName={files[0]?.name || downloadReady.fileName}
+                sourceFileSize={files[0]?.size}
+                outputFormat={tool.outputFormat}
+                onOpenVerificationStudio={() => setShowVerificationStudio(true)}
+                className="w-full my-3"
+              />
+
               {/* Word Reconstruction Validation & Instant Preview Card */}
               {tool.id === "pdf-to-word" && wordConversionStats && (
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 dark:from-slate-900 dark:via-blue-950/20 dark:to-slate-900 border border-blue-200/80 dark:border-blue-800/60 space-y-3.5 shadow-sm text-left">
@@ -6511,6 +6559,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         onDownloadCustom={(customData) => {
           setLiveTableMatrix(customData);
         }}
+      />
+
+      {/* Golden-File In-Browser Verification Studio */}
+      <GoldenFileVerificationModal
+        isOpen={showVerificationStudio}
+        onClose={() => setShowVerificationStudio(false)}
       />
     </div>
   );

@@ -22,7 +22,7 @@ export type RedactionStrategy = "auto" | "deep_raster" | "vector_stream";
 
 export interface RedactionOptions {
   terms?: string[];
-  regexPresets?: Array<"ssn" | "email" | "phone" | "creditCard">;
+  regexPresets?: Array<"ssn" | "email" | "phone" | "creditCard" | "aadhaar" | "pan">;
   boxes?: RedactionBox[];
   redactionColor?: { r: number; g: number; b: number };
   redactionLabel?: string;
@@ -51,6 +51,8 @@ const PRESET_REGEXES: Record<string, RegExp> = {
   email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi,
   phone: /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
   creditCard: /\b(?:\d{4}[-.\s]?){3}\d{4}\b/g,
+  aadhaar: /\b[2-9]\d{3}[-\s]?\d{4}[-\s]?\d{4}\b/g,
+  pan: /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/g,
 };
 
 // 1x1 valid fallback PNG byte buffer for headless test environments without DOM canvas

@@ -627,10 +627,33 @@ export function injectSeoTagsIntoHtml(htmlTemplate: string, rawPath: string, que
     );
   }
 
-  // 4. Replace <link rel="canonical" href="..." />
+  // 4. Replace <link rel="canonical" href="..." /> and inject International Hreflang Tags
+  const topLanguages = [
+    { code: "en", path: "" },
+    { code: "hi", path: "?lang=hi" },
+    { code: "es", path: "?lang=es" },
+    { code: "de", path: "?lang=de" },
+    { code: "fr", path: "?lang=fr" },
+    { code: "pt", path: "?lang=pt" },
+    { code: "ar", path: "?lang=ar" },
+    { code: "ja", path: "?lang=ja" },
+    { code: "ru", path: "?lang=ru" },
+    { code: "bn", path: "?lang=bn" },
+    { code: "mr", path: "?lang=mr" },
+    { code: "te", path: "?lang=te" },
+    { code: "ta", path: "?lang=ta" },
+  ];
+  const hreflangTags = topLanguages
+    .map(
+      (lang) =>
+        `<link rel="alternate" hreflang="${lang.code}" href="${escapeHtml(seo.canonicalUrl)}${lang.path}" />`
+    )
+    .join("\n    ") +
+    `\n    <link rel="alternate" hreflang="x-default" href="${escapeHtml(seo.canonicalUrl)}" />`;
+
   updatedHtml = updatedHtml.replace(
     /<link\s+rel="canonical"\s+href=".*?"\s*\/?>/is,
-    `<link rel="canonical" href="${escapeHtml(seo.canonicalUrl)}" />`
+    `<link rel="canonical" href="${escapeHtml(seo.canonicalUrl)}" />\n    ${hreflangTags}`
   );
 
   // 5. Replace OpenGraph og:title, og:description, og:url, og:type, og:image

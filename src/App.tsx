@@ -46,6 +46,7 @@ import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
+import { GoldenFileVerificationModal } from "./components/GoldenFileVerificationModal";
 import { ReturningVisitorBar } from "./components/ReturningVisitorBar";
 import { BreadcrumbNav } from "./components/BreadcrumbNav";
 import { CollapsibleSectionsHub } from "./components/CollapsibleSectionsHub";
@@ -396,6 +397,7 @@ function MainApp() {
   const [futureStudioFile, setFutureStudioFile] = useState<File | null>(null);
   const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
+  const [verificationStudioOpen, setVerificationStudioOpen] = useState(false);
   const paymentHandledRef = useRef(false);
 
   const handleOpenPricing = useCallback(() => {
@@ -905,6 +907,7 @@ function MainApp() {
         onOpenBlog={handleNavigateBlog}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
         onOpenAvatarModal={() => setAvatarModalOpen(true)}
+        onOpenVerificationStudio={() => setVerificationStudioOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
           handleExitBlogToHome();
@@ -1159,6 +1162,7 @@ function MainApp() {
 
       <TodayInHistoryModal isOpen={todayInHistoryOpen} onClose={() => setTodayInHistoryOpen(false)} initialLanguage={geoResult.detectedLanguage} initialCountryCode={geoResult.detectedCountryCode} onSelectTool={handleSelectTool} />
       <FuturePdfStudioModal isOpen={futureStudioOpen} onClose={() => setFutureStudioOpen(false)} initialTab={futureStudioTab} initialFile={futureStudioFile} onAddHistory={addHistory} />
+      <GoldenFileVerificationModal isOpen={verificationStudioOpen} onClose={() => setVerificationStudioOpen(false)} />
       <StickyBottomAdBanner
         isVisible={!activeTool && !pricingModalOpen && !contactModalOpen && !sitemapModalOpen && !todayInHistoryOpen && !blogModalOpen && !futureStudioOpen && !adminPanelOpen && !userDashboardOpen && !cmsModalOpen && !authModalOpen}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
