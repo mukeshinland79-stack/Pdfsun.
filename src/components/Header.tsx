@@ -337,20 +337,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="whitespace-nowrap font-bold">Plans</span>
             </button>
 
-            {/* 3. Document Fidelity Studio Button: [🛡️ Fidelity] */}
-            {onOpenVerificationStudio && (
-              <button
-                type="button"
-                id="header-nav-fidelity-btn"
-                onClick={onOpenVerificationStudio}
-                className="h-9 px-2.5 py-1.5 rounded-xl text-xs font-bold text-emerald-800 dark:text-emerald-200 bg-emerald-50/90 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/90 dark:border-emerald-800/80 hover:border-emerald-400/60 transition shadow-2xs hidden md:flex items-center space-x-1 cursor-pointer active:scale-95 shrink-0"
-                title="Open Document Fidelity & Verification Studio"
-                aria-label="Document Fidelity Studio"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="whitespace-nowrap font-bold">Fidelity</span>
-              </button>
-            )}
+          
 
             {/* Theme Selector */}
             <div className="relative hidden sm:block" ref={themeDropdownRef}>
