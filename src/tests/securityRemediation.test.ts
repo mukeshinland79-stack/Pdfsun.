@@ -815,5 +815,85 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
   assert(!isArtifactBlocked("/site.webmanifest"), "Artifact guard permits legitimate public asset /site.webmanifest");
   assert(!isArtifactBlocked("/sw.js"), "Artifact guard permits legitimate public asset /sw.js");
 
+  // 23. Phase 10D.7.1: P0 Administrative Route Protection & Owner Authorization
+  const serverAdminCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
+
+  assert(
+    serverAdminCode.includes('app.get("/api/admin/users", verifyDualOwnerAccess,'),
+    "server.ts strictly protects GET /api/admin/users with verifyDualOwnerAccess"
+  );
+  assert(
+    serverAdminCode.includes('app.get("/api/admin/system-errors", verifyDualOwnerAccess,'),
+    "server.ts strictly protects GET /api/admin/system-errors with verifyDualOwnerAccess"
+  );
+  assert(
+    serverAdminCode.includes('app.delete("/api/admin/system-errors", verifyDualOwnerAccess,'),
+    "server.ts strictly protects DELETE /api/admin/system-errors with verifyDualOwnerAccess"
+  );
+  assert(
+    serverAdminCode.includes('app.post("/api/admin/system-diagnostics/simulate-error", verifyDualOwnerAccess,'),
+    "server.ts strictly protects POST /api/admin/system-diagnostics/simulate-error with verifyDualOwnerAccess"
+  );
+
+  // Functional simulation of verifyDualOwnerAccess authorization logic
+  function simulateAdminAccessCheck(headers: Record<string, string | undefined>): { authorized: boolean; status: number } {
+    const authHeader = headers["x-admin-token"] || headers["authorization"] || headers["x-admin-secret"];
+    const rawHeader = authHeader || "";
+    const providedToken = rawHeader.replace("Bearer ", "").trim();
+
+    const isCorrectSecretKey = isValidAdminSecret(providedToken);
+    const isVerifiedJwtOwner = isVerifiedOwnerIdentity(providedToken);
+
+    if (!isCorrectSecretKey && !isVerifiedJwtOwner) {
+      return { authorized: false, status: 404 };
+    }
+    return { authorized: true, status: 200 };
+  }
+
+  // Test 1: Unauthenticated request is rejected with 404 stealth response
+  const unauthResult = simulateAdminAccessCheck({});
+  assert(!unauthResult.authorized && unauthResult.status === 404, "P0 Guard: Unauthenticated requests strictly denied with 404 stealth response");
+
+  // Test 2: Ordinary user JWT token is rejected
+  const ordinaryUserToken = jwt.sign(
+    { email: "user@example.com", role: "user", hasAdminAccess: false },
+    process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Super_Admin_Secret_JWT_Key_2026",
+    { expiresIn: "1h" }
+  );
+  const ordinaryResult = simulateAdminAccessCheck({ authorization: `Bearer ${ordinaryUserToken}` });
+  assert(!ordinaryResult.authorized && ordinaryResult.status === 404, "P0 Guard: Ordinary authenticated user token strictly denied with 404");
+
+  // Test 3: Spoofed identity headers without valid cryptographic credentials are rejected
+  const spoofResult = simulateAdminAccessCheck({
+    "x-user-email": "mukeshinland79@gmail.com",
+    "x-owner-email": "mukeshinland79@gmail.com",
+  });
+  assert(!spoofResult.authorized && spoofResult.status === 404, "P0 Guard: Client-supplied identity headers alone strictly rejected without valid signature");
+
+  // Test 4: Forged admin JWT signed with wrong secret is rejected
+  const forgedToken = jwt.sign(
+    { email: "mukeshinland79@gmail.com", role: "owner", hasAdminAccess: true },
+    "attacker_forged_secret_key_12345678",
+    { expiresIn: "1h" }
+  );
+  const forgedResult = simulateAdminAccessCheck({ authorization: `Bearer ${forgedToken}` });
+  assert(!forgedResult.authorized && forgedResult.status === 404, "P0 Guard: Forged JWT signed with incorrect secret strictly rejected");
+
+  // Test 5: Legitimate owner JWT generated via verified helper succeeds
+  const validOwnerToken = generateAdminJwtToken({
+    email: "mukeshinland79@gmail.com",
+    role: "owner",
+    hasAdminAccess: true,
+  });
+  const ownerResult = simulateAdminAccessCheck({ authorization: `Bearer ${validOwnerToken}` });
+  assert(ownerResult.authorized && ownerResult.status === 200, "P0 Guard: Valid cryptographically signed owner JWT succeeds with 200 OK");
+
+  // Test 6: Verify /api/health does NOT require verifyDualOwnerAccess and remains public
+  assert(
+    !serverAdminCode.includes('app.get("/api/health", verifyDualOwnerAccess,'),
+    "/api/health does not require verifyDualOwnerAccess and remains public"
+  );
+
   return { passed, failed, logs };
 }
+

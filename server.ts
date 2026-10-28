@@ -1793,7 +1793,7 @@ app.post(["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"], 
 });
 
 // Admin System Error Logs Query
-app.get("/api/admin/system-errors", (req, res) => {
+app.get("/api/admin/system-errors", verifyDualOwnerAccess, (req, res) => {
   const levelFilter = req.query.level as string | undefined;
   const sourceFilter = req.query.source as string | undefined;
   let result = [...systemErrorLogsRingBuffer];
@@ -1815,7 +1815,7 @@ app.get("/api/admin/system-errors", (req, res) => {
 });
 
 // Admin Clear Error Logs
-app.delete("/api/admin/system-errors", (req, res) => {
+app.delete("/api/admin/system-errors", verifyDualOwnerAccess, (req, res) => {
   systemErrorLogsRingBuffer.length = 0;
   pushSystemErrorLog({
     level: "INFO",
@@ -1827,7 +1827,7 @@ app.delete("/api/admin/system-errors", (req, res) => {
 });
 
 // Admin Simulate Error Log for Proactive Bottleneck Testing
-app.post("/api/admin/system-diagnostics/simulate-error", (req, res) => {
+app.post("/api/admin/system-diagnostics/simulate-error", verifyDualOwnerAccess, (req, res) => {
   const { level = "WARNING", source = "WASM_WORKER", message } = req.body || {};
   const defaultMsg = source === "WASM_WORKER"
     ? "Simulated WASM Worker Thread Congestion: Task split-pdf-wasm exceeded 2500ms execution budget."
@@ -3517,7 +3517,7 @@ function recordServerAuditLog(entry: {
 }
 
 // User Management API Endpoints (Owner, Client, Customer, User) - Resilient Read & Protected Mutations
-app.get("/api/admin/users", (req, res) => {
+app.get("/api/admin/users", verifyDualOwnerAccess, (req, res) => {
   try {
     const users = getAllStoredUsers();
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
