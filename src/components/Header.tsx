@@ -335,7 +335,8 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Tag className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span className="whitespace-nowrap font-bold">Plans</span>
-            </button>    
+            </button>
+
 
             {/* Theme Selector */}
             <div className="relative hidden sm:block" ref={themeDropdownRef}>
