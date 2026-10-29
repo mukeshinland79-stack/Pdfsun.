@@ -13,6 +13,7 @@ if (typeof (globalThis as any).DOMMatrix === "undefined") {
 import { runPdfEngineTestSuite } from "../src/tests/pdfEngine.test";
 import { runSecurityRemediationTestSuite } from "../src/tests/securityRemediation.test";
 import { runExcelMultiTabTestSuite } from "../src/tests/excelMultiTabEngine.test";
+import { runUdirEngineTestSuite } from "../src/tests/udirEngine.test";
 
 async function main() {
   console.log("Starting PDFSun automated QA test verification...");
@@ -33,14 +34,20 @@ async function main() {
     console.log(`  ${r.passed ? "✓ PASS" : "✗ FAIL"}: ${r.test} - ${r.message || ""}`);
   }
 
-  const totalFailed = pdfResults.failed + secResults.failed + excelResults.failed;
-  const totalPassed = pdfResults.passed + secResults.passed + excelResults.passed;
+  console.log("\nStarting UDIR & Document Worker Mesh test verification...");
+  const udirResults = await runUdirEngineTestSuite();
+  for (const r of udirResults.results) {
+    console.log(`  ${r.passed ? "✓ PASS" : "✗ FAIL"}: ${r.test} - ${r.message || ""}`);
+  }
+
+  const totalFailed = pdfResults.failed + secResults.failed + excelResults.failed + udirResults.failed;
+  const totalPassed = pdfResults.passed + secResults.passed + excelResults.passed + udirResults.passed;
 
   if (totalFailed > 0) {
     console.error(`QA Suite Failed with ${totalFailed} total failures.`);
     process.exit(1);
   } else {
-    console.log(`\nAll ${totalPassed} tests passed successfully (${pdfResults.passed} engine + ${secResults.passed} security + ${excelResults.passed} excel).`);
+    console.log(`\nAll ${totalPassed} tests passed successfully (${pdfResults.passed} engine + ${secResults.passed} security + ${excelResults.passed} excel + ${udirResults.passed} UDIR/Mesh).`);
     process.exit(0);
   }
 }

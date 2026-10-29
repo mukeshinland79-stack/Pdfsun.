@@ -123,8 +123,39 @@ process.on("unhandledRejection", (reason: any) => {
   console.warn("[DevServer UnhandledRejection]:", reason?.message || reason);
 });
 
+function parseCliArg(flag: string): string | undefined {
+  const index = process.argv.indexOf(flag);
+  if (index !== -1 && index + 1 < process.argv.length) {
+    return process.argv[index + 1];
+  }
+  return undefined;
+}
+
+// In AI Studio / Cloud Run, NGINX reverse-proxy listens on PORT=8080 (NGINX_PORT=8080)
+// and forwards web requests to the Node application on DEFAULT_APP_PORT=3000.
+// Also, CLI arguments such as `--port 3000 --host 0.0.0.0` or positional arguments `3000 0.0.0.0`
+// can be passed by the dev server supervisor.
+const cliPort = parseCliArg("--port") || parseCliArg("-p");
+const cliHost = parseCliArg("--host") || parseCliArg("-h");
+
+const positionalPort = process.argv.find((arg, i) => i >= 2 && !arg.startsWith("-") && /^\d+$/.test(arg));
+const positionalHost = process.argv.find((arg, i) => i >= 2 && !arg.startsWith("-") && /^(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.test(arg));
+
+const explicitPort = cliPort || positionalPort || process.env.APP_PORT || process.env.DEFAULT_APP_PORT;
+let PORT = explicitPort ? Number(explicitPort) : 3000;
+
+const nginxPort = Number(process.env.NGINX_PORT) || 8080;
+if (PORT === nginxPort) {
+  // If PORT collides with Nginx, always fall back to DEFAULT_APP_PORT or 3000
+  PORT = Number(process.env.DEFAULT_APP_PORT) || 3000;
+} else if (!explicitPort && process.env.PORT) {
+  const envPort = Number(process.env.PORT);
+  PORT = envPort === nginxPort ? (Number(process.env.DEFAULT_APP_PORT) || 3000) : envPort;
+}
+
+const HOST = cliHost || positionalHost || process.env.HOST || "0.0.0.0";
+
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
 
 // Global CORS & Method Mapping Middleware to completely eradicate HTTP 405 (Method Not Allowed)
 app.use((req, res, next) => {
@@ -4463,7 +4494,7 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: { middlewareMode: true, hmr: false, ws: false },
       appType: "custom",
     });
     app.use(vite.middlewares);
@@ -4591,8 +4622,16 @@ async function startServer() {
     }
   }, 5 * 60 * 1000);
 
-  httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`[PDFSun App Server] Server running on http://0.0.0.0:${PORT}`);
+  httpServer.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`[PDFSun App Server] Port ${PORT} is already in use by another process.`);
+    } else {
+      console.error("[PDFSun App Server] Server error:", err);
+    }
+  });
+
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`[PDFSun App Server] Server running on http://${HOST}:${PORT}`);
   });
 }
 
