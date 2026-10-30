@@ -98,7 +98,13 @@ import {
   globalTrafficHygieneMiddleware,
   createSlidingRateLimiter,
   getTrafficSecuritySummary,
+  getClientIp,
 } from "./src/server/trafficProtection";
+import {
+  checkAndConsumeAiQuota,
+  rollbackAiQuota,
+  getAiQuotaStatus,
+} from "./src/server/distributedRateLimiter";
 import { TRAFFIC_SECURITY_CONFIG } from "./src/config/trafficSecurityConfig";
 
 dotenv.config();
@@ -157,15 +163,53 @@ const HOST = cliHost || positionalHost || process.env.HOST || "0.0.0.0";
 
 const app = express();
 
-// Global CORS & Method Mapping Middleware to completely eradicate HTTP 405 (Method Not Allowed)
+// Trust upstream reverse proxy (Google Cloud Run GFE / Nginx) to securely extract true client IP
+app.set("trust proxy", 1);
+
+// Verified Origin Allowlist per Phase 11D Rule 3 (Strict Environment Separation)
+export const VERIFIED_CORS_ORIGINS = new Set<string>([
+  "https://www.pdfsun.in",
+  "https://pdfsun.in",
+  "https://ais-pre-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app",
+  "https://ais-dev-nc2omqrcrewclthjpyezu6-513767419820.asia-east1.run.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
+
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(",")
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .forEach((o) => VERIFIED_CORS_ORIGINS.add(o));
+}
+
+// Global CORS Middleware with Strict Verified Allowlist
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key"
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  const origin = req.headers.origin;
+  res.setHeader("Vary", "Origin");
+
+  if (origin) {
+    if (VERIFIED_CORS_ORIGINS.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key"
+      );
+      res.setHeader("Access-Control-Max-Age", "86400");
+    } else {
+      // Untrusted Origin: Reject preflight immediately; for non-preflight omit Access-Control-Allow-Origin
+      if (req.method === "OPTIONS") {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "CORS origin rejected by security policy.",
+        });
+      }
+    }
+  }
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -456,22 +500,177 @@ function getGeminiClient() {
   });
 }
 
-// Secure PDF & File Download Delivery Route with Standard Browser Headers
-app.all(["/api/download/file", "/api/download/stream"], (req, res) => {
-  try {
-    const fileBase64 = req.body?.fileBase64 || req.query?.fileBase64;
-    const fileName = (req.body?.fileName || req.query?.fileName || "PDFSun_Processed_Document.pdf").toString();
-    const mimeType = (req.body?.mimeType || req.query?.mimeType || "application/pdf").toString();
+// Allowed MIME types for download proxy to prevent arbitrary file reflection or XSS
+export const ALLOWED_DOWNLOAD_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/zip",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "text/plain",
+  "application/json",
+]);
 
-    if (!fileBase64) {
-      return res.status(400).json({ error: "Missing file payload in request body or query parameter." });
+// Helper to validate and sanitize download payloads per Phase 11D Rule 7
+export function validateDownloadPayload(body: any): {
+  valid: boolean;
+  statusCode?: number;
+  error?: string;
+  buffer?: Buffer;
+  cleanFilename?: string;
+  mimeType?: string;
+} {
+  const fileBase64 = body?.fileBase64;
+  const rawFileName = (body?.fileName || "PDFSun_Processed_Document.pdf").toString();
+  const mimeType = (body?.mimeType || "application/pdf").toString().toLowerCase().trim();
+
+  if (!fileBase64 || typeof fileBase64 !== "string") {
+    return { valid: false, statusCode: 400, error: "Missing file payload in request body." };
+  }
+
+  const cleanBase64 = fileBase64.trim();
+  // 1. Strict base64 validation and size limit (Max 70M chars ~ 50MB binary)
+  if (cleanBase64.length > 70 * 1024 * 1024) {
+    return { valid: false, statusCode: 413, error: "File payload exceeds 50MB limit." };
+  }
+
+  // Base64 character set validation (reject invalid characters, CRLF, or control codes)
+  if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+    return { valid: false, statusCode: 400, error: "Invalid base64 encoding in file payload." };
+  }
+
+  // 2. MIME allowlist verification
+  if (!ALLOWED_DOWNLOAD_MIME_TYPES.has(mimeType)) {
+    return { valid: false, statusCode: 400, error: "Disallowed or unsupported MIME type." };
+  }
+
+  // 3. Decode buffer and enforce decoded size boundaries
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(cleanBase64, "base64");
+  } catch {
+    return { valid: false, statusCode: 400, error: "Failed to decode base64 file payload." };
+  }
+
+  if (buffer.length === 0) {
+    return { valid: false, statusCode: 400, error: "Decoded file payload cannot be empty." };
+  }
+
+  if (buffer.length > 50 * 1024 * 1024) {
+    return { valid: false, statusCode: 413, error: "Decoded document exceeds 50MB limit." };
+  }
+
+  // 4. File-Signature (Magic Bytes) Consistency Check
+  if (mimeType === "application/pdf") {
+    // PDF Magic Bytes: %PDF- (0x25 0x50 0x44 0x46 0x2D)
+    const isPdf =
+      buffer.length >= 5 &&
+      buffer[0] === 0x25 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x44 &&
+      buffer[3] === 0x46 &&
+      buffer[4] === 0x2d;
+    if (!isPdf) {
+      return { valid: false, statusCode: 400, error: "File content signature does not match claimed PDF MIME type." };
+    }
+  } else if (mimeType.includes("openxmlformats") || mimeType === "application/zip") {
+    // ZIP / OpenXML Magic Bytes: PK\x03\x04 or PK\x05\x06 or PK\x07\x08
+    const isZip =
+      buffer.length >= 4 &&
+      buffer[0] === 0x50 &&
+      buffer[1] === 0x4b &&
+      (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+    if (!isZip) {
+      return { valid: false, statusCode: 400, error: "File content signature does not match claimed OpenXML/ZIP archive MIME type." };
+    }
+  } else if (mimeType === "image/png") {
+    // PNG Magic Bytes: \x89PNG
+    const isPng =
+      buffer.length >= 4 &&
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47;
+    if (!isPng) {
+      return { valid: false, statusCode: 400, error: "File content signature does not match claimed PNG MIME type." };
+    }
+  } else if (mimeType === "image/jpeg") {
+    // JPEG Magic Bytes: \xFF\xD8\xFF
+    const isJpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    if (!isJpeg) {
+      return { valid: false, statusCode: 400, error: "File content signature does not match claimed JPEG MIME type." };
+    }
+  } else if (mimeType === "image/webp") {
+    // WEBP Magic Bytes: RIFF....WEBP
+    const isWebp =
+      buffer.length >= 12 &&
+      buffer[0] === 0x52 &&
+      buffer[1] === 0x49 &&
+      buffer[2] === 0x46 &&
+      buffer[3] === 0x46 &&
+      buffer[8] === 0x57 &&
+      buffer[9] === 0x45 &&
+      buffer[10] === 0x42 &&
+      buffer[11] === 0x50;
+    if (!isWebp) {
+      return { valid: false, statusCode: 400, error: "File content signature does not match claimed WebP MIME type." };
+    }
+  } else if (mimeType === "text/plain" || mimeType === "application/json") {
+    // Check for illegal null bytes in plain text / json
+    const sample = buffer.slice(0, Math.min(buffer.length, 1024));
+    if (sample.includes(0x00)) {
+      return { valid: false, statusCode: 400, error: "Text file contains illegal binary null control characters." };
+    }
+  }
+
+  // 5. Filename sanitization against CRLF and Directory Traversal
+  let cleanFilename = rawFileName
+    .replace(/[\r\n\0]/g, "")
+    .replace(/\.\.+/g, ".")
+    .replace(/[/\\?%*:|"<>]/g, "_")
+    .trim()
+    .slice(0, 100);
+
+  if (!cleanFilename) {
+    cleanFilename = "PDFSun_Processed_Document.pdf";
+  }
+
+  return {
+    valid: true,
+    buffer,
+    cleanFilename,
+    mimeType,
+  };
+}
+
+// Reject GET requests on download streaming to prevent URL log leakage of Base64 documents
+app.get(["/api/download/file", "/api/download/stream"], (_req, res) => {
+  return res.status(405).json({
+    error: "Method Not Allowed",
+    message: "GET requests with document payloads in query parameters are rejected. Please use POST with JSON body payload.",
+  });
+});
+
+// Secure PDF & File Download Delivery Route with Standard Browser Headers (POST only)
+app.post(["/api/download/file", "/api/download/stream"], (req, res) => {
+  try {
+    const validation = validateDownloadPayload(req.body);
+    if (!validation.valid || !validation.buffer || !validation.cleanFilename || !validation.mimeType) {
+      return res.status(validation.statusCode || 400).json({
+        error: validation.error || "Invalid download payload",
+      });
     }
 
-    const cleanFilename = fileName.replace(/[/\\?%*:|"<>]/g, "_").trim();
-    const buffer = Buffer.from(fileBase64.toString(), "base64");
+    const { buffer, cleanFilename, mimeType } = validation;
 
     res.setHeader("Content-Type", mimeType);
-    res.setHeader("Content-Disposition", `attachment; filename="${cleanFilename}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${cleanFilename}"; filename*=UTF-8''${encodeURIComponent(cleanFilename)}`
+    );
     res.setHeader("Content-Length", buffer.length);
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
@@ -638,7 +837,105 @@ ${chunk}`;
   });
 }
 
-// AI API Endpoints (Fully accessible without throttling blocks)
+// AI Entitlement & Distributed Rate Limiting Middleware per AGENTS_md Specifications
+export async function aiEntitlementMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.method === "OPTIONS") return next();
+
+  // 1. Dual-Owner and Admin always bypass entitlement limits
+  const adminHeader = req.headers["x-admin-token"] || req.headers["x-admin-secret"];
+  const rawAdmin = typeof adminHeader === "string" ? adminHeader.replace("Bearer ", "").trim() : "";
+  if (isValidAdminSecret(rawAdmin) || isVerifiedOwnerIdentity(rawAdmin)) {
+    return next();
+  }
+
+  // 2. Validate User Session Token if supplied
+  const authHeader = req.headers.authorization || req.headers["x-user-token"] || req.headers["x-auth-token"];
+  const cookieToken = req.headers.cookie
+    ?.split("; ")
+    .find((row) => row.startsWith("pdfsun_user_session=") || row.startsWith("pdfsun_auth_token="))
+    ?.split("=")[1];
+
+  let rawToken: string | undefined;
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    rawToken = authHeader.substring(7).trim();
+  } else if (typeof authHeader === "string") {
+    rawToken = authHeader.trim();
+  } else if (cookieToken) {
+    rawToken = cookieToken.trim();
+  }
+
+  if (rawToken) {
+    if (isVerifiedOwnerIdentity(rawToken)) {
+      return next();
+    }
+    const session = verifySessionToken(rawToken);
+    if (session) {
+      // Evaluate user plan against distributed quota ledger
+      const userPlan = (session.plan || "free").toString();
+      const quotaCheck = await checkAndConsumeAiQuota({
+        identifier: session.email || session.id || "user_unknown",
+        isGuest: false,
+        userPlan,
+      });
+
+      if (!quotaCheck.allowed) {
+        return res.status(403).json({
+          success: false,
+          error: quotaCheck.reason || "Daily AI quota reached. Upgrade to Pro Sun or Flex Pass for unlimited AI operations.",
+          code: "FREE_TIER_QUOTA_EXCEEDED",
+          quotaDetails: {
+            count: quotaCheck.count,
+            limit: quotaCheck.limit,
+            resetTimeUtc: quotaCheck.resetTimeUtc,
+          },
+          upgradeUrl: "/pricing",
+        });
+      }
+
+      // Attach context for downstream rollback in case of Gemini server failure
+      (req as any).quotaContext = {
+        identifier: session.email || session.id,
+        isGuest: false,
+      };
+
+      return next();
+    }
+  }
+
+  // 3. Guest / Unauthenticated Visitor: Enforce Free Forever tier limit (3 operations/day per IP)
+  // getClientIp(req) prioritizes trusted reverse-proxy req.ip to prevent spoofing
+  const clientIp = getClientIp(req);
+  const quotaCheck = await checkAndConsumeAiQuota({
+    identifier: clientIp,
+    isGuest: true,
+  });
+
+  if (!quotaCheck.allowed) {
+    return res.status(403).json({
+      success: false,
+      error: quotaCheck.reason || "Free tier daily AI quota reached (3 operations/day). Please sign in or upgrade to Pro Sun for unlimited AI processing.",
+      code: "FREE_TIER_QUOTA_EXCEEDED",
+      quotaDetails: {
+        count: quotaCheck.count,
+        limit: quotaCheck.limit,
+        resetTimeUtc: quotaCheck.resetTimeUtc,
+      },
+      upgradeUrl: "/pricing",
+    });
+  }
+
+  // Attach context for downstream rollback in case of Gemini server failure
+  (req as any).quotaContext = {
+    identifier: clientIp,
+    isGuest: true,
+  };
+
+  next();
+}
+
+app.use("/api/ai", aiEntitlementMiddleware);
+
+// AI API Endpoints (Gated by aiEntitlementMiddleware)
 app.post("/api/ai/chat", async (req, res) => {
   res.setHeader("Content-Type", "application/json");
   try {
@@ -673,6 +970,9 @@ ${documentText ? documentText.slice(0, 15000) : "No document text uploaded yet."
 
     return res.status(200).json({ success: true, result: callResult.text || "No response generated.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Chat Error:", error);
     const msg = error?.message || "Failed to process AI chat request.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");

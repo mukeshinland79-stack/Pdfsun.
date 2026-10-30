@@ -94,19 +94,24 @@ setInterval(() => {
  * Extract real client IP behind reverse proxies/Cloudflare
  */
 export function getClientIp(req: Request): string {
+  // If trust proxy is configured in Express (Cloud Run / GFE reverse proxy), req.ip is validated
+  if (req.ip && req.ip !== "::1") {
+    return req.ip.replace(/^::ffff:/, "").trim();
+  }
+
   const cfConnectingIp = req.headers["cf-connecting-ip"];
   if (typeof cfConnectingIp === "string" && cfConnectingIp) {
     return cfConnectingIp.trim();
   }
 
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-
   const realIp = req.headers["x-real-ip"];
   if (typeof realIp === "string" && realIp) {
     return realIp.trim();
+  }
+
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded) {
+    return forwarded.split(",")[0].trim();
   }
 
   return req.socket.remoteAddress || "127.0.0.1";

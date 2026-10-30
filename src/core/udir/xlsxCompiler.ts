@@ -11,6 +11,20 @@
 import ExcelJS from "exceljs";
 import { UdirDocument } from "./types";
 
+/**
+ * Sanitizes plain text values to prevent CSV / Excel Formula Injection (CWE-1236).
+ * Any text beginning with '=', '+', '-', '@', tab, or carriage return (even if preceded by whitespace)
+ * is escaped with a leading single-quote.
+ */
+export function sanitizePlainTextForExcel(text: string): string {
+  if (!text || typeof text !== "string") return "";
+  const trimmed = text.trimStart();
+  if (/^[=+\-@\t\r]/.test(trimmed)) {
+    return `'${text}`;
+  }
+  return text;
+}
+
 export async function compileUdirToXlsx(udir: UdirDocument): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "PDFSun.in Document Intelligence Engine";
@@ -96,7 +110,7 @@ export async function compileUdirToXlsx(udir: UdirDocument): Promise<Uint8Array>
         const excelCell = excelRow.getCell(cIdx + 1);
 
         if (isHeader) {
-          excelCell.value = cellData.text;
+          excelCell.value = sanitizePlainTextForExcel(cellData.text);
           excelCell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
           excelCell.fill = {
             type: "pattern",
@@ -117,7 +131,7 @@ export async function compileUdirToXlsx(udir: UdirDocument): Promise<Uint8Array>
               excelCell.numFmt = cellData.formatCode;
             }
           } else {
-            excelCell.value = cellData.text;
+            excelCell.value = sanitizePlainTextForExcel(cellData.text);
           }
 
           excelCell.font = {
@@ -191,7 +205,7 @@ export async function compileUdirToXlsx(udir: UdirDocument): Promise<Uint8Array>
         flowSheet.addRow({
           page: page.pageNumber,
           type: block.type,
-          content: block.text,
+          content: sanitizePlainTextForExcel(block.text),
         });
       }
     }

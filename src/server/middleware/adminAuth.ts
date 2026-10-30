@@ -3,8 +3,49 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { DUAL_OWNER_EMAILS } from "../../types";
 
-// JWT Secret Key configuration with fallback for production runtime
-const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Super_Admin_Secret_JWT_Key_2026";
+// Dynamic JWT Secret resolver: Enforces minimum 256-bit cryptographically secure secret.
+// In production (NODE_ENV === "production"), startup strictly fails closed if a valid secret is not configured.
+// In development/testing, generates an ephemeral 256-bit random key at boot with security warning.
+let ephemeralJwtSecret: string | null = null;
+function getEphemeralSecret(): string {
+  if (!ephemeralJwtSecret) {
+    ephemeralJwtSecret = crypto.randomBytes(32).toString("hex");
+    console.warn(
+      "[SECURITY WARN] ADMIN_JWT_SECRET environment variable not configured. Generated ephemeral 256-bit runtime secret for development/testing."
+    );
+  }
+  return ephemeralJwtSecret;
+}
+
+export function getJwtSecret(): string {
+  const configured = (
+    process.env.ADMIN_JWT_SECRET ||
+    process.env.JWT_SECRET ||
+    process.env.OWNER_JWT_SECRET ||
+    process.env.ADMIN_SECRET_KEY ||
+    ""
+  ).trim();
+
+  // Enforce minimum 256-bit (32 characters) length and reject known insecure test defaults
+  if (
+    configured &&
+    configured !== "12345" &&
+    configured !== "your_admin_secret_key" &&
+    configured !== "PDFSun_Super_Admin_Secret_JWT_Key_2026" &&
+    configured.length >= 32
+  ) {
+    return configured;
+  }
+
+  // Fail-closed in production environment per Phase 11D Rule 4
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[FATAL SECURITY ERROR] In production, ADMIN_JWT_SECRET (minimum 256-bit / 32 characters) must be configured in environment or Google Cloud Secret Manager. Ephemeral secret fallback is strictly prohibited in production."
+    );
+  }
+
+  return getEphemeralSecret();
+}
 
 /**
  * Timing-safe, fail-closed validation of the administrative secret key.
@@ -79,7 +120,7 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
     },
   };
 
-  return jwt.sign(tokenData, JWT_SECRET, { expiresIn: "24h" });
+  return jwt.sign(tokenData, getJwtSecret(), { expiresIn: "24h" });
 }
 
 /**
@@ -87,7 +128,7 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
  */
 export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AdminJwtPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as AdminJwtPayload;
     if (decoded && (decoded.role === "admin" || decoded.role === "owner" || decoded.hasAdminAccess === true)) {
       return decoded;
     }
