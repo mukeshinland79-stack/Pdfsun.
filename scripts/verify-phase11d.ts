@@ -341,6 +341,8 @@ async function runPhase11dSuite() {
 
   if (failCount > 0) {
     process.exit(1);
+  } else {
+    process.exit(0);
   }
 }
 

@@ -207,7 +207,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       pathName = urlStr;
     }
 
-    // Ignore background noise endpoints (telemetry, auth verify checks, history prefetch, admin sync, payment-history sync, subscription checks, vite websockets, local static translation files, third-party fonts/analytics/scripts/ads/cdn/pwa)
+    // Phase 11: Non-blocking background telemetry endpoints (failures must never interrupt a successful document workflow)
     const lowerUrl = urlStr.toLowerCase();
     const isTelemetryEndpoint =
       lowerUrl.includes("/api/telemetry") ||
@@ -225,6 +225,14 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("/api/user/session") ||
       lowerUrl.includes("/api/user/me") ||
       lowerUrl.includes("/api/user/check");
+
+    // Explicit Safety: User-initiated storage (/api/r2/*), downloads (/api/download/*), payments (/api/razorpay/*), and AI transformations must NEVER be suppressed
+    const isUserInitiatedCriticalRoute =
+      lowerUrl.includes("/api/r2/") ||
+      lowerUrl.includes("/api/download/") ||
+      lowerUrl.includes("/api/razorpay/") ||
+      lowerUrl.includes("/api/create-razorpay-order") ||
+      lowerUrl.includes("/api/process-refund");
     const isViteHmrNoise =
       lowerUrl.includes("ws:") ||
       lowerUrl.includes("wss:") ||
@@ -266,10 +274,10 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("favicon.ico") ||
       lowerUrl.includes("/sw.js");
 
-    const isIgnoredNoise = isTelemetryEndpoint || isViteHmrNoise || isExternalFontOrAnalyticsOrAdsOrCdn || isStaticTranslation;
+    const isIgnoredNoise = !isUserInitiatedCriticalRoute && (isTelemetryEndpoint || isViteHmrNoise || isExternalFontOrAnalyticsOrAdsOrCdn || isStaticTranslation);
 
-    // Check if request is a background/read-only GET request (which shouldn't disrupt the user with scary popups)
-    const isBackgroundGet = method === "GET" || isTelemetryEndpoint || isIgnoredNoise;
+    // Check if request is a background/read-only GET request or telemetry (which shouldn't disrupt the user with scary popups)
+    const isBackgroundGet = !isUserInitiatedCriticalRoute && (method === "GET" || isTelemetryEndpoint || isIgnoredNoise);
 
     // Manage request timeout signal if caller did not provide their own AbortSignal
     let timeoutController: AbortController | null = null;

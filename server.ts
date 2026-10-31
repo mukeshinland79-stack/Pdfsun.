@@ -838,99 +838,101 @@ ${chunk}`;
 }
 
 // AI Entitlement & Distributed Rate Limiting Middleware per AGENTS_md Specifications
-export async function aiEntitlementMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function aiEntitlementMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.method === "OPTIONS") return next();
 
-  // 1. Dual-Owner and Admin always bypass entitlement limits
-  const adminHeader = req.headers["x-admin-token"] || req.headers["x-admin-secret"];
-  const rawAdmin = typeof adminHeader === "string" ? adminHeader.replace("Bearer ", "").trim() : "";
-  if (isValidAdminSecret(rawAdmin) || isVerifiedOwnerIdentity(rawAdmin)) {
-    return next();
-  }
-
-  // 2. Validate User Session Token if supplied
-  const authHeader = req.headers.authorization || req.headers["x-user-token"] || req.headers["x-auth-token"];
-  const cookieToken = req.headers.cookie
-    ?.split("; ")
-    .find((row) => row.startsWith("pdfsun_user_session=") || row.startsWith("pdfsun_auth_token="))
-    ?.split("=")[1];
-
-  let rawToken: string | undefined;
-  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-    rawToken = authHeader.substring(7).trim();
-  } else if (typeof authHeader === "string") {
-    rawToken = authHeader.trim();
-  } else if (cookieToken) {
-    rawToken = cookieToken.trim();
-  }
-
-  if (rawToken) {
-    if (isVerifiedOwnerIdentity(rawToken)) {
+  (async () => {
+    // 1. Dual-Owner and Admin always bypass entitlement limits
+    const adminHeader = req.headers["x-admin-token"] || req.headers["x-admin-secret"];
+    const rawAdmin = typeof adminHeader === "string" ? adminHeader.replace("Bearer ", "").trim() : "";
+    if (isValidAdminSecret(rawAdmin) || isVerifiedOwnerIdentity(rawAdmin)) {
       return next();
     }
-    const session = verifySessionToken(rawToken);
-    if (session) {
-      // Evaluate user plan against distributed quota ledger
-      const userPlan = (session.plan || "free").toString();
-      const quotaCheck = await checkAndConsumeAiQuota({
-        identifier: session.email || session.id || "user_unknown",
-        isGuest: false,
-        userPlan,
-      });
 
-      if (!quotaCheck.allowed) {
-        return res.status(403).json({
-          success: false,
-          error: quotaCheck.reason || "Daily AI quota reached. Upgrade to Pro Sun or Flex Pass for unlimited AI operations.",
-          code: "FREE_TIER_QUOTA_EXCEEDED",
-          quotaDetails: {
-            count: quotaCheck.count,
-            limit: quotaCheck.limit,
-            resetTimeUtc: quotaCheck.resetTimeUtc,
-          },
-          upgradeUrl: "/pricing",
-        });
+    // 2. Validate User Session Token if supplied
+    const authHeader = req.headers.authorization || req.headers["x-user-token"] || req.headers["x-auth-token"];
+    const cookieToken = req.headers.cookie
+      ?.split("; ")
+      .find((row) => row.startsWith("pdfsun_user_session=") || row.startsWith("pdfsun_auth_token="))
+      ?.split("=")[1];
+
+    let rawToken: string | undefined;
+    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      rawToken = authHeader.substring(7).trim();
+    } else if (typeof authHeader === "string") {
+      rawToken = authHeader.trim();
+    } else if (cookieToken) {
+      rawToken = cookieToken.trim();
+    }
+
+    if (rawToken) {
+      if (isVerifiedOwnerIdentity(rawToken)) {
+        return next();
       }
+      const session = verifySessionToken(rawToken);
+      if (session) {
+        // Evaluate user plan against distributed quota ledger
+        const userPlan = (session.plan || "free").toString();
+        const quotaCheck = await checkAndConsumeAiQuota({
+          identifier: session.email || session.id || "user_unknown",
+          isGuest: false,
+          userPlan,
+        });
 
-      // Attach context for downstream rollback in case of Gemini server failure
-      (req as any).quotaContext = {
-        identifier: session.email || session.id,
-        isGuest: false,
-      };
+        if (!quotaCheck.allowed) {
+          return res.status(403).json({
+            success: false,
+            error: quotaCheck.reason || "Daily AI quota reached. Upgrade to Pro Sun or Flex Pass for unlimited AI operations.",
+            code: "FREE_TIER_QUOTA_EXCEEDED",
+            quotaDetails: {
+              count: quotaCheck.count,
+              limit: quotaCheck.limit,
+              resetTimeUtc: quotaCheck.resetTimeUtc,
+            },
+            upgradeUrl: "/pricing",
+          });
+        }
 
-      return next();
+        // Attach context for downstream rollback in case of Gemini server failure
+        (req as any).quotaContext = {
+          identifier: session.email || session.id,
+          isGuest: false,
+        };
+
+        return next();
+      }
     }
-  }
 
-  // 3. Guest / Unauthenticated Visitor: Enforce Free Forever tier limit (3 operations/day per IP)
-  // getClientIp(req) prioritizes trusted reverse-proxy req.ip to prevent spoofing
-  const clientIp = getClientIp(req);
-  const quotaCheck = await checkAndConsumeAiQuota({
-    identifier: clientIp,
-    isGuest: true,
-  });
-
-  if (!quotaCheck.allowed) {
-    return res.status(403).json({
-      success: false,
-      error: quotaCheck.reason || "Free tier daily AI quota reached (3 operations/day). Please sign in or upgrade to Pro Sun for unlimited AI processing.",
-      code: "FREE_TIER_QUOTA_EXCEEDED",
-      quotaDetails: {
-        count: quotaCheck.count,
-        limit: quotaCheck.limit,
-        resetTimeUtc: quotaCheck.resetTimeUtc,
-      },
-      upgradeUrl: "/pricing",
+    // 3. Guest / Unauthenticated Visitor: Enforce Free Forever tier limit (3 operations/day per IP)
+    // getClientIp(req) prioritizes trusted reverse-proxy req.ip to prevent spoofing
+    const clientIp = getClientIp(req);
+    const quotaCheck = await checkAndConsumeAiQuota({
+      identifier: clientIp,
+      isGuest: true,
     });
-  }
 
-  // Attach context for downstream rollback in case of Gemini server failure
-  (req as any).quotaContext = {
-    identifier: clientIp,
-    isGuest: true,
-  };
+    if (!quotaCheck.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: quotaCheck.reason || "Free tier daily AI quota reached (3 operations/day). Please sign in or upgrade to Pro Sun for unlimited AI processing.",
+        code: "FREE_TIER_QUOTA_EXCEEDED",
+        quotaDetails: {
+          count: quotaCheck.count,
+          limit: quotaCheck.limit,
+          resetTimeUtc: quotaCheck.resetTimeUtc,
+        },
+        upgradeUrl: "/pricing",
+      });
+    }
 
-  next();
+    // Attach context for downstream rollback in case of Gemini server failure
+    (req as any).quotaContext = {
+      identifier: clientIp,
+      isGuest: true,
+    };
+
+    next();
+  })().catch(next);
 }
 
 app.use("/api/ai", aiEntitlementMiddleware);
@@ -2121,6 +2123,196 @@ app.post(["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"], 
     });
   }
   res.json({ success: true, timestamp: new Date().toISOString() });
+});
+
+// Phase 11: Real Analytics & Conversion Metrics Tracking (Zero Synthetic Figures)
+let analyticsWss: any = null;
+let totalConversionsToday = 0;
+let successfulConversionsCount = 0;
+let failedConversionsCount = 0;
+const conversionLatencyHistory: number[] = [];
+
+// Sliding window deduplication map for engagement events (max 10,000 entries)
+const recentEngagementEvents = new Map<string, number>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, ts] of recentEngagementEvents.entries()) {
+    if (now - ts > 60000) {
+      recentEngagementEvents.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// POST /api/analytics/record-conversion (Payload Validation & Rate Limiting)
+app.post(
+  "/api/analytics/record-conversion",
+  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 120 }, "analytics-record"),
+  (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid payload: body must be a JSON object" });
+    }
+
+    const allowedKeys = new Set(["latencyMs", "success"]);
+    for (const key of Object.keys(req.body)) {
+      if (!allowedKeys.has(key)) {
+        return res.status(400).json({ success: false, error: `Invalid payload: unexpected key '${key}'` });
+      }
+    }
+
+    const { latencyMs, success } = req.body;
+    if (typeof latencyMs !== "number" || !Number.isFinite(latencyMs) || latencyMs < 1 || latencyMs > 300000) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid payload: latencyMs must be a finite number between 1 and 300,000",
+      });
+    }
+    if (typeof success !== "boolean") {
+      return res.status(400).json({ success: false, error: "Invalid payload: success must be a boolean" });
+    }
+
+    totalConversionsToday++;
+    if (success) {
+      successfulConversionsCount++;
+    } else {
+      failedConversionsCount++;
+    }
+
+    conversionLatencyHistory.push(Math.round(latencyMs));
+    if (conversionLatencyHistory.length > 50) {
+      conversionLatencyHistory.shift();
+    }
+
+    return res.status(200).json({
+      success: true,
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+// GET /api/analytics/stats (Zero Artificial Counts: activeUsers derived directly from activeWebSocketClients.size)
+app.get(
+  "/api/analytics/stats",
+  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 120 }, "analytics-stats"),
+  (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    const activeUsers = analyticsWss && analyticsWss.clients ? analyticsWss.clients.size : 0;
+    const total = successfulConversionsCount + failedConversionsCount;
+    const successRate = total > 0 ? Math.round((successfulConversionsCount / total) * 1000) / 10 : 100;
+    const avgLatency =
+      conversionLatencyHistory.length > 0
+        ? Math.round(conversionLatencyHistory.reduce((a, b) => a + b, 0) / conversionLatencyHistory.length)
+        : 15;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        activeUsers,
+        processingSpeed: avgLatency,
+        successRate,
+        totalConversionsToday,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+);
+
+// POST /api/history/engagement (Minimized Payload, Strict Enum Validation, 60s Deduplication)
+app.post(
+  "/api/history/engagement",
+  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 60 }, "history-engagement"),
+  (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid payload: body must be a JSON object" });
+    }
+
+    const allowedKeys = new Set(["eventId", "type", "dateKey"]);
+    for (const key of Object.keys(req.body)) {
+      if (!allowedKeys.has(key)) {
+        return res.status(400).json({ success: false, error: `Invalid payload: unexpected key '${key}'` });
+      }
+    }
+
+    const { eventId, type, dateKey } = req.body;
+    if (
+      !eventId ||
+      typeof eventId !== "string" ||
+      eventId.length < 1 ||
+      eventId.length > 64 ||
+      !/^[a-zA-Z0-9_\-]+$/.test(eventId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid payload: eventId must be an alphanumeric string (1-64 chars)",
+      });
+    }
+
+    const allowedTypes = new Set(["view", "read", "like", "unlike", "share", "copy", "download", "quiz_attempt"]);
+    if (!type || typeof type !== "string" || !allowedTypes.has(type)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid payload: type must be one of allowed engagement event types",
+      });
+    }
+
+    if (dateKey !== undefined) {
+      if (
+        typeof dateKey !== "string" ||
+        dateKey.length > 16 ||
+        !/^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}-[0-9]{2})$/.test(dateKey)
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid payload: dateKey must be in format YYYY-MM-DD or MM-DD",
+        });
+      }
+    }
+
+    const clientIp = getClientIp(req);
+    const dedupKey = `${clientIp}:${eventId}:${type}`;
+    const now = Date.now();
+    const lastSeen = recentEngagementEvents.get(dedupKey);
+
+    if (lastSeen && now - lastSeen < 60000) {
+      return res.status(200).json({ success: true, deduplicated: true });
+    }
+
+    recentEngagementEvents.set(dedupKey, now);
+    if (recentEngagementEvents.size > 10000) {
+      const oldestKey = recentEngagementEvents.keys().next().value;
+      if (oldestKey) recentEngagementEvents.delete(oldestKey);
+    }
+
+    return res.status(200).json({ success: true });
+  }
+);
+
+// POST /api/r2/presigned-url (Fail-Closed 503 Service Unavailable when unconfigured)
+app.post("/api/r2/presigned-url", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  const isR2Configured = Boolean(
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    process.env.R2_BUCKET_NAME
+  );
+
+  if (!isR2Configured) {
+    return res.status(503).json({
+      success: false,
+      code: "R2_STORAGE_NOT_CONFIGURED",
+      message:
+        "Direct cloud storage bypass is not configured in this environment. Document processing operates purely in client-side browser memory.",
+    });
+  }
+
+  return res.status(503).json({
+    success: false,
+    code: "R2_STORAGE_UNAVAILABLE",
+    message: "Cloud storage service is currently unavailable.",
+  });
 });
 
 // Admin System Error Logs Query
@@ -4746,7 +4938,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 async function startServer() {
   const httpServer = http.createServer(app);
   try {
-    setupAnalyticsWebSocket(httpServer);
+    analyticsWss = setupAnalyticsWebSocket(httpServer);
   } catch (err) {
     console.warn("[WebSocket] Analytics WS initialization warning:", err);
   }

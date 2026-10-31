@@ -5912,21 +5912,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* Mobile QR Transfer Modal */}
+              {/* Mobile Tool Link & Native Sharing Modal (Zero fake download links) */}
               {showQrCodeModal && (
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-3 animate-in fade-in">
-                  <QrCodeDisplay
-                    url={`${getPublicSiteUrl()}/#download=${encodeURIComponent(downloadReady.fileName)}`}
-                    title="Instant Mobile Download"
-                    subtitle={downloadReady.fileName}
-                    size={220}
+                  <DownloadQrCodeGenerator
+                    fileName={downloadReady.fileName}
+                    toolSlug={tool.slug || tool.id}
+                    fileBlob={downloadReady.data instanceof Blob ? downloadReady.data : new Blob([downloadReady.data], { type: downloadReady.mimeType })}
+                    mimeType={downloadReady.mimeType}
+                    onDownloadDirect={() => handleTriggerDownload()}
+                    onClose={() => setShowQrCodeModal(false)}
+                    isModal={false}
                   />
                   <button
                     type="button"
                     onClick={() => setShowQrCodeModal(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline"
+                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer"
                   >
-                    Close QR Code
+                    Close
                   </button>
                 </div>
               )}

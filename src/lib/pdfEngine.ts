@@ -972,27 +972,68 @@ export async function createBatchZip(
   return await zip.generateAsync({ type: "blob" });
 }
 
-// Filename Extension & Format Sanitization Helper
+// Filename Extension, Path Traversal & MIME Security Sanitization Helper
 export function ensureValidFilename(fileName: string, mimeType: string = "application/pdf"): string {
-  let cleanName = (fileName || "PDFSun_Output").trim().replace(/[/\\?%*:|"<>]/g, "_");
-  
-  let targetExt = ".pdf";
-  if (mimeType.includes("zip")) targetExt = ".zip";
-  else if (mimeType.includes("text") || mimeType.includes("plain")) targetExt = ".txt";
-  else if (mimeType.includes("rtf")) targetExt = ".rtf";
-  else if (mimeType.includes("wordprocessingml") || mimeType.includes("docx") || mimeType.includes("msword")) targetExt = ".docx";
-  else if (mimeType.includes("spreadsheetml") || mimeType.includes("xlsx") || mimeType.includes("excel")) targetExt = ".xlsx";
-  else if (mimeType.includes("presentationml") || mimeType.includes("pptx") || mimeType.includes("powerpoint")) targetExt = ".pptx";
-  else if (mimeType.includes("jpeg") || mimeType.includes("jpg")) targetExt = ".jpg";
-  else if (mimeType.includes("png")) targetExt = ".png";
+  // 1. Strip null bytes, control characters, CRLF injection, and URL encoding artifacts
+  let rawName = (fileName || "").trim().replace(/[\x00-\x1f\x7f-\x9f\r\n]/g, "");
 
-  if (!cleanName.toLowerCase().endsWith(targetExt)) {
-    const hasAnyExt = /\.[a-zA-Z0-9]{2,5}$/.test(cleanName);
-    if (hasAnyExt) {
-      cleanName = cleanName.substring(0, cleanName.lastIndexOf(".")) + targetExt;
-    } else {
-      cleanName = cleanName + targetExt;
-    }
+  // 2. Prevent path traversal: strip ../, ..\, absolute roots, and neutralize dangerous path characters
+  rawName = rawName
+    .replace(/^(\.\.[\/\\]+)+/g, "")
+    .replace(/(\.\.[\/\\]+)/g, "_")
+    .replace(/\.\./g, "_")
+    .replace(/[/\\?%*:|"<>]/g, "_")
+    .trim();
+
+  // Strip leading dots or underscores that might cause hidden files or extension bypasses
+  let cleanName = rawName.replace(/^[_.\s]+/, "");
+  if (!cleanName || cleanName === "_" || cleanName.length === 0) {
+    cleanName = "PDFSun_Document";
+  }
+
+  // Bound maximum filename length to 200 characters while preserving extension
+  if (cleanName.length > 200) {
+    cleanName = cleanName.substring(0, 200).trim();
+  }
+
+  // 3. Strict MIME type prioritization (CSV evaluated BEFORE generic text types)
+  const lowerMime = (mimeType || "").toLowerCase();
+  let targetExt = ".pdf";
+
+  if (lowerMime.includes("zip")) {
+    targetExt = ".zip";
+  } else if (lowerMime.includes("csv")) {
+    targetExt = ".csv";
+  } else if (lowerMime.includes("spreadsheetml") || lowerMime.includes("xlsx") || lowerMime.includes("excel")) {
+    targetExt = ".xlsx";
+  } else if (lowerMime.includes("wordprocessingml") || lowerMime.includes("docx") || lowerMime.includes("msword")) {
+    targetExt = ".docx";
+  } else if (lowerMime.includes("presentationml") || lowerMime.includes("pptx") || lowerMime.includes("powerpoint")) {
+    targetExt = ".pptx";
+  } else if (lowerMime.includes("rtf")) {
+    targetExt = ".rtf";
+  } else if (lowerMime.includes("text") || lowerMime.includes("plain")) {
+    targetExt = ".txt";
+  } else if (lowerMime.includes("jpeg") || lowerMime.includes("jpg")) {
+    targetExt = ".jpg";
+  } else if (lowerMime.includes("png")) {
+    targetExt = ".png";
+  } else if (lowerMime.includes("webp")) {
+    targetExt = ".webp";
+  } else {
+    targetExt = ".pdf";
+  }
+
+  // 4. Ensure single, correct extension without double extensions
+  if (cleanName.toLowerCase().endsWith(targetExt)) {
+    return cleanName;
+  }
+
+  const existingExtMatch = cleanName.match(/\.[a-zA-Z0-9]{2,5}$/);
+  if (existingExtMatch) {
+    cleanName = cleanName.substring(0, existingExtMatch.index) + targetExt;
+  } else {
+    cleanName = cleanName + targetExt;
   }
 
   return cleanName;
