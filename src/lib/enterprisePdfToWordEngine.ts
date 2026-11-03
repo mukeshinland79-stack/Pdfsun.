@@ -35,6 +35,18 @@ import {
   PageBreak,
 } from "docx";
 import { createWorker } from "tesseract.js";
+import { createSafeCanvas } from "./enterpriseImageOcrEngine";
+import {
+  detectDocumentProfile,
+  classifyTableSemantics,
+  DocumentClassificationResult,
+  DocumentProfileKey,
+  DOCUMENT_PROFILES,
+} from "./financialDocumentIntelligence";
+import {
+  auditFinancialDocxIntegrity,
+  FinancialQualityAuditReport,
+} from "./financialDataIntegrityEngine";
 
 // Ensure pdf.js worker is registered in browser
 if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
@@ -43,11 +55,22 @@ if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.work
   }/pdf.worker.min.mjs`;
 }
 
-export type PdfToWordPreset = "max_accuracy" | "high_speed" | "compact_vector";
+export type PdfToWordPreset =
+  | "editable_word"
+  | "financial_fidelity"
+  | "scanned_ocr"
+  | "max_accuracy"
+  | "high_speed"
+  | "compact_vector"
+  | "semantic_layout"
+  | "vector_flow"
+  | "compact_document";
+
 export type LayoutDetectionMode = "auto" | "table" | "flow" | "invoice" | "fields";
 
 export interface PdfToWordOptions {
   preset?: PdfToWordPreset;
+  documentProfile?: DocumentProfileKey;
   detectionMode?: LayoutDetectionMode;
   preserveTables?: boolean;
   enableOcrFallback?: boolean;
@@ -115,6 +138,8 @@ export interface PdfToWordResult {
     detectedTitle: string;
     previewSnippet: string;
   };
+  classification?: DocumentClassificationResult;
+  qualityAudit?: FinancialQualityAuditReport;
 }
 
 /**
@@ -204,9 +229,12 @@ export async function convertPdfToWordEnterprise(
       });
     }
 
-    // SCANNED PDF WASM OCR FALLBACK: If page has < 25 characters, trigger lightweight OCR
-    if (enableOcrFallback && preset === "max_accuracy" && (pageTokens.length === 0 || pageTextLength < 25)) {
-      if (onProgress) onProgress(pageProgress + 2, `Page ${pNum} is scanned: Running in-browser WASM OCR fallback...`);
+    // SCANNED PDF WASM OCR FALLBACK: If page has < 25 characters or scanned_ocr preset is active
+    const isScannedOrLowText = pageTokens.length === 0 || pageTextLength < 25;
+    const shouldRunOcr = enableOcrFallback && (preset === "scanned_ocr" || (isScannedOrLowText && preset !== "high_speed" && preset !== "compact_vector"));
+
+    if (shouldRunOcr) {
+      if (onProgress) onProgress(pageProgress + 2, `Page ${pNum} optical OCR active: Running in-browser WASM OCR pipeline...`);
       ocrUsedPages++;
 
       try {
@@ -364,6 +392,15 @@ export async function convertPdfToWordEnterprise(
   const blob = await Packer.toBlob(docx);
   const buffer = await blob.arrayBuffer();
 
+  // 7. Universal Financial Document Intelligence & Quality Assurance Audit
+  const classification = detectDocumentProfile(fullPlainTextAccumulator, file.name);
+  if (options.documentProfile && DOCUMENT_PROFILES[options.documentProfile]) {
+    classification.profile = options.documentProfile;
+    classification.profileMeta = DOCUMENT_PROFILES[options.documentProfile];
+  }
+
+  const qualityAudit = auditFinancialDocxIntegrity(classification, fullPlainTextAccumulator);
+
   if (onProgress) onProgress(100, "PDF to Word conversion complete!");
 
   return {
@@ -379,6 +416,8 @@ export async function convertPdfToWordEnterprise(
       detectedTitle: detectedDocumentTitle || baseName,
       previewSnippet: fullPlainTextAccumulator.trim().slice(0, 1500),
     },
+    classification,
+    qualityAudit,
   };
 }
 
@@ -1019,9 +1058,7 @@ async function performLightweightPageOcr(
 ): Promise<SpatialTextToken[]> {
   const scale = dpiQuality === 300 ? 3.0 : 2.0; // 150 or 300 DPI crisp rasterization
   const viewport = page.getViewport({ scale });
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(viewport.width);
-  canvas.height = Math.round(viewport.height);
+  const canvas = createSafeCanvas(Math.round(viewport.width), Math.round(viewport.height));
   const ctx = canvas.getContext("2d");
   if (!ctx) return [];
 

@@ -387,7 +387,7 @@ async function parseSlideXml(
       tcNodes.forEach((tc) => {
         const textNodes = tc.querySelectorAll("a\\:t, t");
         const cellText = Array.from(textNodes)
-          .map((n) => n.textContent || "")
+          .map((n: any) => n.textContent || "")
           .join(" ")
           .trim();
 

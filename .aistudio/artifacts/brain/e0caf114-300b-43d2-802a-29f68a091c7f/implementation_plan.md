@@ -1,146 +1,176 @@
-# PDFSun.in — Phase 11F Technical Remediation & Independent Acceptance Plan
-## Elite Engineering Remediation & 66/66 Customer Acceptance Certification
+# PDFSun.in — Phase 12 Architecture & Technical Implementation Plan
+## Next-Generation Universal PDF-to-Word & Financial Document Intelligence Engine
 
-**System Role:** Unified Elite Engineering Organization (Principal Architect, AppSec Lead, Document Conversion Specialist, Independent QA Lead)  
 **Canonical Production:** `https://www.pdfsun.in/`  
-**Production Status:** **STRICTLY FROZEN — ZERO MODIFICATIONS — ZERO DEPLOYMENTS**  
-**Execution Context:** Authorized Local Development Workspace (`port: 3000`)  
-**Primary Owner:** `mukeshinland79@gmail.com`
+**Production Status:** **STRICTLY FROZEN — ZERO PRODUCTION MODIFICATIONS OR DEPLOYMENTS**  
+**Authorized Local Scope:** Verified Development Workspace (`port: 3000`)  
+**Primary Mission:** Transform PDFSun's PDF-to-Word converter into a privacy-first, enterprise-grade financial and business document reconstruction engine.
 
 ---
 
-## 1. Absolute Production Protection Boundary
+## User Review & Confirmed Decisions
 
-- **Production Canonical Domain (`https://www.pdfsun.in/`):** STRICTLY FROZEN.
-- **Prohibited Production Actions:**
-  - Zero source code changes in production.
-  - Zero deployment, traffic routing, or Cloud Run configuration alterations.
-  - Zero Firebase/Firestore remote writes, rule modifications, or database migrations.
-  - Zero production secret access or live payment gateway alterations.
-- All testing and execution occurs exclusively within the local development workspace (`port: 3000`).
+> [!IMPORTANT]
+> The following architectural decisions were confirmed in Phase 1 interactive planning:
 
----
-
-## 2. Phase 11E Baseline & Real-World File Audit Summary
-
-The comprehensive 66-tool real-file audit conducted via `scripts/verify-phase11e-acceptance.ts` yielded the following verified baseline:
-- **Total Registered Tools:** 66 / 66 audited
-- **Passing Tools:** 48 PASS
-- **Passing with Warnings:** 12 PASS WITH WARNINGS (AI tools mapped to Gemini Server Proxy `/api/ai/*` awaiting optional runtime `GEMINI_API_KEY`)
-- **Failing Tools:** 6 FAIL (caused by 4 headless/bundler constructor interop limitations)
-- **Untested Tools:** 0 NOT TESTED
-
-### Prioritized Eight Video Workflows Baseline Status
-
-| Workflow | Tool ID | Input Fixture | Output Expectation | Status | Root Cause Category |
-|---|---|---|---|---|---|
-| 1 | `image-to-excel` | Real PNG Receipt (68 KB) | Valid XLSX workbook | **FAIL** | Defect A (Canvas DOM dependency in OCR) |
-| 2 | `image-to-word` | Real PNG Receipt (68 KB) | Valid DOCX document | **FAIL** | Defect A (Canvas DOM dependency in OCR) |
-| 3 | `pdf-to-word` | Real Multi-Page Tax Invoice (INV-2026-994) | DOCX with GSTIN `27AABCU9603R1ZM` | **PASS** | Fully functional in both browser & Node |
-| 4 | `pdf-to-powerpoint` | Real Multi-Page Tax Invoice (INV-2026-994) | Editable PPTX presentation | **FAIL** | Defect B (PptxGenJS ESM/CJS interop) |
-| 5 | `pdf-to-excel` | Real Multi-Page Tax Invoice (INV-2026-994) | XLSX table with GSTIN & HSN codes | **PASS** | Fully functional in both browser & Node |
-| 6 | `excel-to-pdf` | Real Quarterly Ledger XLSX (4 columns) | Clean PDF with zero dot-matrix noise | **FAIL** | Defect C (jsPDF ESM/CJS interop) |
-| 7 | `word-to-pdf` | Real Operational Agreement DOCX | Clean PDF with typography & tables | **FAIL** | Defect D (Mammoth buffer mismatch) + Defect C |
-| 8 | `powerpoint-to-pdf` | Real Roadmap PPTX presentation | Clean PDF presentation slides | **FAIL** | Defect C (jsPDF ESM/CJS interop) |
+- **Confirmed Decision 1 (Document Profiling):** **Auto-detect profile with manual mode override.** The engine analyzes spatial layout and content markers upon PDF load to detect whether the file is a GST Tax Invoice, Bank/Ledger Statement, Commercial Contract, Scanned Receipt, or Standard Text document, while giving the user full freedom to switch modes before conversion.
+- **Confirmed Decision 2 (Quality Assurance UI):** **Inline interactive Quality HUD with audit checklist.** After conversion, an interactive, collapsible Financial Integrity HUD appears directly in the workspace, detailing line item equality, GSTIN/PAN preservation, debit/credit parity, and table completeness.
+- **Confirmed Decision 3 (OCR Ambiguity Handling):** **Highlight ambiguous characters with review indicators.** Commonly confused financial characters (`0`/`O`, `1`/`I`/`l`, `5`/`S`, `8`/`B`, `.`/`,`, `-`/`—`) in amounts and identifiers are preserved as recognized but highlighted in the Quality HUD with amber review indicators rather than silently guessed or altered.
+- **Recommended Architectural Standard:** **100% Client-Side In-Memory Execution.** No cloud uploads, no third-party paid APIs, zero data retention. All AST transformations occur in local browser memory via WebAssembly and Web Workers.
 
 ---
 
-## 3. Forensic Investigation: Four Defect Categories & Exact Root Causes
+## 1. Overview & Core Concept
 
-### Defect A: Canvas DOM Dependency in OCR
-- **Affected File:** `src/lib/enterpriseImageOcrEngine.ts`
-- **Failing Tools:** `image-to-excel`, `image-to-word`
-- **Exact Error:** `ReferenceError: document is not defined`
-- **Root Cause:** At lines 135, 215, 263, 1426, and 1619, `document.createElement("canvas")` is called unconditionally. In web browsers this works natively, but in Node.js, headless test runners, or SSR environments without a global `document`, the process throws `ReferenceError`.
-- **Targeted Fix:** Introduce a resilient canvas factory `createSafeCanvas(w, h)` that checks `typeof document !== "undefined"` first, falls back to `OffscreenCanvas` if available, and provides a headless canvas shim with 2D context methods for Node.js / automated verification.
-
-### Defect B: PptxGenJS ESM/CommonJS Constructor Interop
-- **Affected File:** `src/lib/enterprisePdfToPowerPointEngine.ts`
-- **Failing Tool:** `pdf-to-powerpoint`
-- **Exact Error:** `TypeError: PptxGenJS is not a constructor`
-- **Root Cause:** Line 21 imports `import PptxGenJS from "pptxgenjs"`. In Vite/Node.js/ESM interop environments, the constructor may be located at `PptxGenJS.default` or `PptxGenJS`. Calling `new PptxGenJS()` directly at line 661 throws when the default export is wrapped in an ESM namespace object.
-- **Targeted Fix:** Resolve constructor dynamically:
-  ```typescript
-  const PptxConstructor = (PptxGenJS as any).default || PptxGenJS;
-  const pptx = new PptxConstructor();
-  ```
-
-### Defect C: jsPDF ESM/CommonJS Constructor Interop
-- **Affected Files:** `src/lib/enterpriseExcelToPdfEngine.ts` (line 281), `src/lib/enterprisePowerPointToPdfEngine.ts` (line 523), `src/lib/enterpriseWordToPdfEngine.ts` (line 433)
-- **Failing Tools:** `excel-to-pdf`, `powerpoint-to-pdf`, `word-to-pdf`
-- **Exact Error:** `TypeError: jsPDF is not a constructor`
-- **Root Cause:** `import jsPDF from "jspdf"` imports a module object where the constructor resides on `(jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF`. Calling `new jsPDF(...)` directly throws in Node/bundler runtime environments.
-- **Targeted Fix:** Safe constructor unwrapping:
-  ```typescript
-  const JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF;
-  const doc = new JsPdfConstructor({...});
-  ```
-
-### Defect D: Mammoth Input Buffer Mismatch
-- **Affected File:** `src/lib/enterpriseWordToPdfEngine.ts` (lines 192, 196)
-- **Failing Tool:** `word-to-pdf`
-- **Exact Error:** `Error: Could not find file in options`
-- **Root Cause:** `mammoth.convertToHtml({ arrayBuffer })` passes only `{ arrayBuffer }`. While browser Mammoth accepts `{ arrayBuffer }`, the Node.js package distribution requires `{ buffer: Buffer }` or `{ path }`.
-- **Targeted Fix:** Pass a dual-compatible input payload:
-  ```typescript
-  const mammothInput: any = typeof Buffer !== "undefined"
-    ? { buffer: Buffer.from(arrayBuffer), arrayBuffer }
-    : { arrayBuffer };
-  const mammothRes = await mammoth.convertToHtml(mammothInput, mammothOptions);
-  ```
+PDFSun is upgrading its PDF-to-Word conversion core into a **Universal Document Intelligence Engine**. While general PDF converters treat pages as arbitrary text blocks or flat images, this engine performs deep structural parsing:
+- **18 Universal Document Classes:** Ordinary text documents, GST invoices, purchase/sales bills, retail receipts, financial statements, bank statements, balance sheets, profit & loss reports, purchase orders, credit/debit notes, quotations, delivery challans, utility bills, medical bills, payroll slips, tax forms, international VAT invoices, and scanned receipts.
+- **Strict Content Fidelity:** The engine never omits, hallucinates, recalculates, or silently alters financial numbers, currency signs, debit/credit assignments, or tax totals.
+- **Three Professional Conversion Modes:**
+  1. `Mode 1: Editable Word` — Prioritizes continuous paragraphs, heading typography, native Word tables, lists, and vector graphics.
+  2. `Mode 2: Financial & Business Fidelity` — Prioritizes precise coordinate alignment, table cell boundaries, ledger column mapping, GSTIN/PAN formatting, and strict debit/credit separation.
+  3. `Mode 3: Scanned PDF to Editable Word` — Executes local-first adaptive binarization, Sauvola contrast enhancement, OCR with confusable-character tracking, and spatial grid synthesis.
 
 ---
 
-## 4. Minimal Targeted Patch Specification
+## 2. User Experience & Visual Design
 
-### File 1: `src/lib/enterpriseImageOcrEngine.ts`
-- Add `createSafeCanvas(width, height)` utility at the top of Module 1.
-- Replace direct `document.createElement("canvas")` invocations with `createSafeCanvas()` at lines 135, 215, 263, 1426, 1619.
-- Preserve all existing 60 FPS yielding, Sauvola thresholding, deskew profile analysis, and OpenXML AST generation logic.
+Following our SaaS & Dashboard Design Constitution (`frontend-design`):
 
-### File 2: `src/lib/enterprisePdfToPowerPointEngine.ts`
-- At line 661, unwrap `PptxConstructor = (PptxGenJS as any).default || PptxGenJS`.
-- Preserve slide geometry calculations, aspect ratio layouts (`PORTRAIT_16x9`, `LAYOUT_4x3`, `LAYOUT_16x9`), text box placements, and ephemeral RAM cleanup.
+### Key User Flows
 
-### File 3: `src/lib/enterpriseExcelToPdfEngine.ts`
-- At line 281, unwrap `JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF`.
-- Preserve pure white background initialization (`#FFFFFF`), single-pass collapsed vector gridlines, sub-pixel column width normalization, and auto-fit pagination.
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌────────────────────────┐     ┌──────────────────────┐
+│  Upload PDF     │ ──> │ Auto-Detection &     │ ──> │ Client-Side Processing │ ──> │ Inline Quality HUD & │
+│  (Drag & Drop)  │     │ Mode Selection Bar   │     │ (WASM / Web Worker)    │     │ Instant Word Download│
+└─────────────────┘     └──────────────────────┘     └────────────────────────┘     └──────────────────────┘
+```
 
-### File 4: `src/lib/enterprisePowerPointToPdfEngine.ts`
-- At line 523, unwrap `JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF`.
-- Preserve slide hierarchy XML parsing, SmartArt vector rendering, typographic metrics, and slide dimension scaling.
+1. **Upload State:** User drops a PDF into the existing upload container. The file is validated locally (`File.size`, `application/pdf`).
+2. **Profile & Mode Bar:** An interactive segmented control displays the auto-detected classification (e.g., `🇮🇳 GST Tax Invoice Detected` or `🏦 Bank Statement Detected`) with an instant selector for the 3 professional modes:
+   - `Editable Word` (Flow & Typography)
+   - `Financial Fidelity` (Exact Invoices & Ledgers)
+   - `Scanned OCR` (Image-to-DOCX with Ambiguity HUD)
+3. **Progress & Feedback:** Real-time progress bar (0–100%) showing deterministic phase labels (*Parsing spatial bounding boxes*, *Reconstructing invoice tables*, *Validating financial parity*, *Compiling OpenXML DOCX*).
+4. **Post-Conversion Inline Quality HUD:**
+   - **Quality Scorecard:** PASS / WARNING / FAIL / NOT TESTED badges based on algorithmic source-to-output verification.
+   - **Financial Integrity Audit:** Collapsible checklist comparing detected Invoice Numbers, GSTINs, Tax Totals, and Debit/Credit balances.
+   - **Ambiguity Review:** Badges highlighting any uncertain OCR characters (e.g., `INV-202[6/O]`) for one-click copy and manual verification.
+   - **One-Click Actions:** Download DOCX, Download Quality Report, Instant Text Preview, and Open in Pipeline.
 
-### File 5: `src/lib/enterpriseWordToPdfEngine.ts`
-- At line 192 and 196, provide `{ buffer: Buffer.from(arrayBuffer), arrayBuffer }` to Mammoth.
-- At line 433, unwrap `JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF`.
-- Preserve CSS font fallback trees, orphan heading avoidance, vector table drawing, and ephemeral RAM clearing.
-
----
-
-## 5. Risk Assessment & Regression Strategy
-
-| Risk Factor | Probability | Impact | Mitigation Strategy |
-|---|---|---|---|
-| Browser functionality regression | Very Low | High | The constructor unwrapping `(C as any).default || C` evaluates to `C` in standard browser ESM and `C.default` in CJS/bundler interop. Zero breaking changes in browser runtime. |
-| Memory leaks or canvas corruption | Very Low | Medium | `createSafeCanvas` maintains identical CanvasRenderingContext2D API and canvas dimension assignment. |
-| Production environment contamination | Zero | Critical | Local workspace isolation on port 3000. Cloud Run production remains untouched and strictly frozen. |
+### Visual Styling & Component Hierarchy
+- **Palette:** Deep obsidian background (`#0A0A0C`), elevated cards (`#141418`), subtle 1px borders (`rgba(255, 255, 255, 0.08)`), vibrant orange primary accent (`#F97316`), and emerald integrity accents (`#10B981`).
+- **Tabular Figures:** Monospace tabular numerals (`font-mono tabular-nums`) across all financial tables, currencies, and timestamps to eliminate decimal jitter.
+- **Zero-Pill Restraint:** Metadata displayed as clean, unboxed text separated by typographic middots (`·`). Interactive controls use segmented functional buttons.
 
 ---
 
-## 6. Verification & Certification Plan Upon Approval
+## 3. Key Product Decisions & Trade-Offs
 
-1. **Static Analysis:** Execute `npx tsc --noEmit` to verify 0 TypeScript compiler diagnostics across the entire codebase.
-2. **Automated Real-File Acceptance:** Re-execute `npx tsx scripts/verify-phase11e-acceptance.ts`:
-   - All 6 previously failing tools transition to **PASS**.
-   - 66/66 tools reach **PASS** (or **PASS WITH WARNINGS** for optional Gemini AI tools).
-   - Zero HTTP 404 errors during in-memory blob generation and download triggering.
-3. **Build Integrity Verification:** Execute `compile_applet` (`npm run build`) to ensure Vite bundle succeeds with zero errors.
-4. **Final Deliverable:** Generate Phase 11F Independent Customer Acceptance Certificate.
+### Decision 1: Hybrid Profile Engine vs. Generic Parser
+- **Chosen Approach:** Implement a dedicated Financial Classifier & Document Intelligence module (`src/lib/financialDocumentIntelligence.ts`) that extracts semantic entities (GSTIN, HSN, Tax Breakdown, Debit/Credit columns) while utilizing the existing UDIR AST framework.
+- **Why:** Invoices and balance sheets require distinct typographic line-heights, right-aligned monetary cells, and merged header cells that degrade when parsed as standard narrative text.
+- **Alternatives Considered:** A generic text-box exporter produces disjointed floating frames in Microsoft Word that are difficult to edit.
+
+### Decision 2: Rule-Based Deterministic Auditing vs. External AI Quality Verification
+- **Chosen Approach:** 100% deterministic, rule-based verification comparing extracted PDF tokens against compiled DOCX OpenXML nodes.
+- **Why:** Guarantees zero document leaks, works completely offline, incurs zero latency or token costs, and ensures strict compliance with our privacy mandate.
+- **Alternatives Considered:** Sending documents to an LLM for quality checking would violate the zero-server-upload privacy guarantee and fail offline.
+
+### Decision 3: Character Confidence Flagging vs. Automated Character Guessing
+- **Chosen Approach:** Preserve the exact character recognized by Tesseract/WASM, but extract confidence scores and flag confusable pairs (`0`/`O`, `1`/`I`, `5`/`S`) in the Quality HUD.
+- **Why:** Silently "correcting" an invoice number like `INV-0100` to `INV-O1OO` or vice-versa leads to accounting and tax audit rejections.
 
 ---
 
-## 7. Implementation Authorization Gate
+## 4. Technical Architecture & Data Strategy
 
-**STATUS: READ-ONLY FORENSIC INVESTIGATION COMPLETE.**  
-**SOURCE CODE REMAINS UNMODIFIED.**  
-**AWAITING EXPLICIT OWNER APPROVAL (`mukeshinland79@gmail.com`) BEFORE APPLYING CODE EDITS.**
+### System Component Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                PDFSun Browser Client Runtime                           │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                        │
+│   ActiveToolWorkspace.tsx                                                              │
+│   ├── DocumentProfileSelector (Auto-detect: GST / Banking / Commercial / General)      │
+│   ├── ModeSwitchControls (Editable Word / Financial Fidelity / Scanned OCR)            │
+│   └── FinancialQualityHud (Inline Audit Checklist: PASS / WARN / FAIL)                 │
+│                                │                                                       │
+│                                ▼                                                       │
+│   src/lib/enterprisePdfToWordEngine.ts (Universal Orchestrator)                        │
+│   │                                                                                    │
+│   ├── 1. pdfjs-dist WASM Parser ─────> Spatial Coordinate Matrix (X, Y, Font, Glyphs)  │
+│   │                                                                                    │
+│   ├── 2. financialDocumentIntelligence.ts (Specialized Profiles)                       │
+│   │      ├── GstRule46Detector (Supplier, Recipient, GSTIN, HSN, CGST/SGST/IGST)      │
+│   │      ├── BankingLedgerEngine (Debit/Credit balance preservation)                   │
+│   │      └── InternationalTaxProfile (UK VAT, EU VAT, US Sales Tax)                    │
+│   │                                                                                    │
+│   ├── 3. financialDataIntegrityEngine.ts (Source-to-Output Validator)                  │
+│   │      ├── Numeric & Currency Integrity (₹, $, €, %, leading zeroes)                 │
+│   │      ├── Identifier Lock (PAN, GSTIN, IBAN, SWIFT, Invoice #)                      │
+│   │      └── Ambiguous Character Detector (0/O, 1/I, 5/S review flags)                │
+│   │                                                                                    │
+│   ├── 4. src/core/udir/ (Universal Document AST)                                       │
+│   │      Document ──> Section ──> Page ──> Table ──> Row ──> Cell ──> Paragraph ──> Run│
+│   │                                                                                    │
+│   └── 5. docx OpenXML Compiler ──────> Output DOCX Stream (Uint8Array)                 │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Subsystems to Implement
+
+1. **`src/lib/financialDocumentIntelligence.ts`**:
+   - `detectDocumentProfile(tokens: SpatialTextToken[])`: Classifies document into `gst_invoice`, `bank_statement`, `balance_sheet`, `purchase_order`, `utility_bill`, `retail_receipt`, or `general_doc`.
+   - `extractGstInvoiceEntities(tokens)`: Recognizes Indian GST Rule 46 fields (Supplier, GSTIN, HSN, Taxable Value, CGST, SGST, IGST, Cess, Reverse Charge).
+   - `extractBankingLedgerEntities(tokens)`: Detects Date, Particulars/Description, Cheque/Ref #, Withdrawals/Debit, Deposits/Credit, and Balance columns.
+   - `extractInternationalTaxEntities(tokens)`: Recognizes UK VAT, EU VAT, and US Sales Tax configurations without hardcoding.
+2. **`src/lib/financialDataIntegrityEngine.ts`**:
+   - `auditFinancialIntegrity(sourceTokens, compiledDocx)`: Cross-validates source numbers, currency symbols, and identifiers against the generated DOCX.
+   - `detectConfusableCharacters(text, confidence)`: Highlights ambiguous pairs (`0`/`O`, `1`/`I`, `5`/`S`, `8`/`B`, `.`/`,`).
+   - Produces structured QA result: `{ overallStatus: 'PASS' | 'WARNING' | 'FAIL', checks: QualityCheckItem[], warnings: string[] }`.
+3. **`src/lib/enterprisePdfToWordEngine.ts` Enhancement**:
+   - Support `mode`: `"editable_word" | "financial_fidelity" | "scanned_ocr"`.
+   - Integrate `financialDocumentIntelligence` for cell alignment, columnar grouping, and table mesh generation.
+   - Attach `qualityAudit` to conversion result.
+4. **`src/components/ActiveToolWorkspace.tsx` Enhancement**:
+   - Render the **Inline Financial Quality HUD** below conversion output with interactive audit metrics, detected document type, and confusable character badges.
+   - Add conversion mode selector and document profile indicators.
+
+---
+
+## 5. Automated Verification & Testing Strategy
+
+A dedicated test harness `scripts/verify-phase12-financial-word.ts` will validate 25 synthetic fixtures:
+1. Indian GST B2B Invoice with HSN codes & multi-tier tax rates.
+2. Indian GST B2C Retail Invoice with QR Code & e-invoice reference.
+3. Credit Note with negative tax adjustments.
+4. Debit Note with supplementary tax charge.
+5. Bill of Supply with exempt items.
+6. Bank Statement with 40+ debit/credit rows and running balance check.
+7. Balance Sheet with Assets and Liabilities columns.
+8. Profit & Loss Statement with operational revenue and tax line items.
+9. Purchase Order with shipping terms, item matrix, and approval blocks.
+10. International UK VAT Invoice with GBP and 20% standard rate.
+11. US Sales Tax Invoice with state/county sales tax breakdown.
+12. Hindi-English bilingual tax invoice with Unicode Devanagari text.
+13. Scanned PDF Invoice requiring WASM OCR and ambiguity flagging.
+14. Complex multi-page financial ledger spanning 3 pages with continuous headers.
+15. Large 10-page corporate financial report.
+
+### Quality Verification Gates
+- `npx tsc --noEmit` returns **0 errors**.
+- `npm run build` succeeds cleanly.
+- `scripts/verify-phase12-financial-word.ts` confirms:
+  - Numeric equality across all 25 fixtures.
+  - Zero swapping of Debit and Credit columns.
+  - GSTIN `27AABCU9603R1ZM` and PAN identifiers strictly preserved.
+  - Valid OpenXML DOCX archives generated (`PK\x03\x04`).
+
+---
+
+## 6. Production Safety & Rollback Plan
+
+- **Canonical Production (`https://www.pdfsun.in/`):** **STRICTLY FROZEN.** Zero deployments, zero production database operations.
+- **Rollback Snapshot:** Complete backup of `src/lib/enterprisePdfToWordEngine.ts` and `src/components/ActiveToolWorkspace.tsx` saved to `backups/phase12-pre/` prior to editing.
