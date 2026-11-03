@@ -188,12 +188,17 @@ export async function convertWordToPdfEnterprise(
   };
 
   let htmlContent = "";
+  const mammothInput: any =
+    typeof Buffer !== "undefined"
+      ? { buffer: Buffer.from(arrayBuffer), arrayBuffer }
+    : { arrayBuffer };
+
   try {
-    const mammothRes = await mammoth.convertToHtml({ arrayBuffer }, mammothOptions);
+    const mammothRes = await mammoth.convertToHtml(mammothInput, mammothOptions);
     htmlContent = mammothRes.value || "";
   } catch (err) {
     console.warn("[enterpriseWordToPdf] Mammoth HTML parse fallback to text:", err);
-    const rawRes = await mammoth.extractRawText({ arrayBuffer });
+    const rawRes = await mammoth.extractRawText(mammothInput);
     htmlContent = `<p>${(rawRes.value || "").replace(/\n\n+/g, "</p><p>").replace(/\n/g, "<br/>")}</p>`;
   }
 
@@ -268,7 +273,7 @@ async function renderMaxAccuracyPdf(
   onProgress?: (percent: number, msg: string) => void
 ): Promise<Uint8Array> {
   // Check if running in browser DOM environment
-  if (typeof window === "undefined" || !document) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
     return renderCompactVectorPdf(html, docTitle, {
       widthMm: geom.widthMm,
       heightMm: geom.heightMm,
@@ -430,7 +435,8 @@ async function renderMaxAccuracyPdf(
     const totalPages = Math.max(pagesElements.length, 1);
 
     // 3. Initialize jsPDF instance with exact geometry
-    const doc = new jsPDF({
+    const JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF;
+    const doc = new JsPdfConstructor({
       orientation: geom.orientation,
       unit: "mm",
       format: [geom.widthMm, geom.heightMm],
@@ -667,7 +673,8 @@ async function renderHighSpeedDraftPdf(
   },
   onProgress?: (percent: number, msg: string) => void
 ): Promise<Uint8Array> {
-  const doc = new jsPDF({
+  const JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF;
+  const doc = new JsPdfConstructor({
     orientation: geom.orientation,
     unit: "mm",
     format: [geom.widthMm, geom.heightMm],

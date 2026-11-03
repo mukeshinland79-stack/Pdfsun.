@@ -116,7 +116,11 @@ async function parseSlideXml(
   canvasScaleX: number,
   canvasScaleY: number
 ): Promise<SlideData> {
-  const parser = new DOMParser();
+  const ParserConstructor = typeof DOMParser !== "undefined" ? DOMParser : (globalThis as any).DOMParser;
+  if (!ParserConstructor) {
+    throw new Error("DOMParser is not available in the current environment.");
+  }
+  const parser = new ParserConstructor();
   const xmlDoc = parser.parseFromString(slideXmlText, "application/xml");
 
   // Build relationship ID to media target mapping
@@ -520,7 +524,8 @@ export async function convertPowerPointToPdfEnterprise(
   }
 
   // 3. Initialize jsPDF Document
-  const doc = new jsPDF({
+  const JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF;
+  const doc = new JsPdfConstructor({
     orientation: targetOrientation,
     unit: "mm",
     format: [targetWidthMm, targetHeightMm],

@@ -658,7 +658,8 @@ export async function convertPdfToPowerPointEnterprise(
   const firstViewport = firstPage.getViewport({ scale: 1.0 });
   const pageRatio = firstViewport.width / Math.max(firstViewport.height, 1);
 
-  const pptx = new PptxGenJS();
+  const PptxConstructor = (PptxGenJS as any).default || PptxGenJS;
+  const pptx = new PptxConstructor();
 
   let slideWidthInches = 13.333;
   let slideHeightInches = 7.5;

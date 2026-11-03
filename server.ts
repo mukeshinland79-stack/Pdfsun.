@@ -2147,7 +2147,10 @@ setInterval(() => {
 // POST /api/analytics/record-conversion (Payload Validation & Rate Limiting)
 app.post(
   "/api/analytics/record-conversion",
-  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 120 }, "analytics-record"),
+  createSlidingRateLimiter(
+    { windowMs: 60 * 1000, maxRequests: 120, message: "Too many conversion recording requests" },
+    "analytics-record"
+  ),
   (req, res) => {
     res.setHeader("Content-Type", "application/json");
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
@@ -2194,7 +2197,10 @@ app.post(
 // GET /api/analytics/stats (Zero Artificial Counts: activeUsers derived directly from activeWebSocketClients.size)
 app.get(
   "/api/analytics/stats",
-  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 120 }, "analytics-stats"),
+  createSlidingRateLimiter(
+    { windowMs: 60 * 1000, maxRequests: 120, message: "Too many analytics stats requests" },
+    "analytics-stats"
+  ),
   (_req, res) => {
     res.setHeader("Content-Type", "application/json");
     const activeUsers = analyticsWss && analyticsWss.clients ? analyticsWss.clients.size : 0;
@@ -2221,7 +2227,10 @@ app.get(
 // POST /api/history/engagement (Minimized Payload, Strict Enum Validation, 60s Deduplication)
 app.post(
   "/api/history/engagement",
-  createSlidingRateLimiter({ windowMs: 60 * 1000, maxRequests: 60 }, "history-engagement"),
+  createSlidingRateLimiter(
+    { windowMs: 60 * 1000, maxRequests: 60, message: "Too many engagement telemetry requests" },
+    "history-engagement"
+  ),
   (req, res) => {
     res.setHeader("Content-Type", "application/json");
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {

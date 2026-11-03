@@ -278,7 +278,8 @@ export async function convertExcelToPdfEnterprise(
   const printableHeight = Math.round((pageH - marginMm * 2) * 100) / 100;
 
   // 3. Initialize jsPDF
-  const doc = new jsPDF({
+  const JsPdfConstructor = (jsPDF as any).default || (jsPDF as any).jsPDF || jsPDF;
+  const doc = new JsPdfConstructor({
     orientation: targetOrientation,
     unit: "mm",
     format: pageSize === "Letter" ? "letter" : "a4",

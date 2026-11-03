@@ -122,6 +122,36 @@ export interface DocumentAST {
 // ---------------------------------------------------------------------------
 
 /**
+ * Safe canvas creator that works across Browser DOM, Worker OffscreenCanvas, and Node.js/headless test environments
+ */
+export function createSafeCanvas(width = 300, height = 150): HTMLCanvasElement {
+  if (typeof document !== "undefined" && typeof document.createElement === "function") {
+    const c = document.createElement("canvas");
+    c.width = width;
+    c.height = height;
+    return c;
+  }
+  if (typeof OffscreenCanvas !== "undefined") {
+    return new OffscreenCanvas(width, height) as unknown as HTMLCanvasElement;
+  }
+  return {
+    width,
+    height,
+    getContext: () => ({
+      drawImage: () => {},
+      fillRect: () => {},
+      getImageData: () => ({ data: new Uint8ClampedArray(Math.max(1, width * height * 4)) }),
+      putImageData: () => {},
+      translate: () => {},
+      rotate: () => {},
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: "high",
+    }),
+    toDataURL: () => "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  } as unknown as HTMLCanvasElement;
+}
+
+/**
  * Detect image skew angle using horizontal projection profile variance.
  * Tests angles between -15° and +15° in 0.5° increments.
  */
@@ -132,9 +162,7 @@ export function detectSkewAngle(canvas: HTMLCanvasElement): number {
   // Work on downsampled canvas for speed (< 10ms execution)
   const sampleW = 400;
   const sampleH = Math.round((canvas.height / canvas.width) * sampleW);
-  const sampleCanvas = document.createElement("canvas");
-  sampleCanvas.width = sampleW;
-  sampleCanvas.height = sampleH;
+  const sampleCanvas = createSafeCanvas(sampleW, sampleH);
   const sCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
   if (!sCtx) return 0;
 
@@ -212,9 +240,7 @@ export function applyDeskew(canvas: HTMLCanvasElement, angleDegrees: number): HT
   const newW = Math.round(canvas.width * cos + canvas.height * sin);
   const newH = Math.round(canvas.height * cos + canvas.width * sin);
 
-  const rotCanvas = document.createElement("canvas");
-  rotCanvas.width = newW;
-  rotCanvas.height = newH;
+  const rotCanvas = createSafeCanvas(newW, newH);
   const rotCtx = rotCanvas.getContext("2d", { willReadFrequently: true });
   if (!rotCtx) return canvas;
 
@@ -260,9 +286,7 @@ export async function preprocessImageForOcr(
     upscaleFactor = Math.min(2.5, Math.max(1.2, 2400 / maxDim));
   }
 
-  let canvas = document.createElement("canvas");
-  canvas.width = Math.round(imgBitmap.width * upscaleFactor);
-  canvas.height = Math.round(imgBitmap.height * upscaleFactor);
+  let canvas = createSafeCanvas(Math.round(imgBitmap.width * upscaleFactor), Math.round(imgBitmap.height * upscaleFactor));
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
   if (!ctx) {
@@ -1423,10 +1447,8 @@ export async function convertImageToWordEnterprise(
     // run second pass on raw unprocessed image bitmap!
     if (rawWords.length < 5 || recognizedText.length < 25) {
       if (onProgress) onProgress(55, "Executing second-pass scan on raw raster matrix...");
-      const rawCanvas = document.createElement("canvas");
       const imgBitmap = await createImageBitmap(file);
-      rawCanvas.width = imgBitmap.width;
-      rawCanvas.height = imgBitmap.height;
+      const rawCanvas = createSafeCanvas(imgBitmap.width, imgBitmap.height);
       const rawCtx = rawCanvas.getContext("2d");
       if (rawCtx) {
         rawCtx.drawImage(imgBitmap, 0, 0);
@@ -1616,10 +1638,8 @@ export async function convertImageToExcelEnterprise(
 
     if (rawWords.length < 5 || recognizedText.length < 25) {
       if (onProgress) onProgress(55, "Scanning raw raster bitmap fallback...");
-      const rawCanvas = document.createElement("canvas");
       const imgBitmap = await createImageBitmap(file);
-      rawCanvas.width = imgBitmap.width;
-      rawCanvas.height = imgBitmap.height;
+      const rawCanvas = createSafeCanvas(imgBitmap.width, imgBitmap.height);
       const rawCtx = rawCanvas.getContext("2d");
       if (rawCtx) {
         rawCtx.drawImage(imgBitmap, 0, 0);
