@@ -33,6 +33,9 @@ import {
   ShadingType,
   HeadingLevel,
   PageBreak,
+  Header,
+  Footer,
+  PageNumber,
 } from "docx";
 import { createWorker } from "tesseract.js";
 import { createSafeCanvas } from "./enterpriseImageOcrEngine";
@@ -368,6 +371,58 @@ export async function convertPdfToWordEnterprise(
     },
     sections: [
       {
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    text: detectedDocumentTitle ? `${detectedDocumentTitle.slice(0, 50)} | PDFSun` : "PDFSun Reconstructed Document",
+                    size: 16, // 8pt
+                    color: "94A3B8",
+                    font: "Calibri",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    text: "Page ",
+                    size: 16,
+                    color: "94A3B8",
+                    font: "Calibri",
+                  }),
+                  new TextRun({
+                    children: [PageNumber.CURRENT],
+                    size: 16,
+                    color: "94A3B8",
+                    font: "Calibri",
+                  }),
+                  new TextRun({
+                    text: " of ",
+                    size: 16,
+                    color: "94A3B8",
+                    font: "Calibri",
+                  }),
+                  new TextRun({
+                    children: [PageNumber.TOTAL_PAGES],
+                    size: 16,
+                    color: "94A3B8",
+                    font: "Calibri",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
         properties: {
           page: {
             size: {
@@ -801,7 +856,24 @@ function parseTableFromLines(
   const headers = validRows[0];
   const rows = validRows.slice(1);
   const colCount = colStarts.length;
-  const colWidthsPct = new Array(colCount).fill(Math.floor(100 / colCount));
+
+  // Calculate proportional column widths from spatial column start coordinates
+  const rawWidths: number[] = [];
+  for (let c = 0; c < colCount; c++) {
+    if (c < colCount - 1) {
+      rawWidths.push(Math.max(20, colStarts[c + 1] - colStarts[c]));
+    } else {
+      const avgWidth = rawWidths.length > 0 ? rawWidths.reduce((a, b) => a + b, 0) / rawWidths.length : 80;
+      rawWidths.push(Math.max(25, Math.round(avgWidth)));
+    }
+  }
+
+  const totalRaw = rawWidths.reduce((a, b) => a + b, 0);
+  const colWidthsPct = rawWidths.map((w) => Math.max(5, Math.round((w / totalRaw) * 100)));
+  const sumPct = colWidthsPct.reduce((a, b) => a + b, 0);
+  if (sumPct !== 100 && colWidthsPct.length > 0) {
+    colWidthsPct[colWidthsPct.length - 1] += (100 - sumPct);
+  }
 
   // Determine if this is a borderless layout (e.g. invoices, forms, tax details)
   const isBorderless = mode === "invoice" || mode === "fields";
@@ -825,8 +897,21 @@ function parseTableFromLines(
 }
 
 /**
+ * Detects optimal font based on language Unicode glyph ranges and monospace indicators
+ */
+export function detectOptimalFont(text: string, isMonospace?: boolean): string {
+  if (isMonospace) return "Consolas";
+  if (!text) return "Calibri";
+  if (/[\u0900-\u097F]/.test(text)) return "Mangal"; // Devanagari / Hindi Unicode
+  if (/[\u0600-\u06FF]/.test(text)) return "Traditional Arabic"; // Arabic Unicode
+  if (/[\u4E00-\u9FFF\u3040-\u30FF]/.test(text)) return "Microsoft YaHei"; // CJK Unicode
+  return "Calibri";
+}
+
+/**
  * Builds a native Microsoft Word Table with clean OpenXML borderless tables or styled borders
  * In invoice mode, produces 100% layout fidelity with BorderStyle.NONE to eliminate arbitrary grid lines.
+ * Supports merged cells (columnSpan) for spanning headers and subtotal summary rows.
  */
 function buildNativeWordTable(tableData: {
   headers: string[];
@@ -839,37 +924,57 @@ function buildNativeWordTable(tableData: {
   const colCount = tableData.headers.length;
   const isBorderless = tableData.isBorderless || tableData.headerStyle === "clean";
 
-  // Header Row
-  const headerCells = tableData.headers.map((hText, cIdx) => {
-    return new TableCell({
-      width: { size: tableData.colWidthsPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
-      shading: isBorderless ? undefined : { type: ShadingType.CLEAR, fill: "1E3A8A" }, // Navy blue header for normal grids
-      borders: isBorderless
-        ? {
-            top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
-            left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          }
-        : undefined,
-      margins: isBorderless
-        ? { top: 80, bottom: 80, left: 100, right: 100 }
-        : { top: 120, bottom: 120, left: 140, right: 140 },
-      children: [
-        new Paragraph({
-          alignment: AlignmentType.LEFT,
-          children: [
-            new TextRun({
-              text: hText || " ",
-              bold: true,
-              color: isBorderless ? "0F172A" : "FFFFFF",
-              size: 20, // 10pt
-            }),
-          ],
-        }),
-      ],
-    });
-  });
+  // Header Row with columnSpan detection for multi-column spanning headers
+  const headerCells: TableCell[] = [];
+  for (let cIdx = 0; cIdx < colCount; cIdx++) {
+    const hText = tableData.headers[cIdx] || " ";
+    
+    // Check if next column is empty and can be spanned
+    let span = 1;
+    while (cIdx + span < colCount && !tableData.headers[cIdx + span]?.trim()) {
+      span++;
+    }
+
+    let cellWidth = 0;
+    for (let s = 0; s < span; s++) {
+      cellWidth += tableData.colWidthsPct[cIdx + s] || Math.floor(100 / colCount);
+    }
+
+    headerCells.push(
+      new TableCell({
+        columnSpan: span > 1 ? span : undefined,
+        width: { size: cellWidth, type: WidthType.PERCENTAGE },
+        shading: isBorderless ? undefined : { type: ShadingType.CLEAR, fill: "1E3A8A" },
+        borders: isBorderless
+          ? {
+              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
+              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            }
+          : undefined,
+        margins: isBorderless
+          ? { top: 80, bottom: 80, left: 100, right: 100 }
+          : { top: 120, bottom: 120, left: 140, right: 140 },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            children: [
+              new TextRun({
+                text: hText,
+                bold: true,
+                color: isBorderless ? "0F172A" : "FFFFFF",
+                size: 20, // 10pt
+                font: detectOptimalFont(hText),
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+
+    cIdx += span - 1; // skip spanned columns
+  }
 
   tableRows.push(new TableRow({ children: headerCells, tableHeader: true }));
 
@@ -877,42 +982,65 @@ function buildNativeWordTable(tableData: {
   for (let rIdx = 0; rIdx < tableData.rows.length; rIdx++) {
     const row = tableData.rows[rIdx];
     const isAlt = !isBorderless && rIdx % 2 === 1;
+    const cells: TableCell[] = [];
 
-    const cells = row.map((cellText, cIdx) => {
+    for (let cIdx = 0; cIdx < colCount; cIdx++) {
+      const cellText = row[cIdx] || " ";
+
+      // Check if subsequent cells in this row are empty and can be spanned (e.g. subtotal row)
+      let span = 1;
+      if (cellText.trim().length > 0 && rIdx === tableData.rows.length - 1 && /total|subtotal|amount in words/i.test(cellText)) {
+        while (cIdx + span < colCount - 1 && !row[cIdx + span]?.trim()) {
+          span++;
+        }
+      }
+
+      let cellWidth = 0;
+      for (let s = 0; s < span; s++) {
+        cellWidth += tableData.colWidthsPct[cIdx + s] || Math.floor(100 / colCount);
+      }
+
       const isNum = /^[$\u20ac\u00a3\u20b9]?[0-9,]+(\.[0-9]+)?%?$/.test(cellText.trim());
-      return new TableCell({
-        width: { size: tableData.colWidthsPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
-        shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
-        margins: isBorderless
-          ? { top: 60, bottom: 60, left: 100, right: 100 }
-          : { top: 100, bottom: 100, left: 140, right: 140 },
-        borders: isBorderless
-          ? {
-              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            }
-          : {
-              top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-            },
-        children: [
-          new Paragraph({
-            alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
-            children: [
-              new TextRun({
-                text: cellText || " ",
-                size: 19, // 9.5pt
-                color: "1E293B",
-              }),
-            ],
-          }),
-        ],
-      });
-    });
+
+      cells.push(
+        new TableCell({
+          columnSpan: span > 1 ? span : undefined,
+          width: { size: cellWidth, type: WidthType.PERCENTAGE },
+          shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
+          margins: isBorderless
+            ? { top: 60, bottom: 60, left: 100, right: 100 }
+            : { top: 100, bottom: 100, left: 140, right: 140 },
+          borders: isBorderless
+            ? {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              }
+            : {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              },
+          children: [
+            new Paragraph({
+              alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
+              children: [
+                new TextRun({
+                  text: cellText,
+                  size: 19, // 9.5pt
+                  color: "1E293B",
+                  font: detectOptimalFont(cellText, isNum),
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+
+      cIdx += span - 1; // skip spanned columns
+    }
 
     tableRows.push(new TableRow({ children: cells }));
   }
@@ -925,25 +1053,30 @@ function buildNativeWordTable(tableData: {
 
 /**
  * Builds a native Microsoft Word fluid Paragraph with smooth TextRun concatenation
+ * Applies keepNext on headings to avoid orphaned headings at page boundaries.
  */
 function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
   if (block.type === "heading") {
+    const font = detectOptimalFont(block.text);
     return new Paragraph({
       heading: block.level || HeadingLevel.HEADING_1,
       alignment: block.alignment,
       spacing: { before: 240, after: 120 },
+      keepNext: true, // Prevents orphan headings at bottom of page
       children: [
         new TextRun({
           text: block.text,
           bold: true,
           size: Math.max(22, Math.round(block.fontSize * 2)),
           color: "0F172A",
+          font,
         }),
       ],
     });
   }
 
   if (block.type === "bullet") {
+    const font = detectOptimalFont(block.text);
     return new Paragraph({
       bullet: { level: 0 },
       spacing: { before: 40, after: 80, line: 276 },
@@ -953,12 +1086,14 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
           bold: block.isBold,
           size: 21, // 10.5pt
           color: "1E293B",
+          font,
         }),
       ],
     });
   }
 
   if (block.type === "numbered") {
+    const font = detectOptimalFont(block.text);
     return new Paragraph({
       spacing: { before: 40, after: 80, line: 276 },
       children: [
@@ -967,6 +1102,7 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
           bold: block.isBold,
           size: 21,
           color: "1E293B",
+          font,
         }),
       ],
     });
@@ -1033,12 +1169,20 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
         italics: r.isItalic,
         size: Math.max(18, Math.round(r.fontSize * 2)),
         color: "0F172A",
+        font: detectOptimalFont(r.text),
       })
     );
   }
 
   if (textRuns.length === 0) {
-    textRuns.push(new TextRun({ text: block.text || " ", size: 21, color: "0F172A" }));
+    textRuns.push(
+      new TextRun({
+        text: block.text || " ",
+        size: 21,
+        color: "0F172A",
+        font: detectOptimalFont(block.text),
+      })
+    );
   }
 
   return new Paragraph({

@@ -209,6 +209,9 @@ export interface ExtractedFinancialEntities {
   openingBalance?: string;
   closingBalance?: string;
   reverseCharge?: boolean;
+  ifscCode?: string;
+  stateCode?: string;
+  accountNumberMasked?: string;
 }
 
 export interface DocumentClassificationResult {
@@ -246,6 +249,27 @@ export const UK_VAT_REGEX = /\b(GB)?\s*([0-9]{3}\s*[0-9]{4}\s*[0-9]{2})\b/i;
 export const EU_VAT_REGEX = /\b([A-Z]{2})[0-9A-Z]{8,12}\b/g;
 export const US_SALES_TAX_REGEX = /\b(State\s*Tax|County\s*Tax|Sales\s*Tax|City\s*Tax)[\s:$]*([0-9,.]+)/i;
 export const CURRENCY_DETECTOR = /(₹|Rs\.?|INR|\$|USD|€|EUR|£|GBP|A\$|AUD|C\$|CAD|¥|JPY)/i;
+export const IFSC_REGEX = /\b([A-Z]{4}0[A-Z0-9]{6})\b/g;
+export const BANK_ACCOUNT_MASKED_REGEX = /\b(?:A\/c|Account|Acc)[\s.:#-]*([0-9X\*\s-]{8,22})\b/i;
+
+export const STATE_CODE_MAP: Record<string, string> = {
+  "01": "Jammu & Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "19": "West Bengal",
+  "24": "Gujarat",
+  "27": "Maharashtra",
+  "29": "Karnataka",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+};
 
 /**
  * Fast client-side document classifier that inspects plain text & spatial patterns
@@ -334,6 +358,24 @@ export function detectDocumentProfile(
   const taxableMatch = fullText.match(/(?:taxable\s*value|taxable\s*amount|sub\s*total)[\s:₹$€£]*([0-9,]+\.[0-9]{2})/i);
   if (taxableMatch) {
     entities.totalTaxableValue = taxableMatch[1];
+  }
+
+  // IFSC Code Extraction (Indian Banking)
+  const ifscMatches = Array.from(fullText.matchAll(IFSC_REGEX)).map((m) => m[1]);
+  if (ifscMatches.length > 0) {
+    entities.ifscCode = ifscMatches[0];
+  }
+
+  // State Code Extraction (from GSTIN prefix 2 digits)
+  if (entities.supplierGstin && entities.supplierGstin.length >= 2) {
+    const code = entities.supplierGstin.slice(0, 2);
+    entities.stateCode = STATE_CODE_MAP[code] ? `${STATE_CODE_MAP[code]} (${code})` : code;
+  }
+
+  // Masked Bank Account Number
+  const accMatch = fullText.match(BANK_ACCOUNT_MASKED_REGEX);
+  if (accMatch && accMatch[1]) {
+    entities.accountNumberMasked = accMatch[1].trim();
   }
 
   // Scoring matrix for document classification

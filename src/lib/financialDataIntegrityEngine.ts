@@ -340,7 +340,47 @@ export function auditFinancialDocxIntegrity(
     });
   }
 
-  // 9. Numeric precision & currency baseline check
+  // 9. IFSC Code Verification (Indian Banking & Invoices)
+  if (srcEntities.ifscCode) {
+    const foundIfsc = docxPlainText.includes(srcEntities.ifscCode);
+    checks.push({
+      id: "chk-ifsc-code",
+      name: "Bank IFSC Code Integrity",
+      title: "Bank IFSC Code Integrity",
+      category: "identifier",
+      sourceValue: srcEntities.ifscCode,
+      docxValue: foundIfsc ? srcEntities.ifscCode : "Missing or Altered",
+      status: foundIfsc ? "PASS" : "FAIL",
+      details: foundIfsc
+        ? "11-character Indian banking IFSC code preserved verbatim."
+        : "Bank IFSC routing code was not detected in output document.",
+      detail: foundIfsc
+        ? "11-character Indian banking IFSC code preserved verbatim."
+        : "Bank IFSC routing code was not detected in output document.",
+    });
+  }
+
+  // 10. E-Invoice IRN Hash Verification (64-character SHA-256)
+  if (srcEntities.irn) {
+    const foundIrn = docxPlainText.toLowerCase().includes(srcEntities.irn.toLowerCase());
+    checks.push({
+      id: "chk-irn-hash",
+      name: "Invoice Reference Number (IRN) Hash",
+      title: "Invoice Reference Number (IRN) Hash",
+      category: "identifier",
+      sourceValue: `${srcEntities.irn.slice(0, 8)}...${srcEntities.irn.slice(-8)}`,
+      docxValue: foundIrn ? "64-character hash verified" : "Missing IRN",
+      status: foundIrn ? "PASS" : "WARNING",
+      details: foundIrn
+        ? "Full 64-character statutory e-invoice IRN hash preserved."
+        : "IRN hash was not fully detected in generated output.",
+      detail: foundIrn
+        ? "Full 64-character statutory e-invoice IRN hash preserved."
+        : "IRN hash was not fully detected in generated output.",
+    });
+  }
+
+  // 11. Numeric precision & currency baseline check
   checks.push({
     id: "chk-numeric-precision",
     name: "Numeric Precision & Currency Formatting",
