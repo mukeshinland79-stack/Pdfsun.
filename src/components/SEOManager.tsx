@@ -462,7 +462,20 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
 
   const helmetTitle = pseoPage?.seoTitle || (isPricingActive ? `${t("pricing.title", "Simple, Transparent")} ${t("pricing.titleHighlight", "Pricing Plans")} - PDFSun | pdfsun.in` : (activeTool ? toolTitle : defaultTitle));
   const helmetDesc = pseoPage?.seoDescription || (isPricingActive ? `${t("pricing.subtitle", "100% private WebAssembly PDF processing with zero data uploads. Multi-currency billing for India (Razorpay) & Global enterprises (Stripe). First 7 Days 100% Money-Back Guarantee.")}` : (activeTool ? toolDesc : defaultDesc));
-  const canonicalUrl = pseoPage ? `${baseUrl}/${pseoPage.slug}` : (isPricingActive ? `${baseUrl}/pricing` : (activeTool ? `${baseUrl}/${activeTool.slug}` : `${baseUrl}/`));
+
+  const baseSubpath = pseoPage
+    ? `/${pseoPage.slug}`
+    : isPricingActive
+    ? `/pricing`
+    : isTodayInHistoryActive
+    ? `/today-in-history`
+    : activeTool
+    ? `/${activeTool.slug}`
+    : ``;
+
+  const canonicalUrl = currentLanguage === "en"
+    ? `${baseUrl}${baseSubpath || "/"}`
+    : `${baseUrl}/${currentLanguage}${baseSubpath}`;
 
   return (
     <Helmet
@@ -497,23 +510,16 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
         <link rel="next" href={`${baseUrl}/?page=${currentPage + 1}`} />
       )}
 
-      {/* Standard Global Base Language Hreflangs (en, es, fr, de, hi, x-default) for Worldwide Ranking */}
-      {["en", "es", "fr", "de", "hi"].map((baseLang) => {
-        const targetPath = pseoPage
-          ? `${baseUrl}/${pseoPage.slug}`
-          : isPricingActive
-          ? `${baseUrl}/pricing`
-          : isTodayInHistoryActive
-          ? `${baseUrl}/today-in-history`
-          : activeTool
-          ? `${baseUrl}/${activeTool.slug}`
-          : `${baseUrl}/`;
-        const href = baseLang === "en" ? targetPath : `${targetPath}?lang=${baseLang}`;
+      {/* International Multilingual Subpath Reciprocal Hreflang Tags */}
+      {["en", "hi", "es", "fr", "de", "ar", "ja", "pt", "ru", "zh-CN", "bn", "mr", "gu"].map((code) => {
+        const href = code === "en"
+          ? `${baseUrl}${baseSubpath || "/"}`
+          : `${baseUrl}/${code}${baseSubpath}`;
         return (
           <link
-            key={`std-base-${baseLang}`}
+            key={`std-base-${code}`}
             rel="alternate"
-            hrefLang={baseLang}
+            hrefLang={code === "zh-CN" ? "zh-Hans" : code}
             href={href}
           />
         );

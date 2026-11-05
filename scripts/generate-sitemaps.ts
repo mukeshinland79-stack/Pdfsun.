@@ -31,6 +31,7 @@ User-agent: Mediapartners-Google
 Allow: /
 
 Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-international.xml
 Sitemap: https://www.pdfsun.in/sitemap-blog.xml
 Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
@@ -89,7 +90,49 @@ const sitemapPseoXml = `<?xml version="1.0" encoding="UTF-8"?>
 ${pseoUrls}
 </urlset>`;
 
-// 5. Generate master sitemap.xml
+// 5. Generate sitemap-international.xml (Multilingual Subpath URLs across Core Global & Regional Languages)
+const INTERNATIONAL_LANGUAGES = [
+  "hi", "es", "fr", "de", "pt", "ar", "ja", "ru", "zh-CN",
+  "bn", "mr", "te", "ta", "gu", "pa", "kn", "ml", "ur", "ko",
+  "tr", "nl", "pl", "vi", "th", "id", "uk", "fa", "ms", "it"
+];
+
+const internationalUrls: string[] = [];
+
+// Localized homepages
+INTERNATIONAL_LANGUAGES.forEach((lang) => {
+  internationalUrls.push(`  <url>
+    <loc>${BASE_URL}/${lang}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>`);
+  internationalUrls.push(`  <url>
+    <loc>${BASE_URL}/${lang}/pricing</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>`);
+});
+
+// Localized core tools
+INTERNATIONAL_LANGUAGES.forEach((lang) => {
+  ALL_TOOLS.forEach((tool) => {
+    internationalUrls.push(`  <url>
+    <loc>${BASE_URL}/${lang}/${tool.slug}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${tool.isPopular ? "daily" : "weekly"}</changefreq>
+    <priority>${tool.isPopular || tool.isAi ? "0.9" : "0.8"}</priority>
+  </url>`);
+  });
+});
+
+const sitemapInternationalXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${internationalUrls.join("\n")}
+</urlset>`;
+
+// 6. Generate master sitemap.xml
 const staticPages = [
   { loc: `${BASE_URL}/`, priority: "1.0", changefreq: "daily" },
   { loc: `${BASE_URL}/blog`, priority: "0.95", changefreq: "daily" },
@@ -170,6 +213,7 @@ targets.forEach((targetDir) => {
     ensureDir(targetDir);
     fs.writeFileSync(path.join(targetDir, "robots.txt"), robotsTxt, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap.xml"), sitemapMasterXml, "utf8");
+    fs.writeFileSync(path.join(targetDir, "sitemap-international.xml"), sitemapInternationalXml, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap-blog.xml"), sitemapBlogXml, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap-compress-sizes.xml"), sitemapCompressXml, "utf8");
     fs.writeFileSync(path.join(targetDir, "sitemap-pseo.xml"), sitemapPseoXml, "utf8");
