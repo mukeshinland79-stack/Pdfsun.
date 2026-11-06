@@ -1,5 +1,6 @@
 {
-  "summary": "Phase 11F Advanced Invoice Layout Reconstruction & Zero-Fragmentation Table Fix forensic engineering report. Details root causes of invoice layout breakdown (naive two-column page splitting, table fragmentation from multi-line descriptions, spacer margin bloat), the architectural solution (vertical semantic zone banding, unified 7-column grid reconstruction with multi-line cell containment, side-by-side party cards, and two distinct reconstruction modes Mode A and Mode B), automated verification results (29/29 PASS across GST invoices, multi-column tables, and banking ledgers), and remaining limitations.",
-  "updatedAt": "2026-11-06T05:44:03.946758448Z",
+  "summary": "Complete Implementation & Acceptance Report for Eicher Proforma Invoice Defect Fix: Multi-Table Segmentation, Vehicle Metadata Card Grid, Dedicated HSN Summary, and Adaptive Micro-Padding Annexure Engine. 100% verified across 134 automated tests with strict 1:1 page parity.",
+  "updatedAt": "2026-11-06T14:13:12.839696203Z",
+  "requestFeedback": true,
   "userFacing": true
 }

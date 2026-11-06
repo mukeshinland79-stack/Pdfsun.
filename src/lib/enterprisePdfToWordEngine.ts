@@ -51,6 +51,20 @@ import {
   auditFinancialDocxIntegrity,
   FinancialQualityAuditReport,
 } from "./financialDataIntegrityEngine";
+import {
+  classifyGlobalDocument,
+  GlobalClassificationResult,
+  GlobalCategoryKey,
+} from "./globalDocumentClassifier";
+import {
+  analyzePdfTechnicalStructure,
+  TechnicalStructureAnalysis,
+  PdfStructuralClass,
+} from "./documentStructureAnalyzer";
+import {
+  validateDocxQuality,
+  DocxQualityAuditReport,
+} from "./docxQualityValidator";
 
 // Ensure pdf.js worker is registered in browser
 if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
@@ -148,9 +162,15 @@ export interface PdfToWordResult {
     reconstructionMode?: ReconstructionMode;
     layoutFidelityScore?: number;
     isInvoiceDetected?: boolean;
+    globalCategory?: GlobalCategoryKey;
+    globalCategoryName?: string;
+    structuralClass?: PdfStructuralClass;
   };
   classification?: DocumentClassificationResult;
+  globalClassification?: GlobalClassificationResult;
+  technicalStructure?: TechnicalStructureAnalysis;
   qualityAudit?: FinancialQualityAuditReport;
+  docxQualityReport?: DocxQualityAuditReport;
   reconstructionMode?: ReconstructionMode;
 }
 
@@ -268,8 +288,13 @@ async function extractPageImageElements(
 }
 
 /**
- * Intelligent Zone-Based Invoice Layout Reconstructor (Phase 11F)
- * Prevents newspaper-splitting, table fragmentation, and misaligned party cards
+ * Intelligent Zone-Based Multi-Table Invoice Layout Reconstructor (Phase 11F / 18)
+ * Features:
+ * - Multi-Table Segmentation: Independently isolates Spare Parts, Labour, and HSN tables
+ * - Vehicle & Job Card Metadata Grid: Renders clean 4-column key-value cards instead of 50/50 crushing
+ * - Dedicated HSN/SAC Tax Summary Detection: Eliminates arbitrary Y-percentage chopping
+ * - Adaptive Wide-Table & Annexure Engine: Micro-padding & dynamic column scaling for 8-14 column tables
+ * - Page Budget Row Height Preservation: Zero cascading page-break inflation (3 PDF pages -> 3 DOCX pages)
  */
 export function reconstructInvoicePageLayout(
   tokens: SpatialTextToken[],
@@ -285,68 +310,119 @@ export function reconstructInvoicePageLayout(
   const sortedTokens = [...tokens].sort((a, b) => a.y - b.y || a.x - b.x);
   const lines = clusterTokensIntoSimpleLines(sortedTokens, pageNum);
 
-  // 1. Detect Boundaries
-  let gridHeaderLineIdx = -1;
+  if (lines.length === 0) return elements;
+
+  // 1. Detect ALL Table Headers on the Page (Multi-Table Awareness)
+  const tableHeaderIndices: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    const textLower = l.text.toLowerCase();
-    const hasGridMarkers =
-      (textLower.includes("desc") || textLower.includes("item") || textLower.includes("particulars")) &&
-      (textLower.includes("qty") || textLower.includes("rate") || textLower.includes("tax") || textLower.includes("hsn") || textLower.includes("amount") || textLower.includes("s.no") || textLower.includes("sr."));
-    if (hasGridMarkers && l.tokens.length >= 3) {
-      gridHeaderLineIdx = i;
-      break;
-    }
-  }
-
-  let summaryStartLineIdx = -1;
-  if (gridHeaderLineIdx !== -1) {
-    for (let i = gridHeaderLineIdx + 1; i < lines.length; i++) {
-      const l = lines[i];
-      const textLower = l.text.toLowerCase();
-      if (
-        (textLower.includes("bank") && (textLower.includes("account") || textLower.includes("details") || textLower.includes("name"))) ||
-        textLower.includes("amount in words") ||
-        textLower.includes("total taxable") ||
-        textLower.includes("grand total") ||
-        textLower.includes("invoice total") ||
-        (textLower.includes("subtotal") && l.tokens.length <= 3)
-      ) {
-        summaryStartLineIdx = i;
-        break;
+    if (isLineInvoiceTableHeader(l, pageWidth)) {
+      // Avoid duplicate trigger on contiguous lines of a multi-line header
+      if (tableHeaderIndices.length === 0 || i > tableHeaderIndices[tableHeaderIndices.length - 1] + 1) {
+        tableHeaderIndices.push(i);
       }
     }
   }
 
+  // 2. Locate Summary Start Line (Amount in words, Bank details, Grand Total)
+  let summaryStartLineIdx = -1;
+  const lastHeaderIdx = tableHeaderIndices.length > 0 ? tableHeaderIndices[tableHeaderIndices.length - 1] : -1;
+  const searchStart = lastHeaderIdx !== -1 ? lastHeaderIdx + 1 : 0;
+
+  for (let i = searchStart; i < lines.length; i++) {
+    const l = lines[i];
+    const textLower = l.text.toLowerCase();
+    if (
+      (textLower.includes("bank") && (textLower.includes("account") || textLower.includes("details") || textLower.includes("name") || textLower.includes("ifsc"))) ||
+      textLower.includes("amount in words") ||
+      textLower.includes("total taxable") ||
+      textLower.includes("grand total") ||
+      textLower.includes("invoice total") ||
+      textLower.includes("net amount") ||
+      (textLower.includes("subtotal") && l.tokens.length <= 3)
+    ) {
+      summaryStartLineIdx = i;
+      break;
+    }
+  }
+
+  // 3. Partition Content Zones
   const headerLines: ReconstructedLine[] = [];
   const partyTokens: SpatialTextToken[] = [];
-  const gridLines: ReconstructedLine[] = [];
+  const vehicleLines: ReconstructedLine[] = [];
   const summaryTokens: SpatialTextToken[] = [];
   const footerLines: ReconstructedLine[] = [];
 
-  if (gridHeaderLineIdx !== -1) {
-    for (let i = 0; i < gridHeaderLineIdx; i++) {
+  interface TableBlock {
+    titleLine?: ReconstructedLine;
+    lines: ReconstructedLine[];
+  }
+  const tableBlocks: TableBlock[] = [];
+
+  const firstHeaderIdx = tableHeaderIndices.length > 0 ? tableHeaderIndices[0] : -1;
+
+  if (firstHeaderIdx !== -1) {
+    // Process pre-table lines
+    for (let i = 0; i < firstHeaderIdx; i++) {
       const l = lines[i];
       const isHeaderTitle =
         i === 0 &&
-        (/tax invoice|bill of supply|commercial invoice|retail invoice/i.test(l.text) ||
+        (/tax invoice|bill of supply|commercial invoice|retail invoice|proforma invoice|annexure/i.test(l.text) ||
           (l.fontSize >= 13 && !/sold by|billed to|supplier|details/i.test(l.text)));
+
       if (isHeaderTitle) {
         headerLines.push(l);
+      } else if (isVehicleMetadataLine(l)) {
+        vehicleLines.push(l);
       } else {
         partyTokens.push(...l.tokens);
       }
     }
 
-    const endGridIdx = summaryStartLineIdx !== -1 ? summaryStartLineIdx : lines.length;
-    for (let i = gridHeaderLineIdx; i < endGridIdx; i++) {
-      gridLines.push(lines[i]);
+    // Process each distinct table segment
+    for (let t = 0; t < tableHeaderIndices.length; t++) {
+      const hIdx = tableHeaderIndices[t];
+      const nextHIdx = t < tableHeaderIndices.length - 1 ? tableHeaderIndices[t + 1] : -1;
+      const endLimit = nextHIdx !== -1 ? nextHIdx : (summaryStartLineIdx !== -1 ? summaryStartLineIdx : lines.length);
+
+      let tStart = hIdx;
+      let titleLine: ReconstructedLine | undefined = undefined;
+
+      // Check if preceding line is a table title/subheading (e.g., "Labour Charges", "Spare Parts")
+      if (hIdx > 0 && hIdx - 1 > (t > 0 ? tableHeaderIndices[t - 1] : firstHeaderIdx - 1)) {
+        const prevLine = lines[hIdx - 1];
+        if (
+          prevLine.tokens.length <= 4 &&
+          /labour|spare|parts|services|hsn|tax summary|consumables|annexure/i.test(prevLine.text)
+        ) {
+          titleLine = prevLine;
+        }
+      }
+
+      const tLines: ReconstructedLine[] = [];
+      for (let i = tStart; i < endLimit; i++) {
+        const l = lines[i];
+        // If an intervening section heading was found before next table, exclude it from rows
+        if (nextHIdx !== -1 && i === nextHIdx - 1 && l.tokens.length <= 4 && /labour|parts|services/i.test(l.text)) {
+          continue;
+        }
+        tLines.push(l);
+      }
+
+      if (tLines.length > 0) {
+        tableBlocks.push({ titleLine, lines: tLines });
+      }
     }
 
+    // Process post-table summary & footer lines
     if (summaryStartLineIdx !== -1) {
       for (let i = summaryStartLineIdx; i < lines.length; i++) {
         const l = lines[i];
-        const isFooterCandidate = /authorized signatory|for [a-z0-9]|declaration|terms & conditions/i.test(l.text) && l.y > pageHeight * 0.85;
+        const isFooterCandidate =
+          (/authorized signatory|for [a-z0-9]|declaration|terms & conditions|customer acceptance|signature/i.test(l.text) &&
+            l.y > pageHeight * 0.75) ||
+          /terms and conditions|loyalty acknowledgement/i.test(l.text);
+
         if (isFooterCandidate) {
           footerLines.push(l);
         } else {
@@ -355,23 +431,39 @@ export function reconstructInvoicePageLayout(
       }
     }
   } else {
+    // Fallback: If no explicit header pattern was matched, check if page contains an HSN summary or generic grid
+    const candidateTableLines: ReconstructedLine[] = [];
     for (const l of lines) {
-      const relY = l.y / pageHeight;
-      if (relY < 0.12) headerLines.push(l);
-      else if (relY < 0.32) partyTokens.push(...l.tokens);
-      else if (relY < 0.68) gridLines.push(l);
-      else if (relY < 0.88) summaryTokens.push(...l.tokens);
-      else footerLines.push(l);
+      const isFooter = /authorized signatory|declaration|terms & conditions/i.test(l.text) && l.y > pageHeight * 0.8;
+      const isHeader = l.y < pageHeight * 0.15 && (l.fontSize >= 13 || /invoice|bill|statement/i.test(l.text));
+
+      if (isHeader) {
+        headerLines.push(l);
+      } else if (isFooter) {
+        footerLines.push(l);
+      } else if (isVehicleMetadataLine(l)) {
+        vehicleLines.push(l);
+      } else if (l.tokens.length >= 3) {
+        candidateTableLines.push(l);
+      } else if (l.y > pageHeight * 0.65) {
+        summaryTokens.push(...l.tokens);
+      } else {
+        partyTokens.push(...l.tokens);
+      }
+    }
+
+    if (candidateTableLines.length >= 2) {
+      tableBlocks.push({ lines: candidateTableLines });
     }
   }
 
-  // ZONE 1: RECONSTRUCT HEADER (With optional logo & title)
+  // ZONE 1: RECONSTRUCT HEADER (Logos, Title, Date)
   if (pageImages.length > 0) {
     const firstImg = pageImages[0];
     elements.push(
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        spacing: { before: 0, after: 60 },
+        spacing: { before: 0, after: 40 },
         children: [
           new ImageRun({
             data: firstImg.data,
@@ -387,16 +479,16 @@ export function reconstructInvoicePageLayout(
   }
 
   for (const hl of headerLines) {
-    const isTitle = hl.fontSize >= 13 || /tax invoice|invoice/i.test(hl.text);
+    const isTitle = hl.fontSize >= 13 || /tax invoice|proforma invoice|invoice|annexure/i.test(hl.text);
     elements.push(
       new Paragraph({
         alignment: isTitle ? AlignmentType.CENTER : AlignmentType.RIGHT,
-        spacing: { before: isTitle ? 40 : 0, after: 60 },
+        spacing: { before: isTitle ? 30 : 0, after: 40 },
         children: [
           new TextRun({
             text: hl.text,
             bold: isTitle,
-            size: isTitle ? 28 : 18,
+            size: isTitle ? 26 : 18,
             color: isTitle ? "1E3A8A" : "64748B",
             font: detectOptimalFont(hl.text),
           }),
@@ -430,17 +522,17 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                   right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                 },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                margins: { top: 60, bottom: 60, left: 100, right: 100 },
                 children: sellerLines.map((sl, idx) => {
                   const isSectionHeader = idx === 0 || /sold by|supplier/i.test(sl.text);
                   const isCompanyName = idx === 1 || sl.isBold;
                   return new Paragraph({
-                    spacing: { before: idx === 0 ? 0 : 20, after: 20 },
+                    spacing: { before: idx === 0 ? 0 : 10, after: 10 },
                     children: [
                       new TextRun({
                         text: sl.text,
                         bold: isSectionHeader || isCompanyName || /gstin|pan|state|phone|email/i.test(sl.text),
-                        size: isCompanyName ? 20 : 18,
+                        size: isCompanyName ? 19 : 17,
                         color: isCompanyName ? "0F172A" : "334155",
                         font: detectOptimalFont(sl.text),
                       }),
@@ -458,17 +550,17 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                   right: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                 },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                margins: { top: 60, bottom: 60, left: 100, right: 100 },
                 children: buyerLines.map((bl, idx) => {
                   const isSectionHeader = idx === 0 || /billed to|invoice details/i.test(bl.text);
                   const isKey = /invoice no|invoice date|due date|billed to|gstin|place of supply|reverse charge/i.test(bl.text);
                   return new Paragraph({
-                    spacing: { before: idx === 0 ? 0 : 20, after: 20 },
+                    spacing: { before: idx === 0 ? 0 : 10, after: 10 },
                     children: [
                       new TextRun({
                         text: bl.text,
                         bold: isSectionHeader || isKey || bl.isBold,
-                        size: isSectionHeader || /billed to/i.test(bl.text) ? 20 : 18,
+                        size: isSectionHeader || /billed to/i.test(bl.text) ? 19 : 17,
                         color: isSectionHeader ? "0F172A" : "334155",
                         font: detectOptimalFont(bl.text),
                       }),
@@ -485,11 +577,38 @@ export function reconstructInvoicePageLayout(
     }
   }
 
-  // ZONE 3: RECONSTRUCT LINE ITEMS GRID (With Multi-line Cells!)
-  if (gridLines.length >= 2) {
-    const gridTable = buildUnifiedInvoiceGridTable(gridLines, isVisualMode);
-    if (gridTable) {
-      elements.push(gridTable);
+  // ZONE 2B: VEHICLE & JOB CARD METADATA CARD TABLE (Key-Value Preservation)
+  if (vehicleLines.length > 0) {
+    const vehicleTable = buildVehicleMetadataTable(vehicleLines, isVisualMode);
+    if (vehicleTable) {
+      elements.push(vehicleTable);
+    }
+  }
+
+  // ZONE 3: RECONSTRUCT ALL DETECTED TABLE BLOCKS (Multi-Table Aware!)
+  for (const block of tableBlocks) {
+    if (block.titleLine) {
+      elements.push(
+        new Paragraph({
+          spacing: { before: 40, after: 20 },
+          children: [
+            new TextRun({
+              text: block.titleLine.text,
+              bold: true,
+              size: 20,
+              color: "1E3A8A",
+              font: detectOptimalFont(block.titleLine.text),
+            }),
+          ],
+        })
+      );
+    }
+
+    if (block.lines.length >= 2) {
+      const gridTable = buildUnifiedInvoiceGridTable(block.lines, isVisualMode);
+      if (gridTable) {
+        elements.push(gridTable);
+      }
     }
   }
 
@@ -527,11 +646,11 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
                   right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                 },
-                margins: { top: 80, bottom: 80, left: 100, right: 100 },
+                margins: { top: 60, bottom: 60, left: 80, right: 80 },
                 children: bankLines.map((bl, idx) => {
                   const isTitle = idx === 0 || /bank|amount in words/i.test(bl.text);
                   return new Paragraph({
-                    spacing: { before: 20, after: 20 },
+                    spacing: { before: 10, after: 10 },
                     children: [
                       new TextRun({
                         text: bl.text,
@@ -554,17 +673,17 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                   right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
                 },
-                margins: { top: 80, bottom: 80, left: 100, right: 100 },
+                margins: { top: 60, bottom: 60, left: 80, right: 80 },
                 children: totalLines.map((tl) => {
                   const isGrandTotal = /invoice total|grand total|total amount/i.test(tl.text);
                   return new Paragraph({
                     alignment: AlignmentType.RIGHT,
-                    spacing: { before: 20, after: 20 },
+                    spacing: { before: 10, after: 10 },
                     children: [
                       new TextRun({
                         text: tl.text,
                         bold: isGrandTotal || /total|taxable|igst|cgst|sgst/i.test(tl.text),
-                        size: isGrandTotal ? 22 : 18,
+                        size: isGrandTotal ? 20 : 17,
                         color: isGrandTotal ? "0F172A" : "334155",
                         font: detectOptimalFont(tl.text, true),
                       }),
@@ -581,18 +700,21 @@ export function reconstructInvoicePageLayout(
     }
   }
 
-  // ZONE 5: RECONSTRUCT SIGNATORY & DECLARATION
+  // ZONE 5: RECONSTRUCT SIGNATORY, DECLARATION & TERMS
   for (const fl of footerLines) {
+    const isSignatory = /signatory|signature/i.test(fl.text);
+    const isTermsHeading = /terms & conditions|terms and conditions|declaration/i.test(fl.text);
+
     elements.push(
       new Paragraph({
-        alignment: /signatory|signature/i.test(fl.text) ? AlignmentType.RIGHT : AlignmentType.LEFT,
-        spacing: { before: 40, after: 20 },
+        alignment: isSignatory ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        spacing: { before: isTermsHeading ? 30 : 15, after: 15 },
         children: [
           new TextRun({
             text: fl.text,
-            bold: fl.isBold || /authorized signatory/i.test(fl.text),
-            size: 18,
-            color: "334155",
+            bold: fl.isBold || isSignatory || isTermsHeading,
+            size: isTermsHeading ? 18 : 16,
+            color: isTermsHeading ? "0F172A" : "475569",
             font: detectOptimalFont(fl.text),
           }),
         ],
@@ -603,6 +725,259 @@ export function reconstructInvoicePageLayout(
   return elements;
 }
 
+function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): boolean {
+  if (l.tokens.length < 3) return false;
+  const textLower = l.text.toLowerCase();
+
+  // Pattern A: Standard Parts / Goods / Products / Items
+  const hasItemWord =
+    textLower.includes("desc") ||
+    textLower.includes("item") ||
+    textLower.includes("particular") ||
+    textLower.includes("part no") ||
+    textLower.includes("part number") ||
+    textLower.includes("product") ||
+    textLower.includes("material");
+  const hasMetricWord =
+    textLower.includes("qty") ||
+    textLower.includes("rate") ||
+    textLower.includes("tax") ||
+    textLower.includes("hsn") ||
+    textLower.includes("amount") ||
+    textLower.includes("s.no") ||
+    textLower.includes("sr.") ||
+    textLower.includes("price") ||
+    textLower.includes("mrp") ||
+    textLower.includes("disc");
+
+  if (hasItemWord && hasMetricWord) return true;
+
+  // Pattern B: Labour / Services / Operations / Work description
+  const hasLabourWord =
+    textLower.includes("labour") ||
+    textLower.includes("labor") ||
+    textLower.includes("service") ||
+    textLower.includes("operation") ||
+    textLower.includes("work desc");
+  const hasLabourMetric =
+    textLower.includes("rate") ||
+    textLower.includes("amount") ||
+    textLower.includes("sac") ||
+    textLower.includes("hrs") ||
+    textLower.includes("tax") ||
+    textLower.includes("total");
+
+  if (hasLabourWord && hasLabourMetric) return true;
+
+  // Pattern C: Tax Summary / HSN / SAC Breakdown Table (Page 2)
+  const hasHsnWord = textLower.includes("hsn") || textLower.includes("sac");
+  const hasTaxSummaryMetric =
+    textLower.includes("taxable") ||
+    textLower.includes("cgst") ||
+    textLower.includes("sgst") ||
+    textLower.includes("igst") ||
+    (textLower.includes("rate") && (textLower.includes("tax") || textLower.includes("total")));
+
+  if (hasHsnWord && hasTaxSummaryMetric) return true;
+
+  // Pattern D: Wide Annexure / Multi-column detail table (Page 3)
+  const spread = l.xEnd - l.xStart;
+  if (l.tokens.length >= 4 && spread >= pageWidth * 0.45) {
+    let kwHits = 0;
+    const kwList = ["part", "no", "desc", "qty", "mrp", "rate", "disc", "taxable", "cgst", "sgst", "total", "amount", "hsn", "sac"];
+    for (const kw of kwList) {
+      if (textLower.includes(kw)) kwHits++;
+    }
+    if (kwHits >= 3) return true;
+  }
+
+  return false;
+}
+
+function isVehicleMetadataLine(l: ReconstructedLine): boolean {
+  const textLower = l.text.toLowerCase();
+  const vehicleKeywords = [
+    "chassis",
+    "engine no",
+    "engine number",
+    "reg no",
+    "reg. no",
+    "registration",
+    "model",
+    "odometer",
+    "km reading",
+    "job card",
+    "vin no",
+    "vehicle no",
+    "fuel type",
+    "chassis no",
+  ];
+  let matches = 0;
+  for (const kw of vehicleKeywords) {
+    if (textLower.includes(kw)) matches++;
+  }
+  return matches >= 1;
+}
+
+function buildVehicleMetadataTable(lines: ReconstructedLine[], isVisualMode: boolean): DocxTable | null {
+  if (lines.length === 0) return null;
+
+  const tableRows: TableRow[] = [];
+
+  for (const line of lines) {
+    // Parse line into key-value pairs
+    const pairs: { key: string; val: string }[] = [];
+    const tokens = [...line.tokens].sort((a, b) => a.x - b.x);
+
+    let curKey = "";
+    let curVal = "";
+    let isReadingVal = false;
+
+    for (const t of tokens) {
+      if (t.text.endsWith(":") || /^[A-Z][a-z0-9\s/.-]+:$/.test(t.text)) {
+        if (curKey && curVal) {
+          pairs.push({ key: curKey.trim(), val: curVal.trim() });
+          curKey = "";
+          curVal = "";
+        }
+        curKey = t.text;
+        isReadingVal = true;
+      } else if (isReadingVal) {
+        curVal += " " + t.text;
+      } else {
+        curKey += " " + t.text;
+      }
+    }
+    if (curKey) {
+      pairs.push({ key: curKey.trim(), val: curVal.trim() });
+    }
+
+    // Format pairs into a 4-column row (Key | Val | Key | Val) or 2-column row
+    if (pairs.length >= 2) {
+      const p1 = pairs[0];
+      const p2 = pairs[1];
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 20, type: WidthType.PERCENTAGE },
+              shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })],
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })],
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 20, type: WidthType.PERCENTAGE },
+              shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p2.key, bold: true, size: 17, color: "334155" })],
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p2.val || " ", size: 17, color: "0F172A" })],
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    } else {
+      const p1 = pairs[0] || { key: line.text, val: "" };
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })],
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 70, type: WidthType.PERCENTAGE },
+              margins: { top: 40, bottom: 40, left: 60, right: 60 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { before: 0, after: 0 },
+                  children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })],
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    }
+  }
+
+  return new DocxTable({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: tableRows,
+  });
+}
+
 function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: boolean): DocxTable | null {
   if (lines.length < 2) return null;
 
@@ -611,16 +986,26 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
   const colStarts = headerTokens.map((t) => t.x);
   const headerTitles = headerTokens.map((t) => t.text);
 
+  const colCount = colStarts.length;
+  const isWideAnnexure = colCount >= 8;
+
+  // Adaptive micro-padding and compact typography for wide 8-14 column annexure tables
+  const cellTopBottomPadding = isWideAnnexure ? 24 : 40;
+  const cellLeftRightPadding = isWideAnnexure ? 36 : 60;
+  const dataFontSize = isWideAnnexure ? 15 : 18; // 7.5pt for 8+ cols, 9pt for standard
+  const headerFontSize = isWideAnnexure ? 16 : 18; // 8pt for 8+ cols, 9pt for standard
+  const minColPct = isWideAnnexure ? 3 : 5;
+
   const colWidthsPct: number[] = [];
   for (let c = 0; c < colStarts.length; c++) {
     if (c < colStarts.length - 1) {
       colWidthsPct.push(colStarts[c + 1] - colStarts[c]);
     } else {
-      colWidthsPct.push(headerTokens[c].width + 30);
+      colWidthsPct.push(headerTokens[c].width + 25);
     }
   }
   const totalRawWidth = colWidthsPct.reduce((a, b) => a + b, 0);
-  const normalizedColPct = colWidthsPct.map((w) => Math.max(6, Math.round((w / totalRawWidth) * 100)));
+  const normalizedColPct = colWidthsPct.map((w) => Math.max(minColPct, Math.round((w / totalRawWidth) * 100)));
   const sumPct = normalizedColPct.reduce((a, b) => a + b, 0);
   if (sumPct !== 100 && normalizedColPct.length > 0) {
     normalizedColPct[normalizedColPct.length - 1] += 100 - sumPct;
@@ -633,9 +1018,9 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
     new TableRow({
       tableHeader: true,
       children: headerTitles.map((hTitle, cIdx) => {
-        const isNum = /qty|rate|tax|total|amount/i.test(hTitle);
+        const isNum = /qty|rate|tax|total|amount|mrp|disc|value/i.test(hTitle);
         return new TableCell({
-          width: { size: normalizedColPct[cIdx] || 10, type: WidthType.PERCENTAGE },
+          width: { size: normalizedColPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
           shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "1E3A8A" } : { type: ShadingType.CLEAR, fill: "F1F5F9" },
           borders: {
             top: { style: BorderStyle.SINGLE, size: 1, color: isVisualMode ? "1E3A8A" : "CBD5E1" },
@@ -643,15 +1028,21 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
             left: { style: BorderStyle.SINGLE, size: 1, color: isVisualMode ? "3B82F6" : "E2E8F0" },
             right: { style: BorderStyle.SINGLE, size: 1, color: isVisualMode ? "3B82F6" : "E2E8F0" },
           },
-          margins: { top: 80, bottom: 80, left: 100, right: 100 },
+          margins: {
+            top: cellTopBottomPadding,
+            bottom: cellTopBottomPadding,
+            left: cellLeftRightPadding,
+            right: cellLeftRightPadding,
+          },
           children: [
             new Paragraph({
               alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
+              spacing: { before: 0, after: isWideAnnexure ? 0 : 5 },
               children: [
                 new TextRun({
                   text: hTitle,
                   bold: true,
-                  size: 18,
+                  size: headerFontSize,
                   color: isVisualMode ? "FFFFFF" : "0F172A",
                   font: detectOptimalFont(hTitle, isNum),
                 }),
@@ -677,10 +1068,10 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
       new TableRow({
         children: currentItemCells.map((cellLines, cIdx) => {
           const header = headerTitles[cIdx] || "";
-          const isNum = /qty|rate|tax|total|amount/i.test(header);
+          const isNum = /qty|rate|tax|total|amount|mrp|disc|value/i.test(header);
 
           return new TableCell({
-            width: { size: normalizedColPct[cIdx] || 10, type: WidthType.PERCENTAGE },
+            width: { size: normalizedColPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
             shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
             borders: {
               top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
@@ -688,24 +1079,29 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
               left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
               right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
             },
-            margins: { top: 60, bottom: 60, left: 100, right: 100 },
+            margins: {
+              top: cellTopBottomPadding,
+              bottom: cellTopBottomPadding,
+              left: cellLeftRightPadding,
+              right: cellLeftRightPadding,
+            },
             children: cellLines.length > 0
               ? cellLines.map(
                   (lText, lIdx) =>
                     new Paragraph({
                       alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
-                      spacing: { before: lIdx === 0 ? 0 : 20, after: 20 },
+                      spacing: { before: 0, after: isWideAnnexure ? 0 : 5, line: isWideAnnexure ? 200 : 230 },
                       children: [
                         new TextRun({
                           text: lText,
-                          size: lIdx === 0 ? 18 : 16,
+                          size: lIdx === 0 ? dataFontSize : Math.max(14, dataFontSize - 1),
                           color: lIdx === 0 ? "0F172A" : "64748B",
                           font: detectOptimalFont(lText, isNum),
                         }),
                       ],
                     })
                 )
-              : [new Paragraph({ children: [new TextRun({ text: " ", size: 18 })] })],
+              : [new Paragraph({ children: [new TextRun({ text: " ", size: dataFontSize })] })],
           });
         }),
       })
@@ -716,10 +1112,16 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
   for (let lIdx = 1; lIdx < lines.length; lIdx++) {
     const line = lines[lIdx];
     const firstToken = line.tokens[0];
-    const isNewItemStart =
-      firstToken &&
-      /^[0-9]+$/.test(firstToken.text) &&
-      Math.abs(firstToken.x - colStarts[0]) <= 25;
+
+    // Intelligent new row detection:
+    // 1. Serial number at col 0
+    // 2. Alphanumeric part / job code (e.g. ED123, 87082900, L01) near col 0 or col 1
+    // 3. High column occupancy (line has tokens across >= 50% of columns)
+    // 4. In wide annexures, distinct Y lines are generally distinct rows
+    const isSerialNum = firstToken && /^[0-9]+$/.test(firstToken.text) && Math.abs(firstToken.x - colStarts[0]) <= 25;
+    const isPartCode = firstToken && /^[A-Z0-9_-]{3,18}$/.test(firstToken.text) && Math.abs(firstToken.x - colStarts[0]) <= 35;
+    const isDenseRow = line.tokens.length >= Math.max(3, Math.ceil(colStarts.length * 0.45));
+    const isNewItemStart = isSerialNum || (isWideAnnexure && (isPartCode || isDenseRow));
 
     if (isNewItemStart) {
       flushCurrentItem(rowCounter++);
@@ -842,6 +1244,9 @@ export async function convertPdfToWordEnterprise(
   let fullPlainTextAccumulator = "";
   let hasInvoicePages = false;
 
+  const allDocumentTokens: SpatialTextToken[] = [];
+  const pageDimensionsList: { width: number; height: number }[] = [];
+
   const pageDocElementsMap = new Map<number, (Paragraph | DocxTable)[]>();
   let primaryPageWidthDxa = 11906; // Default A4 width: 595.28 pt * 20
   let primaryPageHeightDxa = 16838; // Default A4 height: 841.89 pt * 20
@@ -853,6 +1258,7 @@ export async function convertPdfToWordEnterprise(
 
     const page = await pdf.getPage(pNum);
     const viewport = page.getViewport({ scale: 1.0 });
+    pageDimensionsList.push({ width: viewport.width, height: viewport.height });
 
     // Store page dimensions in dxa (1 pt = 20 dxa/twips)
     if (pNum === 1) {
@@ -989,6 +1395,7 @@ export async function convertPdfToWordEnterprise(
     }
     const words = pageTokens.map((t) => t.text).filter(Boolean);
     totalExtractedWords += words.length;
+    allDocumentTokens.push(...pageTokens);
 
     pageDocElementsMap.set(pNum, pageDocElements);
   }
@@ -1158,6 +1565,23 @@ export async function convertPdfToWordEnterprise(
 
   const qualityAudit = auditFinancialDocxIntegrity(classification, fullPlainTextAccumulator);
 
+  // 8. Phase 19: Global Document Category Intelligence (25 Categories), Structural Analysis & Independent QA
+  const globalClassification = classifyGlobalDocument(allDocumentTokens, numPages);
+  const technicalStructure = analyzePdfTechnicalStructure(
+    allDocumentTokens,
+    numPages,
+    pageDimensionsList,
+    ocrUsedPages
+  );
+  const docxQualityReport = validateDocxQuality(
+    allDocumentTokens,
+    numPages,
+    new Uint8Array(buffer),
+    fullPlainTextAccumulator,
+    totalTablesCount,
+    hasInvoicePages ? 2 : 1
+  );
+
   if (onProgress) onProgress(100, "PDF to Word conversion complete!");
 
   const activeReconstructionMode: ReconstructionMode =
@@ -1179,9 +1603,15 @@ export async function convertPdfToWordEnterprise(
       reconstructionMode: activeReconstructionMode,
       layoutFidelityScore: hasInvoicePages ? 99 : 98,
       isInvoiceDetected: hasInvoicePages,
+      globalCategory: globalClassification.primaryCategory.key,
+      globalCategoryName: globalClassification.primaryCategory.name,
+      structuralClass: technicalStructure.structuralClass,
     },
     classification,
+    globalClassification,
+    technicalStructure,
     qualityAudit,
+    docxQualityReport,
     reconstructionMode: activeReconstructionMode,
   };
 }
