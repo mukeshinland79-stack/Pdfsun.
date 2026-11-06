@@ -566,6 +566,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     ocrPagesCount: number;
     detectedTitle: string;
     previewSnippet: string;
+    reconstructionMode?: string;
+    layoutFidelityScore?: number;
+    isInvoiceDetected?: boolean;
   } | null>(null);
   const [showWordPreviewSnippet, setShowWordPreviewSnippet] = useState(false);
   const [pdfToWordPreset, setPdfToWordPreset] = useState<PdfToWordPreset>("financial_fidelity");
@@ -5909,13 +5912,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         DOCX
                       </div>
                       <div>
-                        <div className="flex items-center space-x-2 flex-wrap">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                           <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
                             {wordClassification?.name || "Universal Word (.docx) Reconstructed"}
                           </span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
                             {wordClassification?.category ? `${wordClassification.category.toUpperCase()} PROFILE` : "VERIFIED DOCUMENT"}
                           </span>
+                          {wordConversionStats?.reconstructionMode && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                              {wordConversionStats.reconstructionMode === "visual_fidelity" ? "Mode B: Visual Fidelity" : "Mode A: Fully Editable Word"}
+                            </span>
+                          )}
+                          {wordConversionStats?.isInvoiceDetected && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                              Zero-Fragmentation Grid
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           {wordClassification?.description || "Native OpenXML document with zero layout loss & fluid editable paragraphs."}
