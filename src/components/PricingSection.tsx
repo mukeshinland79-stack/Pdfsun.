@@ -371,7 +371,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     {
       id: "pro-yearly",
       name: t("pricing.plans.pro-yearly.name", "Pro Sun Annual"),
-      badge: t("pricing.plans.pro-yearly.badge", "BEST VALUE • SAVE 40%"),
+      badge: t("pricing.plans.pro-yearly.badge", "BEST VALUE • SAVE 37%"),
       badgeBg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
       description: t("pricing.plans.pro-yearly.desc", "Maximum savings with dedicated high-throughput processing for power users."),
       billingType: "subscription",
@@ -382,8 +382,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         yearly: 1499,
         labelMonthly: "₹1,499",
         labelYearly: "₹1,499",
-        subtextMonthly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 40%)"),
-        subtextYearly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 40%)"),
+        subtextMonthly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 37%)"),
+        subtextYearly: t("pricing.plans.pro-yearly.subtext", "₹1,499/year (~₹125/month • Save 37%)"),
       },
       priceUSD: {
         monthly: 1.99,
@@ -398,12 +398,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       features: [
         t("pricing.plans.pro-yearly.f1", "Everything in Pro Sun Monthly"),
         t("pricing.plans.pro-yearly.f2", "Full 1-Year Unrestricted Access"),
-        t("pricing.plans.pro-yearly.f3", "Save 40% compared to monthly plan"),
+        t("pricing.plans.pro-yearly.f3", "Save 37% compared to monthly plan"),
         t("pricing.plans.pro-yearly.f4", "Dedicated priority processing bandwidth"),
         t("pricing.plans.pro-yearly.f5", "24/7 Priority Support Desk"),
         t("pricing.plans.pro-yearly.f6", "First 7 Days 100% Money-Back Guarantee"),
       ],
-      cta: t("pricing.plans.pro-yearly.cta", "Get Annual Access — Save 40% (₹1,499)"),
+      cta: t("pricing.plans.pro-yearly.cta", "Get Annual Access — Save 37% (₹1,499)"),
     },
     {
       id: "enterprise",
@@ -1070,7 +1070,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 >
                   <span>{t("pricing.yearly", "Annual Billing")}</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-950/20 dark:bg-slate-950/40 text-amber-950 dark:text-amber-300 uppercase font-black">
-                    {t("pricing.savePercent", "Save 40%")}
+                    {t("pricing.savePercent", "Save 37%")}
                   </span>
                 </button>
               </div>

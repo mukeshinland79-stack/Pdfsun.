@@ -1109,6 +1109,7 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
   }
 
   let rowCounter = 0;
+  let lastLineIdxPerCol: number[] = new Array(colStarts.length).fill(-1);
   for (let lIdx = 1; lIdx < lines.length; lIdx++) {
     const line = lines[lIdx];
     const firstToken = line.tokens[0];
@@ -1126,29 +1127,46 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
     if (isNewItemStart) {
       flushCurrentItem(rowCounter++);
       currentItemCells = initEmptyRow();
+      lastLineIdxPerCol.fill(-1);
       hasItem = true;
     } else if (!hasItem) {
       currentItemCells = initEmptyRow();
+      lastLineIdxPerCol.fill(-1);
       hasItem = true;
     }
 
     for (const t of line.tokens) {
-      let closestCol = 0;
-      let minDiff = 999999;
+      // Determine column by interval containment first, protecting right-aligned numeric amounts
+      let matchedCol = -1;
       for (let c = 0; c < colStarts.length; c++) {
-        const diff = Math.abs(t.x - colStarts[c]);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestCol = c;
+        const leftBound = colStarts[c] - (c === 0 ? 30 : 12);
+        const rightBound = c < colStarts.length - 1 ? colStarts[c + 1] - 6 : 999999;
+        if (t.x >= leftBound && t.x < rightBound) {
+          matchedCol = c;
+          break;
         }
       }
+      const closestCol = matchedCol !== -1 ? matchedCol : (() => {
+        let best = 0;
+        let minDiff = 999999;
+        for (let c = 0; c < colStarts.length; c++) {
+          const diff = Math.abs(t.x - colStarts[c]);
+          if (diff < minDiff) {
+            minDiff = diff;
+            best = c;
+          }
+        }
+        return best;
+      })();
 
       if (currentItemCells[closestCol]) {
-        const lastEntry = currentItemCells[closestCol][currentItemCells[closestCol].length - 1];
-        if (lastEntry !== undefined && Math.abs(line.y - (line.y)) < 2) {
+        if (lastLineIdxPerCol[closestCol] === lIdx && currentItemCells[closestCol].length > 0) {
+          // Same horizontal line: join with space
           currentItemCells[closestCol][currentItemCells[closestCol].length - 1] += " " + t.text;
         } else {
+          // Wrapped or new line within cell
           currentItemCells[closestCol].push(t.text);
+          lastLineIdxPerCol[closestCol] = lIdx;
         }
       }
     }
@@ -2354,15 +2372,15 @@ async function performLightweightPageOcr(
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  try {
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL("image/png");
+    const worker = await createWorker("eng");
+    const ret = await worker.recognize(dataUrl);
+    await worker.terminate();
 
-  const dataUrl = canvas.toDataURL("image/png");
-  const worker = await createWorker("eng");
-  const ret = await worker.recognize(dataUrl);
-  await worker.terminate();
-
-  const ocrTokens: SpatialTextToken[] = [];
-  const lines = (ret.data as any)?.lines || [];
+    const ocrTokens: SpatialTextToken[] = [];
+    const lines = (ret.data as any)?.lines || [];
 
   for (const line of lines) {
     const rawText = (line.text || "").trim();
@@ -2416,9 +2434,12 @@ async function performLightweightPageOcr(
     }
   }
 
-  // Cleanup canvas
-  canvas.width = 0;
-  canvas.height = 0;
+    // Cleanup canvas
+    canvas.width = 0;
+    canvas.height = 0;
 
-  return ocrTokens;
+    return ocrTokens;
+  } catch (err: any) {
+    return [];
+  }
 }

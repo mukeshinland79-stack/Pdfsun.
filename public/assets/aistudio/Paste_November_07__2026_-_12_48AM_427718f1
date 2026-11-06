@@ -1,0 +1,1662 @@
+PDFSun.in — ULTIMATE GLOBAL DOCUMENT INTELLIGENCE & PRODUCTIVITY PLATFORM
+
+MASTER ENGINEERING, PRODUCT QUALITY, UNIVERSAL DOCUMENT RECONSTRUCTION, SECURITY, REVENUE & GLOBAL GROWTH DIRECTIVE
+
+Product: PDFSun — Smart Document Companion
+Canonical Production: https://www.pdfsun.in/
+GitHub Repository: mukeshinland79-stack/Pdfsun
+Primary Owner: Mukesh Kalonia
+Owner Account: mukeshinland79@gmail.com
+Authorized Development Workspace: Verified Local Development Environment — Port 3000
+Production Status: STRICTLY FROZEN — ZERO PRODUCTION DEPLOYMENTS
+
+Mission: Evolve PDFSun into a globally competitive, reliable, privacy-conscious Document Intelligence & Productivity Platform without unnecessarily changing its existing working application, pricing, registered tools, business model or infrastructure.
+
+---
+
+PART 1 — EXECUTIVE PRODUCT VISION
+
+You are operating as an elite international SaaS engineering and product transformation team.
+
+Assume the responsibilities of:
+
+- Principal SaaS Software Architect.
+- Senior Full-Stack Engineer.
+- PDF Rendering and Conversion Specialist.
+- DOCX/OpenXML Reconstruction Engineer.
+- OCR and Document Intelligence Specialist.
+- Financial Document Accuracy Engineer.
+- Application Security Architect.
+- UI/UX and Accessibility Specialist.
+- Performance and Reliability Engineer.
+- Subscription and Payment Systems Engineer.
+- International SEO and Growth Strategist.
+- Independent QA and Release Assurance Engineer.
+
+Your objective is not to create another ordinary PDF converter.
+
+Your objective is to make PDFSun a dependable global platform that enables people and organizations to process, understand, convert, edit and manage real-world documents.
+
+Primary customer segments
+
+1. Individuals and students.
+2. Teachers and researchers.
+3. Freelancers.
+4. Office professionals.
+5. Accountants and CA professionals.
+6. Small and medium businesses.
+7. Legal firms.
+8. Government documentation teams.
+9. Banking and financial professionals.
+10. Manufacturing and industrial organizations.
+11. Healthcare documentation teams.
+12. International enterprises.
+
+Core product priorities
+
+1. Accurate document conversion.
+2. Maximum technically achievable formatting preservation.
+3. Editable DOCX reconstruction.
+4. Financial and numerical integrity.
+5. Reliable multilingual OCR.
+6. Reliability of all 66 registered tools.
+7. Customer privacy and security.
+8. Fast mobile and desktop experience.
+9. Existing pricing and payment protection.
+10. Sustainable revenue growth.
+11. Genuine international discoverability.
+12. Long-term customer trust.
+
+Golden principle: Improve what already works. Repair what demonstrably fails. Add only what creates measurable customer value.
+
+---
+
+PART 2 — ABSOLUTE NON-NEGOTIABLE PRODUCTION SAFETY
+
+Production is permanently out of scope for this initiative unless separately authorized.
+
+2.1 Environment restrictions
+
+1. Production website must remain untouched.
+2. No production deployments.
+3. No production database or Firestore writes.
+4. No production migrations.
+5. No DNS, domain or hosting modifications.
+6. No Cloud Run production changes.
+7. No production payment configuration changes.
+8. No production subscription modifications.
+9. No production credit or entitlement modifications.
+10. No production secrets or credential changes.
+
+2.2 Authorized workspace
+
+Work exclusively inside the verified local development environment.
+
+Before executing any command:
+
+- Verify the repository.
+- Verify the active branch.
+- Verify the workspace path.
+- Verify the development server.
+- Verify that the environment is not connected to production mutation paths.
+
+Do not assume that a development-looking URL is safe.
+
+Do not run destructive commands.
+
+Do not overwrite existing working files without understanding their purpose.
+
+Do not remove existing dependencies without impact analysis.
+
+2.3 Mandatory approval gates
+
+The workflow must be:
+
+READ-ONLY AUDIT → EVIDENCE REPORT → OWNER REVIEW → EXPLICIT APPROVAL → APPROVED IMPLEMENTATION → INDEPENDENT TESTING.
+
+Do not begin modifying application files before receiving explicit approval.
+
+Do not interpret an instruction to prepare a plan as permission to implement it.
+
+Do not interpret a successful test as permission to deploy.
+
+Production deployment remains prohibited throughout this initiative.
+
+---
+
+PART 3 — EXISTING PDFSUN PRODUCT PRESERVATION
+
+PDFSun already has an established application, branding, registered tool catalog, pricing structure, security controls and document-processing infrastructure.
+
+Preserve these existing assets.
+
+3.1 Existing product identity
+
+Product name:
+
+PDFSun — Smart Document Companion.
+
+Maintain the established PDFSun brand identity.
+
+Preserve existing:
+
+- Homepage structure.
+- Working routes.
+- Navigation.
+- Search.
+- Authentication.
+- User dashboard.
+- Favorites.
+- Tool discovery.
+- Theme functionality.
+- Language functionality.
+- Existing PWA behavior.
+- Footer identity.
+- Existing working customer journeys.
+
+Design improvements must be targeted and justified.
+
+Do not introduce unrelated redesigns.
+
+Do not reintroduce retired product names or unnecessary navigation categories.
+
+3.2 Design system
+
+Use the existing visual direction:
+
+- White: #FFFFFF
+- Surface: #F8FAFC
+- Primary text: #0F172A
+- Secondary text: #64748B
+- Primary blue: #2563EB
+- Hover blue: #1D4ED8
+- Borders: #E2E8F0
+
+Maintain:
+
+- Professional typography.
+- Consistent spacing.
+- Clear visual hierarchy.
+- Accessible contrast.
+- Responsive components.
+- Premium but restrained appearance.
+- Fast-loading interfaces.
+- Mobile-friendly interactions.
+
+Do not change established design tokens unnecessarily.
+
+3.3 Existing architecture
+
+Audit before replacing anything.
+
+Prefer:
+
+- Reusing existing modules.
+- Improving existing engines.
+- Fixing isolated failures.
+- Strengthening validation.
+- Improving test coverage.
+- Reducing unnecessary dependencies.
+- Preserving architectural compatibility.
+
+Do not create duplicate conversion engines when an existing engine can be improved.
+
+---
+
+PART 4 — PHASE 19: EXISTING GLOBAL DOCUMENT INTELLIGENCE BASELINE
+
+4.1 Existing Phase 19 completion report
+
+The owner has supplied the following previous engineering report:
+
+PDFSun.in — PHASE 19: GLOBAL DOCUMENT INTELLIGENCE & UNIVERSAL RECONSTRUCTION ENGINE
+
+Reported status:
+
+- 183/183 tests passed.
+- Six automated test suites.
+- 25 document business categories.
+- Six technical PDF structural classes.
+- Global Document Classifier.
+- Technical Structure Analyzer.
+- Independent DOCX Quality Validator.
+- Universal Reconstruction Engine.
+- Eicher Proforma Invoice benchmark.
+- Editable OpenXML DOCX generation.
+- Financial integrity validation.
+- Multilingual script detection.
+- TypeScript static analysis passed.
+- Production remained frozen.
+
+Previously reported modules:
+
+1. "src/lib/globalDocumentClassifier.ts"
+2. "src/lib/documentStructureAnalyzer.ts"
+3. "src/lib/docxQualityValidator.ts"
+4. "src/lib/enterprisePdfToWordEngine.ts"
+
+Previously reported test files:
+
+1. "scripts/verify-phase19-global-engine.ts"
+2. "scripts/verify-eicher-multitable-invoice.ts"
+3. "scripts/verify-phase11f-invoice-layout.ts"
+4. "scripts/verify-phase12-financial-word.ts"
+5. "scripts/verify-phase18-quality-hardening.ts"
+6. "scripts/verify-phase18a2-stage2.ts"
+
+Previously reported Eicher benchmark:
+
+- Source PDF: 3 pages.
+- Reconstructed DOCX: 3 pages.
+- Spare-parts and labour tables independently reconstructed.
+- Seven-column HSN table preserved.
+- Financial values preserved.
+- Adaptive table spacing implemented.
+- Independent QA checks passed.
+
+These are OWNER-SUPPLIED HISTORICAL RESULTS, not permission to assume the current repository still has the same implementation.
+
+4.2 Mandatory Phase 19 verification
+
+Inspect the actual source code and test files.
+
+Verify:
+
+- The four modules exist.
+- Their current implementations match their documented responsibilities.
+- The 25-category taxonomy works.
+- All six structural classes work.
+- Classification confidence is meaningful.
+- Financial integrity checks are functional.
+- DOCX validation inspects actual output.
+- Eicher benchmark results are reproducible.
+- The reported test suite still passes.
+- The engine works with genuine fixtures.
+- No later changes have regressed Phase 19.
+
+Report any difference between the historical report and the current repository.
+
+DO NOT REBUILD PHASE 19 FROM SCRATCH.
+
+DO NOT REPLACE A WORKING ENGINE WITH A NEW EXPERIMENTAL ENGINE.
+
+Improve the existing Phase 19 architecture incrementally, only where measurable gaps exist.
+
+---
+
+PART 5 — GLOBAL DOCUMENT CLASSIFICATION
+
+Preserve and validate all 25 existing business document categories.
+
+1. Government & Public Administration.
+2. Industrial & Manufacturing.
+3. Business, Commercial & Invoices.
+4. Banking, Finance & Accounting.
+5. Legal & Judicial.
+6. Healthcare & Medical.
+7. Education & Research.
+8. Construction & Real Estate.
+9. Logistics & Supply Chain.
+10. HR & Employment.
+11. Insurance.
+12. Agriculture.
+13. Energy & Utilities.
+14. Telecom & IT.
+15. Aviation.
+16. Automotive.
+17. Science & Laboratory.
+18. Research & Statistics.
+19. Marketing & Media.
+20. Personal & Individual.
+21. Hospitality & Tourism.
+22. Environment.
+23. Defence & Public Safety.
+24. Non-profit & NGOs.
+25. International Trade.
+
+Support relevant subtypes, including:
+
+- GST tax invoices.
+- Proforma invoices.
+- Credit and debit notes.
+- Bank statements.
+- Balance sheets.
+- P&L statements.
+- Cash-flow reports.
+- Court judgments.
+- Government circulars.
+- Engineering BOMs.
+- Quality inspection records.
+- Medical reports.
+- Laboratory certificates.
+- Purchase orders.
+- Bills of lading.
+- Insurance claims.
+- Payroll documents.
+- Academic research.
+- International trade documentation.
+
+Classification requirements
+
+- Weighted keyword classification.
+- Document subtype detection.
+- Confidence scoring.
+- Ambiguity detection.
+- User correction.
+- Multi-category documents.
+- Multilingual classification.
+- Page-level classification where appropriate.
+
+Never silently treat an uncertain classification as certain.
+
+---
+
+PART 6 — TECHNICAL PDF STRUCTURE ANALYSIS
+
+Preserve and validate the existing six structural classes.
+
+Class| Expected characteristics
+digital| Selectable vector text and embedded fonts
+scanned| Raster-based pages requiring OCR
+hybrid| Text mixed with images, stamps and QR codes
+table_heavy| Dense tables and financial grids
+interactive_form| AcroForms, checkboxes and fillable fields
+multilingual| Multiple scripts and complex reading directions
+
+Analyze:
+
+- Page dimensions.
+- Page count.
+- Embedded fonts.
+- Text coordinates.
+- Image locations.
+- Vector objects.
+- Columns.
+- Reading order.
+- Table boundaries.
+- Form fields.
+- Script combinations.
+- Page rotation.
+- Text density.
+
+Use the correct reconstruction strategy for each structural class.
+
+---
+
+PART 7 — HIGHEST PRIORITY: UNIVERSAL PDF TO WORD RECONSTRUCTION
+
+The most important customer-facing capability is high-quality PDF-to-Word conversion.
+
+Improve the existing engine rather than introducing unnecessary parallel systems.
+
+7.1 Customer workflow
+
+PDF Upload → Structural Inspection → Document Classification → OCR if Required → Layout Reconstruction → Editable DOCX Generation → Independent Validation → Quality Report → Preview → Download.
+
+7.2 Preserve document formatting
+
+Where technically possible, preserve:
+
+- Font families.
+- Font sizes.
+- Bold and italic styling.
+- Text colors.
+- Paragraphs.
+- Headings.
+- Bullet lists.
+- Numbered lists.
+- Tables.
+- Merged cells.
+- Column widths.
+- Row heights.
+- Images.
+- Image positioning.
+- Text wrapping.
+- Headers.
+- Footers.
+- Page numbers.
+- Margins.
+- Indentation.
+- Alignment.
+- Hyperlinks.
+- Page breaks.
+- Backgrounds.
+- Watermarks.
+- Text boxes.
+- Reading order.
+- Mixed page orientations.
+
+Prefer genuinely editable DOCX elements.
+
+Do not convert entire pages into screenshots merely to create a visually similar but non-editable Word document.
+
+Use image-based fallback only when justified, and disclose its limitations.
+
+7.3 Financial document accuracy
+
+Treat financial document conversion as a quality-critical operation.
+
+Preserve:
+
+- GSTIN.
+- Invoice number.
+- Invoice date.
+- Supplier information.
+- Customer information.
+- Billing address.
+- Shipping address.
+- HSN/SAC codes.
+- Quantity.
+- Unit price.
+- Taxable value.
+- CGST.
+- SGST.
+- IGST.
+- Cess.
+- Discounts.
+- Subtotals.
+- Grand totals.
+- Bank details.
+- Payment references.
+- Signature areas.
+
+Implement independent numerical integrity validation.
+
+Never:
+
+- Invent missing amounts.
+- Change tax rates.
+- Alter invoice numbers.
+- Silently round monetary values.
+- Reassign financial values to incorrect columns.
+- Merge unrelated table rows.
+- Present uncertain OCR results as verified.
+
+When uncertain, preserve the source representation and flag the affected field.
+
+7.4 Difficult document layouts
+
+Test:
+
+- Multiple tables on one page.
+- Nested tables.
+- Multi-column documents.
+- Complex invoice layouts.
+- Repeated headers.
+- Multi-page tables.
+- Wide annexures.
+- Sidebars.
+- Floating images.
+- Stamps.
+- QR codes.
+- Mixed orientations.
+- Different paper sizes.
+- Dense legal documents.
+
+Avoid arbitrary page-coordinate slicing that destroys table structure.
+
+Use bounding-box segmentation, reading-order analysis and adaptive table reconstruction.
+
+---
+
+PART 8 — ADVANCED OCR AND MULTILINGUAL DOCUMENT INTELLIGENCE
+
+Improve existing OCR capabilities.
+
+Support:
+
+- Digital PDFs.
+- Scanned PDFs.
+- Image-only PDFs.
+- Rotated scans.
+- Skewed pages.
+- Low-contrast scans.
+- Noisy documents.
+- Printed text.
+- Tables.
+- Mixed-language content.
+- Handwriting where the selected engine genuinely supports it.
+
+Languages and scripts:
+
+- English.
+- Hindi.
+- Devanagari.
+- Arabic.
+- CJK.
+- Cyrillic.
+- Other supported Unicode scripts.
+
+Implement:
+
+1. Automatic orientation detection.
+2. Deskewing.
+3. Image preprocessing.
+4. Noise reduction.
+5. Resolution assessment.
+6. Language identification.
+7. OCR confidence estimation.
+8. Low-confidence region identification.
+9. Manual correction opportunities.
+10. Correct Unicode output.
+11. RTL layout handling.
+
+Use Tesseract WASM or existing compatible OCR engines where appropriate.
+
+Do not add expensive third-party AI dependencies without owner approval.
+
+External AI document processing must have explicit customer disclosure and consent.
+
+Never imply that AI cloud processing is local browser processing.
+
+---
+
+PART 9 — CONVERSION QUALITY INTELLIGENCE
+
+Implement an evidence-based conversion quality report.
+
+Evaluate:
+
+Metric| Validation
+Text retention| Source and output text comparison
+Character accuracy| Character error rate
+Word accuracy| Word error rate
+Table preservation| Row and column structure
+Financial integrity| Exact numerical value comparison
+Font preservation| Font metadata and visual comparison
+Image positioning| Position and size comparison
+Layout similarity| Rendered page comparison
+Reading order| Logical text sequence
+DOCX integrity| OpenXML ZIP and document validation
+
+Display an overall score only when the scoring method is documented and reproducible.
+
+Example presentation:
+
+PDF to Word Quality Report
+
+- Text extraction: measured result.
+- Table reconstruction: measured result.
+- Financial value preservation: measured result.
+- Layout similarity: measured result.
+- Image preservation: measured result.
+- DOCX integrity: PASS or FAIL.
+
+Every score must be derived from actual checks.
+
+Do not generate fabricated percentages.
+
+Do not label a heuristic estimate as ground-truth conversion accuracy.
+
+For unknown or unsupported elements, show a warning.
+
+---
+
+PART 10 — COMPLETE EXISTING 66-TOOL RELIABILITY
+
+The existing source-of-truth registry contains 66 registered tools.
+
+Preserving all 66 tools is mandatory.
+
+The following is the supplied partial customer-facing catalog, not a replacement for the actual 66-entry source registry.
+
+A. General and conversion tools
+
+1. Share PDFSun.
+2. Merge PDF.
+3. Split PDF.
+4. Compress PDF.
+5. PDF to Word.
+6. Word to PDF.
+7. Excel to PDF.
+8. PDF to Excel.
+9. PowerPoint to PDF.
+10. PDF to PowerPoint.
+11. Image to Excel.
+12. Image to Word / WordPad.
+
+B. AI and advanced tools
+
+13. PDF to PNG.
+14. HTML to PDF.
+15. AI Chat with PDF.
+16. AI Document Summary.
+17. AI Translate PDF.
+18. AI Resume Builder.
+19. AI Flashcards.
+20. AI Notes Generator.
+21. AI OCR.
+22. AI Grammar Proofreader.
+23. AI Explain PDF.
+24. Neural PDF Voice Reader.
+25. Voice-to-PDF Dictation.
+26. Quantum Pre-Flight HUD.
+
+C. Editing and security
+
+27. PDF Editor.
+28. Image Editor.
+29. Edit PDF.
+30. Annotate PDF.
+31. Sign PDF.
+32. Watermark PDF.
+33. Remove Watermark.
+34. Page Numbers.
+35. Header & Footer.
+36. Background.
+37. Protect PDF.
+38. Unlock PDF.
+39. Redact PDF.
+40. Repair PDF.
+
+D. Extraction and document utilities
+
+41. Flatten PDF.
+42. Compare PDF.
+43. Batch PDF Tools.
+44. Scan to PDF.
+45. Extract Images.
+46. Extract Text.
+47. Edit PDF Metadata.
+48. Read PDF Metadata.
+49. PDF/A Converter.
+50. EPUB to PDF.
+51. RTF to PDF.
+52. TXT to PDF.
+53. XML to PDF.
+
+Mandatory 66-tool reconciliation
+
+Inspect the real registry and identify every registered tool, including the remaining entries.
+
+For all 66 tools, inspect:
+
+- Actual tool identifier.
+- Frontend route.
+- UI component.
+- Processing engine.
+- Backend API, if applicable.
+- Input validation.
+- File processing.
+- Output format.
+- Download behavior.
+- Error handling.
+- Security.
+- Mobile compatibility.
+- Existing test coverage.
+
+Create a full 66-row audit matrix.
+
+Each tool must receive one evidence-backed status:
+
+- PASS.
+- PASS WITH WARNINGS.
+- FAIL.
+- NOT IMPLEMENTED.
+- NOT APPLICABLE, where justified.
+
+A visible button is not evidence of functionality.
+
+A successful HTTP response is not evidence of a valid output file.
+
+Do not change tool names, routes, category assignments or UI structure unnecessarily.
+
+Prioritize repairing broken functionality over introducing new tools.
+
+---
+
+PART 11 — COMPLETE CUSTOMER EXPERIENCE: TEN CORE REQUIREMENTS
+
+Implement improvements without unnecessary redesign.
+
+11.1 Simple upload and conversion
+
+- Drag and drop.
+- Browse device.
+- Mobile file picker.
+- File validation.
+- Processing progress.
+- Cancel and retry.
+- Preview.
+- Download.
+- Accessible errors.
+
+11.2 Free and premium conversion
+
+Provide useful free processing and transparent paid capabilities.
+
+Do not advertise unsupported unlimited usage, free trials or nonexistent features.
+
+11.3 Formatting preservation
+
+Preserve original layout and editable document structure wherever technically possible.
+
+11.4 OCR
+
+Provide accurate OCR with confidence warnings.
+
+11.5 Privacy
+
+Clearly distinguish local and cloud processing.
+
+11.6 Mobile and desktop
+
+Maintain Android, iOS browser, tablet and desktop compatibility.
+
+11.7 Batch processing
+
+Enable only for supported tools and entitlements.
+
+11.8 DOC and DOCX
+
+Prefer DOCX output and support legacy DOC input where reliable.
+
+11.9 Google Docs
+
+Produce standards-compliant DOCX files that can be imported into Google Docs.
+
+Do not implement fake Drive integration.
+
+11.10 Connected workflows
+
+Where technically supported, provide connected operations:
+
+PDF → Word → Edit → Export.
+
+PDF → OCR → Excel → Analyze.
+
+PDF → Compress → Protect → Share.
+
+PDF → Compare → Annotate → Sign.
+
+PDF → Extract Text → AI Summary → Notes.
+
+PDF → Translate → Review → Export.
+
+Reuse files safely within the current session where supported.
+
+---
+
+PART 12 — MOBILE-FIRST INTERNATIONAL UI/UX
+
+Improve the existing PDFSun experience, not replace it.
+
+Priority areas:
+
+1. Homepage clarity.
+2. Tool discovery.
+3. PDF to Word upload experience.
+4. Conversion progress.
+5. Output preview.
+6. Error recovery.
+7. Download reliability.
+8. Pricing transparency.
+9. Account and plan visibility.
+10. Accessibility.
+
+PDF to Word landing page
+
+Maintain a prominent conversion action.
+
+Add supporting information:
+
+- Supported PDF types.
+- Digital versus scanned PDF.
+- OCR explanation.
+- DOCX compatibility.
+- Financial document examples.
+- Measured conversion quality.
+- Privacy mode.
+- Genuine limitations.
+- Related tools.
+- FAQs.
+
+Avoid excessive marketing content above the upload area.
+
+Mobile support
+
+Test:
+
+- Android Chrome.
+- iOS Safari.
+- Tablets.
+- Desktop Chrome.
+- Firefox.
+- Edge.
+- Safari.
+
+Verify:
+
+- File selection.
+- Large document handling.
+- Touch interactions.
+- Download behavior.
+- Preview scrolling.
+- Processing feedback.
+- Responsive layout.
+
+Do not claim native mobile applications unless they actually exist.
+
+---
+
+PART 13 — EXISTING PRICING: STRICT SIX-PLAN PRESERVATION
+
+THIS SECTION IS BUSINESS-CRITICAL.
+
+The owner has supplied the following pricing details from existing PDFSun pricing screenshots.
+
+Treat these as the reference pricing specification.
+
+Verify the actual live application and backend configuration before reporting their current implementation status.
+
+Do not change prices, plan names, plan order, plan limits, billing cycles, refund conditions, entitlements, payment settings or pricing-page design without explicit owner approval.
+
+PLAN 1 — FREE FOREVER
+
+Price: ₹0.
+
+Reference features:
+
+- 3 PDF operations per 24 hours.
+- Up to 15 MB single-file limit.
+- Standard WebAssembly engine.
+- 100% in-browser processing for supported local tools.
+- Basic Gemini AI Chat: 5 queries per day.
+
+Preserve these reference limits unless the owner approves a change.
+
+Verify the actual distinction between local PDF operations and cloud AI queries.
+
+PLAN 2 — FLEX PASS
+
+Price: ₹99.
+
+Billing:
+
+- One-time payment.
+- No recurring auto-debit.
+- Seven full days of access.
+- Instant activation, after verified payment.
+
+Reference features:
+
+- Seven-day access.
+- Up to 500 MB single-file limit.
+- Priority WebAssembly processing.
+- Premium PDF and AI OCR capabilities.
+- Dynamic QR with the correct payable amount.
+
+Do not promise unlimited access beyond actual processing and abuse controls.
+
+PLAN 3 — PRO SUN MONTHLY
+
+Price: ₹199 per month.
+
+Billing:
+
+- Monthly billing.
+- Cancel-anytime policy, subject to the actual implementation.
+
+Reference guarantee:
+
+- First seven days: 100% money-back guarantee, subject to published conditions.
+
+Reference features:
+
+- Unlimited PDF conversions and edits, subject to technical and abuse safeguards.
+- Up to 2 GB per file.
+- Batch processing up to 50 files.
+- Gemini document AI and OCR.
+- No watermarks.
+- Zero advertisements.
+- Dynamic payment QR.
+
+Verify the exact Gemini model currently integrated. Do not advertise an unavailable or outdated model version.
+
+PLAN 4 — PRO SUN ANNUAL
+
+Price: ₹1,499 per year.
+
+Reference monthly equivalent: approximately ₹125.
+
+Reference features:
+
+- Pro Monthly features.
+- Higher-throughput processing.
+- Priority VIP support.
+- Early access to beta AI features.
+- Business invoicing.
+
+The screenshot specification states 40% savings.
+
+Important arithmetic verification:
+
+₹199 × 12 = ₹2,388.
+
+₹2,388 − ₹1,499 = ₹889.
+
+Actual savings are approximately 37.2%.
+
+Do not silently alter the annual price. Flag the percentage discrepancy and request owner approval before changing the marketing claim.
+
+PLAN 5 — ENTERPRISE MULTI-USER
+
+Price: ₹3,999 per year.
+
+Reference capacity: 5 team seats.
+
+Reference features:
+
+- Team workspace.
+- Centralized billing.
+- Higher rate limits.
+- Extended batching.
+- Priority support.
+- Corporate-domain auto-join.
+- Enterprise confidentiality and SLA features.
+
+Verify that each enterprise capability has a real backend implementation and enforceable contract.
+
+Do not advertise 24/7 support or signed security agreements without evidence.
+
+PLAN 6 — ENTERPRISE SSO UNLIMITED
+
+Price: ₹9,999 per year.
+
+Reference capacity: Up to 20 seats.
+
+Reference features:
+
+- SAML 2.0.
+- OIDC.
+- Azure AD integration.
+- Okta integration.
+- Enterprise identity management.
+- Dedicated processing infrastructure.
+- Custom security and watermark enforcement.
+- Account management and SLA.
+
+Verify every integration and infrastructure claim before displaying it as available.
+
+Do not advertise unlimited concurrency unless actual infrastructure and contractual entitlements support it.
+
+13.1 Pricing preservation rules
+
+- No new pricing plans.
+- No removal of existing plans.
+- No repricing.
+- No automatic discount changes.
+- No plan renaming.
+- No changes to billing cycles.
+- No changes to refund conditions.
+- No free-trial additions.
+- No fabricated feature entitlements.
+- No frontend-only subscription enforcement.
+- No payment bypasses.
+- No duplicate subscription activation.
+
+The six-plan structure is protected.
+
+13.2 Backend entitlement verification
+
+Verify that the frontend plan definitions, backend entitlement middleware, payment verification and account dashboard agree.
+
+Check:
+
+- Plan ID.
+- Price.
+- Currency.
+- Billing duration.
+- File-size entitlement.
+- Daily operation limit.
+- AI query limit.
+- Batch limit.
+- Tool access.
+- Subscription start.
+- Subscription expiry.
+- Renewal status.
+- Refund status.
+- User ownership.
+
+Never activate a subscription based only on a successful checkout redirect.
+
+---
+
+PART 14 — PAYMENT, REVENUE AND CUSTOMER TRUST
+
+Preserve the existing Razorpay and payment infrastructure.
+
+Audit existing Stripe configuration where applicable.
+
+Do not change gateway configuration without approval.
+
+Verify:
+
+1. Correct selected-plan checkout.
+2. Server-side payment signature verification.
+3. Amount validation.
+4. Currency validation.
+5. Order ownership.
+6. Payment status verification.
+7. Duplicate webhook protection.
+8. Idempotent subscription activation.
+9. Correct start date.
+10. Correct expiry date.
+11. Transaction history.
+12. Failed payment recovery.
+13. Refund processing.
+14. Correct customer dashboard status.
+15. Invoice generation where supported.
+
+A redirect is not proof of payment.
+
+Only verified payment events may activate a plan.
+
+Revenue optimization
+
+Improve customer conversion through:
+
+- Transparent pricing comparison.
+- Accurate usage meters.
+- Contextual premium recommendations.
+- Relevant premium features.
+- Clear billing terms.
+- Easy cancellation.
+- Verified payment confirmation.
+- Accurate transaction history.
+- Honest refund information.
+
+Never use:
+
+- Fake discounts.
+- Fake countdown timers.
+- Fabricated reviews.
+- Fake purchases.
+- Hidden recurring charges.
+- Misleading unlimited claims.
+- Artificially blocked free functionality.
+
+The objective is sustainable revenue through real customer value.
+
+---
+
+PART 15 — SECURITY, PRIVACY AND COMPLIANCE
+
+Preserve existing security hardening.
+
+Verify the real implementation of:
+
+- Authentication.
+- Authorization.
+- Owner access controls.
+- API validation.
+- Upload validation.
+- File signatures.
+- MIME checks.
+- Rate limiting.
+- CORS.
+- CSRF protection where applicable.
+- Secure session handling.
+- Secret management.
+- Payment verification.
+- Temporary file cleanup.
+- Cross-user access prevention.
+- Error sanitization.
+- Dependency security.
+- Audit logging.
+
+Privacy requirements
+
+Local browser processing must remain preferred where feasible.
+
+Where server-side or external AI processing occurs:
+
+- Explain it before processing.
+- Obtain appropriate consent.
+- Use TLS.
+- Limit document transmission.
+- Apply strict access controls.
+- Define retention.
+- Clean up temporary data.
+- Avoid logging document contents.
+
+For redaction, remove underlying content rather than merely covering it visually.
+
+Security marketing verification
+
+Do not publish these claims without documentary evidence:
+
+- 100% in-browser processing.
+- Zero-server-upload architecture.
+- Zero-log architecture.
+- 256-bit encryption claims.
+- SOC 2 Type II.
+- HIPAA certification or compliance.
+- GDPR certification.
+- CCPA compliance.
+- PCI DSS compliance of PDFSun itself.
+- Enterprise confidentiality guarantees.
+- Independent security audits.
+
+Clarify that payment gateway certification does not automatically certify PDFSun.
+
+Use accurate TLS terminology rather than incorrectly presenting SSL as the current security protocol.
+
+Do not confuse GDPR obligations with certification.
+
+For every privacy claim, identify exactly which tools and processing modes it applies to.
+
+---
+
+PART 16 — BATCH PROCESSING AND DOCUMENT WORKFLOWS
+
+Implement only where the existing architecture supports it.
+
+Capabilities:
+
+- Multiple file selection.
+- Queue management.
+- Per-file progress.
+- Cancellation.
+- Retry.
+- Individual downloads.
+- ZIP export.
+- Duplicate filename handling.
+- Memory management.
+- Error recovery.
+
+Enforce limits on the backend.
+
+Never let a user bypass subscription limits by manipulating frontend state.
+
+Do not claim batch support for tools that cannot process multiple files reliably.
+
+---
+
+PART 17 — GLOBAL SEO, GEO AND INTERNATIONAL DISCOVERABILITY
+
+Long-term business target:
+
+20,000+ genuine organic users per day.
+
+This is an aspiration, not a guaranteed traffic outcome.
+
+Improve organic growth ethically.
+
+Core requirements
+
+- Search-friendly pages.
+- Unique metadata.
+- Correct canonical URLs.
+- XML sitemap.
+- Robots directives.
+- Structured data where eligible.
+- Breadcrumb navigation.
+- Internal linking.
+- Helpful FAQs.
+- Accessible content.
+- Fast mobile experience.
+- Internationalization.
+- Correct hreflang.
+- Original educational resources.
+- Accurate tool descriptions.
+
+High-value search themes
+
+- PDF to Word.
+- PDF to Excel.
+- GST invoice to Word.
+- GST invoice conversion.
+- Financial document conversion.
+- Bank statement conversion.
+- Scanned PDF OCR.
+- Government PDF conversion.
+- Legal PDF conversion.
+- Industrial document conversion.
+- PDF table extraction.
+- AI document analysis.
+
+Create separate landing pages only when they serve genuinely distinct customer intent and provide unique value.
+
+Do not generate thousands of duplicate SEO pages.
+
+Do not fabricate testimonials, rankings or customer numbers.
+
+Measure organic growth using real analytics and Search Console evidence.
+
+Improve Core Web Vitals based on measured results.
+
+---
+
+PART 18 — PERFORMANCE AND ACCESSIBILITY
+
+Optimize:
+
+- Initial load.
+- JavaScript bundles.
+- Worker startup.
+- PDF rendering.
+- OCR performance.
+- DOCX generation.
+- Memory use.
+- Large-document handling.
+- Mobile downloads.
+- Preview rendering.
+
+Use Web Workers where appropriate.
+
+Avoid blocking the main browser thread.
+
+Provide progress feedback.
+
+Implement cancellation where technically supported.
+
+Use graceful fallbacks.
+
+Never claim successful output generation when the file is missing, corrupted or invalid.
+
+Accessibility:
+
+- Keyboard navigation.
+- Semantic HTML.
+- Accessible labels.
+- Screen-reader support.
+- Focus management.
+- Accessible error states.
+- Contrast compliance.
+- Responsive text.
+
+Internationalization:
+
+- English.
+- Hindi.
+- Spanish.
+- French.
+- German.
+- Portuguese.
+- Arabic.
+- Additional languages where justified.
+
+Preserve Unicode and RTL text direction correctly.
+
+---
+
+PART 19 — COMPLETE REGRESSION AND ACCEPTANCE TESTING
+
+Testing must use real files and independently inspect generated outputs.
+
+PDF to Word benchmark library
+
+Create or reuse authorized test fixtures for:
+
+1. Simple text PDFs.
+2. GST invoices.
+3. Eicher-style proforma invoices.
+4. Tax invoices.
+5. Bank statements.
+6. Balance sheets.
+7. P&L statements.
+8. Government forms.
+9. Government circulars.
+10. Legal agreements.
+11. Court documents.
+12. Engineering BOMs.
+13. Industrial inspection reports.
+14. Healthcare reports.
+15. Research papers.
+16. Academic tables.
+17. Multi-column layouts.
+18. Multi-page tables.
+19. Scanned PDFs.
+20. Hindi PDFs.
+21. Arabic PDFs.
+22. Mixed-script PDFs.
+23. Embedded fonts.
+24. Image-heavy PDFs.
+25. Mixed-orientation documents.
+26. Large PDFs.
+27. Password-protected PDFs.
+28. Damaged PDFs.
+
+Required output checks
+
+- DOCX file exists.
+- DOCX opens successfully.
+- Text is editable.
+- Tables are editable.
+- Images are preserved.
+- Page structure is reasonable.
+- Financial values match.
+- No unexplained missing text.
+- No corrupted OpenXML package.
+- No unexpected blank pages.
+- No cross-user data leakage.
+- No entitlement bypass.
+
+Test every registered tool
+
+Run:
+
+- Unit tests.
+- Integration tests.
+- Browser tests.
+- End-to-end tests.
+- Mobile tests.
+- Security tests.
+- Regression tests.
+- Performance tests.
+
+Report exact results.
+
+Do not suppress failing tests.
+
+Do not replace real tests with mocked success responses.
+
+Do not count the same test multiple times to inflate pass totals.
+
+---
+
+PART 20 — PRIORITIZED PHASE-WISE EXECUTION
+
+No implementation begins before the initial audit and explicit owner approval.
+
+PHASE 0 — READ-ONLY MASTER AUDIT
+
+Inspect:
+
+- Repository.
+- Architecture.
+- Tool registry.
+- Phase 19 modules.
+- PDF to Word engine.
+- OCR engine.
+- Frontend.
+- Backend.
+- API routes.
+- Pricing configuration.
+- Entitlement middleware.
+- Payment verification.
+- Security controls.
+- Test suites.
+- SEO.
+- Performance.
+- Mobile behavior.
+
+Deliver a complete evidence-based audit.
+
+PHASE 1 — EXISTING ENGINE STABILITY
+
+Validate Phase 19 and its 183 reported tests.
+
+Identify regressions and real defects.
+
+Do not rewrite stable components.
+
+PHASE 2 — PDF TO WORD QUALITY
+
+Improve the existing reconstruction engine where necessary.
+
+Prioritize invoices, financial documents, tables and complex layouts.
+
+PHASE 3 — OCR AND DOCUMENT INTELLIGENCE
+
+Improve scan processing, multilingual accuracy and confidence reporting.
+
+PHASE 4 — COMPLETE 66-TOOL RELIABILITY
+
+Reconcile the full registry and repair actual tool failures.
+
+PHASE 5 — FRONTEND AND UX EFFICIENCY
+
+Improve upload, preview, progress, error handling and mobile usability.
+
+Avoid unnecessary visual redesign.
+
+PHASE 6 — SECURITY AND PRIVACY
+
+Verify and improve existing controls without weakening production isolation.
+
+PHASE 7 — PRICING AND PAYMENT AUDIT
+
+Verify all six existing plans and payment entitlements.
+
+Do not change commercial terms.
+
+PHASE 8 — SEO AND INTERNATIONAL GROWTH
+
+Improve technical SEO and genuine organic discoverability.
+
+PHASE 9 — PERFORMANCE AND ACCESSIBILITY
+
+Measure real performance and correct identified issues.
+
+PHASE 10 — INDEPENDENT FINAL ACCEPTANCE
+
+Run the complete regression suite and prepare final evidence.
+
+Each phase requires separate owner approval before implementation.
+
+---
+
+PART 21 — REQUIRED AUDIT DELIVERABLES
+
+Before any modification, deliver:
+
+1. Executive technical assessment.
+2. Repository and architecture report.
+3. Production isolation verification.
+4. Complete 66-tool registry matrix.
+5. Phase 19 source verification.
+6. Historical 183-test result reconciliation.
+7. PDF to Word quality gap analysis.
+8. Financial document accuracy assessment.
+9. OCR and multilingual assessment.
+10. Frontend and mobile UX assessment.
+11. Backend and API reliability assessment.
+12. Six-plan pricing verification.
+13. Payment and entitlement verification.
+14. Security and privacy claim verification.
+15. SEO and traffic assessment.
+16. Performance assessment.
+17. Risk register.
+18. Prioritized remediation roadmap.
+19. Engineering complexity estimates.
+20. Recommended acceptance criteria.
+
+Every finding must contain:
+
+- File path or component.
+- Actual observed behavior.
+- Supporting test or inspection evidence.
+- Severity.
+- Customer impact.
+- Recommended action.
+- Whether owner approval is required.
+
+Classify severity:
+
+- P0: Critical security, data integrity or payment issue.
+- P1: Major functionality or conversion failure.
+- P2: Significant quality, UX or performance issue.
+- P3: Minor improvement or optimization.
+
+Clearly distinguish:
+
+- Verified facts.
+- Historical owner-reported results.
+- Current observations.
+- Engineering hypotheses.
+- Recommendations.
+
+Never invent evidence.
+
+---
+
+PART 22 — IMPLEMENTATION CHANGE CONTROL
+
+After approval, every implementation phase must include:
+
+1. Approved scope.
+2. Files changed.
+3. Reason for each change.
+4. Before-and-after behavior.
+5. Features preserved.
+6. Unit test results.
+7. Integration test results.
+8. End-to-end results.
+9. Security results.
+10. Performance measurements.
+11. Known limitations.
+12. Rollback instructions.
+
+Use minimal, targeted changes.
+
+Do not perform unrelated refactoring.
+
+Do not change pricing or payment logic as part of an unrelated conversion improvement.
+
+Do not change the 66-tool catalog to simplify testing.
+
+Do not remove existing tests because they fail.
+
+Do not use placeholder implementations to obtain green test results.
+
+---
+
+PART 23 — FINAL ACCEPTANCE CRITERIA
+
+The initiative is ready for final owner review only when:
+
+- Existing architecture is documented.
+- All 66 registered tools are accounted for.
+- Phase 19 modules have been verified.
+- Historical test results have been reconciled.
+- PDF to Word has been tested against the benchmark library.
+- Financial values are independently validated.
+- OCR limitations are documented.
+- DOCX outputs are genuinely editable where supported.
+- All failing tools are transparently reported.
+- Pricing remains unchanged.
+- Payment verification remains intact.
+- Subscription entitlements are consistent.
+- Privacy claims are evidence-based.
+- Mobile flows have been tested.
+- No production modifications have occurred.
+- All changes have rollback instructions.
+
+Do not declare the platform 100% complete merely because a test suite passes.
+
+Production deployment is not part of this initiative.
+
+---
+
+PART 24 — FINAL OWNER DIRECTIVE
+
+The engineering team's priority is to build customer trust through genuine technical quality.
+
+Follow these principles:
+
+1. Preserve before replacing.
+
+Understand the existing architecture before changing it.
+
+2. Accuracy before speed.
+
+A fast but incorrect financial conversion is a product failure.
+
+3. Editable output before visual shortcuts.
+
+Preserve native document structure wherever technically possible.
+
+4. Privacy before monetization.
+
+Never hide cloud processing or misrepresent file handling.
+
+5. Reliability before feature count.
+
+66 working tools are more valuable than 100 partially implemented tools.
+
+6. Evidence before claims.
+
+Every engineering, security, quality and performance claim requires proof.
+
+7. Existing pricing before experimentation.
+
+Do not modify the six-plan commercial structure.
+
+8. Customer value before marketing.
+
+Show real capabilities, real results and honest limitations.
+
+9. Incremental improvement before major redesign.
+
+Do not destabilize working parts of PDFSun.
+
+10. Production safety above everything.
+
+No production deployment or mutation under this initiative.
+
+---
+
+FIRST ACTION — STRICT READ-ONLY AUDIT
+
+Start immediately with a READ-ONLY investigation.
+
+Do not modify any files.
+
+Do not install packages.
+
+Do not perform migrations.
+
+Do not change configurations.
+
+Do not initiate payment transactions.
+
+Do not contact production APIs in ways that mutate state.
+
+Do not deploy.
+
+Return:
+
+1. What currently exists.
+2. What is genuinely working.
+3. What is partially working.
+4. What is broken.
+5. What cannot be verified.
+6. Whether Phase 19 is still intact.
+7. Whether the 183 historical tests remain reproducible.
+8. Whether all 66 tools are functional.
+9. Whether the six pricing plans match the actual application and backend.
+10. The five highest-priority customer-impacting improvements.
+11. A risk-ranked phased roadmap.
+12. The exact owner approvals required.
+
+STOP AFTER PRESENTING THE AUDIT.
+
+Wait for explicit owner authorization before making any modifications.
+
+FINAL PROJECT IDENTITY
+
+PDFSun — Smart Document Companion
+
+Global Document Intelligence & Productivity Platform
+
+Owner: Mukesh Kalonia
+
+Canonical Domain: https://www.pdfsun.in/
+
+Production: STRICTLY FROZEN.
+
+Development: Authorized local workspace only.
+
+Business Model: Preserve existing six pricing plans.
+
+Registered Tools: Preserve all 66.
+
+Existing Document Intelligence: Verify and build upon Phase 19.
+
+Primary Engineering Priority: PDF to Word, GST invoices, financial documents, OCR and universal document reconstruction.
+
+Ultimate Objective: A genuinely reliable, secure, efficient, commercially sustainable and internationally competitive document productivity platform.
+
+END OF MASTER DIRECTIVE.

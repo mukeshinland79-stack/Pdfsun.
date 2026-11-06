@@ -37,6 +37,9 @@ export default defineConfig(() => {
       drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
       legalComments: 'none',
     },
+    worker: {
+      format: 'es',
+    },
     build: {
       chunkSizeWarningLimit: 2000,
       rollupOptions: {

@@ -147,6 +147,7 @@ import {
   NotepadExtractionResult,
 } from "../lib/pdfEngine";
 import { redactPdfPermanently } from "../lib/enterpriseRedactionEngine";
+import { convertPdfToWordViaWorker } from "../lib/pdfToWordWorkerClient";
 import {
   analyzeDocumentStructure,
   convertToSmartExcel,
@@ -1248,7 +1249,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
         case "pdf-to-word": {
           setStatusMessage("Initializing Web Worker & parsing PDF spatial bounding boxes...");
-          const res = await convertPdfToWordEnterprise(files[0], {
+          const res = await convertPdfToWordViaWorker(files[0], {
             preset: pdfToWordPreset,
             detectionMode: smartDetectionMode === "invoice" ? "invoice" : smartDetectionMode === "table" ? "table" : smartDetectionMode === "fields" ? "fields" : "auto",
             preserveTables: true,

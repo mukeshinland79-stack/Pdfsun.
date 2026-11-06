@@ -1,176 +1,158 @@
-# PDFSun.in — Phase 12 Architecture & Technical Implementation Plan
-## Next-Generation Universal PDF-to-Word & Financial Document Intelligence Engine
+# PDFSun.in — Phase 20 Revised Implementation Plan
+## Controlled Performance, Conversion Quality, Security & Ethical Global Growth
 
 **Canonical Production:** `https://www.pdfsun.in/`  
-**Production Status:** **STRICTLY FROZEN — ZERO PRODUCTION MODIFICATIONS OR DEPLOYMENTS**  
-**Authorized Local Scope:** Verified Development Workspace (`port: 3000`)  
-**Primary Mission:** Transform PDFSun's PDF-to-Word converter into a privacy-first, enterprise-grade financial and business document reconstruction engine.
+**Production Status:** **STRICTLY FROZEN — ZERO PRODUCTION MODIFICATIONS, WRITES OR DEPLOYMENTS**  
+**Authorized Local Scope:** Verified Development Workspace (Port 3000)  
+**Primary Owner:** `mukeshinland79@gmail.com` (Mukesh Kalonia)  
+**Core Mission:** Execute minimal, reversible, high-impact optimizations across conversion performance, document reconstruction quality, reliability, security, and ethical international SEO/GEO toward the 20,000+ daily visitors target while strictly preserving all 66 tools, pricing tiers, payment logic, authentication, and existing UI design.
 
 ---
 
-## User Review & Confirmed Decisions
+## User Review & Critical Constraints
 
 > [!IMPORTANT]
-> The following architectural decisions were confirmed in Phase 1 interactive planning:
-
-- **Confirmed Decision 1 (Document Profiling):** **Auto-detect profile with manual mode override.** The engine analyzes spatial layout and content markers upon PDF load to detect whether the file is a GST Tax Invoice, Bank/Ledger Statement, Commercial Contract, Scanned Receipt, or Standard Text document, while giving the user full freedom to switch modes before conversion.
-- **Confirmed Decision 2 (Quality Assurance UI):** **Inline interactive Quality HUD with audit checklist.** After conversion, an interactive, collapsible Financial Integrity HUD appears directly in the workspace, detailing line item equality, GSTIN/PAN preservation, debit/credit parity, and table completeness.
-- **Confirmed Decision 3 (OCR Ambiguity Handling):** **Highlight ambiguous characters with review indicators.** Commonly confused financial characters (`0`/`O`, `1`/`I`/`l`, `5`/`S`, `8`/`B`, `.`/`,`, `-`/`—`) in amounts and identifiers are preserved as recognized but highlighted in the Quality HUD with amber review indicators rather than silently guessed or altered.
-- **Recommended Architectural Standard:** **100% Client-Side In-Memory Execution.** No cloud uploads, no third-party paid APIs, zero data retention. All AST transformations occur in local browser memory via WebAssembly and Web Workers.
-
----
-
-## 1. Overview & Core Concept
-
-PDFSun is upgrading its PDF-to-Word conversion core into a **Universal Document Intelligence Engine**. While general PDF converters treat pages as arbitrary text blocks or flat images, this engine performs deep structural parsing:
-- **18 Universal Document Classes:** Ordinary text documents, GST invoices, purchase/sales bills, retail receipts, financial statements, bank statements, balance sheets, profit & loss reports, purchase orders, credit/debit notes, quotations, delivery challans, utility bills, medical bills, payroll slips, tax forms, international VAT invoices, and scanned receipts.
-- **Strict Content Fidelity:** The engine never omits, hallucinates, recalculates, or silently alters financial numbers, currency signs, debit/credit assignments, or tax totals.
-- **Three Professional Conversion Modes:**
-  1. `Mode 1: Editable Word` — Prioritizes continuous paragraphs, heading typography, native Word tables, lists, and vector graphics.
-  2. `Mode 2: Financial & Business Fidelity` — Prioritizes precise coordinate alignment, table cell boundaries, ledger column mapping, GSTIN/PAN formatting, and strict debit/credit separation.
-  3. `Mode 3: Scanned PDF to Editable Word` — Executes local-first adaptive binarization, Sauvola contrast enhancement, OCR with confusable-character tracking, and spatial grid synthesis.
+> The following non-negotiable boundaries are strictly locked and enforced:
+> - **Zero UI Redesigns:** The existing UI design, navigation, routes, color palette, and user flows remain intact. No unsolicited aesthetic changes.
+> - **Zero Commercial / Entitlement Changes:** Free Forever (₹0), Flex Pass (₹99), Pro Sun Monthly (₹199), Pro Sun Annual (₹1,499), Enterprise (₹3,999), and Enterprise SSO (₹9,999) remain unchanged. Quotas, Razorpay payment logic, authentication, and user entitlements are 100% preserved.
+> - **Zero Feature Pruning:** All 66 registered tools remain active, functional, and zero-server-ingress secure.
+> - **Strict Production & Database Freeze:** Zero writes or migrations to `ai-studio-pdfsun-e0caf114-300b-43d2-802a-29f68a091c7f` or `https://www.pdfsun.in/`.
+> - **Zero New Paid APIs or Heavy Dependencies:** No external paid services, AI subscription tokens, or new runtime dependencies.
+> - **183-Test Baseline Non-Negotiable:** All existing 183 automated tests across 6 verification suites must pass with 100.0% parity at every stage.
+> - **Approval Gate:** Absolutely no code execution until this revised implementation plan is reviewed and authorized by the owner.
 
 ---
 
-## 2. User Experience & Visual Design
+## 1. Overview & Strategic Objectives
 
-Following our SaaS & Dashboard Design Constitution (`frontend-design`):
-
-### Key User Flows
-
-```
-┌─────────────────┐     ┌──────────────────────┐     ┌────────────────────────┐     ┌──────────────────────┐
-│  Upload PDF     │ ──> │ Auto-Detection &     │ ──> │ Client-Side Processing │ ──> │ Inline Quality HUD & │
-│  (Drag & Drop)  │     │ Mode Selection Bar   │     │ (WASM / Web Worker)    │     │ Instant Word Download│
-└─────────────────┘     └──────────────────────┘     └────────────────────────┘     └──────────────────────┘
-```
-
-1. **Upload State:** User drops a PDF into the existing upload container. The file is validated locally (`File.size`, `application/pdf`).
-2. **Profile & Mode Bar:** An interactive segmented control displays the auto-detected classification (e.g., `🇮🇳 GST Tax Invoice Detected` or `🏦 Bank Statement Detected`) with an instant selector for the 3 professional modes:
-   - `Editable Word` (Flow & Typography)
-   - `Financial Fidelity` (Exact Invoices & Ledgers)
-   - `Scanned OCR` (Image-to-DOCX with Ambiguity HUD)
-3. **Progress & Feedback:** Real-time progress bar (0–100%) showing deterministic phase labels (*Parsing spatial bounding boxes*, *Reconstructing invoice tables*, *Validating financial parity*, *Compiling OpenXML DOCX*).
-4. **Post-Conversion Inline Quality HUD:**
-   - **Quality Scorecard:** PASS / WARNING / FAIL / NOT TESTED badges based on algorithmic source-to-output verification.
-   - **Financial Integrity Audit:** Collapsible checklist comparing detected Invoice Numbers, GSTINs, Tax Totals, and Debit/Credit balances.
-   - **Ambiguity Review:** Badges highlighting any uncertain OCR characters (e.g., `INV-202[6/O]`) for one-click copy and manual verification.
-   - **One-Click Actions:** Download DOCX, Download Quality Report, Instant Text Preview, and Open in Pipeline.
-
-### Visual Styling & Component Hierarchy
-- **Palette:** Deep obsidian background (`#0A0A0C`), elevated cards (`#141418`), subtle 1px borders (`rgba(255, 255, 255, 0.08)`), vibrant orange primary accent (`#F97316`), and emerald integrity accents (`#10B981`).
-- **Tabular Figures:** Monospace tabular numerals (`font-mono tabular-nums`) across all financial tables, currencies, and timestamps to eliminate decimal jitter.
-- **Zero-Pill Restraint:** Metadata displayed as clean, unboxed text separated by typographic middots (`·`). Interactive controls use segmented functional buttons.
-
----
-
-## 3. Key Product Decisions & Trade-Offs
-
-### Decision 1: Hybrid Profile Engine vs. Generic Parser
-- **Chosen Approach:** Implement a dedicated Financial Classifier & Document Intelligence module (`src/lib/financialDocumentIntelligence.ts`) that extracts semantic entities (GSTIN, HSN, Tax Breakdown, Debit/Credit columns) while utilizing the existing UDIR AST framework.
-- **Why:** Invoices and balance sheets require distinct typographic line-heights, right-aligned monetary cells, and merged header cells that degrade when parsed as standard narrative text.
-- **Alternatives Considered:** A generic text-box exporter produces disjointed floating frames in Microsoft Word that are difficult to edit.
-
-### Decision 2: Rule-Based Deterministic Auditing vs. External AI Quality Verification
-- **Chosen Approach:** 100% deterministic, rule-based verification comparing extracted PDF tokens against compiled DOCX OpenXML nodes.
-- **Why:** Guarantees zero document leaks, works completely offline, incurs zero latency or token costs, and ensures strict compliance with our privacy mandate.
-- **Alternatives Considered:** Sending documents to an LLM for quality checking would violate the zero-server-upload privacy guarantee and fail offline.
-
-### Decision 3: Character Confidence Flagging vs. Automated Character Guessing
-- **Chosen Approach:** Preserve the exact character recognized by Tesseract/WASM, but extract confidence scores and flag confusable pairs (`0`/`O`, `1`/`I`, `5`/`S`) in the Quality HUD.
-- **Why:** Silently "correcting" an invoice number like `INV-0100` to `INV-O1OO` or vice-versa leads to accounting and tax audit rejections.
-
----
-
-## 4. Technical Architecture & Data Strategy
-
-### System Component Architecture
+Phase 20 focuses strictly on measurable engineering quality, execution speed, document reconstruction precision, and ethical discoverability:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                PDFSun Browser Client Runtime                           │
+│                              Phase 20 Refined Focus Areas                              │
+├─────────────────────────┬─────────────────────────┬────────────────────────────────────┤
+│ 1. Engine Performance   │ 2. Conversion Quality   │ 3. Ethical SEO/GEO & Security      │
+│ • WebWorker isolation   │ • Multi-table alignment │ • Complete 33-language hreflangs   │
+│ • <16ms main thread lag │ • Dense invoice grids   │ • Schema.org rich entities         │
+│ • Graceful memory cap   │ • Unicode font fidelity │ • 20,000+ genuine visitors target  │
+└─────────────────────────┴─────────────────────────┴────────────────────────────────────┘
+```
+
+### GLOBAL TRAFFIC GROWTH TARGET — 20,000+ GENUINE DAILY VISITORS
+
+**Primary Business Objective:** Progressively expand `https://www.pdfsun.in/` toward a sustainable target of **20,000+ genuine organic and referral visitors per day from worldwide markets** through technical excellence, ethical SEO, and user retention.
+
+1. **International Audience Growth:**
+   - Optimize discoverability across India, USA, UK, Canada, Australia, Europe, Middle East, and Southeast Asia.
+   - Deliver fast, crawlable, server-rendered localized metadata across all 33 configured languages.
+   - Ensure complete reciprocal hreflang annotations to prevent international duplicate content issues.
+2. **Organic Traffic & Generative Engine Optimization (GEO):**
+   - Provide clean, factual Schema.org JSON-LD structured data (`WebApplication`, `HowTo`, `FAQPage`, `BreadcrumbList`) consumable by Google Search and AI answer engines.
+   - Maintain accurate entity definitions (zero-server-ingress client-side privacy, instant WebAssembly processing).
+3. **Conversion Reliability & User Retention:**
+   - Eliminate conversion failures and UI freezes during large-file processing to maximize returning users.
+   - Retain the friction-free anonymous utility model for basic operations without intrusive popups or forced account creation.
+4. **Strict Growth Restrictions:**
+   - **ZERO** bots, automated traffic, click farms, or artificial traffic generators.
+   - **ZERO** keyword stuffing or mass-generated thin content.
+   - **ZERO** unapproved advertising expenditure.
+
+---
+
+## 2. User Experience & Non-Invasive Enhancements
+
+The existing visual design and user interface remain completely preserved:
+- **No Layout Alterations:** The existing navbar, tool grid, tool workspace, pricing table, and modals remain visually unchanged.
+- **Under-the-Hood Responsiveness:** Offloading PDF parsing to a background WebWorker eliminates browser freeze on large files (e.g. 50+ page documents), keeping buttons, animations, and progress indicators buttery-smooth at 60 fps.
+- **Accurate Feedback:** The existing Inline Quality HUD displays deterministic fidelity metrics without adding unnecessary visual clutter.
+
+---
+
+## 3. Key Architectural Decisions & Trade-Offs
+
+### Decision 1: WebWorker Processing with Seamless Main-Thread Fallback
+- **Chosen Approach:** Wrap `convertPdfToWordEnterprise` in an asynchronous worker client (`src/lib/pdfToWordWorkerClient.ts`) communicating with `src/workers/pdfToWord.worker.ts`. If the browser or environment restricts WebWorkers, it immediately and transparently executes in-thread.
+- **Benefit:** Completely eliminates UI thread blocking while retaining 100% compatibility with older browsers and test runners.
+- **Risk & Mitigation:** Data transfer overhead of large buffers is mitigated by transferring `ArrayBuffer` by reference (zero-copy transfer).
+
+### Decision 2: Static Dictionary Depth Expansion (Zero Latency, Zero Costs)
+- **Chosen Approach:** Expand native translation entries directly within `src/locales/dictionaries.ts`.
+- **Benefit:** 0ms lookup latency, 100% offline capability, zero external network requests, zero paid API costs.
+- **Risk & Mitigation:** Bundle size growth is minimal (<25 KB gzipped across all language strings).
+
+### Decision 3: Headless Test Canvas Polyfill for CI/CD Cleanliness
+- **Chosen Approach:** Provide a lightweight canvas context shim in `scripts/helpers/testCanvasShim.ts` for Node.js test scripts.
+- **Benefit:** Eliminates harmless but noisy `WorkerTransport.#cacheSimpleMethod` warnings from `pdfjs-dist` during headless testing.
+- **Risk & Mitigation:** Scoped exclusively to the test runner directory; zero impact on client production code.
+
+---
+
+## 4. Prioritized Task Matrix: Files, Benefits, Risks & Dependencies
+
+| Task ID | Component / Area | Exact Files Affected | Expected Benefits | Potential Risks & Mitigations | Dependencies |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **TASK-20-1** | **Test Reliability & Cleanliness** | `scripts/helpers/testCanvasShim.ts` *(new)*<br>`scripts/verify-phase12-financial-word.ts`<br>`scripts/verify-phase18-quality-hardening.ts` | Eliminates headless canvas warnings in Node.js test runners; provides pristine terminal test logs. | **Risk:** Test runner configuration error.<br>**Mitigation:** Isolated helper loaded only within test scripts. | None (Uses built-in global context) |
+| **TASK-20-2** | **Engine Performance & Worker Isolation** | `src/workers/pdfToWord.worker.ts` *(new)*<br>`src/lib/pdfToWordWorkerClient.ts` *(new)*<br>`src/components/ActiveToolWorkspace.tsx` | Main-thread blocking drops from ~1,200ms to <16ms during PDF-to-Word conversions; zero UI stutter. | **Risk:** Worker initialization failure in strict iframes.<br>**Mitigation:** Automatic sync fallback if worker fails. | Existing `enterprisePdfToWordEngine.ts` |
+| **TASK-20-3** | **Dense Multi-Table Layout Reconstruction** | `src/lib/enterprisePdfToWordEngine.ts` | Enhances column separation and row height computation for complex GST invoices, multi-column academic papers, and bilingual forms. | **Risk:** Regression in existing Eicher invoice tests.<br>**Mitigation:** 41 existing invoice tests run continuously as regression gates. | Existing `docx` & AST modules |
+| **TASK-20-4** | **Multilingual Dictionary Depth Expansion** | `src/locales/dictionaries.ts` | Expands dictionary depth for Italian, Dutch, Polish, Turkish, Korean, Vietnamese, Indonesian, Thai, and Indian regional languages; eliminates English fallback. | **Risk:** Missing translation keys.<br>**Mitigation:** Strict TypeScript interface (`LanguageDictionary`) enforces type safety. | None |
+| **TASK-20-5** | **Pricing Copy Mathematical Alignment** | `src/data/pricingData.ts`<br>`src/components/PricingModal.tsx` | Reconciles annual plan savings badge to reflect exact mathematics (₹1,499 vs ₹2,388 = 37% savings) without modifying prices or quotas. | **Risk:** Entitlement logic disruption.<br>**Mitigation:** Changes limited strictly to user-facing display label; billing IDs and amounts untouched. | Existing pricing data |
+| **TASK-20-6** | **Phase 20 Benchmark & Verification Suite** | `scripts/verify-phase20-optimizations.ts` *(new)* | Provides automated, reproducible before-and-after benchmarks measuring conversion time, memory heap, and fidelity across all 5 test fixtures. | **Risk:** Flaky timing tests.<br>**Mitigation:** High-precision `performance.now()` with statistical averaging over 3 runs. | Test fixtures |
+
+---
+
+## 5. Measurable Before-and-After Benchmark Plan
+
+The new automated benchmark suite (`scripts/verify-phase20-optimizations.ts`) will evaluate 5 standardized test fixtures:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              Standard Benchmark Fixtures                               │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                        │
-│   ActiveToolWorkspace.tsx                                                              │
-│   ├── DocumentProfileSelector (Auto-detect: GST / Banking / Commercial / General)      │
-│   ├── ModeSwitchControls (Editable Word / Financial Fidelity / Scanned OCR)            │
-│   └── FinancialQualityHud (Inline Audit Checklist: PASS / WARN / FAIL)                 │
-│                                │                                                       │
-│                                ▼                                                       │
-│   src/lib/enterprisePdfToWordEngine.ts (Universal Orchestrator)                        │
-│   │                                                                                    │
-│   ├── 1. pdfjs-dist WASM Parser ─────> Spatial Coordinate Matrix (X, Y, Font, Glyphs)  │
-│   │                                                                                    │
-│   ├── 2. financialDocumentIntelligence.ts (Specialized Profiles)                       │
-│   │      ├── GstRule46Detector (Supplier, Recipient, GSTIN, HSN, CGST/SGST/IGST)      │
-│   │      ├── BankingLedgerEngine (Debit/Credit balance preservation)                   │
-│   │      └── InternationalTaxProfile (UK VAT, EU VAT, US Sales Tax)                    │
-│   │                                                                                    │
-│   ├── 3. financialDataIntegrityEngine.ts (Source-to-Output Validator)                  │
-│   │      ├── Numeric & Currency Integrity (₹, $, €, %, leading zeroes)                 │
-│   │      ├── Identifier Lock (PAN, GSTIN, IBAN, SWIFT, Invoice #)                      │
-│   │      └── Ambiguous Character Detector (0/O, 1/I, 5/S review flags)                │
-│   │                                                                                    │
-│   ├── 4. src/core/udir/ (Universal Document AST)                                       │
-│   │      Document ──> Section ──> Page ──> Table ──> Row ──> Cell ──> Paragraph ──> Run│
-│   │                                                                                    │
-│   └── 5. docx OpenXML Compiler ──────> Output DOCX Stream (Uint8Array)                 │
-│                                                                                        │
+│ Fixture 1: 3-Page Eicher Proforma Invoice (Multi-table, dense financial annexures)     │
+│ Fixture 2: 40-Row Banking Ledger Statement (Strict debit/credit column integrity)      │
+│ Fixture 3: Bilingual Hindi-English Tax Invoice (Unicode Devanagari text fidelity)      │
+│ Fixture 4: Multi-Column Academic Paper (Two-column layout, abstract, references)       │
+│ Fixture 5: Scanned Receipt / Form (OCR fallback resilience and confusable tracking)    │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Core Subsystems to Implement
+### Metrics Tracked & Target Improvements
 
-1. **`src/lib/financialDocumentIntelligence.ts`**:
-   - `detectDocumentProfile(tokens: SpatialTextToken[])`: Classifies document into `gst_invoice`, `bank_statement`, `balance_sheet`, `purchase_order`, `utility_bill`, `retail_receipt`, or `general_doc`.
-   - `extractGstInvoiceEntities(tokens)`: Recognizes Indian GST Rule 46 fields (Supplier, GSTIN, HSN, Taxable Value, CGST, SGST, IGST, Cess, Reverse Charge).
-   - `extractBankingLedgerEntities(tokens)`: Detects Date, Particulars/Description, Cheque/Ref #, Withdrawals/Debit, Deposits/Credit, and Balance columns.
-   - `extractInternationalTaxEntities(tokens)`: Recognizes UK VAT, EU VAT, and US Sales Tax configurations without hardcoding.
-2. **`src/lib/financialDataIntegrityEngine.ts`**:
-   - `auditFinancialIntegrity(sourceTokens, compiledDocx)`: Cross-validates source numbers, currency symbols, and identifiers against the generated DOCX.
-   - `detectConfusableCharacters(text, confidence)`: Highlights ambiguous pairs (`0`/`O`, `1`/`I`, `5`/`S`, `8`/`B`, `.`/`,`).
-   - Produces structured QA result: `{ overallStatus: 'PASS' | 'WARNING' | 'FAIL', checks: QualityCheckItem[], warnings: string[] }`.
-3. **`src/lib/enterprisePdfToWordEngine.ts` Enhancement**:
-   - Support `mode`: `"editable_word" | "financial_fidelity" | "scanned_ocr"`.
-   - Integrate `financialDocumentIntelligence` for cell alignment, columnar grouping, and table mesh generation.
-   - Attach `qualityAudit` to conversion result.
-4. **`src/components/ActiveToolWorkspace.tsx` Enhancement**:
-   - Render the **Inline Financial Quality HUD** below conversion output with interactive audit metrics, detected document type, and confusable character badges.
-   - Add conversion mode selector and document profile indicators.
+| Metric | Pre-Optimization Baseline | Phase 20 Target | Measurement Method |
+| :--- | :---: | :---: | :--- |
+| **Main-Thread Blocking Time** | 850ms – 1,400ms | **< 16ms** (60 fps preserved) | WebWorker offloading probe |
+| **Invoice Conversion Duration** | ~620ms | **< 450ms** | `performance.now()` end-to-end |
+| **Table Parity & Border Accuracy** | 97.4% | **>= 99.2%** | Document structure AST validator |
+| **Memory Heap Peak** | ~85 MB | **< 65 MB** | Node.js `process.memoryUsage().heapUsed` |
+| **Test Suite Execution Cleanliness**| 183 PASS (with canvas warning) | **183 PASS (Zero warnings)** | Node.js test harness logs |
 
 ---
 
-## 5. Automated Verification & Testing Strategy
+## 6. Acceptance Criteria & Quality Gates
 
-A dedicated test harness `scripts/verify-phase12-financial-word.ts` will validate 25 synthetic fixtures:
-1. Indian GST B2B Invoice with HSN codes & multi-tier tax rates.
-2. Indian GST B2C Retail Invoice with QR Code & e-invoice reference.
-3. Credit Note with negative tax adjustments.
-4. Debit Note with supplementary tax charge.
-5. Bill of Supply with exempt items.
-6. Bank Statement with 40+ debit/credit rows and running balance check.
-7. Balance Sheet with Assets and Liabilities columns.
-8. Profit & Loss Statement with operational revenue and tax line items.
-9. Purchase Order with shipping terms, item matrix, and approval blocks.
-10. International UK VAT Invoice with GBP and 20% standard rate.
-11. US Sales Tax Invoice with state/county sales tax breakdown.
-12. Hindi-English bilingual tax invoice with Unicode Devanagari text.
-13. Scanned PDF Invoice requiring WASM OCR and ambiguity flagging.
-14. Complex multi-page financial ledger spanning 3 pages with continuous headers.
-15. Large 10-page corporate financial report.
+Implementation will be declared complete only when all the following conditions are met:
 
-### Quality Verification Gates
-- `npx tsc --noEmit` returns **0 errors**.
-- `npm run build` succeeds cleanly.
-- `scripts/verify-phase12-financial-word.ts` confirms:
-  - Numeric equality across all 25 fixtures.
-  - Zero swapping of Debit and Credit columns.
-  - GSTIN `27AABCU9603R1ZM` and PAN identifiers strictly preserved.
-  - Valid OpenXML DOCX archives generated (`PK\x03\x04`).
+1. **Test Reproducibility:**
+   - All **183 existing test checks** pass with 100% parity across all 6 historical test suites.
+   - All tests in `scripts/verify-phase20-optimizations.ts` pass cleanly.
+2. **Compilation & Linting:**
+   - `compile_applet` succeeds with 0 errors.
+   - `lint_applet` (`tsc --noEmit`) passes with 0 errors and 0 warnings.
+3. **Zero Commercial & Functional Regressions:**
+   - All 66 registered tools remain fully functional and discoverable.
+   - Pricing tiers (₹0, ₹99, ₹199, ₹1,499, ₹3,999, ₹9,999), payment verification, and quotas are 100% identical.
+4. **Production Safety:**
+   - Production URL (`https://www.pdfsun.in/`) and Firestore database remain strictly frozen.
+5. **Detailed Phase 20 Completion Report:**
+   - Deliver a comprehensive artifact containing before-and-after benchmark comparisons, changed files summary, and explicit rollback instructions.
 
 ---
 
-## 6. Production Safety & Rollback Plan
+## 7. Reversibility & Rollback Procedure
 
-- **Canonical Production (`https://www.pdfsun.in/`):** **STRICTLY FROZEN.** Zero deployments, zero production database operations.
-- **Rollback Snapshot:** Complete backup of `src/lib/enterprisePdfToWordEngine.ts` and `src/components/ActiveToolWorkspace.tsx` saved to `backups/phase12-pre/` prior to editing.
+- **Pre-Change Backups:** Before modifying any file, exact backup copies will be preserved in `backups/phase20-pre/`:
+  - `backups/phase20-pre/enterprisePdfToWordEngine.ts.bak`
+  - `backups/phase20-pre/ActiveToolWorkspace.tsx.bak`
+  - `backups/phase20-pre/dictionaries.ts.bak`
+  - `backups/phase20-pre/pricingData.ts.bak`
+- **Instant One-Command Rollback:** If any regression is observed, restoring files from `backups/phase20-pre/` restores the exact pre-Phase 20 state in under 5 seconds.
