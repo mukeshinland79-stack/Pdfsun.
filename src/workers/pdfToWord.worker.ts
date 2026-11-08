@@ -4,7 +4,10 @@
  * to maintain 60fps UI responsiveness during 100+ page conversions.
  */
 
-import { convertPdfToWordEnterprise, EnterprisePdfToWordOptions } from "../lib/enterprisePdfToWordEngine";
+import {
+  convertPdfToWordEnterprise,
+  PdfToWordOptions as EnterprisePdfToWordOptions,
+} from "../lib/enterprisePdfToWordEngine";
 
 export interface WorkerRequestMessage {
   id: string;
@@ -70,17 +73,17 @@ self.onmessage = async (e: MessageEvent<WorkerRequestMessage>) => {
       result: {
         bytes: result.bytes,
         fileName: result.fileName,
-        pageCount: result.pageCount,
+        pageCount: result.stats?.pagesCount || 1,
         stats: result.stats,
         classification: result.classification,
-        structure: result.structure,
-        qualityReport: result.qualityReport,
+        structure: (result as any).technicalStructure || (result as any).structure,
+        qualityReport: result.docxQualityReport,
         qualityAudit: result.qualityAudit,
       },
     };
 
     // Transfer bytes buffer for zero-copy performance
-    self.postMessage(successMsg, [result.bytes.buffer]);
+    (self as any).postMessage(successMsg, [result.bytes.buffer]);
   } catch (err: any) {
     const errorMsg: WorkerErrorMessage = {
       id,

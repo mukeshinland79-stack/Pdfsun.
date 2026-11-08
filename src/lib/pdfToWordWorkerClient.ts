@@ -5,9 +5,11 @@
 
 import {
   convertPdfToWordEnterprise,
-  EnterprisePdfToWordOptions,
-  EnterprisePdfToWordResult,
+  PdfToWordOptions as EnterprisePdfToWordOptions,
+  PdfToWordResult as EnterprisePdfToWordResult,
 } from "./enterprisePdfToWordEngine";
+
+export type { EnterprisePdfToWordOptions, EnterprisePdfToWordResult };
 
 export async function convertPdfToWordViaWorker(
   file: File,
@@ -96,7 +98,7 @@ export async function convertPdfToWordViaWorker(
           fileName: file.name,
           options: {
             preset: options.preset,
-            preserveImages: options.preserveImages,
+            preserveImages: (options as any).preserveImages,
             dpiQuality: options.dpiQuality,
             preserveTables: options.preserveTables,
             enableOcrFallback: options.enableOcrFallback,
