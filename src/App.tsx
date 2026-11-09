@@ -43,6 +43,7 @@ import { PDFSunAiCopilotCard, PDFSunEnterpriseSuiteCard } from "./components/Dua
 import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
 import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
 import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
+import { BarcodeStudioWorkspace } from "./components/BarcodeStudioWorkspace";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
@@ -398,7 +399,23 @@ function MainApp() {
   const [geoResult, setGeoResult] = useState<GeoDetectionResult>(() => detectUserGeoAndLanguage());
   const [paymentSuccessModalOpen, setPaymentSuccessModalOpen] = useState(false);
   const [verificationStudioOpen, setVerificationStudioOpen] = useState(false);
+  const [barcodeStudioOpen, setBarcodeStudioOpen] = useState(false);
   const paymentHandledRef = useRef(false);
+
+  const handleOpenBarcodeStudio = useCallback(() => {
+    if (activeTool) setActiveTool(null);
+    setBarcodeStudioOpen(true);
+    if (typeof window !== "undefined" && window.location.pathname !== "/barcode") {
+      window.history.pushState({}, "", "/barcode");
+    }
+  }, [activeTool]);
+
+  const handleCloseBarcodeStudio = useCallback(() => {
+    setBarcodeStudioOpen(false);
+    if (typeof window !== "undefined" && (window.location.pathname === "/barcode" || window.location.pathname === "/barcode-studio")) {
+      window.history.pushState({}, "", "/");
+    }
+  }, []);
 
   const handleOpenPricing = useCallback(() => {
     if (activeTool) setActiveTool(null);
@@ -539,6 +556,22 @@ function MainApp() {
       }
 
       if (detectedLang && detectedLang !== currentLanguage) setLanguage(detectedLang);
+
+      const isBarcodeRoute =
+        effectivePath === "/barcode" ||
+        effectivePath === "/barcode-studio" ||
+        params.get("view") === "barcode" ||
+        params.has("barcode");
+
+      if (isBarcodeRoute) {
+        setBarcodeStudioOpen(true);
+        setActiveTool(null);
+        setActivePseoPage(null);
+        setBlogViewActive(false);
+        return;
+      } else {
+        setBarcodeStudioOpen(false);
+      }
 
       const isBlogRoute = effectivePath === "/blog" || effectivePath.startsWith("/blog/") || params.get("view") === "blog" || params.has("blog");
 
@@ -908,6 +941,7 @@ function MainApp() {
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
         onOpenAvatarModal={() => setAvatarModalOpen(true)}
         onOpenVerificationStudio={() => setVerificationStudioOpen(true)}
+        onOpenBarcodeStudio={handleOpenBarcodeStudio}
         selectedCategory={selectedCategory}
         onSelectCategory={(cat) => {
           handleExitBlogToHome();
@@ -918,7 +952,9 @@ function MainApp() {
       />
 
       <main className="content-area flex-1">
-        {blogViewActive ? (
+        {barcodeStudioOpen ? (
+          <BarcodeStudioWorkspace onBackToHome={handleCloseBarcodeStudio} />
+        ) : blogViewActive ? (
           <BlogPage
             currentSlug={blogActiveSlug}
             onNavigateHome={handleExitBlogToHome}
@@ -1045,6 +1081,7 @@ function MainApp() {
         onOpenPricing={handleOpenPricing}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}
         onOpenTodayInHistory={() => setTodayInHistoryOpen(true)}
+        onOpenBarcodeStudio={handleOpenBarcodeStudio}
       />
 
       {activeTool && (
