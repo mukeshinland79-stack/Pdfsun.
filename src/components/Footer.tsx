@@ -39,7 +39,6 @@ interface FooterProps {
   onOpenContactModal: () => void;
   onOpenPricing?: () => void;
   onOpenInstallApp?: () => void;
-  onOpenBarcodeStudio?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -51,7 +50,6 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenContactModal,
   onOpenPricing,
   onOpenInstallApp,
-  onOpenBarcodeStudio,
 }) => {
   const [showBrandShowcase, setShowBrandShowcase] = useState(false);
   const { t, dir } = useLanguage();
@@ -212,20 +210,6 @@ export const Footer: React.FC<FooterProps> = ({
                     <span>Today in History (30 Lang)</span>
                     <span className="text-[9px] badge-wcag-amber px-1.5 py-0.5 rounded font-mono font-bold">
                       NEW
-                    </span>
-                  </button>
-                </li>
-              )}
-              {onOpenBarcodeStudio && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={onOpenBarcodeStudio}
-                    className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center space-x-1.5 text-amber-700 dark:text-amber-400 font-semibold cursor-pointer text-left"
-                  >
-                    <span>Barcode Studio & Labels</span>
-                    <span className="text-[9px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">
-                      STUDIO
                     </span>
                   </button>
                 </li>
