@@ -1,10 +1,10 @@
-import { jsPDF } from "jspdf";
 import { DayInHistoryData } from "../types/history";
 
 /**
  * Generates a clean, educational study worksheet PDF for Today in History
  */
-export function generateHistoryWorksheetPdf(data: DayInHistoryData): void {
+export async function generateHistoryWorksheetPdf(data: DayInHistoryData): Promise<void> {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",

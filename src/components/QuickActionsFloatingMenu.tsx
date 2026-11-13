@@ -18,6 +18,7 @@ import {
   Share2,
 } from "lucide-react";
 import { QuickShareModal } from "./QuickShareModal";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface ProcessedFileData {
   data: Uint8Array | Blob | string;
@@ -65,7 +66,7 @@ export const QuickActionsFloatingMenu: React.FC<QuickActionsFloatingMenuProps> =
         if (downloadReady.data instanceof Blob) {
           blob = downloadReady.data;
         } else if (downloadReady.data instanceof Uint8Array) {
-          blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "application/pdf" });
+          blob = new Blob([toStrictUint8Array(downloadReady.data)], { type: downloadReady.mimeType || "application/pdf" });
         } else {
           blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "text/plain" });
         }

@@ -167,6 +167,9 @@ export function trafficSecurityHeadersMiddleware(req: Request, res: Response, ne
   // Modern Permissions Policy
   res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=()");
 
+  // Cross-Origin-Opener-Policy: isolates browsing context while permitting Razorpay/OAuth popups
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+
   // X-Frame-Options: SAMEORIGIN for clickjacking defense (while permitting same-origin tool previews)
   if (!req.path.startsWith("/api/webhooks")) {
     res.setHeader("X-Frame-Options", "SAMEORIGIN");

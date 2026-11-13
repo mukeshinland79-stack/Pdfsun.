@@ -4,6 +4,7 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 import crypto from "crypto";
+import zlib from "zlib";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
@@ -162,9 +163,162 @@ if (PORT === nginxPort) {
 const HOST = cliHost || positionalHost || process.env.HOST || "0.0.0.0";
 
 const app = express();
+app.disable("x-powered-by");
 
 // Trust upstream reverse proxy (Google Cloud Run GFE / Nginx) to securely extract true client IP
 app.set("trust proxy", 1);
+
+// Built-in HTTP Response Compression (Brotli + Gzip via Node zlib) for HTML, JS, CSS, JSON, SVG, XML, WASM
+const COMPRESSIBLE_MIME_RE = /^(text\/|application\/(javascript|ecmascript|json|ld\+json|xml|rss\+xml|atom\+xml|manifest\+json|wasm)|image\/svg\+xml)/i;
+app.use((req, res, next) => {
+  if (req.method === "HEAD" || req.headers.range || req.path.startsWith("/api/analytics/ws")) {
+    return next();
+  }
+
+  const acceptEncoding = String(req.headers["accept-encoding"] || "").toLowerCase();
+  const useBr = acceptEncoding.includes("br");
+  const useGzip = !useBr && acceptEncoding.includes("gzip");
+  if (!useBr && !useGzip) {
+    return next();
+  }
+
+  const origWrite = res.write.bind(res);
+  const origEnd = res.end.bind(res);
+  const origWriteHead = res.writeHead.bind(res);
+
+  let bypass = false;
+  let headStatusCode: number | null = null;
+  let headReason: string | undefined;
+  let headHeaders: any = undefined;
+  const chunks: Buffer[] = [];
+
+  const canCompressResponse = (): boolean => {
+    if (res.statusCode === 204 || res.statusCode === 304) return false;
+    if (res.getHeader("Content-Encoding")) return false;
+    const cacheCtrl = String(res.getHeader("Cache-Control") || "");
+    if (/no-transform/i.test(cacheCtrl)) return false;
+    const contentType = String(res.getHeader("Content-Type") || "");
+    if (!contentType || /text\/event-stream/i.test(contentType)) return false;
+    if (!COMPRESSIBLE_MIME_RE.test(contentType)) return false;
+    const cl = Number(res.getHeader("Content-Length") || 0);
+    if (cl > 8 * 1024 * 1024) return false;
+    return true;
+  };
+
+  const flushBypass = () => {
+    if (bypass) return;
+    bypass = true;
+    res.write = origWrite;
+    res.end = origEnd;
+    res.writeHead = origWriteHead;
+    if (headStatusCode !== null) {
+      if (headReason !== undefined) {
+        origWriteHead(headStatusCode, headReason, headHeaders);
+      } else if (headHeaders !== undefined) {
+        origWriteHead(headStatusCode, headHeaders);
+      } else {
+        origWriteHead(headStatusCode);
+      }
+    }
+    for (const c of chunks) {
+      origWrite(c);
+    }
+    chunks.length = 0;
+  };
+
+  (res as any).writeHead = function (statusCode: number, reasonOrHeaders?: any, maybeHeaders?: any) {
+    res.statusCode = statusCode;
+    let hdrs = maybeHeaders;
+    if (typeof reasonOrHeaders === "string") {
+      headReason = reasonOrHeaders;
+    } else if (reasonOrHeaders && typeof reasonOrHeaders === "object") {
+      hdrs = reasonOrHeaders;
+    }
+    if (hdrs) {
+      for (const [k, v] of Object.entries(hdrs)) {
+        if (v !== undefined) res.setHeader(k, v as any);
+      }
+    }
+    if (!canCompressResponse()) {
+      headStatusCode = statusCode;
+      headHeaders = undefined;
+      flushBypass();
+      return res;
+    }
+    headStatusCode = statusCode;
+    return res;
+  };
+
+  (res as any).write = function (chunk: any, encoding?: any, cb?: any): boolean {
+    if (bypass) return origWrite(chunk, encoding, cb);
+    if (!canCompressResponse()) {
+      flushBypass();
+      return origWrite(chunk, encoding, cb);
+    }
+    if (chunk !== undefined && chunk !== null) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, typeof encoding === "string" ? (encoding as BufferEncoding) : "utf8"));
+    }
+    if (typeof encoding === "function") encoding();
+    else if (typeof cb === "function") cb();
+    return true;
+  };
+
+  (res as any).end = function (chunk?: any, encoding?: any, cb?: any): any {
+    if (typeof chunk === "function") {
+      cb = chunk;
+      chunk = undefined;
+      encoding = undefined;
+    } else if (typeof encoding === "function") {
+      cb = encoding;
+      encoding = undefined;
+    }
+
+    if (bypass) {
+      return origEnd(chunk, encoding, cb);
+    }
+
+    if (chunk !== undefined && chunk !== null) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, typeof encoding === "string" ? (encoding as BufferEncoding) : "utf8"));
+    }
+
+    const totalBuffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
+    chunks.length = 0;
+
+    if (!canCompressResponse() || totalBuffer.length < 1024) {
+      res.write = origWrite;
+      res.end = origEnd;
+      res.writeHead = origWriteHead;
+      return origEnd(totalBuffer, cb);
+    }
+
+    const sendCompressed = (err: Error | null, compressed: Buffer) => {
+      res.write = origWrite;
+      res.end = origEnd;
+      res.writeHead = origWriteHead;
+      if (err || !compressed || compressed.length >= totalBuffer.length) {
+        return origEnd(totalBuffer, cb);
+      }
+      res.removeHeader("Content-Length");
+      res.setHeader("Content-Encoding", useBr ? "br" : "gzip");
+      res.vary("Accept-Encoding");
+      res.setHeader("Content-Length", String(compressed.length));
+      return origEnd(compressed, cb);
+    };
+
+    if (useBr) {
+      zlib.brotliCompress(
+        totalBuffer,
+        { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 } },
+        sendCompressed
+      );
+    } else {
+      zlib.gzip(totalBuffer, { level: 6 }, sendCompressed);
+    }
+    return res;
+  };
+
+  next();
+});
 
 // Verified Origin Allowlist per Phase 11D Rule 3 (Strict Environment Separation)
 export const VERIFIED_CORS_ORIGINS = new Set<string>([
@@ -314,6 +468,71 @@ function verifyDualOwnerAccess(req: express.Request, res: express.Response, next
   }
 
   next();
+}
+
+function extractRequestAuthToken(req: express.Request): string {
+  const authHeader =
+    req.headers.authorization ||
+    req.headers["x-user-token"] ||
+    req.headers["x-auth-token"] ||
+    req.headers["x-admin-token"] ||
+    req.headers["x-admin-secret"];
+  const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  if (typeof rawHeader === "string" && rawHeader.trim()) {
+    return rawHeader.replace(/^Bearer\s+/i, "").trim();
+  }
+  const cookieHeader = String(req.headers.cookie || "");
+  for (const part of cookieHeader.split(";")) {
+    const eqIdx = part.indexOf("=");
+    if (eqIdx === -1) continue;
+    const k = part.slice(0, eqIdx).trim();
+    if (k === "pdfsun_user_session" || k === "pdfsun_auth_token" || k === "pdfsun_admin_session") {
+      try {
+        const val = decodeURIComponent(part.slice(eqIdx + 1).trim());
+        if (val) return val;
+      } catch {}
+    }
+  }
+  return "";
+}
+
+function resolveAuthenticatedUserIdentity(req: express.Request): {
+  authenticated: boolean;
+  isOwnerOrAdmin: boolean;
+  email: string;
+  id: string;
+} | null {
+  const token = extractRequestAuthToken(req);
+  if (!token) return null;
+
+  if (isValidAdminSecret(token, currentSystemConfig.ADMIN_SECRET_KEY) || isVerifiedOwnerIdentity(token)) {
+    return {
+      authenticated: true,
+      isOwnerOrAdmin: true,
+      email: "mukeshinland79@gmail.com",
+      id: "owner_admin",
+    };
+  }
+
+  const session = verifySessionToken(token);
+  if (session && session.email) {
+    return {
+      authenticated: true,
+      isOwnerOrAdmin: session.role === "owner" || session.role === "admin" || Boolean(session.hasAdminAccess),
+      email: session.email.toLowerCase().trim(),
+      id: (session.id || session.email).toLowerCase().trim(),
+    };
+  }
+
+  return null;
+}
+
+function isSafeAvatarUrl(urlStr: string): boolean {
+  if (!urlStr) return true; // Clearing avatar is valid
+  if (urlStr.length > 2 * 1024 * 1024) return false;
+  if (/^https:\/\//i.test(urlStr)) return true;
+  if (/^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(urlStr)) return true;
+  return false;
 }
 
 // Request counter middleware
@@ -936,6 +1155,7 @@ export function aiEntitlementMiddleware(req: express.Request, res: express.Respo
 }
 
 app.use("/api/ai", aiEntitlementMiddleware);
+app.use("/api/translate", aiEntitlementMiddleware);
 
 // AI API Endpoints (Gated by aiEntitlementMiddleware)
 app.post("/api/ai/chat", async (req, res) => {
@@ -2910,10 +3130,18 @@ app.post("/api/razorpay/verify-transaction-details", async (req, res) => {
   }
 });
 
-// Endpoint to retrieve active user subscription record with automated real-time expiry check
+// Endpoint to retrieve active user subscription record with authenticated identity verification
 app.all("/api/user/subscription", (req, res) => {
   try {
-    const userId = (
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to access subscription details.",
+      });
+    }
+
+    const requestedUserId = (
       req.headers["x-user-id"] ||
       req.headers["x-user-email"] ||
       req.query.userId ||
@@ -2926,20 +3154,19 @@ app.all("/api/user/subscription", (req, res) => {
       .toLowerCase()
       .trim();
 
-    if (!userId) {
-      return res.json({
-        success: true,
-        userId: "",
-        status: "inactive",
-        active: false,
-        isPro: false,
-        planName: "Free Forever",
-        billingCycle: "Free",
-        trueAmountPaid: "₹0",
-        transactionId: "",
-        subscription: null,
+    if (
+      requestedUserId &&
+      !identity.isOwnerOrAdmin &&
+      requestedUserId !== identity.email &&
+      requestedUserId !== identity.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: Cross-account subscription access is not permitted.",
       });
     }
+
+    const userId = identity.isOwnerOrAdmin && requestedUserId ? requestedUserId : identity.email;
 
     const { subscription, isActive } = getUserSubscription(userId);
     const userTxs = getUserTransactions(userId);
@@ -3047,7 +3274,7 @@ app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
   }
 });
 
-// Endpoint to update or remove user profile picture avatar
+// Endpoint to update or remove user profile picture avatar (Authenticated + Ownership verified)
 const handleUpdateAvatar = (req: any, res: any) => {
   res.setHeader("Content-Type", "application/json");
 
@@ -3059,7 +3286,15 @@ const handleUpdateAvatar = (req: any, res: any) => {
   }
 
   try {
-    const userEmail = (
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to update profile picture.",
+      });
+    }
+
+    const requestedEmail = (
       req.headers["x-user-email"] ||
       req.body?.email ||
       req.body?.userEmail ||
@@ -3067,16 +3302,30 @@ const handleUpdateAvatar = (req: any, res: any) => {
       ""
     ).toString().toLowerCase().trim();
 
-    if (!userEmail) {
-      return res.status(400).json({
+    if (
+      requestedEmail &&
+      !identity.isOwnerOrAdmin &&
+      requestedEmail !== identity.email &&
+      requestedEmail !== identity.id
+    ) {
+      return res.status(403).json({
         success: false,
-        error: "User email is required to update profile picture.",
+        error: "Forbidden: Cross-account profile modification is not permitted.",
       });
     }
 
-    const { photoURL, avatar, imageUrl, image, picture, dataUrl } = req.body || {};
-    const rawUrl = photoURL ?? avatar ?? imageUrl ?? image ?? picture ?? dataUrl ?? "";
+    const userEmail = identity.isOwnerOrAdmin && requestedEmail ? requestedEmail : identity.email;
+
+    const { photoURL, avatar, avatarUrl, imageUrl, image, picture, dataUrl } = req.body || {};
+    const rawUrl = photoURL ?? avatar ?? avatarUrl ?? imageUrl ?? image ?? picture ?? dataUrl ?? "";
     const safeUrl = typeof rawUrl === "string" ? rawUrl.trim() : "";
+
+    if (!isSafeAvatarUrl(safeUrl)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid avatar image URL. Only https:// URLs or raster base64 data images are accepted.",
+      });
+    }
 
     const updateRes = updateStoredUser(userEmail, {
       photoURL: safeUrl,
@@ -3090,13 +3339,15 @@ const handleUpdateAvatar = (req: any, res: any) => {
       });
     }
 
+    const { passwordHash: _ph, salt: _salt, ...safeUser } = (updateRes.user || {}) as Record<string, any>;
+
     return res.status(200).json({
       success: true,
       message: safeUrl ? "Profile picture updated successfully." : "Profile picture removed successfully.",
       imageUrl: safeUrl,
       photoURL: safeUrl,
       avatar: safeUrl,
-      user: updateRes.user,
+      user: safeUser,
     });
   } catch (err: any) {
     console.error("[Avatar Update API] Error:", err);
@@ -3111,10 +3362,18 @@ app.all("/api/user/update-avatar", handleUpdateAvatar);
 app.all("/api/user/update-profile-picture", handleUpdateAvatar);
 app.all("/api/user/profile-picture", handleUpdateAvatar);
 
-// Endpoint to retrieve user Razorpay payment history and subscription status (ZERO FAKE DATA)
+// Endpoint to retrieve user Razorpay payment history and subscription status (Authenticated + Ownership verified)
 app.all("/api/user/payment-history", (req, res) => {
   try {
-    const email = (
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to access payment history.",
+      });
+    }
+
+    const requestedEmail = (
       req.headers["x-user-email"] ||
       req.query.email ||
       req.body?.email ||
@@ -3123,6 +3382,20 @@ app.all("/api/user/payment-history", (req, res) => {
       .toString()
       .toLowerCase()
       .trim();
+
+    if (
+      requestedEmail &&
+      !identity.isOwnerOrAdmin &&
+      requestedEmail !== identity.email &&
+      requestedEmail !== identity.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: Cross-account payment history access is not permitted.",
+      });
+    }
+
+    const email = identity.isOwnerOrAdmin && requestedEmail ? requestedEmail : identity.email;
 
     // Fetch verified transactions from persistent payment store ONLY
     const userTxList = email ? getUserTransactions(email) : [];
@@ -3173,14 +3446,33 @@ app.post("/api/enterprise/inquiry", (req, res) => {
   }
 });
 
-// Synchronize payment status strictly from verified transactions store
+// Synchronize payment status strictly from verified transactions store (Authenticated + Ownership verified)
 app.post("/api/user/sync-payment-status", (req, res) => {
   try {
-    const { email, userId } = req.body || {};
-    const targetEmail = (email || userId || "").toString().toLowerCase().trim();
-    if (!targetEmail) {
-      return res.status(400).json({ success: false, error: "email or userId is required" });
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to synchronize payment status.",
+      });
     }
+
+    const { email, userId } = req.body || {};
+    const requestedEmail = (email || userId || "").toString().toLowerCase().trim();
+
+    if (
+      requestedEmail &&
+      !identity.isOwnerOrAdmin &&
+      requestedEmail !== identity.email &&
+      requestedEmail !== identity.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: Cross-account payment sync is not permitted.",
+      });
+    }
+
+    const targetEmail = identity.isOwnerOrAdmin && requestedEmail ? requestedEmail : identity.email;
 
     const userTxList = getUserTransactions(targetEmail);
     const { totalINR } = getUserTotalPaidAmount(targetEmail);
@@ -3203,46 +3495,207 @@ app.post("/api/user/sync-payment-status", (req, res) => {
   }
 });
 
-// 5. Stripe Checkout Session Creation Endpoint (USD $)
+// 5. Stripe Checkout Session Creation Endpoint (Fail-Closed unless live Stripe key is configured)
 app.post("/api/create-stripe-checkout", (req, res) => {
   try {
-    const { planId, amount, currency = "USD", userEmail } = req.body;
-    const sessionId = "cs_stripe_" + Math.random().toString(36).substring(2, 16);
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to initiate Stripe checkout.",
+      });
+    }
 
-    console.log(`[Stripe] Created session ${sessionId} for ${userEmail || "user"} (${currency} $${amount})`);
+    const guard = validatePaymentEnvironmentGuard(req.headers.host);
+    if (!guard.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: guard.error,
+        category: guard.category,
+        environment: guard.environment,
+      });
+    }
 
-    res.json({
-      success: true,
-      sessionId,
-      checkoutUrl: `https://www.pdfsun.in/checkout?session_id=${sessionId}&plan=${planId}`,
-      amount,
-      currency,
+    const stripeKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    const isStripeConfigured = Boolean(
+      stripeKey &&
+      (stripeKey.startsWith("sk_live_") || stripeKey.startsWith("sk_test_")) &&
+      !stripeKey.includes("pdfsun_stripe_key") &&
+      !stripeKey.includes("YOUR_") &&
+      !stripeKey.includes("REPLACE_")
+    );
+
+    if (!isStripeConfigured) {
+      return res.status(503).json({
+        success: false,
+        error: "Stripe gateway credentials are not configured on this server. Please complete checkout via Razorpay.",
+      });
+    }
+
+    const { planId } = req.body || {};
+    const product = resolvePaymentProduct({ planId: String(planId || "").trim() });
+    if (!product || product.id === "free" || !product.pricePaise) {
+      return res.status(400).json({
+        success: false,
+        error: "A valid paid subscription planId is required.",
+      });
+    }
+
+    return res.status(501).json({
+      success: false,
+      error: "Stripe live session API integration requires an active Stripe SDK webhook workflow. Use Razorpay checkout.",
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 6. Stripe Webhook Endpoint
+// 6. Stripe Webhook Endpoint (Strict Timing-Safe HMAC-SHA256 Stripe-Signature Verification)
 app.post("/api/webhooks/stripe", (req, res) => {
-  const event = req.body.type || "checkout.session.completed";
-  console.log(`[Stripe Webhook] Received event: ${event}`);
-  res.json({ status: "ok", received: true, event });
+  try {
+    const stripeWebhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+    const isSecretConfigured = Boolean(
+      stripeWebhookSecret &&
+      !stripeWebhookSecret.includes("YOUR_") &&
+      !stripeWebhookSecret.includes("REPLACE_")
+    );
+
+    if (!isSecretConfigured) {
+      return res.status(503).json({
+        success: false,
+        error: "Stripe webhook secret is not configured on this server.",
+      });
+    }
+
+    const sigHeader = String(req.headers["stripe-signature"] || "");
+    if (!sigHeader) {
+      return res.status(400).json({ success: false, error: "Missing stripe-signature header." });
+    }
+
+    const parts = Object.fromEntries(
+      sigHeader.split(",").map((kv) => {
+        const [k, v] = kv.split("=");
+        return [k?.trim(), v?.trim()];
+      })
+    );
+    const timestamp = parts.t;
+    const signatureHex = parts.v1;
+    if (!timestamp || !signatureHex) {
+      return res.status(400).json({ success: false, error: "Malformed stripe-signature header." });
+    }
+
+    const rawPayload = (req as any).rawBody
+      ? (req as any).rawBody.toString("utf-8")
+      : typeof req.body === "string"
+      ? req.body
+      : JSON.stringify(req.body || {});
+    const expectedHmac = crypto
+      .createHmac("sha256", stripeWebhookSecret)
+      .update(`${timestamp}.${rawPayload}`)
+      .digest("hex");
+
+    const sigBuf = Buffer.from(signatureHex, "hex");
+    const expectedBuf = Buffer.from(expectedHmac, "hex");
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return res.status(400).json({ success: false, error: "Invalid Stripe webhook signature." });
+    }
+
+    const eventType = req.body?.type || "unknown";
+    console.log(`[Stripe Webhook] Signature verified for event: ${eventType}`);
+    return res.json({ status: "ok", received: true, verified: true, event: eventType });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// 5. Automated 1-Click Refund Processing Endpoint (7-Day Guarantee)
-app.post("/api/process-refund", (req, res) => {
+// 5. Automated 1-Click Refund Endpoint (Authenticated Ownership + Live Gateway Required)
+app.post("/api/process-refund", async (req, res) => {
   try {
-    const { transactionId, userEmail, reason } = req.body;
-    const refundId = "rfnd_" + Math.random().toString(36).substring(2, 12);
+    const identity = resolveAuthenticatedUserIdentity(req);
+    if (!identity) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to request a refund.",
+      });
+    }
 
-    console.log(`[Refund Engine] Processed 1-click refund ${refundId} for transaction ${transactionId} (${userEmail})`);
+    const guard = validatePaymentEnvironmentGuard(req.headers.host);
+    if (!guard.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: guard.error,
+        category: guard.category,
+        environment: guard.environment,
+      });
+    }
 
-    res.json({
+    const { transactionId, reason } = req.body || {};
+    const targetId = String(transactionId || "").trim();
+    if (!targetId) {
+      return res.status(400).json({ success: false, error: "Valid transactionId is required for refund processing." });
+    }
+
+    const allTxs = getAllVerifiedTransactions();
+    const tx = allTxs.find((t) => t.id === targetId || t.orderId === targetId);
+    if (!tx) {
+      return res.status(404).json({ success: false, error: "Verified transaction not found." });
+    }
+
+    const txOwnerEmail = String(tx.userEmail || "").toLowerCase().trim();
+    if (!identity.isOwnerOrAdmin && txOwnerEmail !== identity.email) {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: You can only request a refund for your own verified transaction.",
+      });
+    }
+
+    const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+    const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+    const hasLiveGateway = Boolean(
+      keyId &&
+      keySecret &&
+      !keyId.includes("YOUR_") &&
+      !keyId.includes("xxxxxx") &&
+      !keySecret.includes("YOUR_") &&
+      !keySecret.includes("your_live_key_secret")
+    );
+
+    if (!hasLiveGateway) {
+      return res.status(503).json({
+        success: false,
+        error: "Live payment gateway credentials are not configured on this server. Please contact support@pdfsun.in for manual refund assistance.",
+      });
+    }
+
+    const razorpayAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const refundRes = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(tx.id)}/refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${razorpayAuth}`,
+      },
+      body: JSON.stringify({
+        amount: tx.amountINR * 100,
+        notes: { reason: String(reason || "7-Day Satisfaction Guarantee"), requestedBy: identity.email },
+      }),
+    });
+    const refundData: any = await refundRes.json();
+
+    if (!refundRes.ok) {
+      return res.status(502).json({
+        success: false,
+        error: refundData?.error?.description || "Payment gateway declined refund request.",
+      });
+    }
+
+    tx.status = "REFUNDED";
+    saveTransactions();
+
+    return res.json({
       success: true,
-      refundId,
-      status: "Processed",
-      message: "Refund initiated successfully under PDFSun's 7-Day Money-Back Guarantee. Funds will revert within 3-5 business days.",
+      refundId: refundData?.id || `rfnd_${tx.id}`,
+      status: "REFUNDED",
+      message: "Refund initiated successfully via Razorpay under PDFSun's 7-Day Money-Back Guarantee.",
       refundDate: new Date().toISOString(),
     });
   } catch (err: any) {
@@ -4122,23 +4575,24 @@ app.post("/api/admin/users/update", verifyDualOwnerAccess, (req, res) => {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    const { passwordHash: _ph2, salt: _salt2, ...safeUpdatedUser } = (result.user || {}) as Record<string, any>;
     const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
     recordServerAuditLog({
       category: "user_status",
       eventType: "USER_STATUS_CHANGE",
       action: `Updated user account parameters for ${identifier}`,
-      target: `User: ${result.user?.name || identifier} (${identifier})`,
+      target: `User: ${safeUpdatedUser?.name || identifier} (${identifier})`,
       adminOperator,
       status: "SUCCESS",
       details: `User status/role modified: ${JSON.stringify(updates)}`,
-      metadata: { identifier, updates, user: result.user },
+      metadata: { identifier, updates, user: safeUpdatedUser },
     });
 
     const updatedUsers = getAllStoredUsers();
     res.json({
       success: true,
       message: "User updated successfully.",
-      user: result.user,
+      user: safeUpdatedUser,
       users: updatedUsers,
     });
   } catch (err: any) {
@@ -4670,29 +5124,8 @@ app.all("/api/admin/feedback/action", async (req, res) => {
   }
 });
 
-// Security Headers & Canonical Domain Middleware (Strictly enforces https://www.pdfsun.in)
+// Canonical Domain & Staging NoIndex Middleware (Security headers & unified CSP are set by trafficSecurityHeadersMiddleware)
 app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-
-  // Strict Content Security Policy (CSP) enforcing zero data leakage while allowing trusted CDNs, GA4, AdSense, and Razorpay
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://checkout.razorpay.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com data:; " +
-    "img-src 'self' data: blob: https://www.pdfsun.in https://*.google.com https://*.google-analytics.com https://pagead2.googlesyndication.com https://*.razorpay.com; " +
-    "connect-src 'self' blob: data: https://*.googleapis.com https://*.google-analytics.com https://*.googlesyndication.com https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com https://firestore.googleapis.com wss: ws:; " +
-    "worker-src 'self' blob:; " +
-    "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; " +
-    "object-src 'none'; " +
-    "base-uri 'self';"
-  );
-
   const host = req.headers.host || "";
   const proto = req.headers["x-forwarded-proto"] || req.protocol;
 
@@ -4729,12 +5162,40 @@ app.get("/ads.txt", (req, res) => {
   res.send("google.com, pub-4189458265489554, DIRECT, f08c47fec0942fa0\n");
 });
 
-// Dynamic Robots.txt (Strictly compliant with Google Search Favicon, AdSense & Bing Rules)
+// Agent & LLM Discovery Endpoints (llms.txt + Agentic Resource Discovery ard.json)
+app.get("/llms.txt", (req, res) => {
+  const llmsPath = path.join(process.cwd(), "public", "llms.txt");
+  res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (fs.existsSync(llmsPath)) {
+    return res.status(200).sendFile(llmsPath);
+  }
+  return res.status(404).send("# Not Found\n");
+});
+
+app.get(["/.well-known/ard.json", "/ard.json"], (req, res) => {
+  const wellKnownPath = path.join(process.cwd(), "public", ".well-known", "ard.json");
+  const rootArdPath = path.join(process.cwd(), "public", "ard.json");
+  const target = fs.existsSync(wellKnownPath) ? wellKnownPath : fs.existsSync(rootArdPath) ? rootArdPath : null;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (target) {
+    return res.status(200).sendFile(target, { dotfiles: "allow" });
+  }
+  return res.status(404).json({ error: "ARD manifest not found" });
+});
+
+// Dynamic Robots.txt (Strictly compliant with Google Search Favicon, AdSense, Bing & Agent Discovery Rules)
 app.get("/robots.txt", (req, res) => {
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
   res.send(`User-agent: *
 Allow: /
+Allow: /llms.txt
+Allow: /.well-known/ard.json
+Allow: /ard.json
 Allow: /favicon.ico
 Allow: /favicon*.png
 Allow: /favicon.svg
@@ -4778,6 +5239,7 @@ Allow: /site.webmanifest
 Disallow: /api/admin/
 
 Sitemap: https://www.pdfsun.in/sitemap.xml
+Sitemap: https://www.pdfsun.in/sitemap-international.xml
 Sitemap: https://www.pdfsun.in/sitemap-blog.xml
 Sitemap: https://www.pdfsun.in/sitemap-compress-sizes.xml
 Sitemap: https://www.pdfsun.in/sitemap-pseo.xml
@@ -4915,7 +5377,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Explicit API 404 handler: guarantees /api/* routes always return JSON (never HTML or empty response)
-app.all("/api/*", (req, res) => {
+app.all(/^\/api(?:\/.*)?$/, (req, res) => {
   res.status(404).json({
     success: false,
     error: `API route ${req.method} ${req.originalUrl} not found`,
@@ -4953,7 +5415,7 @@ async function startServer() {
   }
 
   // Explicit Catch-all for API endpoints to prevent HTML error pages / SPA fallbacks
-  app.all("/api/*", (req, res) => {
+  app.all(/^\/api(?:\/.*)?$/, (req, res) => {
     res.setHeader("Content-Type", "application/json");
     return res.status(404).json({
       success: false,
@@ -4999,7 +5461,7 @@ async function startServer() {
       appType: "custom",
     });
     app.use(vite.middlewares);
-    app.use("*", async (req, res, next) => {
+    app.use(async (req, res, next) => {
       const url = req.originalUrl;
       if (url.startsWith("/api/")) {
         res.setHeader("Content-Type", "application/json");
@@ -5057,7 +5519,7 @@ async function startServer() {
         },
       })
     );
-    app.get("*", (req, res) => {
+    app.get(/.*/, (req, res) => {
       if (req.path.startsWith("/api/")) {
         res.setHeader("Content-Type", "application/json");
         return res.status(404).json({

@@ -5,6 +5,7 @@
  */
 
 import { registerBlobUrl } from "./pdfWorkerManager";
+import { toStrictUint8Array } from "./binaryUtils";
 
 export type PdfWorkerAction = "merge" | "compress" | "rotate" | "split" | "watermark" | "ocr" | "convert";
 
@@ -334,7 +335,7 @@ class PDFWorkerPool {
           });
           resultBytes = splitRes.bytes;
           const durationMs = Math.round(performance.now() - task.startTime);
-          const blob = new Blob([resultBytes], { type: splitRes.mimeType });
+          const blob = new Blob([toStrictUint8Array(resultBytes)], { type: splitRes.mimeType });
           const url = registerBlobUrl(URL.createObjectURL(blob));
 
           this.releaseWorker(workerInstance);
@@ -355,7 +356,7 @@ class PDFWorkerPool {
         if (task.onProgress) task.onProgress(100);
 
         const durationMs = Math.round(performance.now() - task.startTime);
-        const blob = new Blob([resultBytes], { type: "application/pdf" });
+        const blob = new Blob([toStrictUint8Array(resultBytes)], { type: "application/pdf" });
         const url = registerBlobUrl(URL.createObjectURL(blob));
 
         this.releaseWorker(workerInstance);

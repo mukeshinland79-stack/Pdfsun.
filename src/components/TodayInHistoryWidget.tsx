@@ -33,7 +33,6 @@ import { useHistoryEngagement } from "../hooks/useHistoryEngagement";
 import { ToolItem } from "../types";
 import { HistoryEventItem } from "../types/history";
 import { LanguageSelectorModal } from "./LanguageSelectorModal";
-import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
 import { getLocalizedTag, getLocalizedCategoryFilterName } from "../utils/historyTranslationEngine";
 import { ALL_TOOLS } from "../data/toolsData";
@@ -224,10 +223,11 @@ export const TodayInHistoryWidget: React.FC<TodayInHistoryWidgetProps> = ({
   };
 
   // Export PDF Worksheet with engagement telemetry
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (data) {
       trackWorksheetDownload(data.events?.length || 1, data.events?.[0]?.id);
-      generateHistoryWorksheetPdf(data);
+      const { generateHistoryWorksheetPdf } = await import("../utils/historyPdfGenerator");
+      await generateHistoryWorksheetPdf(data);
     }
   };
 

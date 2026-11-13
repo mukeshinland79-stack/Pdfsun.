@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Globe,
   Edit,
@@ -21,6 +21,7 @@ import {
   getCmsOverrides,
   saveBulkCmsOverrides,
   resetAllCmsOverrides,
+  ensureAllTranslationPacksLoaded,
 } from "../lib/i18n";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -30,8 +31,19 @@ export const AdminCmsTab: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>("");
+  const [, setTranslationPackRevision] = useState<number>(0);
 
   const [localOverrides, setLocalOverrides] = useState<Record<string, Record<string, string>>>(getCmsOverrides);
+
+  useEffect(() => {
+    let active = true;
+    ensureAllTranslationPacksLoaded(selectedLanguage).then(() => {
+      if (active) setTranslationPackRevision((r) => r + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedLanguage]);
 
   const handleFieldChange = (key: string, value: string) => {
     setLocalOverrides((prev) => {

@@ -42,15 +42,18 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
     <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
       {/* Badge Button showing Average Rating */}
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           if (showPopoverOnClick) {
             setIsOpenPopover(!isOpenPopover);
           }
         }}
-        className={`inline-flex items-center space-x-1 rounded-full font-bold transition-all shadow-2xs ${
+        aria-label={`Rate ${toolName || "this tool"}, average ${avgRating.toFixed(1)} out of 5 from ${totalRatings} ratings`}
+        aria-expanded={showPopoverOnClick ? isOpenPopover : undefined}
+        className={`inline-flex items-center space-x-1 min-h-[24px] rounded-full font-bold transition-all shadow-2xs ${
           userRating
-            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/25"
+            ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/25"
             : "bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:border-amber-400"
         } ${
           size === "sm"
@@ -61,9 +64,9 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
         }`}
         title="Click to rate this tool"
       >
-        <Star className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" />
+        <Star className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" aria-hidden="true" />
         <span>{avgRating.toFixed(1)}</span>
-        <span className="text-slate-400 font-normal">({totalRatings})</span>
+        <span className="text-slate-600 dark:text-slate-300 font-normal">({totalRatings})</span>
       </button>
 
       {/* Interactive Rating Popover */}
@@ -78,10 +81,12 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
               <span>Rate {toolName || "Tool"}</span>
             </span>
             <button
+              type="button"
               onClick={() => setIsOpenPopover(false)}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+              aria-label="Close rating popover"
+              className="min-w-[24px] min-h-[24px] inline-flex items-center justify-center p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
@@ -104,11 +109,14 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
                 {[1, 2, 3, 4, 5].map((starVal) => (
                   <button
                     key={starVal}
+                    type="button"
+                    aria-label={`Rate ${starVal} out of 5 stars`}
                     onMouseEnter={() => setHoverRating(starVal)}
                     onClick={(e) => handleStarClick(e, starVal)}
-                    className="p-1 transition-transform hover:scale-125 focus:outline-none"
+                    className="min-w-[28px] min-h-[28px] inline-flex items-center justify-center p-1 transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded-md"
                   >
                     <Star
+                      aria-hidden="true"
                       className={`w-5 h-5 transition-colors ${
                         starVal <= currentDisplayStars
                           ? "text-amber-400 fill-amber-400"

@@ -527,7 +527,12 @@ export async function fetchUserTransactionsFromFirestore(
     // Resilient fallback: fetch from secure server payment-history endpoint
     if (typeof window !== "undefined" && email) {
       try {
-        const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+        const token =
+          localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || "";
+        const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (res.ok) {
           const json = await res.json();
           if (json && Array.isArray(json.transactions)) {

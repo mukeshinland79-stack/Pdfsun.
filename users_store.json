@@ -76,5 +76,39 @@
     "joinedDate": "Sep 2026",
     "createdAt": "2026-09-06T10:45:31.661Z",
     "lastLoginAt": "2026-09-06T10:45:31.661Z"
+  },
+  "audit_1794544778653@example.com": {
+    "id": "usr-2hjdyaa",
+    "name": "Audit User",
+    "email": "audit_1794544778653@example.com",
+    "phone": "+91 9991659655",
+    "passwordHash": "9689093e1cf4b8e69458cd71ffd2f8d50be1b3468cdaab9e3b1c54f659f002710f64b94b3d4e42cd4652222d044392296b9ec3cba008e001157bb61688256185",
+    "salt": "ab110efa802a9f5c8e4f25c950d503d9",
+    "role": "user",
+    "plan": "Free Customer",
+    "hasAdminAccess": false,
+    "isPro": false,
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-11-13T04:39:38.768Z",
+    "lastLoginAt": "2026-11-13T04:39:38.768Z",
+    "avatar": "",
+    "photoURL": ""
+  },
+  "avatar_audit_1794544827444@example.com": {
+    "id": "usr-be60vnp",
+    "name": "Avatar Audit",
+    "email": "avatar_audit_1794544827444@example.com",
+    "phone": "+91 9991659655",
+    "passwordHash": "2fab4501b0399076464aa4c0e495083d3257ab70c1ee6c1ef835749bd707c799a1e69c4a8e4522792181f780a4230427754b5b84d8458574802abb12d139209d",
+    "salt": "1a40e1701bf785c7a4204bd13545224e",
+    "role": "user",
+    "plan": "Free Customer",
+    "hasAdminAccess": false,
+    "isPro": false,
+    "joinedDate": "Jan 2026",
+    "createdAt": "2026-11-13T04:40:27.659Z",
+    "lastLoginAt": "2026-11-13T04:40:27.659Z",
+    "avatar": "https://example.com/avatar.png",
+    "photoURL": "https://example.com/avatar.png"
   }
 }

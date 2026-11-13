@@ -46,12 +46,18 @@ async function syncProfilePictureToServer(
 
   for (const endpoint of endpoints) {
     try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
       const response = await fetch(endpoint, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
           "x-user-email": email,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           email,

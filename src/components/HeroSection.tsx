@@ -12,9 +12,10 @@ import {
   Combine,
   Minimize2,
   FileText,
+  Barcode,
 } from "lucide-react";
 import { ToolItem } from "../types";
-import { ALL_TOOLS } from "../data/toolsData";
+import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -75,6 +76,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { name: t("pdfToWord", "PDF to Word"), toolId: "pdf-to-word", icon: FileText },
     { name: t("chatWithPdf", "AI Chat with PDF"), toolId: "ai-chat-pdf", icon: Sparkles },
     { name: t("aiSummary", "AI Summary"), toolId: "ai-pdf-summary", icon: Zap },
+    { name: t("tools.barcode-studio.name", "Barcode Studio"), toolId: "barcode-studio", icon: Barcode, isNew: true },
     { name: t("tools.ai-resume-builder.name", "AI Resume Builder"), toolId: "ai-resume-builder", icon: FileText },
   ];
 
@@ -116,7 +118,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <span className="font-bold">{t("badges.tools50", "66+ Free Online PDF & Document Tools")}</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
-            <span className="text-slate-500 dark:text-slate-400 font-normal">{t("badges.clientSandboxed", "Client Sandboxed")}</span>
+            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.clientSandboxed", "Client Sandboxed")}</span>
           </div>
 
           {/* Dynamic Counter Component Badge */}
@@ -125,7 +127,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="font-semibold text-orange-600 dark:text-orange-400">{t("badges.utilitiesTitle", "Serving 66+ High-Speed Document Engines")}</span>
+            <span className="font-semibold text-orange-700 dark:text-orange-400">{t("badges.utilitiesTitle", "Serving 66+ High-Speed Document Engines")}</span>
           </div>
         </div>
 
@@ -141,13 +143,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Quick Search & Launch */}
         <div className="max-w-lg mx-auto flex items-center bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-md shadow-slate-200/40 dark:shadow-none border border-slate-200 dark:border-slate-700">
-          <Search className="w-4 h-4 text-blue-600 ml-2.5 shrink-0" />
+          <Search className="w-4 h-4 text-blue-600 ml-2.5 shrink-0" aria-hidden="true" />
           <input
             type="text"
+            aria-label={t("searchPlaceholder", "Search 66+ PDF & Document Tools (Ctrl+K)...")}
             placeholder={t("searchPlaceholder", "Search 66+ PDF & Document Tools (Ctrl+K)...")}
             onClick={onOpenSearch}
             readOnly
-            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none cursor-pointer"
+            className="w-full bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none cursor-pointer"
           />
           <button
             onClick={onOpenSearch}
@@ -167,24 +170,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               : "border-slate-300 dark:border-slate-700 bg-white/85 dark:bg-slate-800/85 hover:border-blue-500 dark:hover:border-blue-400"
           }`}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} aria-label={t("dropzoneTitle", "Drop PDF files here or click to browse")} />
 
           <div className="flex flex-col items-center justify-center space-y-2.5">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr p-0.5 shadow-sm group-hover:scale-105 transition duration-200 ${
               isDragActive ? "from-emerald-500 to-teal-500 shadow-emerald-500/30 animate-bounce" : "from-blue-600 to-indigo-600 shadow-blue-500/20"
             }`}>
               <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
-                <UploadCloud className={`w-5 h-5 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} />
+                <UploadCloud className={`w-5 h-5 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} aria-hidden="true" />
               </div>
             </div>
 
             <div className="space-y-0.5">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 {isDragActive
                   ? t("dropzoneActiveTitle", "Release files to launch tool workspace")
                   : t("dropzoneTitle", "Drop PDF files here or click to browse")}
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              </h2>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {isDragActive ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                     {t("dropzoneActiveSub", "Drop now to start processing instantly")}
@@ -197,7 +200,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-1.5 pt-0.5 text-[10px] text-slate-400 font-medium">
+            <div className="flex flex-wrap justify-center gap-1.5 pt-0.5 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
               <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PDF</span>
               <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Word</span>
               <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Excel</span>
@@ -210,20 +213,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Popular Quick Tools Pills */}
         <div className="pt-0.5">
           <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">{t("quick_actions.title", "Popular:")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mr-1 hidden sm:inline">{t("quick_actions.title", "Popular:")}</span>
             {quickTags.map((tag) => {
-              const tool = ALL_TOOLS.find((t) => t.id === tag.toolId);
+              const tool =
+                tag.toolId === BARCODE_STUDIO_TOOL.id
+                  ? BARCODE_STUDIO_TOOL
+                  : ALL_TOOLS.find((t) => t.id === tag.toolId);
               if (!tool) return null;
               const Icon = tag.icon;
               return (
                 <button
                   key={tag.toolId}
+                  type="button"
                   onClick={() => onSelectTool(tool)}
-                  className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition"
+                  className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition cursor-pointer"
                 >
-                  <Icon className="w-3 h-3 text-blue-600" />
+                  <Icon className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
                   <span>{tag.name}</span>
-                  <ArrowRight className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100" />
+                  {"isNew" in tag && tag.isNew && (
+                    <span className="px-1 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 leading-tight">
+                      NEW
+                    </span>
+                  )}
+                  <ArrowRight className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100 shrink-0" aria-hidden="true" />
                 </button>
               );
             })}

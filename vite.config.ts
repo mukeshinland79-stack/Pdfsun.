@@ -45,11 +45,18 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('preload-helper') || id.includes('commonjsHelpers')) return 'vendor-react';
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'vendor-react';
+            if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) return 'vendor-i18n';
+            if (id.includes('node_modules/firebase')) return 'vendor-firebase';
             if (id.includes('node_modules/pdfjs-dist')) return 'vendor-pdfjs';
+            if (id.includes('node_modules/pdf-lib')) return 'vendor-pdf-lib';
+            if (id.includes('node_modules/jspdf')) return 'vendor-jspdf';
             if (id.includes('node_modules/pptxgenjs')) return 'vendor-pptxgenjs';
             if (id.includes('node_modules/tesseract.js')) return 'vendor-tesseract';
-            if (id.includes('node_modules/jspdf') || id.includes('node_modules/pdf-lib')) return 'vendor-pdf-engines';
             if (id.includes('node_modules/xlsx') || id.includes('node_modules/exceljs')) return 'vendor-spreadsheets';
+            if (id.includes('node_modules/docx') || id.includes('node_modules/mammoth')) return 'vendor-docx';
+            if (id.includes('node_modules/jszip')) return 'vendor-zip';
           },
         },
       },

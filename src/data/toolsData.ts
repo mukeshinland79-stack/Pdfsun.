@@ -1,5 +1,40 @@
 import { ToolItem } from "../types";
 
+export const BARCODE_STUDIO_TOOL: ToolItem = {
+  id: "barcode-studio",
+  name: "Barcode Studio",
+  slug: "barcode",
+  description: "Generate 21+ industrial 1D & 2D barcodes, QR codes, and GS1 labels with live preview, check-digit calculation, Avery label imposition, batch Excel/CSV imports, and document data extraction.",
+  icon: "Barcode",
+  category: "advanced",
+  isPopular: true,
+  badge: "NEW",
+  supportedInput: [".pdf", ".docx", ".xlsx", ".csv", ".txt", ".json", ".xml", ".png", ".jpg"],
+  outputFormat: "PNG / SVG / PDF / ZIP",
+  faqs: [
+    {
+      question: "Which barcode formats and symbologies are supported by PDFSun Barcode Studio?",
+      answer: "PDFSun Barcode Studio supports 21+ industrial 1D linear and 2D matrix symbologies, including Code 128 (Auto/A/B/C), EAN-13, EAN-8, UPC-A, UPC-E, QR Code, Data Matrix, PDF417, Aztec Code, GS1-128, ITF-14, Code 39, Code 93, Codabar, MSI Plessey, and Pharmacode.",
+    },
+    {
+      question: "Can I print barcodes on standard Avery or thermal label sheets?",
+      answer: "Yes! PDFSun includes built-in imposition templates for popular label sheets such as Avery 5160 (Letter 30-up), Avery 5163 (Shipping 10-up), European A4 Avery L7160/L7163, Zebra/DYMO 4x6 inch direct thermal shipping labels, and jewelry barbell tags with customizable cut marks and borders.",
+    },
+    {
+      question: "Can I batch generate barcodes from Excel or CSV files?",
+      answer: "Yes. Use our Bulk Automation engine to upload CSV or XLSX spreadsheets containing hundreds of SKUs or product codes, or automatically generate sequential numeric series (e.g. INV-0001 to INV-1000) and download them all in a single organized ZIP archive.",
+    },
+    {
+      question: "Can I upload existing documents (PDF, DOCX, XLSX, images) to extract barcode values?",
+      answer: "Yes! Use the Upload Files & Documents option to extract text, SKUs, identifiers, or scan existing QR codes from PDF, Word documents, Excel spreadsheets, CSVs, TXT, JSON, XML, and images directly into the barcode generator.",
+    },
+    {
+      question: "Are my documents, barcodes, and business data kept private?",
+      answer: "100% private. All barcode rendering, document parsing, and label PDF generation runs locally inside your browser via client-side WebAssembly and JavaScript. Zero files or data are ever uploaded to remote servers.",
+    },
+  ],
+};
+
 export const ALL_TOOLS: ToolItem[] = [
   // --- STUDENT & POPULAR CONVERT & AI HIGHLIGHTS ---
   {

@@ -11,8 +11,21 @@ import { setupGlobalFetchInterceptor } from './lib/fetchInterceptor';
 // Initialize global network fetch interceptor to handle errors, 4xx/5xx responses, and timeouts
 setupGlobalFetchInterceptor();
 
-// Register Service Worker for PWA Offline Capability
-registerServiceWorker();
+// Defer Service Worker registration until after load & idle to protect LCP/INP
+if (typeof window !== 'undefined') {
+  const scheduleSw = () => {
+    if (typeof (window as any).requestIdleCallback === 'function') {
+      (window as any).requestIdleCallback(() => registerServiceWorker(), { timeout: 3000 });
+    } else {
+      setTimeout(() => registerServiceWorker(), 1500);
+    }
+  };
+  if (document.readyState === 'complete') {
+    scheduleSw();
+  } else {
+    window.addEventListener('load', scheduleSw, { once: true });
+  }
+}
 
 // Silence benign Vite HMR WebSocket connection warnings & third-party ad/sodar fetch noise in sandboxed preview
 if (typeof window !== 'undefined') {
@@ -96,45 +109,6 @@ if (typeof window !== 'undefined') {
       return;
     }
     console.error('[Pdfsun Global Error Caught]:', event.error || event.message);
-  });
-}
-
-// Global Pointerdown Ripple & Touch Feedback Engine for Interactive Buttons
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  document.addEventListener('pointerdown', (e) => {
-    const target = (e.target as HTMLElement)?.closest('button, [role="button"], .btn-interactive, .btn-primary, .btn-secondary, .btn-accent, .btn-cta, a.btn');
-    if (!target) return;
-
-    const rect = target.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-
-    const ripple = document.createElement('span');
-    ripple.className = 'btn-ripple-wave';
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-
-    const computedStyle = window.getComputedStyle(target);
-    if (computedStyle.position === 'static') {
-      (target as HTMLElement).style.position = 'relative';
-    }
-    if (computedStyle.overflow !== 'hidden') {
-      (target as HTMLElement).style.overflow = 'hidden';
-    }
-
-    target.appendChild(ripple);
-
-    target.classList.add('btn-pulse-active');
-    setTimeout(() => {
-      target.classList.remove('btn-pulse-active');
-    }, 250);
-
-    setTimeout(() => {
-      ripple.remove();
-    }, 450);
   });
 }
 

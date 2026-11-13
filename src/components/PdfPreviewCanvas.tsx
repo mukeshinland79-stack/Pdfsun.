@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
+import { toStrictArrayBuffer } from "../utils/binaryUtils";
 import {
   FileText,
   RefreshCw,
@@ -252,7 +253,7 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
         if (file instanceof File || file instanceof Blob) {
           bufferData = await file.arrayBuffer();
         } else if (file instanceof Uint8Array) {
-          bufferData = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+          bufferData = toStrictArrayBuffer(file);
         } else {
           bufferData = file;
         }

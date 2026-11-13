@@ -9,6 +9,7 @@
  */
 
 import { registerGuardedBlobUrl } from "../utils/memoryGuard";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface GuardedWorkerOptions {
   timeoutMs?: number; // default: 45000ms
@@ -125,10 +126,10 @@ export async function executeGuardedWorker(
             resultBytes = new Uint8Array();
           } else if (data.resultBuffer) {
             resultBytes = new Uint8Array(data.resultBuffer);
-            resultBlob = new Blob([resultBytes], { type: data.mimeType || "application/pdf" });
+            resultBlob = new Blob([toStrictUint8Array(resultBytes)], { type: data.mimeType || "application/pdf" });
           } else if (data.bytes) {
             resultBytes = data.bytes;
-            resultBlob = new Blob([resultBytes], { type: data.mimeType || "application/pdf" });
+            resultBlob = new Blob([toStrictUint8Array(resultBytes)], { type: data.mimeType || "application/pdf" });
           } else {
             resultBytes = new Uint8Array();
             resultBlob = new Blob([], { type: data.mimeType || "application/octet-stream" });

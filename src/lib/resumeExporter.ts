@@ -424,7 +424,7 @@ export function exportResumeToPdf(data: ResumeData, style: ResumeStyle = "ats", 
       accent: [180, 83, 9],
       font: "times",
     },
-  }[style] || {
+  }[typeof style === "string" ? style : "ats"] || {
     primary: [17, 24, 39],
     secondary: [75, 85, 99],
     text: [31, 41, 55],

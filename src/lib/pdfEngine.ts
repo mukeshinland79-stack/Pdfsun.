@@ -9,23 +9,11 @@ if (typeof (Uint8Array.prototype as any).toHex === "undefined") {
 
 import { PDFDocument, rgb, degrees, StandardFonts, PDFName } from "pdf-lib";
 import { jsPDF } from "jspdf";
-import JSZip from "jszip";
-import { createWorker } from "tesseract.js";
-import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-import { Document as DocxDocument, Paragraph, TextRun, Packer, Table as DocxTable, TableRow, TableCell, WidthType } from "docx";
-import PptxGenJS from "pptxgenjs";
-import * as pdfjsLib from "pdfjs-dist";
-import { encryptPDF, AlreadyEncryptedError } from "@pdfsmaller/pdf-encrypt";
-import { decryptPDF, isEncrypted } from "@pdfsmaller/pdf-decrypt";
-import { redactPdfPermanently } from "./enterpriseRedactionEngine";
 import { compressPdfEnterprise, CompressionResult, CompressionOptions } from "./enterpriseCompressionEngine";
-import { convertEpubToPdfEnterprise } from "./enterpriseEpubEngine";
-import { convertRtfToPdfEnterprise } from "./enterpriseRtfEngine";
-import { convertXmlToPdfEnterprise } from "./enterpriseXmlEngine";
-import { convertHtmlToPdfEnterprise } from "./enterpriseHtmlEngine";
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 import {
   mergePdfsCore,
   MergePdfOptions,
@@ -83,12 +71,7 @@ import {
   PdfToPptPreset,
   PdfToPowerPointOptions,
 } from "./enterprisePdfToPowerPointEngine";
-import {
-  convertImageToExcelEnterprise,
-  convertImageToWordEnterprise,
-  astToSmartDocumentAnalysis,
-  DocumentAST,
-} from "./enterpriseImageOcrEngine";
+import type { DocumentAST } from "./enterpriseImageOcrEngine";
 import {
   convertImageToNotepadEnterprise,
   convertImagesToPdfEnterprise,
@@ -170,10 +153,14 @@ export {
   parseNumericCell,
 };
 
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
+async function getPdfJs() {
+  const pdfjsLib = await import("pdfjs-dist");
+  if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
+      pdfjsLib.version || "4.10.38"
+    }/pdf.worker.min.mjs`;
+  }
+  return pdfjsLib;
 }
 
 // Helper to read File as ArrayBuffer
@@ -660,6 +647,7 @@ export async function flattenPdf(
   }
 
   // MODE B: High-Security Rasterization (Converts pages to 150/300 DPI canvas images, locking editing completely)
+  const pdfjsLib = await getPdfJs();
   const arrayBuffer = await fileToArrayBuffer(file);
   const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdfJsDoc.numPages;
@@ -777,6 +765,7 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
   }
 
   try {
+    const pdfjsLib = await getPdfJs();
     const arrayBuffer = await fileToArrayBuffer(file);
     const loadingTask = pdfjsLib.getDocument({
       data: arrayBuffer,
@@ -949,6 +938,7 @@ export async function ocrImageToText(
   file: File,
   onStatus?: (status: string, progress: number) => void
 ): Promise<string> {
+  const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("eng");
   const dataUrl = await fileToDataURL(file);
 
@@ -965,6 +955,7 @@ export async function ocrImageToText(
 export async function createBatchZip(
   files: { name: string; bytes: Uint8Array }[]
 ): Promise<Blob> {
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   files.forEach((f) => {
     zip.file(f.name, f.bytes);
@@ -1182,6 +1173,7 @@ export async function htmlToPdf(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<Uint8Array> {
+  const { convertHtmlToPdfEnterprise } = await import("./enterpriseHtmlEngine");
   const result = await convertHtmlToPdfEnterprise(file, (p) => {
     if (onProgress) onProgress(p);
   });
@@ -1456,6 +1448,7 @@ export async function removeWatermarkFromPdf(
   if (method === "color" || (method === "combined" && opts.targetColorRgb)) {
     if (onProgress) onProgress(20);
 
+    const pdfjsLib = await getPdfJs();
     const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const cleanPdfDoc = await PDFDocument.create();
 
@@ -1683,6 +1676,7 @@ export async function unlockPdfDocument(
   const arrayBuffer = await file.arrayBuffer();
   const rawBytes = new Uint8Array(arrayBuffer);
 
+  const { decryptPDF, isEncrypted } = await import("@pdfsmaller/pdf-decrypt");
   const status = await isEncrypted(rawBytes);
   if (!status.encrypted) {
     if (onProgress) onProgress(100);
@@ -1717,6 +1711,7 @@ export async function redactPdfContent(
         .filter(Boolean)
     : ["confidential", "SSN", "secret"];
 
+  const { redactPdfPermanently } = await import("./enterpriseRedactionEngine");
   const result = await redactPdfPermanently(
     file,
     {
@@ -1798,6 +1793,7 @@ export async function convertToPdfA(
 
 // 37. EPUB / RTF / XML to PDF Converters (Enterprise Hardened Engines)
 export async function epubToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
+  const { convertEpubToPdfEnterprise } = await import("./enterpriseEpubEngine");
   const result = await convertEpubToPdfEnterprise(file, (p) => {
     if (onProgress) onProgress(p);
   });
@@ -1805,6 +1801,7 @@ export async function epubToPdf(file: File, onProgress?: (percent: number) => vo
 }
 
 export async function rtfToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
+  const { convertRtfToPdfEnterprise } = await import("./enterpriseRtfEngine");
   const result = await convertRtfToPdfEnterprise(file, (p) => {
     if (onProgress) onProgress(p);
   });
@@ -1812,6 +1809,7 @@ export async function rtfToPdf(file: File, onProgress?: (percent: number) => voi
 }
 
 export async function xmlToPdf(file: File, onProgress?: (percent: number) => void): Promise<Uint8Array> {
+  const { convertXmlToPdfEnterprise } = await import("./enterpriseXmlEngine");
   const result = await convertXmlToPdfEnterprise(file, (p) => {
     if (onProgress) onProgress(p);
   });
@@ -1864,16 +1862,16 @@ export function validateOutputBlob(
     const encoder = new TextEncoder();
     uint8 = encoder.encode(data);
     bytesCount = uint8.length;
-    blob = new Blob([uint8], { type: mimeType });
+    blob = new Blob([toStrictUint8Array(uint8)], { type: mimeType });
   } else if (data instanceof Uint8Array) {
     uint8 = data;
     bytesCount = uint8.byteLength;
-    blob = new Blob([uint8], { type: mimeType });
+    blob = new Blob([toStrictUint8Array(uint8)], { type: mimeType });
   } else if (ArrayBuffer.isView(data)) {
     const view = data as unknown as ArrayBufferView;
     uint8 = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
     bytesCount = uint8.byteLength;
-    blob = new Blob([uint8], { type: mimeType });
+    blob = new Blob([toStrictUint8Array(uint8)], { type: mimeType });
   } else {
     throw new Error("Invalid output format generated by processing engine.");
   }
@@ -2104,6 +2102,7 @@ export async function generateDocumentThumbnail(file: File, maxDim = 320): Promi
   // Handle PDF uploads
   if (file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf")) {
     try {
+      const pdfjsLib = await getPdfJs();
       const arrayBuffer = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
       const pdf = await loadingTask.promise;
@@ -2239,6 +2238,7 @@ export async function protectPdf(
   const arrayBuffer = await file.arrayBuffer();
   const rawBytes = new Uint8Array(arrayBuffer);
 
+  const { isEncrypted } = await import("@pdfsmaller/pdf-decrypt");
   // Validate if already encrypted
   const encStatus = await isEncrypted(rawBytes);
   if (encStatus.encrypted) {
@@ -2247,6 +2247,7 @@ export async function protectPdf(
 
   if (onProgress) onProgress(40);
 
+  const { encryptPDF, AlreadyEncryptedError } = await import("@pdfsmaller/pdf-encrypt");
   try {
     const encryptedBytes = await encryptPDF(rawBytes, options.userPassword, {
       ownerPassword: options.ownerPassword || options.userPassword,
@@ -2441,6 +2442,8 @@ export async function imageToExcel(
   const outputFormat = options?.outputFormat || "xlsx";
   const mode = options?.mode || "table";
 
+  const { convertImageToExcelEnterprise, astToSmartDocumentAnalysis } = await import("./enterpriseImageOcrEngine");
+
   if (fileList.length === 1) {
     const res = await convertImageToExcelEnterprise(
       fileList[0],
@@ -2571,6 +2574,8 @@ export async function imageToWordDocx(
   const fileList = Array.isArray(files) ? files : [files];
   const format = options?.format || "docx";
   const mode = options?.mode || "auto";
+
+  const { convertImageToWordEnterprise, astToSmartDocumentAnalysis } = await import("./enterpriseImageOcrEngine");
 
   if (fileList.length === 1) {
     const res = await convertImageToWordEnterprise(

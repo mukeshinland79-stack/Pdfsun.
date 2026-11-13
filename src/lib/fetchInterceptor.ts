@@ -299,6 +299,30 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
     // Allow generous 120-second timeout for heavy AI generation and multi-page conversions
     const effectiveTimeoutMs = isAiOrHeavyRoute ? 120000 : DEFAULT_TIMEOUT_MS;
 
+    // Attach same-origin session credentials and stored JWT Bearer token on /api/ calls
+    if (pathName.startsWith("/api/")) {
+      const existingHeaders = new Headers(fetchInit?.headers || {});
+      if (!existingHeaders.has("Authorization") && !existingHeaders.has("x-admin-token")) {
+        try {
+          const storedToken = (
+            localStorage.getItem("pdfsun_auth_token") ||
+            localStorage.getItem("pdfsun_admin_token") ||
+            localStorage.getItem("token") ||
+            sessionStorage.getItem("pdfsun_admin_token") ||
+            ""
+          ).trim();
+          if (storedToken) {
+            existingHeaders.set("Authorization", `Bearer ${storedToken}`);
+          }
+        } catch {}
+      }
+      fetchInit = {
+        ...fetchInit,
+        credentials: fetchInit?.credentials || "include",
+        headers: existingHeaders,
+      };
+    }
+
     if (!init?.signal && effectiveTimeoutMs > 0 && !isViteHmrNoise) {
       timeoutController = new AbortController();
       timeoutTimer = setTimeout(() => {
@@ -306,7 +330,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       }, effectiveTimeoutMs);
 
       fetchInit = {
-        ...init,
+        ...fetchInit,
         signal: timeoutController.signal,
       };
     }

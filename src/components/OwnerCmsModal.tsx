@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
   Save,
@@ -27,6 +27,7 @@ import {
   getCmsOverrides,
   saveBulkCmsOverrides,
   resetAllCmsOverrides,
+  ensureAllTranslationPacksLoaded,
 } from "../lib/i18n";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -118,6 +119,7 @@ export const OwnerCmsModal: React.FC<OwnerCmsModalProps> = ({ isOpen, onClose })
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>("");
   const [customFields, setCustomFields] = useState<CmsEditableField[]>(DEFAULT_EDITABLE_FIELDS);
+  const [, setTranslationPackRevision] = useState<number>(0);
 
   // Local draft state of overrides
   const [localOverrides, setLocalOverrides] = useState<Record<string, Record<string, string>>>(getCmsOverrides);
@@ -128,6 +130,17 @@ export const OwnerCmsModal: React.FC<OwnerCmsModalProps> = ({ isOpen, onClose })
   const [newKeyLabel, setNewKeyLabel] = useState("");
   const [newKeyCategory, setNewKeyCategory] = useState<CmsEditableField["category"]>("header");
   const [newKeyDefaultVal, setNewKeyDefaultVal] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    ensureAllTranslationPacksLoaded(selectedLanguage).then(() => {
+      if (active) setTranslationPackRevision((r) => r + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isOpen, selectedLanguage]);
 
   if (!isOpen) return null;
 

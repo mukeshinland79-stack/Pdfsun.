@@ -87,13 +87,14 @@ export const TestimonialsSection: React.FC = () => {
                   src={item.avatar}
                   alt={item.name}
                   loading="lazy"
+                  decoding="async"
                   width="40"
                   height="40"
                   className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/30"
                 />
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white" itemProp="name">{item.name}</div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400">
                     {getReviewRole(item)} • {item.organization}
                   </div>
                 </div>

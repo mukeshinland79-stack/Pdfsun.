@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { SupportedLanguage, GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
-import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
 import { useLanguage } from "../lib/i18n";
 import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
@@ -82,7 +81,8 @@ export const TodayInHistoryBanner: React.FC<TodayInHistoryBannerProps> = ({
     e.stopPropagation();
     const data = await fetchDayInHistory(new Date(), effectiveLangCode, geoResult.detectedCountryCode);
     if (data) {
-      generateHistoryWorksheetPdf(data);
+      const { generateHistoryWorksheetPdf } = await import("../utils/historyPdfGenerator");
+      await generateHistoryWorksheetPdf(data);
     }
   };
 

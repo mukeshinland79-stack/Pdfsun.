@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { exportTableGridToSpreadsheet } from "../lib/pdfEngine";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 interface TableGridPreviewModalProps {
   isOpen: boolean;
@@ -110,7 +111,7 @@ export const TableGridPreviewModal: React.FC<TableGridPreviewModalProps> = ({
       const cleanBaseName = fileName.replace(/\.[^/.]+$/, "");
       const res = exportTableGridToSpreadsheet(gridData, exportFormat, cleanBaseName);
 
-      const blob = new Blob([res.bytes], {
+      const blob = new Blob([toStrictUint8Array(res.bytes)], {
         type:
           exportFormat === "csv"
             ? "text/csv;charset=utf-8"

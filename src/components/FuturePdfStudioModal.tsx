@@ -57,6 +57,7 @@ import {
   hasGrantedMicrophoneInSession,
 } from "../utils/microphoneManager";
 import { MicrophonePermissionModal } from "./MicrophonePermissionModal";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export type FutureStudioTab = "voice-reader" | "voice-to-pdf" | "quantum-hud" | "macro-automator";
 
@@ -1107,7 +1108,7 @@ const QuantumPreFlightTab: React.FC<{
       pdfDoc.setCreator("PDFSun Anonymous Pre-Flight");
 
       const sanitizedBytes = await pdfDoc.save();
-      const sanitizedBlob = new Blob([sanitizedBytes], { type: "application/pdf" });
+      const sanitizedBlob = new Blob([toStrictUint8Array(sanitizedBytes)], { type: "application/pdf" });
       const outName = `PDFSun_Sanitized_${file.name}`;
       downloadFile(sanitizedBlob, outName);
 
@@ -1359,14 +1360,14 @@ const MacroAutomatorTab: React.FC<{
     setProgressPercent(10);
 
     try {
-      let currentBytes = new Uint8Array(await fileToArrayBuffer(file));
+      let currentBytes: Uint8Array = new Uint8Array(await fileToArrayBuffer(file));
 
       // Step 1: Compress
       if (stepCompress) {
         setCurrentStepIndex(1);
         setProgressPercent(30);
         currentBytes = await compressPdf(
-          new File([currentBytes], file.name, { type: "application/pdf" }),
+          new File([toStrictUint8Array(currentBytes)], file.name, { type: "application/pdf" }),
           compressLevel
         );
       }
@@ -1376,7 +1377,7 @@ const MacroAutomatorTab: React.FC<{
         setCurrentStepIndex(2);
         setProgressPercent(60);
         currentBytes = await watermarkPdf(
-          new File([currentBytes], file.name, { type: "application/pdf" }),
+          new File([toStrictUint8Array(currentBytes)], file.name, { type: "application/pdf" }),
           watermarkText.trim(),
           0.3
         );
@@ -1387,14 +1388,14 @@ const MacroAutomatorTab: React.FC<{
         setCurrentStepIndex(3);
         setProgressPercent(85);
         currentBytes = await addPageNumbers(
-          new File([currentBytes], file.name, { type: "application/pdf" })
+          new File([toStrictUint8Array(currentBytes)], file.name, { type: "application/pdf" })
         );
       }
 
       // Finalize
       setProgressPercent(100);
       setCurrentStepIndex(4);
-      const finalBlob = new Blob([currentBytes], { type: "application/pdf" });
+      const finalBlob = new Blob([toStrictUint8Array(currentBytes)], { type: "application/pdf" });
       const finalName = `PDFSun_Macro_Processed_${file.name}`;
       setDownloadReady({ blob: finalBlob, name: finalName });
       downloadFile(finalBlob, finalName);

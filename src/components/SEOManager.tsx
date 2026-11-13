@@ -486,6 +486,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     >
       <title>{helmetTitle}</title>
       <meta name="description" content={helmetDesc} />
+      <meta name="keywords" content={activeTool ? `${localizedToolName}, ${activeTool.slug}, Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun` : "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF"} />
       <link rel="canonical" href={canonicalUrl} />
 
       {/* OpenGraph / Social Sharing Meta */}

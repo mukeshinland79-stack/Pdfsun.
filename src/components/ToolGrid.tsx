@@ -13,7 +13,7 @@ import {
   Filter,
 } from "lucide-react";
 import { ToolItem, CategoryId } from "../types";
-import { ALL_TOOLS, CATEGORIES } from "../data/toolsData";
+import { ALL_TOOLS, BARCODE_STUDIO_TOOL, CATEGORIES } from "../data/toolsData";
 import { LazyToolCard } from "./LazyToolCard";
 import { VirtualizedToolGrid } from "./VirtualizedToolGrid";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
@@ -159,7 +159,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
       return top5FrequentTools;
     }
 
-    return ALL_TOOLS.filter((tool) => {
+    const results = ALL_TOOLS.filter((tool) => {
       // Exclude internal admin tools from the public toolkit grid
       if (
         (tool.category as string).toLowerCase() === "owner" ||
@@ -194,6 +194,41 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
 
       return matchesCategory && matchesSearch;
     });
+
+    // Insert standalone Barcode Studio cleanly immediately after Compress PDF and before PDF to Word
+    const qTrim = searchQuery.toLowerCase().trim();
+    const barcodeMatchesCategory =
+      selectedCategory === "all" ||
+      selectedCategory === "advanced" ||
+      (selectedCategory === "popular" && qTrim.length > 0);
+    const barcodeMatchesSearch =
+      !qTrim ||
+      BARCODE_STUDIO_TOOL.name.toLowerCase().includes(qTrim) ||
+      BARCODE_STUDIO_TOOL.description.toLowerCase().includes(qTrim) ||
+      BARCODE_STUDIO_TOOL.slug.toLowerCase().includes(qTrim) ||
+      BARCODE_STUDIO_TOOL.outputFormat.toLowerCase().includes(qTrim) ||
+      "qr code label avery".includes(qTrim) ||
+      BARCODE_STUDIO_TOOL.supportedInput.some((ext) => (ext || "").toLowerCase().includes(qTrim));
+
+    if (
+      barcodeMatchesCategory &&
+      barcodeMatchesSearch &&
+      !results.some((t) => t.id === BARCODE_STUDIO_TOOL.id)
+    ) {
+      const compressIdx = results.findIndex((t) => t.id === "compress-pdf");
+      if (compressIdx !== -1) {
+        results.splice(compressIdx + 1, 0, BARCODE_STUDIO_TOOL);
+      } else {
+        const pdfToWordIdx = results.findIndex((t) => t.id === "pdf-to-word");
+        if (pdfToWordIdx !== -1) {
+          results.splice(pdfToWordIdx, 0, BARCODE_STUDIO_TOOL);
+        } else {
+          results.push(BARCODE_STUDIO_TOOL);
+        }
+      }
+    }
+
+    return results;
   }, [selectedCategory, searchQuery, top5FrequentTools, isMostPopular]);
 
   // Observer for infinite scroll mode
@@ -272,54 +307,12 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     }
   };
 
-  // Structured FAQPage JSON-LD schema for search engine indexing across tools (Compress, Split, Rotate, Merge, Protect, etc.)
-  const toolGridFaqSchema = useMemo(() => {
-    const faqEntities: Array<{
-      "@type": string;
-      name: string;
-      acceptedAnswer: { "@type": string; text: string };
-    }> = [];
-
-    ALL_TOOLS.forEach((tool) => {
-      if (tool.faqs && tool.faqs.length > 0) {
-        tool.faqs.forEach((faq) => {
-          const q = faq.question || (faq as any).q;
-          const a = faq.answer || (faq as any).a;
-          if (q && a) {
-            faqEntities.push({
-              "@type": "Question",
-              name: q,
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: a,
-              },
-            });
-          }
-        });
-      }
-    });
-
-    return {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: faqEntities,
-    };
-  }, []);
-
   return (
     <section
       id="tools"
       aria-labelledby="toolkit-heading"
       className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5"
     >
-      {/* Search Engine FAQPage Schema for Tools in Grid (Compress, Split, Rotate, Merge, etc.) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(toolGridFaqSchema),
-        }}
-      />
-
       {/* Screen Reader Live Announcement */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {`Showing ${filteredTools.length} tools for ${

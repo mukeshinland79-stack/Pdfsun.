@@ -283,7 +283,14 @@ export function useAuth() {
     }
 
     try {
-      const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`).catch(() => null);
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
+      const res = await fetch(`/api/user/payment-history?email=${encodeURIComponent(email)}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }).catch(() => null);
       if (res && res.ok) {
         const text = await res.text();
         const data = text && text.trim() ? JSON.parse(text) : {};

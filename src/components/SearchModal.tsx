@@ -18,7 +18,7 @@ import {
   ArrowUpDown,
   CornerUpLeft,
 } from "lucide-react";
-import { ALL_TOOLS } from "../data/toolsData";
+import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
 import {
@@ -378,10 +378,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     []
   );
 
+  const searchableTools = useMemo(() => [...ALL_TOOLS, BARCODE_STUDIO_TOOL], []);
+
   // Filter tools based on query & selected category
   const filteredTools = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_TOOLS.filter((tool) => {
+    return searchableTools.filter((tool) => {
       const matchesCategory =
         selectedCategory === "all"
           ? true
@@ -402,7 +404,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         (tool.supportedInput && tool.supportedInput.some((ext) => (ext || "").toLowerCase().includes(q)))
       );
     });
-  }, [query, selectedCategory]);
+  }, [query, selectedCategory, searchableTools]);
 
   // Real-time top autocomplete tool match
   const topMatchTool = useMemo(() => {
@@ -444,10 +446,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     });
 
     // 2. Matching Tool Titles (prefix matches first)
-    const exactPrefixTools = ALL_TOOLS.filter((t) =>
+    const exactPrefixTools = searchableTools.filter((t) =>
       t.name.toLowerCase().startsWith(q)
     );
-    const substringTools = ALL_TOOLS.filter(
+    const substringTools = searchableTools.filter(
       (t) => !t.name.toLowerCase().startsWith(q) && t.name.toLowerCase().includes(q)
     );
 
@@ -476,7 +478,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     });
 
     return items;
-  }, [query, categories]);
+  }, [query, categories, searchableTools]);
 
   // Helper to highlight matching characters/substrings in tool names & descriptions
   const renderHighlightedText = useCallback((text: string, searchQuery: string) => {

@@ -1,20 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, Component, ErrorInfo, ReactNode } from "react";
-import { Helmet } from "react-helmet-async";
+import React, { useState, useEffect, useRef, useCallback, Component, ErrorInfo, ReactNode, Suspense, lazy } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
 import { ToolGrid } from "./components/ToolGrid";
-import { ActiveToolWorkspace } from "./components/ActiveToolWorkspace";
-import { AIChatWorkspace } from "./components/AIChatWorkspace";
-import { WatermarkPdfTool } from "./components/WatermarkPdfTool";
-import { RemoveWatermarkTool } from "./components/RemoveWatermarkTool";
-import { EditPdfMetadataTool } from "./components/EditPdfMetadataTool";
-import { ViewPdfMetadataTool } from "./components/ViewPdfMetadataTool";
-import { ProtectPdfTool } from "./components/ProtectPdfTool";
-import { AservusPdfCompressor } from "./components/AservusPdfCompressor";
-import { SharePdfSunModal } from "./components/SharePdfSunModal";
 import { SupportedFormats } from "./components/SupportedFormats";
-import { PricingSection } from "./components/PricingSection";
 import { FAQSection } from "./components/FAQSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
 import { AdSensePlaceholder } from "./components/AdSensePlaceholder";
@@ -22,50 +11,69 @@ import { StickyBottomAdBanner } from "./components/StickyBottomAdBanner";
 import { NewsletterSubscription } from "./components/NewsletterSubscription";
 import { GlobalErrorToast } from "./components/GlobalErrorToast";
 import { Footer } from "./components/Footer";
-import { PolicyModals } from "./components/PolicyModals";
-import { RecentHistoryModal } from "./components/RecentHistoryModal";
-import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
-import { AuthModal } from "./components/AuthModal";
-import { AdminPanel } from "./components/AdminPanel";
 import { ProtectedAdminWrapper } from "./components/ProtectedAdminRoute";
-import { UserDashboard } from "./components/UserDashboard";
-import { ProfileAvatarModal } from "./components/ProfileAvatarModal";
-import { BlogModal } from "./components/BlogModal";
-import { ContactSupportModal } from "./components/ContactSupportModal";
-import { SearchModal } from "./components/SearchModal";
-import { SitemapModal } from "./components/SitemapModal";
-import { PaymentSuccessModal } from "./components/PaymentSuccessModal";
 import { SEOManager } from "./components/SEOManager";
-import { EnterpriseSuiteCard } from "./components/EnterpriseSuiteCard";
 import { TodayInHistoryKnowledgeHubCard } from "./components/TodayInHistoryKnowledgeHubCard";
 import { StickyAdvertisementWrapper } from "./components/StickyAdvertisementWrapper";
 import { PDFSunAiCopilotCard, PDFSunEnterpriseSuiteCard } from "./components/DualAiFeatureBanner";
 import { EngineChroniclesHub } from "./components/EngineChroniclesHub";
-import { TodayInHistoryModal } from "./components/TodayInHistoryModal";
-import { PSEOLandingBanner } from "./components/PSEOLandingBanner";
 import { MobileAppPromotionCard } from "./components/MobileAppPromotionCard";
-import { InstallAppModal } from "./components/InstallAppModal";
-import { FuturePdfStudioModal, FutureStudioTab } from "./components/FuturePdfStudioModal";
-import { GoldenFileVerificationModal } from "./components/GoldenFileVerificationModal";
+import type { FutureStudioTab } from "./components/FuturePdfStudioModal";
 import { ReturningVisitorBar } from "./components/ReturningVisitorBar";
 import { BreadcrumbNav } from "./components/BreadcrumbNav";
 import { CollapsibleSectionsHub } from "./components/CollapsibleSectionsHub";
-import { BlogPage } from "./components/BlogPage";
 import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
-import { InactivityWarningModal } from "./components/InactivityWarningModal";
-import { OwnerCmsModal } from "./components/OwnerCmsModal";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserProfile, AdminSettings, AdminUserAccount } from "./types";
-import { ALL_TOOLS } from "./data/toolsData";
+import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "./data/toolsData";
 import { matchPSEORoute, PSEOLandingPage, generateCompressSizePseoPage } from "./data/pSEOData";
 import { useAuth } from "./hooks/useAuth";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
-import { trackGAPricingView, trackGAPaymentSuccess } from "./utils/analytics";
+import { trackGAPricingView } from "./utils/analytics";
 import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
-import { resolvePaymentProduct } from "./config/paymentProducts";
+
+// Route-based & Modal Code Splitting (prevents heavy workspaces, engines, and charts from loading on homepage)
+const ActiveToolWorkspace = lazy(() => import("./components/ActiveToolWorkspace").then((m) => ({ default: m.ActiveToolWorkspace })));
+const AIChatWorkspace = lazy(() => import("./components/AIChatWorkspace").then((m) => ({ default: m.AIChatWorkspace })));
+const WatermarkPdfTool = lazy(() => import("./components/WatermarkPdfTool").then((m) => ({ default: m.WatermarkPdfTool })));
+const RemoveWatermarkTool = lazy(() => import("./components/RemoveWatermarkTool").then((m) => ({ default: m.RemoveWatermarkTool })));
+const EditPdfMetadataTool = lazy(() => import("./components/EditPdfMetadataTool").then((m) => ({ default: m.EditPdfMetadataTool })));
+const ViewPdfMetadataTool = lazy(() => import("./components/ViewPdfMetadataTool").then((m) => ({ default: m.ViewPdfMetadataTool })));
+const ProtectPdfTool = lazy(() => import("./components/ProtectPdfTool").then((m) => ({ default: m.ProtectPdfTool })));
+const AservusPdfCompressor = lazy(() => import("./components/AservusPdfCompressor").then((m) => ({ default: m.AservusPdfCompressor })));
+const BarcodeStudioWorkspace = lazy(() => import("./components/BarcodeStudioWorkspace").then((m) => ({ default: m.BarcodeStudioWorkspace })));
+const SharePdfSunModal = lazy(() => import("./components/SharePdfSunModal").then((m) => ({ default: m.SharePdfSunModal })));
+const PricingSection = lazy(() => import("./components/PricingSection").then((m) => ({ default: m.PricingSection })));
+const PolicyModals = lazy(() => import("./components/PolicyModals").then((m) => ({ default: m.PolicyModals })));
+const RecentHistoryModal = lazy(() => import("./components/RecentHistoryModal").then((m) => ({ default: m.RecentHistoryModal })));
+const KeyboardShortcutsModal = lazy(() => import("./components/KeyboardShortcutsModal").then((m) => ({ default: m.KeyboardShortcutsModal })));
+const AuthModal = lazy(() => import("./components/AuthModal").then((m) => ({ default: m.AuthModal })));
+const AdminPanel = lazy(() => import("./components/AdminPanel").then((m) => ({ default: m.AdminPanel })));
+const UserDashboard = lazy(() => import("./components/UserDashboard").then((m) => ({ default: m.UserDashboard })));
+const ProfileAvatarModal = lazy(() => import("./components/ProfileAvatarModal").then((m) => ({ default: m.ProfileAvatarModal })));
+const BlogModal = lazy(() => import("./components/BlogModal").then((m) => ({ default: m.BlogModal })));
+const ContactSupportModal = lazy(() => import("./components/ContactSupportModal").then((m) => ({ default: m.ContactSupportModal })));
+const SearchModal = lazy(() => import("./components/SearchModal").then((m) => ({ default: m.SearchModal })));
+const SitemapModal = lazy(() => import("./components/SitemapModal").then((m) => ({ default: m.SitemapModal })));
+const PaymentSuccessModal = lazy(() => import("./components/PaymentSuccessModal").then((m) => ({ default: m.PaymentSuccessModal })));
+const TodayInHistoryModal = lazy(() => import("./components/TodayInHistoryModal").then((m) => ({ default: m.TodayInHistoryModal })));
+const PSEOLandingBanner = lazy(() => import("./components/PSEOLandingBanner").then((m) => ({ default: m.PSEOLandingBanner })));
+const InstallAppModal = lazy(() => import("./components/InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
+const FuturePdfStudioModal = lazy(() => import("./components/FuturePdfStudioModal").then((m) => ({ default: m.FuturePdfStudioModal })));
+const GoldenFileVerificationModal = lazy(() => import("./components/GoldenFileVerificationModal").then((m) => ({ default: m.GoldenFileVerificationModal })));
+const BlogPage = lazy(() => import("./components/BlogPage").then((m) => ({ default: m.BlogPage })));
+const InactivityWarningModal = lazy(() => import("./components/InactivityWarningModal").then((m) => ({ default: m.InactivityWarningModal })));
+const OwnerCmsModal = lazy(() => import("./components/OwnerCmsModal").then((m) => ({ default: m.OwnerCmsModal })));
+
+const WorkspaceLoadingFallback = () => (
+  <div className="w-full max-w-4xl mx-auto min-h-[360px] rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col items-center justify-center p-8 text-slate-300 gap-3">
+    <div className="w-9 h-9 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+    <span className="text-xs font-semibold tracking-wide text-slate-300">Loading PDFSun Engine...</span>
+  </div>
+);
 
 export type ThemeMode = "system" | "light" | "dark" | "eye-protection" | "aurora" | "high-contrast";
 
@@ -132,15 +140,9 @@ class SafeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
 }
 
 function MainApp() {
-  const [mounted, setMounted] = useState<boolean>(false);
   const { currentLanguage, setLanguage } = useLanguage();
   const isInitialMount = useRef(true);
   const themeInitialized = useRef(false);
-
-  // Cross-Platform Client Mount Protection
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return "dark";
@@ -172,7 +174,6 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
     const root = document.documentElement;
 
     const updateClasses = (mode: ThemeMode) => {
@@ -215,7 +216,7 @@ function MainApp() {
       localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
       localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
     } catch (e) {}
-  }, [themeMode, syncWithSystem, mounted]);
+  }, [themeMode, syncWithSystem]);
 
   const {
     currentRole,
@@ -509,7 +510,7 @@ function MainApp() {
 
   // Universal Route Router
   useEffect(() => {
-    if (!mounted || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const syncRouteWithLocation = () => {
       const params = new URLSearchParams(window.location.search);
@@ -617,7 +618,10 @@ function MainApp() {
           setActiveTool(null);
           return;
         }
-        const targetTool = ALL_TOOLS.find((t) => t.slug === matchedSlug || t.id === matchedSlug);
+        const targetTool =
+          matchedSlug === "barcode" || matchedSlug === "barcode-studio"
+            ? BARCODE_STUDIO_TOOL
+            : ALL_TOOLS.find((t) => t.slug === matchedSlug || t.id === matchedSlug);
         if (targetTool) setActiveTool(targetTool);
       } else if (effectivePath === "/" || effectivePath === "") {
         setActiveTool(null);
@@ -628,7 +632,7 @@ function MainApp() {
     syncRouteWithLocation();
     window.addEventListener("popstate", syncRouteWithLocation);
     return () => window.removeEventListener("popstate", syncRouteWithLocation);
-  }, [mounted, currentLanguage, setLanguage]);
+  }, [currentLanguage, setLanguage]);
 
   // Auth deep link listener
   useEffect(() => {
@@ -826,19 +830,7 @@ function MainApp() {
     setGridPagination((prev) => (prev.page === page && prev.totalPages === totalPages ? prev : { page, totalPages }));
   }, []);
 
-  const pageTitle = activeTool ? `${activeTool.name} - Free Online PDF Tool | PDFSun` : "PDFSun - Free Online PDF Tools | Merge, Split, Compress & Edit PDFs";
-  const pageDescription = activeTool ? `${activeTool.description} Free PDF converter, merge PDF online, compress PDF size with PDFSun.` : "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun.";
-  const canonicalUrl = activeTool ? `https://www.pdfsun.in/${activeTool.slug}` : "https://www.pdfsun.in";
-
   const adPlacements = calculateAdPlacements(ALL_TOOLS.length, activeTool !== null, userProfile !== null, typeof window !== "undefined" ? window.innerWidth : 1200);
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#0B0F19] flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="main-wrapper min-h-screen bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans flex flex-col">
@@ -853,20 +845,6 @@ function MainApp() {
         isBlogActive={blogViewActive}
         pseoPage={activePseoPage}
       />
-
-      {!blogViewActive && (
-        <Helmet>
-          <title>{pageTitle}</title>
-          <meta name="description" content={pageDescription} />
-          <meta name="keywords" content="Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF" />
-          <link rel="canonical" href={canonicalUrl} />
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content={canonicalUrl} />
-          <meta property="og:title" content={pageTitle} />
-          <meta property="og:description" content={pageDescription} />
-          <meta property="og:image" content="https://www.pdfsun.in/og-image.png" />
-        </Helmet>
-      )}
 
       <Header
         darkMode={darkMode}
@@ -919,17 +897,22 @@ function MainApp() {
 
       <main className="content-area flex-1">
         {blogViewActive ? (
-          <BlogPage
-            currentSlug={blogActiveSlug}
-            onNavigateHome={handleExitBlogToHome}
-            onNavigateBlog={handleNavigateBlog}
-            onNavigateArticle={handleNavigateArticle}
-            onSelectTool={(toolId) => {
-              handleExitBlogToHome();
-              const tool = ALL_TOOLS.find((t) => t.id === toolId || t.slug === toolId);
-              if (tool) handleSelectTool(tool);
-            }}
-          />
+          <Suspense fallback={<WorkspaceLoadingFallback />}>
+            <BlogPage
+              currentSlug={blogActiveSlug}
+              onNavigateHome={handleExitBlogToHome}
+              onNavigateBlog={handleNavigateBlog}
+              onNavigateArticle={handleNavigateArticle}
+              onSelectTool={(toolId) => {
+                handleExitBlogToHome();
+                const tool =
+                  toolId === "barcode" || toolId === "barcode-studio"
+                    ? BARCODE_STUDIO_TOOL
+                    : ALL_TOOLS.find((t) => t.id === toolId || t.slug === toolId);
+                if (tool) handleSelectTool(tool);
+              }}
+            />
+          </Suspense>
         ) : (
           <>
             <HeroSection onSelectTool={handleSelectTool} onOpenSearch={() => setSearchModalOpen(true)} />
@@ -1065,104 +1048,184 @@ function MainApp() {
 
           <div className="w-full max-w-5xl flex flex-col items-center justify-start flex-1 px-2 sm:px-4">
             <div className="w-full flex items-center justify-center">
-              {activeTool.id === "remove-watermark" ? (
-                <RemoveWatermarkTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : activeTool.id === "watermark-pdf" ? (
-                <WatermarkPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
-                <ViewPdfMetadataTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
-                <EditPdfMetadataTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : activeTool.id === "share-pdfsun" ? (
-                <SharePdfSunModal isOpen={true} onClose={handleCloseTool} />
-              ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
-                <ProtectPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : activeTool.id === "compress-pdf" ? (
-                <AservusPdfCompressor initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : activeTool.isAi ? (
-                <AIChatWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onAddHistory={addHistory} />
-              ) : (
-                <ActiveToolWorkspace tool={activeTool} initialFiles={activeToolFiles} activeToolFiles={activeToolFiles} onClose={handleCloseTool} onSelectTool={handleSelectTool} onAddHistory={addHistory} />
-              )}
+              <Suspense fallback={<WorkspaceLoadingFallback />}>
+                {activeTool.id === "remove-watermark" ? (
+                  <RemoveWatermarkTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.id === "watermark-pdf" ? (
+                  <WatermarkPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : ["read-pdf-metadata", "view-pdf-metadata"].includes(activeTool.id) ? (
+                  <ViewPdfMetadataTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : ["edit-pdf-metadata", "pdf-metadata"].includes(activeTool.id) ? (
+                  <EditPdfMetadataTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.id === "share-pdfsun" ? (
+                  <SharePdfSunModal isOpen={true} onClose={handleCloseTool} />
+                ) : ["protect-pdf", "encrypt-pdf"].includes(activeTool.id) ? (
+                  <ProtectPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.id === "compress-pdf" ? (
+                  <AservusPdfCompressor initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.id === "barcode-studio" ? (
+                  <BarcodeStudioWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onBackToHome={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.isAi ? (
+                  <AIChatWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : (
+                  <ActiveToolWorkspace tool={activeTool} initialFiles={activeToolFiles} activeToolFiles={activeToolFiles} onClose={handleCloseTool} onSelectTool={handleSelectTool} onAddHistory={addHistory} />
+                )}
+              </Suspense>
             </div>
 
             {activePseoPage && (
               <div className="w-full max-w-4xl mx-auto px-1 sm:px-2 pb-12 pt-6">
-                <PSEOLandingBanner
-                  pseoPage={activePseoPage}
-                  onSelectTool={handleSelectTool}
-                  onSelectPseoSize={(sizeStr) => {
-                    const generated = generateCompressSizePseoPage(sizeStr, activePseoPage?.region || "USA");
-                    setActivePseoPage(generated);
-                    const compressTool = ALL_TOOLS.find((t) => t.id === "compress-pdf" || t.slug === "compress-pdf");
-                    if (compressTool) setActiveTool(compressTool);
-                    if (typeof window !== "undefined") window.history.pushState({}, "", `/${generated.slug}`);
-                  }}
-                />
+                <Suspense fallback={null}>
+                  <PSEOLandingBanner
+                    pseoPage={activePseoPage}
+                    onSelectTool={handleSelectTool}
+                    onSelectPseoSize={(sizeStr) => {
+                      const generated = generateCompressSizePseoPage(sizeStr, activePseoPage?.region || "USA");
+                      setActivePseoPage(generated);
+                      const compressTool = ALL_TOOLS.find((t) => t.id === "compress-pdf" || t.slug === "compress-pdf");
+                      if (compressTool) setActiveTool(compressTool);
+                      if (typeof window !== "undefined") window.history.pushState({}, "", `/${generated.slug}`);
+                    }}
+                  />
+                </Suspense>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Auxiliary Modals */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} currentRole={currentRole} userProfile={userProfile} onSelectRole={handleSelectRole} initialMode={authModalInitialMode} onSuccessOpenAdmin={() => setAdminPanelOpen(true)} />
+      {/* Auxiliary Modals (Dynamically loaded only when opened) */}
+      {authModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} currentRole={currentRole} userProfile={userProfile} onSelectRole={handleSelectRole} initialMode={authModalInitialMode} onSuccessOpenAdmin={() => setAdminPanelOpen(true)} />
+        </Suspense>
+      )}
 
       {adminPanelOpen && (
         <ProtectedAdminWrapper canAccessAdmin={canAccessAdmin} userProfile={userProfile} isLoading={authLoading} onUnauthorized={() => { setAdminPanelOpen(false); setAuthModalInitialMode("owner"); setAuthModalOpen(true); }}>
-          <AdminPanel isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} adminSettings={adminSettings} onUpdateSettings={setAdminSettings} userAccounts={userAccounts} onToggleAdminPermission={handleToggleAdminPermission} onToggleUserStatus={handleToggleUserStatus} onAddUserAccount={handleAddUserAccount} initialTab={adminPanelTab} onLogout={handleLogout} isOwner={isOwner} currentUserProfile={userProfile} />
+          <Suspense fallback={<WorkspaceLoadingFallback />}>
+            <AdminPanel isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} adminSettings={adminSettings} onUpdateSettings={setAdminSettings} userAccounts={userAccounts} onToggleAdminPermission={handleToggleAdminPermission} onToggleUserStatus={handleToggleUserStatus} onAddUserAccount={handleAddUserAccount} initialTab={adminPanelTab} onLogout={handleLogout} isOwner={isOwner} currentUserProfile={userProfile} />
+          </Suspense>
         </ProtectedAdminWrapper>
       )}
 
       {userProfile && userDashboardOpen && (
-        <UserDashboard isOpen={userDashboardOpen} onClose={() => setUserDashboardOpen(false)} userProfile={userProfile} favorites={favorites} history={history} allTools={ALL_TOOLS} onSelectTool={handleSelectTool} onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined} onOpenPricing={() => { setUserDashboardOpen(false); handleOpenPricing(); }} onOpenAvatarModal={() => setAvatarModalOpen(true)} />
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <UserDashboard isOpen={userDashboardOpen} onClose={() => setUserDashboardOpen(false)} userProfile={userProfile} favorites={favorites} history={history} allTools={ALL_TOOLS} onSelectTool={handleSelectTool} onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined} onOpenPricing={() => { setUserDashboardOpen(false); handleOpenPricing(); }} onOpenAvatarModal={() => setAvatarModalOpen(true)} />
+        </Suspense>
       )}
 
-      {userProfile && <ProfileAvatarModal isOpen={avatarModalOpen} onClose={() => setAvatarModalOpen(false)} userEmail={userProfile.email} userName={userProfile.name} currentPhotoURL={userProfile.photoURL} currentAvatar={userProfile.avatar} onPhotoUpdated={(newPhotoURL) => updateAvatar(newPhotoURL)} />}
+      {userProfile && avatarModalOpen && (
+        <Suspense fallback={null}>
+          <ProfileAvatarModal isOpen={avatarModalOpen} onClose={() => setAvatarModalOpen(false)} userEmail={userProfile.email} userName={userProfile.name} currentPhotoURL={userProfile.photoURL} currentAvatar={userProfile.avatar} onPhotoUpdated={(newPhotoURL) => updateAvatar(newPhotoURL)} />
+        </Suspense>
+      )}
 
-      <PricingSection
-        isOpen={pricingModalOpen}
-        onClose={handleClosePricing}
-        isModal={true}
-        onOpenPolicy={handleOpenPolicy}
-        userProfile={userProfile}
-        onOpenDashboard={() => {
-          handleClosePricing();
-          setUserDashboardOpen(true);
-        }}
-      />
-      <BlogModal
-        isOpen={blogModalOpen}
-        onClose={() => {
-          setBlogModalOpen(false);
-          setBlogActiveSlug(null);
-          if (typeof window !== "undefined" && window.location.pathname.startsWith("/blog")) {
-            window.history.pushState({}, "", "/");
-          }
-        }}
-        onSelectTool={handleSelectTool}
-        initialSlug={blogActiveSlug}
-      />
-      <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
-      <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
-      <PaymentSuccessModal isOpen={paymentSuccessModalOpen} onClose={() => setPaymentSuccessModalOpen(false)} userProfile={userProfile} onRefreshProfile={() => handleInstantProUnlock()} onStartProcessing={() => { handleInstantProUnlock(); setPaymentSuccessModalOpen(false); document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" }); }} />
-      <PolicyModals policy={activePolicy} onClose={handleClosePolicy} />
-      <RecentHistoryModal isOpen={historyModalOpen} onClose={() => setHistoryModalOpen(false)} history={history} onClearHistory={clearHistory} />
-      <SearchModal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} onSelectTool={handleSelectTool} favorites={favorites} />
-      <KeyboardShortcutsModal isOpen={shortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} shortcuts={shortcuts} shortcutsEnabled={shortcutsEnabled} onToggleEnabled={toggleShortcutsEnabled} onUpdateShortcut={updateShortcutKeyCombo} onResetToDefaults={resetToDefaults} />
-      <InactivityWarningModal isOpen={showWarningModal} remainingSeconds={remainingSeconds} onStayLoggedIn={() => resetInactivityTimer(true)} onLogoutNow={() => executeSecureLogout("manual_logout")} />
-      <SharePdfSunModal isOpen={sharePdfSunModalOpen} onClose={() => setSharePdfSunModalOpen(false)} />
-      <InstallAppModal isOpen={installAppModalOpen} onClose={() => setInstallAppModalOpen(false)} />
+      {pricingModalOpen && (
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <PricingSection
+            isOpen={pricingModalOpen}
+            onClose={handleClosePricing}
+            isModal={true}
+            onOpenPolicy={handleOpenPolicy}
+            userProfile={userProfile}
+            onOpenDashboard={() => {
+              handleClosePricing();
+              setUserDashboardOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
+      {blogModalOpen && (
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <BlogModal
+            isOpen={blogModalOpen}
+            onClose={() => {
+              setBlogModalOpen(false);
+              setBlogActiveSlug(null);
+              if (typeof window !== "undefined" && window.location.pathname.startsWith("/blog")) {
+                window.history.pushState({}, "", "/");
+              }
+            }}
+            onSelectTool={handleSelectTool}
+            initialSlug={blogActiveSlug}
+          />
+        </Suspense>
+      )}
+      {contactModalOpen && (
+        <Suspense fallback={null}>
+          <ContactSupportModal isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)} />
+        </Suspense>
+      )}
+      {sitemapModalOpen && (
+        <Suspense fallback={null}>
+          <SitemapModal isOpen={sitemapModalOpen} onClose={() => setSitemapModalOpen(false)} />
+        </Suspense>
+      )}
+      {paymentSuccessModalOpen && (
+        <Suspense fallback={null}>
+          <PaymentSuccessModal isOpen={paymentSuccessModalOpen} onClose={() => setPaymentSuccessModalOpen(false)} userProfile={userProfile} onRefreshProfile={() => handleInstantProUnlock()} onStartProcessing={() => { handleInstantProUnlock(); setPaymentSuccessModalOpen(false); document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" }); }} />
+        </Suspense>
+      )}
+      {activePolicy && (
+        <Suspense fallback={null}>
+          <PolicyModals policy={activePolicy} onClose={handleClosePolicy} />
+        </Suspense>
+      )}
+      {historyModalOpen && (
+        <Suspense fallback={null}>
+          <RecentHistoryModal isOpen={historyModalOpen} onClose={() => setHistoryModalOpen(false)} history={history} onClearHistory={clearHistory} />
+        </Suspense>
+      )}
+      {searchModalOpen && (
+        <Suspense fallback={null}>
+          <SearchModal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} onSelectTool={handleSelectTool} favorites={favorites} />
+        </Suspense>
+      )}
+      {shortcutsModalOpen && (
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal isOpen={shortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} shortcuts={shortcuts} shortcutsEnabled={shortcutsEnabled} onToggleEnabled={toggleShortcutsEnabled} onUpdateShortcut={updateShortcutKeyCombo} onResetToDefaults={resetToDefaults} />
+        </Suspense>
+      )}
+      {showWarningModal && (
+        <Suspense fallback={null}>
+          <InactivityWarningModal isOpen={showWarningModal} remainingSeconds={remainingSeconds} onStayLoggedIn={() => resetInactivityTimer(true)} onLogoutNow={() => executeSecureLogout("manual_logout")} />
+        </Suspense>
+      )}
+      {sharePdfSunModalOpen && (
+        <Suspense fallback={null}>
+          <SharePdfSunModal isOpen={sharePdfSunModalOpen} onClose={() => setSharePdfSunModalOpen(false)} />
+        </Suspense>
+      )}
+      {installAppModalOpen && (
+        <Suspense fallback={null}>
+          <InstallAppModal isOpen={installAppModalOpen} onClose={() => setInstallAppModalOpen(false)} />
+        </Suspense>
+      )}
 
       {cmsModalOpen && (
         <ProtectedAdminWrapper canAccessAdmin={canAccessAdmin} userProfile={userProfile} isLoading={authLoading} onUnauthorized={() => { setCmsModalOpen(false); setAuthModalInitialMode("owner"); setAuthModalOpen(true); }}>
-          <OwnerCmsModal isOpen={cmsModalOpen} onClose={() => setCmsModalOpen(false)} />
+          <Suspense fallback={null}>
+            <OwnerCmsModal isOpen={cmsModalOpen} onClose={() => setCmsModalOpen(false)} />
+          </Suspense>
         </ProtectedAdminWrapper>
       )}
 
-      <TodayInHistoryModal isOpen={todayInHistoryOpen} onClose={() => setTodayInHistoryOpen(false)} initialLanguage={geoResult.detectedLanguage} initialCountryCode={geoResult.detectedCountryCode} onSelectTool={handleSelectTool} />
-      <FuturePdfStudioModal isOpen={futureStudioOpen} onClose={() => setFutureStudioOpen(false)} initialTab={futureStudioTab} initialFile={futureStudioFile} onAddHistory={addHistory} />
-      <GoldenFileVerificationModal isOpen={verificationStudioOpen} onClose={() => setVerificationStudioOpen(false)} />
+      {todayInHistoryOpen && (
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <TodayInHistoryModal isOpen={todayInHistoryOpen} onClose={() => setTodayInHistoryOpen(false)} initialLanguage={geoResult.detectedLanguage} initialCountryCode={geoResult.detectedCountryCode} onSelectTool={handleSelectTool} />
+        </Suspense>
+      )}
+      {futureStudioOpen && (
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <FuturePdfStudioModal isOpen={futureStudioOpen} onClose={() => setFutureStudioOpen(false)} initialTab={futureStudioTab} initialFile={futureStudioFile} onAddHistory={addHistory} />
+        </Suspense>
+      )}
+      {verificationStudioOpen && (
+        <Suspense fallback={<WorkspaceLoadingFallback />}>
+          <GoldenFileVerificationModal isOpen={verificationStudioOpen} onClose={() => setVerificationStudioOpen(false)} />
+        </Suspense>
+      )}
       <StickyBottomAdBanner
         isVisible={!activeTool && !pricingModalOpen && !contactModalOpen && !sitemapModalOpen && !todayInHistoryOpen && !blogModalOpen && !futureStudioOpen && !adminPanelOpen && !userDashboardOpen && !cmsModalOpen && !authModalOpen}
         onOpenInstallApp={() => setInstallAppModalOpen(true)}

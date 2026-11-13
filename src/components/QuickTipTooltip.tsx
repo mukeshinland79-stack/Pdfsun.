@@ -25,10 +25,11 @@ export const QuickTipTooltip: React.FC<QuickTipTooltipProps> = ({
       <div className={`group relative inline-block ${className}`}>
         <button
           type="button"
-          className="p-1 rounded-lg text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 transition-colors focus:outline-none"
+          aria-label="Show quick tip"
+          className="min-w-[24px] min-h-[24px] inline-flex items-center justify-center p-1 rounded-lg text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Hover for quick tip"
         >
-          <Lightbulb className="w-4 h-4 animate-pulse" />
+          <Lightbulb className="w-4 h-4 animate-pulse" aria-hidden="true" />
         </button>
 
         {/* Hover Popover */}
@@ -71,11 +72,13 @@ export const QuickTipTooltip: React.FC<QuickTipTooltipProps> = ({
 
       {autoDismissable && (
         <button
+          type="button"
           onClick={() => setIsDismissed(true)}
-          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg shrink-0"
+          aria-label="Dismiss tip"
+          className="min-w-[24px] min-h-[24px] inline-flex items-center justify-center p-1 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white rounded-lg shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Dismiss tip"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       )}
     </div>

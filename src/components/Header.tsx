@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sun,
@@ -43,11 +43,12 @@ import {
 import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
 import { useLanguage } from "../lib/i18n";
-import { SearchModal } from "./SearchModal";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PDFSunLogo, PDFSunLogoIcon } from "./PDFSunLogo";
-import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { checkAdminRole } from "../hooks/useAuth";
+
+const SearchModal = lazy(() => import("./SearchModal").then((m) => ({ default: m.SearchModal })));
+const PDFSunBrandShowcaseModal = lazy(() => import("./PDFSunBrandShowcaseModal").then((m) => ({ default: m.PDFSunBrandShowcaseModal })));
 
 interface HeaderProps {
   darkMode: boolean;
@@ -1326,16 +1327,22 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Centralized Search Modal */}
-      <SearchModal
-        isOpen={searchOverlayOpen}
-        onClose={() => setSearchOverlayOpen(false)}
-        onSelectTool={onSelectTool}
-        favorites={favorites}
-      />
+      {searchOverlayOpen && (
+        <Suspense fallback={null}>
+          <SearchModal
+            isOpen={searchOverlayOpen}
+            onClose={() => setSearchOverlayOpen(false)}
+            onSelectTool={onSelectTool}
+            favorites={favorites}
+          />
+        </Suspense>
+      )}
 
       {/* Brand Identity Master Showcase Modal */}
       {showBrandShowcase && (
-        <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+        <Suspense fallback={null}>
+          <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+        </Suspense>
       )}
     </header>
   );

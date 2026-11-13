@@ -12,7 +12,7 @@ import {
   Compass,
   Zap,
 } from "lucide-react";
-import { ALL_TOOLS } from "../data/toolsData";
+import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
 
@@ -61,10 +61,12 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
     []
   );
 
+  const searchableTools = useMemo(() => [...ALL_TOOLS, BARCODE_STUDIO_TOOL], []);
+
   // Filter tools based on search query & category
   const filteredTools = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_TOOLS.filter((tool) => {
+    return searchableTools.filter((tool) => {
       const matchesCategory =
         selectedCategory === "all"
           ? true
@@ -84,7 +86,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
         (typeof tool.category === "string" && tool.category.toLowerCase().includes(q))
       );
     });
-  }, [query, selectedCategory]);
+  }, [query, selectedCategory, searchableTools]);
 
   // Reset selected index when query or category changes
   useEffect(() => {

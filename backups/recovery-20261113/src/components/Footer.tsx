@@ -1,0 +1,508 @@
+import React, { useState, Suspense, lazy } from "react";
+import {
+  Mail,
+  ShieldCheck,
+  Sparkles,
+  CheckCircle2,
+  Lock,
+  Zap,
+  CreditCard,
+  Facebook,
+  Linkedin,
+  Youtube,
+  Instagram,
+} from "lucide-react";
+import { PolicyType } from "../types";
+import { PDFSunLogo } from "./PDFSunLogo";
+import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
+
+const PDFSunBrandShowcaseModal = lazy(() => import("./PDFSunBrandShowcaseModal").then((m) => ({ default: m.PDFSunBrandShowcaseModal })));
+
+// Custom modern X (formerly Twitter) SVG icon
+const XIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+interface FooterProps {
+  onOpenPolicy: (policy: PolicyType) => void;
+  onOpenAllTools: () => void;
+  onOpenAiTools: () => void;
+  onOpenTodayInHistory?: () => void;
+  onOpenBlogModal: () => void;
+  onOpenContactModal: () => void;
+  onOpenPricing?: () => void;
+  onOpenInstallApp?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({
+  onOpenPolicy,
+  onOpenAllTools,
+  onOpenAiTools,
+  onOpenTodayInHistory,
+  onOpenBlogModal,
+  onOpenContactModal,
+  onOpenPricing,
+  onOpenInstallApp,
+}) => {
+  const [showBrandShowcase, setShowBrandShowcase] = useState(false);
+  const { t, dir } = useLanguage();
+
+  return (
+    <footer
+      id="main-footer"
+      dir={dir}
+      className="w-full bg-slate-50 dark:bg-[#0B0F19] text-slate-800 dark:text-slate-300 pt-4 pb-12 transition-colors border-t border-slate-200 dark:border-slate-800/80"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Modern Thematic Gradient Accent Line above Footer */}
+        <div className="theme-accent-divider mb-8 opacity-85 rounded-full" />
+
+        {/* ========================================================================= */}
+        {/* 1. TOP TRUST BADGES STRIP (Status Metrics Bar)                             */}
+        {/* ========================================================================= */}
+        <div className="w-full bg-[#F8FAFC] dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-xl py-4 px-6 mb-10 shadow-xs backdrop-blur-md">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-left">
+            
+            {/* Card 1: 100% In-Browser Privacy */}
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <Lock className="w-4 h-4 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
+                  {t("trustBadges.privacyTitle", "100% In-Browser Privacy")}
+                </span>
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
+                  {t("trustBadges.privacySub", "Zero Server Uploads")}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 2: Enterprise Security */}
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
+                <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
+                  {t("trustBadges.securityTitle", "Enterprise Security")}
+                </span>
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
+                  {t("trustBadges.securitySub", "ISO 27001 & GDPR Compliant")}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Razorpay Verified */}
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
+                <CreditCard className="w-4 h-4 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
+                  {t("trustBadges.razorpayTitle", "Razorpay Verified")}
+                </span>
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
+                  {t("trustBadges.razorpaySub", "UPI & Cards Supported")}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 4: Ultra Fast Speed */}
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
+                <Zap className="w-4 h-4 stroke-[2.5] text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1.5">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-600 dark:bg-cyan-500"></span>
+                  </span>
+                  <span className="text-[#0F172A] dark:text-[#F8FAFC] font-bold text-xs truncate">
+                    {t("trustBadges.speedTitle", "Ultra Fast Speed")}
+                  </span>
+                </div>
+                <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
+                  {t("trustBadges.speedSub", "Instant WebAssembly Engine")}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 2. MAIN FOOTER CONTENT (Strict 5-Column Grid Layout)                      */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 py-8 text-sm">
+          
+          {/* COLUMN 1: Brand & Identity */}
+          <div className="space-y-3">
+            <PDFSunLogo layout="horizontal" size="md" theme="auto" showTagline={false} showProBadge={true} showDomain={false} />
+            
+            <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+              pdfsun.in • Your Smart Document Companion
+            </p>
+
+            <p className="text-xs text-[#334155] dark:text-[#CBD5E1] leading-relaxed">
+              Merge, split, compress, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.
+            </p>
+
+            {/* Clean Action Row & Micro Status */}
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowBrandShowcase(true)}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg badge-wcag-amber text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#92400E] dark:text-amber-400" />
+                <span>Brand Kit</span>
+              </button>
+
+              <div className="flex items-center space-x-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500 shrink-0" />
+                <span className="text-[11px]">100% Private &amp; In-Browser Processing</span>
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMN 2: Quick Links / Tools */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+              {t("footer.quickLinks", "Quick Links")}
+            </h4>
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenAllTools}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                >
+                  {t("footer.allPdfTools", `All PDF Tools (${ALL_TOOLS.length})`)}
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenAiTools}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center space-x-1.5 text-blue-700 dark:text-blue-400 font-bold cursor-pointer text-left"
+                >
+                  <span>{t("footer.aiToolsSuite", "AI Tools Suite")}</span>
+                  <span className="text-[9px] bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1 py-0.2 rounded font-mono font-black">AI</span>
+                </button>
+              </li>
+              {onOpenTodayInHistory && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenTodayInHistory}
+                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center space-x-1.5 text-[#334155] dark:text-[#CBD5E1] cursor-pointer text-left"
+                  >
+                    <span>Today in History (30 Lang)</span>
+                    <span className="text-[9px] badge-wcag-amber px-1.5 py-0.5 rounded font-mono font-bold">
+                      NEW
+                    </span>
+                  </button>
+                </li>
+              )}
+              <li>
+                {onOpenPricing ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPricing}
+                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                  >
+                    {t("footer.pricingPlans", "Pricing Plans")}
+                  </button>
+                ) : (
+                  <a href="#pricing" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {t("footer.pricingPlans", "Pricing Plans")}
+                  </a>
+                )}
+              </li>
+              {onOpenInstallApp && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenInstallApp}
+                    className="hover:text-blue-700 dark:hover:text-blue-400 transition-colors flex items-center space-x-1.5 text-blue-700 dark:text-blue-400 font-bold cursor-pointer text-left"
+                  >
+                    <span>Install PDFSun App</span>
+                    <span className="text-[9px] bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                      PWA
+                    </span>
+                  </button>
+                </li>
+              )}
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenBlogModal}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                >
+                  {t("footer.blogArticles", "Blog & Articles")}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* COLUMN 3: Policies */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+              {t("footer.policies", "Policies")}
+            </h4>
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
+              <li>
+                <a
+                  href="/privacy-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("privacy");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("privacyPolicy", "Privacy Policy")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/terms-of-service"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("terms");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("termsOfService", "Terms of Service")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/refund-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("refund");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left text-blue-700 dark:text-blue-400 font-medium block"
+                >
+                  {t("refundPolicy", "Refund Policy")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/cookie-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("cookie");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("cookiePolicy", "Cookie Policy")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/about-us"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("about");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("aboutUs", "About Us")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/contact-us"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("contact");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("contactUs", "Contact Us")}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/disclaimer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenPolicy("disclaimer");
+                  }}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left block"
+                >
+                  {t("disclaimer", "Disclaimer")}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* COLUMN 4: Resources */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+              {t("footer.resources", "Resources")}
+            </h4>
+            <ul className="space-y-2.5 text-xs font-medium text-[#334155] dark:text-[#CBD5E1]">
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenContactModal}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                >
+                  {t("footer.helpCenter", "Help Center")}
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={onOpenBlogModal}
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                >
+                  {t("footer.tutorialsGuides", "Tutorials & Guides")}
+                </button>
+              </li>
+              <li>
+                <a href="#faq" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors block">
+                  {t("footer.faqsSecurity", "FAQs & Security")}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* COLUMN 5: Support & Social / CONNECT */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+              {t("footer.connect", "Connect")}
+            </h4>
+
+            {/* Support Highlight Box */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg text-xs hover:border-blue-500/50 transition-all space-y-1 shadow-2xs">
+              <span className="text-[10px] text-[#475569] dark:text-[#94A3B8] uppercase font-bold block">Customer Support</span>
+              <div className="flex items-center space-x-2">
+                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <button
+                  type="button"
+                  onClick={onOpenContactModal}
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-mono truncate"
+                >
+                  support@pdfsun.in
+                </button>
+              </div>
+            </div>
+
+            {/* Social Icons Row */}
+            <div className="pt-1">
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-semibold block mb-2">
+                Community
+              </span>
+              <div className="flex items-center space-x-2">
+                <a
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Follow PDFSun on Facebook"
+                  title="Follow PDFSun on Facebook"
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
+                >
+                  <Facebook className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="https://www.instagram.com/pdfsun.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  title="Follow PDFSun on Instagram"
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
+                >
+                  <Instagram className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Follow PDFSun on LinkedIn"
+                  title="Follow PDFSun on LinkedIn"
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
+                >
+                  <Linkedin className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="https://youtube.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Subscribe to PDFSun on YouTube"
+                  title="Subscribe to PDFSun on YouTube"
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
+                >
+                  <Youtube className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="https://x.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Follow PDFSun on X (Twitter)"
+                  title="Follow PDFSun on X (Twitter)"
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 3. SUB-FOOTER BOTTOM STRIP (Single Horizon Line Alignment)                */}
+        {/* ========================================================================= */}
+        <div className="border-t border-slate-200 dark:border-slate-800/80 pt-6 mt-8 flex flex-col md:flex-row items-center justify-between text-xs text-slate-600 dark:text-slate-400 gap-4">
+          
+          {/* Left Side: Ownership & Credits */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-center md:text-left">
+            <span className="text-sm">🇮🇳</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">{t("footer.madeInIndia", "Proudly Made in India")}</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span>© {new Date().getFullYear()} <strong className="text-slate-900 dark:text-slate-200 font-bold">PDFSun</strong>. {t("footer.rights", "All rights reserved.")}</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-slate-600 dark:text-slate-400">
+              {t("footer.designedBy", "Designed & Engineered by")} <span className="text-slate-800 dark:text-slate-200 font-semibold">Mukesh Kalonia</span>
+            </span>
+          </div>
+
+          {/* Right Side: Security Standard Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-medium text-xs shadow-2xs shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">
+              {t("footer.isoSecurity", "Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant")}
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Brand Identity Master Showcase Modal */}
+      {showBrandShowcase && (
+        <Suspense fallback={null}>
+          <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+        </Suspense>
+      )}
+    </footer>
+  );
+};
+
+
+
+

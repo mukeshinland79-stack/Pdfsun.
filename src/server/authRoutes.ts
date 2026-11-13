@@ -792,7 +792,7 @@ authRouter.all(["/logout", "/signout"], handleLogout);
 authRouter.post("/refresh-session", handleRefreshSession);
 
 // Preflight CORS Handler
-authRouter.options("*", (req, res) => {
+authRouter.options(/.*/, (req, res) => {
   res.setHeader("Allow", "POST, GET, OPTIONS, HEAD");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, HEAD");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-user-token, x-admin-token");
@@ -834,7 +834,7 @@ authRouter.get(
 );
 
 // Explicit 404 handler for unrecognized auth subpaths
-authRouter.all("*", (req, res) => {
+authRouter.all(/.*/, (req, res) => {
   res.status(404).json({
     success: false,
     error: `Authentication endpoint '${req.method} ${req.originalUrl}' not found.`,

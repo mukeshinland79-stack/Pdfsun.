@@ -29,6 +29,7 @@ import {
 import confetti from "canvas-confetti";
 import { PDFDocument } from "pdf-lib";
 import { downloadFile, validateOutputBlob } from "../lib/pdfEngine";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 import { ToolHistoryItem } from "../types";
 import { PdfPreviewCanvas } from "./PdfPreviewCanvas";
 import {
@@ -388,7 +389,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-    const blob = new Blob([compressedBytes], { type: "application/pdf" });
+    const blob = new Blob([toStrictUint8Array(compressedBytes)], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     setPreviewUrl(url);
     setIsPreviewOpen(true);
@@ -513,9 +514,9 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
           </div>
 
           {/* Security Status Bar */}
-          <div className="flex flex-wrap items-center justify-between border border-slate-200 bg-slate-50 rounded-2xl px-4 py-2.5 mb-6 text-xs text-slate-600 gap-2">
+          <div className="flex flex-wrap items-center justify-between border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-2xl px-4 py-2.5 mb-6 text-xs text-slate-600 dark:text-slate-300 gap-2">
             <div className="flex items-center space-x-2">
-              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Local WebAssembly Sandbox Active</span>
             </div>
             <div className="flex items-center space-x-2">
@@ -523,7 +524,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-emerald-700 font-semibold">Aservus Core Ready</span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Aservus Core Ready</span>
             </div>
           </div>
 
@@ -536,8 +537,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-3xl p-10 sm:p-14 text-center cursor-pointer transition-all duration-300 group relative overflow-hidden ${
                 isDragOver
-                  ? "border-orange-500 bg-orange-50 scale-[1.01]"
-                  : "border-slate-300 hover:border-orange-500 bg-slate-50/50 hover:bg-orange-50/30"
+                  ? "border-orange-500 bg-orange-50 dark:bg-orange-950/30 scale-[1.01]"
+                  : "border-slate-300 dark:border-slate-700 hover:border-orange-500 bg-slate-50/50 dark:bg-slate-850 hover:bg-orange-50/30 dark:hover:bg-slate-800"
               }`}
             >
               <input
@@ -552,14 +553,14 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                 }}
               />
 
-              <div className="w-20 h-20 mx-auto bg-orange-50 group-hover:scale-110 group-hover:bg-orange-100 rounded-3xl flex items-center justify-center border border-orange-200 transition-transform duration-300 mb-5 shadow-md shadow-orange-500/10">
+              <div className="w-20 h-20 mx-auto bg-orange-50 dark:bg-orange-950/50 group-hover:scale-110 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50 rounded-3xl flex items-center justify-center border border-orange-200 dark:border-orange-800 transition-transform duration-300 mb-5 shadow-md shadow-orange-500/10">
                 <FileUp className="w-10 h-10 text-orange-500" />
               </div>
 
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
                 Drop your PDF here or browse
               </h3>
-              <p className="text-slate-500 text-xs sm:text-sm max-w-sm mx-auto mb-6">
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto mb-6">
                 Compress files instantly inside your browser with 100% privacy and bank-grade isolation.
               </p>
 
@@ -571,12 +572,12 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                 <span>Select PDF File</span>
               </button>
 
-              <div className="mt-8 pt-6 border-t border-slate-200 flex items-center justify-center gap-6 text-[11px] text-slate-500">
+              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-6 text-[11px] text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> No server storage
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> No server storage
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-blue-600" /> Mobile & Desktop ready
+                  <Smartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Mobile & Desktop ready
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-amber-500" /> Instant execution
@@ -592,33 +593,33 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               className="space-y-6 animate-in fade-in zoom-in-95 duration-200"
             >
               {/* Selected File Summary Card */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl">
                 <div className="flex items-center space-x-3.5 overflow-hidden">
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl shrink-0">
+                  <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl shrink-0">
                     <FileText className="w-6 h-6 text-red-500" />
                   </div>
                   <div className="overflow-hidden">
-                    <h4 className="text-sm font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md">
                       {currentFile.name}
                     </h4>
-                    <p className="text-xs text-slate-500">
-                      Original Size: <span className="font-semibold text-slate-700">{formatMB(currentFile.size)}</span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Original Size: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatMB(currentFile.size)}</span>
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="text-xs text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs transition cursor-pointer font-bold"
+                  className="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs transition cursor-pointer font-bold"
                 >
                   Change
                 </button>
               </div>
 
               {/* Quick Limit Optimizer (pSEO Preset Buttons) */}
-              <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200 space-y-2">
+              <div className="p-4 rounded-2xl bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <label className="text-xs font-bold text-orange-950 flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-orange-950 dark:text-orange-200 flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5 text-amber-500" />
                     <span>Quick Target Size Limit (SSC, UPSC, Email, Portals)</span>
                   </label>
@@ -645,7 +646,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
                           isSelected
                             ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                            : "bg-white text-slate-700 border-slate-200 hover:border-orange-300 hover:text-orange-600"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 hover:text-orange-600 dark:hover:text-orange-400"
                         }`}
                       >
                         {label}
@@ -656,7 +657,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                     <button
                       type="button"
                       onClick={() => setTargetMaxKB(null)}
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer"
                     >
                       Clear
                     </button>
@@ -667,10 +668,10 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               {/* 3 Aservus Compression Presets (Feature 1: Preset Tooltips, Feature 4: Mobile Responsive Grid) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Select Aservus Compression Preset:
                   </label>
-                  <span className="text-[11px] text-slate-500 hidden sm:inline-flex items-center gap-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline-flex items-center gap-1">
                     <Info className="w-3 h-3 text-orange-500" />
                     Click <HelpCircle className="w-3 h-3 inline text-slate-400 mx-0.5" /> for technical breakdown
                   </span>
@@ -703,9 +704,9 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                         className={`preset-card cursor-pointer border-2 p-4 sm:p-5 rounded-2xl flex flex-col justify-between transition-all duration-200 relative overflow-visible focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 min-h-[145px] select-none ${
                           isSelected
                             ? levelKey === "low"
-                              ? "border-emerald-500 bg-emerald-50/70 shadow-md ring-1 ring-emerald-500/30"
-                              : "border-orange-500 bg-orange-50/70 shadow-md ring-1 ring-orange-500/30"
-                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs"
+                              ? "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 shadow-md ring-1 ring-emerald-500/30"
+                              : "border-orange-500 bg-orange-50/70 dark:bg-orange-950/40 shadow-md ring-1 ring-orange-500/30"
+                            : "border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-650 hover:bg-slate-50/60 dark:hover:bg-slate-800 shadow-2xs"
                         }`}
                       >
                         {/* Top Card Row */}
@@ -715,16 +716,16 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                               <span
                                 className={`text-[10px] font-extrabold uppercase tracking-wider ${
                                   levelKey === "extreme"
-                                    ? "text-amber-700"
+                                    ? "text-amber-700 dark:text-amber-400"
                                     : levelKey === "recommended"
-                                    ? "text-orange-700"
-                                    : "text-emerald-700"
+                                    ? "text-orange-700 dark:text-orange-400"
+                                    : "text-emerald-700 dark:text-emerald-400"
                                 }`}
                               >
                                 {config.name}
                               </span>
                               {levelKey === "recommended" && (
-                                <span className="bg-orange-100 border border-orange-200 text-orange-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                <span className="bg-orange-100 dark:bg-orange-950/70 border border-orange-200 dark:border-orange-800/60 text-orange-800 dark:text-orange-300 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                                   Most Popular
                                 </span>
                               )}
@@ -763,9 +764,9 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                                   aria-expanded={isTooltipOpen}
                                   aria-controls={`tooltip-${levelKey}`}
                                   aria-describedby={isTooltipOpen ? `tooltip-${levelKey}` : undefined}
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
                                 >
-                                  <HelpCircle className="w-4 h-4 text-slate-500" />
+                                  <HelpCircle className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                                 </button>
 
                                 {/* Tooltip Popover with Real Technique */}
@@ -774,10 +775,10 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                                     id={`tooltip-${levelKey}`}
                                     role="tooltip"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="absolute top-10 right-0 sm:right-auto sm:left-0 z-40 w-72 sm:w-80 max-w-[calc(100vw-3rem)] p-3.5 rounded-xl bg-white border border-slate-200 shadow-xl text-left animate-in fade-in zoom-in-95 duration-150 text-slate-800"
+                                    className="absolute top-10 right-0 sm:right-auto sm:left-0 z-40 w-72 sm:w-80 max-w-[calc(100vw-3rem)] p-3.5 rounded-xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 shadow-xl text-left animate-in fade-in zoom-in-95 duration-150 text-slate-800 dark:text-slate-100"
                                   >
                                     <div className="flex items-start justify-between gap-2 mb-1.5">
-                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-600 flex items-center gap-1">
+                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-600 dark:text-orange-400 flex items-center gap-1">
                                         <Sparkles className="w-3 h-3 text-amber-500" />
                                         {config.name} Preset Technique
                                       </span>
@@ -788,21 +789,21 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                                           setActiveTooltip(null);
                                           tooltipButtonRefs.current[levelKey]?.focus();
                                         }}
-                                        className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
+                                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
                                         aria-label={`Close technical details for ${config.name} preset`}
                                       >
                                         <X className="w-4 h-4" />
                                       </button>
                                     </div>
-                                    <div className="text-xs font-bold text-slate-900 mb-1">
+                                    <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">
                                       {config.technique}
                                     </div>
-                                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                                       {config.details || "Technical details are not available for this preset."}
                                     </p>
-                                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                                       <span>Object Streams: /ObjStm Active</span>
-                                      <span className="text-emerald-700 font-semibold">100% Client-Side</span>
+                                      <span className="text-emerald-700 dark:text-emerald-400 font-semibold">100% Client-Side</span>
                                     </div>
                                   </div>
                                 )}
@@ -810,18 +811,18 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                             </div>
                           </div>
 
-                          <h5 className="text-base font-extrabold text-slate-900">
+                          <h5 className="text-base font-extrabold text-slate-900 dark:text-white">
                             {config.headline}
                           </h5>
-                          <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                             {config.description}
                           </p>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                           <span
                             className={`text-xs font-extrabold ${
-                              levelKey === "low" ? "text-emerald-600" : "text-orange-600"
+                              levelKey === "low" ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"
                             }`}
                           >
                             {config.savingEstimate}
@@ -836,120 +837,120 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               {/* Section 5: More Technical Info Native Semantic Disclosure */}
               <details
                 id="tech-info-disclosure"
-                className="border border-slate-200 rounded-2xl bg-slate-50 overflow-hidden transition group"
+                className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-800/80 overflow-hidden transition group"
               >
-                <summary className="w-full px-4 sm:px-5 py-3.5 flex items-center justify-between text-left hover:bg-slate-100 transition cursor-pointer list-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 select-none">
+                <summary className="w-full px-4 sm:px-5 py-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer list-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-orange-500 select-none">
                   <div className="flex items-center space-x-2.5">
-                    <Cpu className="w-4 h-4 text-orange-600" />
-                    <span className="text-xs sm:text-sm font-bold text-slate-800">
+                    <Cpu className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
                       More Technical Info
                     </span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400 transition-transform duration-200 group-open:rotate-180 group-open:text-orange-600" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform duration-200 group-open:rotate-180 group-open:text-orange-600 dark:group-open:text-orange-400" />
                 </summary>
 
                 <div
                   id="technical-info-panel"
-                  className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-200 space-y-3.5 animate-in fade-in duration-150 bg-white"
+                  className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-200 dark:border-slate-800 space-y-3.5 animate-in fade-in duration-150 bg-white dark:bg-slate-900"
                 >
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     Live technical specifications and verified runtime parameters applied by the Aservus client-side engine.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Compression Engine
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         Pdfsun Aservus Engine
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Compression Engine Version
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         2.4.0 (Client-side)
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         PDF Library & Version
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         pdf-lib v1.17.1
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Aservus Engine Status
                       </span>
-                      <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
                         {engineStatus}
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         WASM Module Version / Build
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         Not available (Native Browser TypedArray Engine)
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Active Processing Mode
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         Client-Side In-Memory Execution (Local RAM)
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Image-Quality Settings
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         Not available (Original raster resolution preserved)
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
+                    <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">
                         Resolution / Downsampling Settings
                       </span>
-                      <span className="text-slate-800 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">
                         Not available (Downsampling not active in this pipeline)
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-orange-50/60 p-3 rounded-xl border border-orange-200 space-y-2 text-xs">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-orange-800 block">
+                  <div className="bg-orange-50/60 dark:bg-orange-950/40 p-3 rounded-xl border border-orange-200 dark:border-orange-800/60 space-y-2 text-xs">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-orange-800 dark:text-orange-300 block">
                       Active Preset Configuration ({PRESET_CONFIGS[selectedLevel].name})
                     </span>
-                    <ul className="space-y-1.5 text-slate-700">
+                    <ul className="space-y-1.5 text-slate-700 dark:text-slate-300">
                       <li className="flex items-start gap-2">
-                        <span className="text-orange-600 font-bold">•</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-bold">•</span>
                         <span><strong>Preset Technique:</strong> {PRESET_CONFIGS[selectedLevel].technique}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-orange-600 font-bold">•</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-bold">•</span>
                         <span><strong>Active Parameters:</strong> Object Streams: Enabled (/ObjStm) • Metadata Stripped: Yes • Producer Tag: Pdfsun.in Aservus Engine</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-orange-600 font-bold">•</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-bold">•</span>
                         <span><strong>Configuration Summary:</strong> {PRESET_CONFIGS[selectedLevel].details}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-orange-600 font-bold">•</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-bold">•</span>
                         <span><strong>Target Size Limit:</strong> {targetMaxKB ? `${targetMaxKB} KB threshold applied` : "Adaptive auto-optimization (No manual cutoff)"}</span>
                       </li>
                     </ul>
@@ -974,28 +975,28 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
           {stepState === "processing" && (
             <div className="py-12 text-center space-y-6 animate-in fade-in duration-300">
               <div className="relative w-20 h-20 mx-auto">
-                <div className="w-20 h-20 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin"></div>
+                <div className="w-20 h-20 border-4 border-slate-200 dark:border-slate-800 border-t-orange-500 rounded-full animate-spin"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Zap className="w-8 h-8 text-orange-500 animate-pulse" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-lg font-extrabold text-slate-900">
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
                   {progressStatus}
                 </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                   Aservus client-side engine executing stream optimization directly inside your browser.
                 </p>
               </div>
 
               {/* Animated Progress Bar */}
               <div className="max-w-md mx-auto space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-semibold px-1">
                   <span>Aservus Core Progress</span>
-                  <span className="text-orange-600 font-bold">{progress}%</span>
+                  <span className="text-orange-600 dark:text-orange-400 font-bold">{progress}%</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200 p-0.5">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-slate-700 p-0.5">
                   <div
                     className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 h-full rounded-full transition-all duration-300 shadow-xs"
                     style={{ width: `${progress}%` }}
@@ -1003,8 +1004,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-2 text-[11px] text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Zero server traffic • Local execution</span>
               </div>
             </div>
@@ -1017,54 +1018,54 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               className="space-y-6 text-center py-4 animate-in fade-in zoom-in-95 duration-300"
             >
               {/* Success Badge */}
-              <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/10">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/10">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
 
               <div>
-                <h3 className="text-2xl font-extrabold text-slate-900">
+                <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
                   PDF Compressed Successfully!
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Processed locally with Aservus Ultimate Compression Engine.
                 </p>
               </div>
 
               {/* 3-Card Result Comparison Dashboard */}
-              <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
                 <div className="space-y-0.5">
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                  <span className="block text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
                     Original
                   </span>
-                  <span className="text-sm sm:text-base font-extrabold text-slate-700">
+                  <span className="text-sm sm:text-base font-extrabold text-slate-700 dark:text-slate-200">
                     {formatMB(originalSize)}
                   </span>
                 </div>
-                <div className="space-y-0.5 border-x border-slate-200">
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                <div className="space-y-0.5 border-x border-slate-200 dark:border-slate-700">
+                  <span className="block text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
                     Compressed
                   </span>
-                  <span className="text-sm sm:text-base font-extrabold text-emerald-600">
+                  <span className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400">
                     {formatMB(compressedSize)}
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                  <span className="block text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
                     Saved
                   </span>
-                  <span className="text-sm sm:text-base font-black text-orange-600">
+                  <span className="text-sm sm:text-base font-black text-orange-600 dark:text-orange-400">
                     -{savedPercentage}%
                   </span>
                 </div>
               </div>
 
               {/* Relative Visual Size Reduction Bar */}
-              <div className="max-w-lg mx-auto space-y-1.5 text-left bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div className="max-w-lg mx-auto space-y-1.5 text-left bg-slate-50 dark:bg-slate-800/80 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-600">Document Size Ratio</span>
-                  <span className="text-emerald-700 font-extrabold">{100 - savedPercentage}% of original size</span>
+                  <span className="text-slate-600 dark:text-slate-300">Document Size Ratio</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{100 - savedPercentage}% of original size</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700"
                     style={{ width: `${Math.max(10, 100 - savedPercentage)}%` }}
@@ -1088,7 +1089,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                   type="button"
                   id="preview-compressed-pdf-btn"
                   onClick={handleOpenPreview}
-                  className="w-full sm:w-auto bg-white hover:bg-slate-50 text-orange-600 font-bold py-3.5 px-5 rounded-2xl border border-slate-200 transition flex items-center justify-center space-x-2 text-sm cursor-pointer shadow-2xs active:scale-95"
+                  className="w-full sm:w-auto bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-orange-600 dark:text-orange-400 font-bold py-3.5 px-5 rounded-2xl border border-slate-200 dark:border-slate-700 transition flex items-center justify-center space-x-2 text-sm cursor-pointer shadow-2xs active:scale-95"
                   aria-label="Preview compressed PDF"
                 >
                   <Eye className="w-4 h-4" />
@@ -1098,7 +1099,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 font-bold py-3.5 px-5 rounded-2xl border border-slate-200 transition flex items-center justify-center space-x-2 text-sm cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-5 rounded-2xl border border-slate-200 dark:border-slate-700 transition flex items-center justify-center space-x-2 text-sm cursor-pointer shadow-2xs"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Compress Another</span>
@@ -1106,8 +1107,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
               </div>
 
               {/* Cloud Saving Section (Disabled, Clearly Labeled 'Coming soon') */}
-              <div className="max-w-lg mx-auto pt-3 border-t border-slate-200">
-                <div className="flex items-center justify-center gap-2 mb-2 text-xs font-bold text-slate-500">
+              <div className="max-w-lg mx-auto pt-3 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-center gap-2 mb-2 text-xs font-bold text-slate-500 dark:text-slate-400">
                   <Cloud className="w-3.5 h-3.5 text-blue-500" />
                   <span>Cloud Backup Options</span>
                 </div>
@@ -1116,11 +1117,11 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                     type="button"
                     disabled={true}
                     aria-disabled="true"
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 text-slate-400 border border-slate-200 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
                   >
                     <HardDrive className="w-3.5 h-3.5 text-slate-400" />
                     <span>Save to Google Drive</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                       Coming soon
                     </span>
                   </button>
@@ -1129,23 +1130,23 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
                     type="button"
                     disabled={true}
                     aria-disabled="true"
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 text-slate-400 border border-slate-200 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
                   >
                     <Cloud className="w-3.5 h-3.5 text-slate-400" />
                     <span>Save to Dropbox</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                       Coming soon
                     </span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
                   Secure authentication and cloud upload integration are currently in development.
                 </p>
               </div>
 
               {/* Producer Verification Stamp */}
-              <div className="pt-3 border-t border-slate-200 max-w-md mx-auto text-[11px] text-slate-500 flex items-center justify-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 max-w-md mx-auto text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Engine: <strong>Pdfsun.in Aservus Engine</strong> (Producer Stamp Verified)</span>
               </div>
             </div>

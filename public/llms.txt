@@ -1,0 +1,104 @@
+# PDFSun (https://www.pdfsun.in)
+
+> High-speed, privacy-first online PDF toolkit with 66 registered browser-side WebAssembly (WASM) and enterprise document processing tools, zero forced document retention for client-side workflows, and multilingual global accessibility.
+
+## Platform Architecture & Privacy
+- **Canonical URL**: https://www.pdfsun.in
+- **Primary Engine**: Client-side WebAssembly (`pdf-lib`, `pdfjs-dist`, `tesseract.js`, Canvas/Worker pipelines) for local zero-upload privacy across core merge, split, compress, edit, sign, rotate, and conversion workflows.
+- **Discovery & Sitemaps**:
+  - https://www.pdfsun.in/sitemap.xml
+  - https://www.pdfsun.in/sitemap-international.xml
+  - https://www.pdfsun.in/sitemap-blog.xml
+  - https://www.pdfsun.in/sitemap-compress-sizes.xml
+  - https://www.pdfsun.in/sitemap-pseo.xml
+  - https://www.pdfsun.in/.well-known/ard.json
+
+## Pricing Tiers (INR)
+- **Free Forever (₹0)**: Basic PDF tools, 15 MB max file size, 3 operations/day.
+- **Flex Pass (₹99 / 7 Days)**: Pay-as-you-go access for 7 days with no auto-debit commitments.
+- **Pro Sun Monthly (₹199 / month)**: Full feature access, standard high limits, auto-renewed monthly.
+- **Pro Sun Annual (₹1,499 / year)**: Full feature access, high limits, billed yearly.
+- **Enterprise Plan (₹3,999 / year)**: Multi-user access (5 seats), high processing limits, priority support.
+- **Enterprise SSO Unlimited (₹9,999 / year)**: Enterprise SSO (20 seats), unlimited throughput, dedicated infrastructure.
+
+## Complete 66-Tool Registry
+
+### Core Convert & Document Interchange Tools
+- [Share PDFSun](https://www.pdfsun.in/share-pdfsun): Share PDFSun tools cleanly via direct deep links.
+- [Merge PDF](https://www.pdfsun.in/merge-pdf): Combine multiple PDF documents in custom order into one PDF.
+- [Split PDF](https://www.pdfsun.in/split-pdf): Split PDF files by page ranges, bookmarks, or fixed page intervals.
+- [PDF to Word](https://www.pdfsun.in/pdf-to-word): Convert PDF documents into editable DOCX Word files with layout reconstruction.
+- [Word to PDF](https://www.pdfsun.in/word-to-pdf): Convert DOC and DOCX files into high-fidelity PDFs.
+- [Excel to PDF](https://www.pdfsun.in/excel-to-pdf): Convert XLS, XLSX, and CSV spreadsheets to formatted PDF pages.
+- [PDF to Excel](https://www.pdfsun.in/pdf-to-excel): Extract tables and multi-tab spreadsheets from PDF into XLSX workbooks.
+- [PowerPoint to PDF](https://www.pdfsun.in/powerpoint-to-pdf): Convert PPT and PPTX decks into PDF.
+- [PDF to PowerPoint](https://www.pdfsun.in/pdf-to-powerpoint): Transform PDF slides into editable PPTX presentations.
+- [Image to Excel](https://www.pdfsun.in/image-to-excel): Extract tabular data from scanned images into Excel XLSX sheets.
+- [Image to Word / WordPad](https://www.pdfsun.in/image-to-word): Convert photos and scanned documents into editable Word/RTF files.
+- [Image to Notepad (.txt)](https://www.pdfsun.in/image-to-notepad): Extract plain UTF-8 text from images via OCR.
+- [Image to PDF](https://www.pdfsun.in/image-to-pdf): Combine JPG, PNG, and WebP images into a single PDF document.
+- [PDF to Image](https://www.pdfsun.in/pdf-to-image): Render PDF pages as downloadable high-resolution images.
+- [JPG to PDF](https://www.pdfsun.in/jpg-to-pdf): Convert JPG/JPEG images to PDF with margin and orientation control.
+- [PDF to JPG](https://www.pdfsun.in/pdf-to-jpg): Export each PDF page as a crisp JPG image or ZIP archive.
+- [PNG to PDF](https://www.pdfsun.in/png-to-pdf): Convert transparent or lossless PNG images into PDF pages.
+- [PDF to PNG](https://www.pdfsun.in/pdf-to-png): Render PDF pages as lossless PNG files.
+- [HTML to PDF](https://www.pdfsun.in/html-to-pdf): Convert HTML markup into clean printable PDF documents.
+- [Image Editor](https://www.pdfsun.in/image-editor): Crop, resize, rotate, flip, adjust filters, and export JPG/PNG/WebP.
+- [EPUB to PDF](https://www.pdfsun.in/epub-to-pdf): Convert EPUB eBooks into printable PDFs.
+- [RTF to PDF](https://www.pdfsun.in/rtf-to-pdf): Convert Rich Text Format (.rtf) files into standardized PDFs.
+- [TXT to PDF](https://www.pdfsun.in/txt-to-pdf): Convert plain UTF-8 text (.txt) into cleanly formatted PDFs.
+- [XML to PDF](https://www.pdfsun.in/xml-to-pdf): Format structured XML files into readable PDF reports.
+
+### Edit, Annotate & Sign PDF Tools
+- [Organize PDF](https://www.pdfsun.in/organize-pdf): Reorder, duplicate, and rearrange PDF pages visually.
+- [Rotate PDF](https://www.pdfsun.in/rotate-pdf): Rotate individual or all PDF pages 90, 180, or 270 degrees.
+- [Crop PDF](https://www.pdfsun.in/crop-pdf): Trim PDF margins and adjust visible crop boxes.
+- [Remove Pages](https://www.pdfsun.in/remove-pages): Delete unwanted pages from any PDF document.
+- [Extract Pages](https://www.pdfsun.in/extract-pages): Save selected PDF pages into a standalone file.
+- [PDF Editor](https://www.pdfsun.in/pdf-editor): Full canvas editor for text, drawings, shapes, signatures, watermarks, and redactions.
+- [Edit PDF](https://www.pdfsun.in/edit-pdf): Add text boxes, geometric shapes, images, and highlights onto PDF pages.
+- [Annotate PDF](https://www.pdfsun.in/annotate-pdf): Highlight, underline, and add sticky notes to PDFs.
+- [Sign PDF](https://www.pdfsun.in/sign-pdf): Draw, type, or upload electronic signatures onto PDFs.
+- [Watermark PDF](https://www.pdfsun.in/watermark-pdf): Apply custom text or logo watermarks with opacity and angle controls.
+- [Remove Watermark](https://www.pdfsun.in/remove-watermark): Clear overlay watermarks and background text stamps.
+- [Page Numbers](https://www.pdfsun.in/page-numbers): Insert customizable Bates and header/footer page numbers.
+- [Header & Footer](https://www.pdfsun.in/header-footer): Add running headers, dates, copyright lines, and footers.
+- [Background](https://www.pdfsun.in/background-pdf): Apply custom color tints or image backdrops behind PDF pages.
+- [View/Edit PDF Metadata](https://www.pdfsun.in/view-edit-pdf-metadata): Inspect and modify Title, Author, Subject, and Keywords.
+
+### Security, Compliance & Archival Tools
+- [Protect PDF](https://www.pdfsun.in/protect-pdf): Encrypt PDFs with password security and permission locks.
+- [Unlock PDF](https://www.pdfsun.in/unlock-pdf): Remove authorized password restrictions from PDFs.
+- [Redact PDF](https://www.pdfsun.in/redact-pdf): Permanently black out sensitive PII and confidential regions.
+- [Repair PDF](https://www.pdfsun.in/repair-pdf): Recover readable pages from damaged or corrupted PDFs.
+- [Flatten PDF](https://www.pdfsun.in/flatten-pdf): Merge form fields, signatures, and annotations into static layers.
+- [Compare PDF](https://www.pdfsun.in/compare-pdf): Side-by-side visual diff comparison between two PDF versions.
+
+### AI & Smart Document Intelligence Tools
+- [AI Chat with PDF](https://www.pdfsun.in/ai-chat-pdf): Interactive Q&A over uploaded PDF documents.
+- [AI Document Summary](https://www.pdfsun.in/ai-pdf-summary): Generate structured executive summaries and key takeaways.
+- [AI Translate PDF](https://www.pdfsun.in/ai-translate-pdf): Translate PDF content across global and Indian regional languages.
+- [AI Resume Builder](https://www.pdfsun.in/ai-resume-builder): Draft and format ATS-friendly PDF resumes.
+- [AI Flashcards](https://www.pdfsun.in/ai-flashcards): Create active-recall study flashcards from PDF notes.
+- [AI Notes Generator](https://www.pdfsun.in/ai-notes-generator): Turn chapters and handouts into structured study outlines.
+- [AI OCR (Text Recognition)](https://www.pdfsun.in/ai-ocr): Convert scanned PDFs and photos into searchable, selectable text.
+- [AI Grammar](https://www.pdfsun.in/ai-grammar): Proofread and refine PDF text clarity and tone.
+- [AI Explain PDF](https://www.pdfsun.in/ai-explain-pdf): Simplify dense legal, academic, or technical PDFs.
+- [Neural PDF Voice Reader](https://www.pdfsun.in/ai-voice-reader): Read PDF text aloud with natural neural speech synthesis.
+- [Voice-to-PDF Dictation](https://www.pdfsun.in/voice-to-pdf): Dictate voice notes directly into formatted PDF documents.
+
+### Advanced Compression, Automation & Inspection Tools
+- [Compress PDF](https://www.pdfsun.in/compress-pdf): Shrink PDF file size to exact KB/MB targets (including Indian government portal presets).
+- [Quantum Pre-Flight HUD](https://www.pdfsun.in/quantum-preflight-hud): Run pre-flight inspections for fonts, page boxes, colors, and compliance.
+- [Macro Automator 2026](https://www.pdfsun.in/macro-automator): Chain multi-step PDF automation workflows.
+- [Batch PDF Tools](https://www.pdfsun.in/batch-pdf-tools): Process multiple PDFs in parallel batches.
+- [Scan to PDF](https://www.pdfsun.in/scan-to-pdf): Capture paper documents via camera into clean PDFs.
+- [Extract Images](https://www.pdfsun.in/extract-images): Pull embedded photos and graphics out of PDFs.
+- [Extract Text](https://www.pdfsun.in/extract-text): Extract raw plain text from PDF documents.
+- [Read PDF Metadata](https://www.pdfsun.in/read-pdf-metadata): Audit hidden PDF properties, timestamps, and producer metadata.
+- [PDF Metadata](https://www.pdfsun.in/pdf-metadata): Edit PDF document information dictionary fields.
+- [PDF/A Converter](https://www.pdfsun.in/pdf-a-converter): Convert PDFs into ISO-compliant long-term archival PDF/A files.
+
+## Support & Governance
+- Owner / Primary Contact: mukeshinland79@gmail.com
+- Legal Pages: `/privacy-policy`, `/terms-of-service`, `/refund-policy`, `/cookie-policy`, `/about-us`, `/contact-us`, `/pricing`

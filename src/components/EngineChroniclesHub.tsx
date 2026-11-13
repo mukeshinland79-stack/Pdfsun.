@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
-import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { getHistoryText } from "../data/historyData";
 import { useLanguage } from "../lib/i18n";
 import { TodayInHistoryKnowledgeHubCard } from "./TodayInHistoryKnowledgeHubCard";
@@ -104,7 +103,8 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
       geoResult.detectedCountryCode || "IN"
     );
     if (data) {
-      generateHistoryWorksheetPdf(data);
+      const { generateHistoryWorksheetPdf } = await import("../utils/historyPdfGenerator");
+      await generateHistoryWorksheetPdf(data);
     }
   };
 

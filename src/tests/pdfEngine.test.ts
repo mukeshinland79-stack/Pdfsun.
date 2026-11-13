@@ -65,6 +65,7 @@ export async function runPdfEngineTestSuite(): Promise<{
   const { decryptPDF, isEncrypted } = await import("@pdfsmaller/pdf-decrypt");
   const { PDFDocument, StandardFonts, rgb, degrees, PDFName } = await import("pdf-lib");
   const pako = await import("pako");
+  const { toStrictUint8Array } = await import("../utils/binaryUtils");
 
   const logs: string[] = [];
   let passed = 0;
@@ -91,7 +92,7 @@ export async function runPdfEngineTestSuite(): Promise<{
         page.drawText(`PDFSun Automated Test Page ${i + 1} for ${name}`, { x: 50, y: 700 });
       }
       const bytes = await doc.save();
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const blob = new Blob([toStrictUint8Array(bytes)], { type: "application/pdf" });
       return new File([blob], name, { type: "application/pdf" });
     }
 
@@ -154,7 +155,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     imgPage.drawText("Document with Embedded Image", { x: 50, y: 650 });
     imgPage.drawImage(embJpg, { x: 50, y: 200, width: 300, height: 300 });
     const imgDocBytes = await imgTestDoc.save();
-    const imgTestFile = new File([new Blob([imgDocBytes])], "ImgDoc.pdf", { type: "application/pdf" });
+    const imgTestFile = new File([new Blob([toStrictUint8Array(imgDocBytes)])], "ImgDoc.pdf", { type: "application/pdf" });
 
     const imgCompRes = await compressPdfEnterprise(imgTestFile, { preset: "extreme", targetMaxKB: 100 });
     assert(imgCompRes.pdfBytes.length > 0, "Document with embedded image compresses to valid output bytes");
@@ -219,7 +220,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     rPage.drawText("Confidential Tax ID: 999-11-2222 Account 8888-9999", { font: rFont, x: 50, y: 650, size: 14 });
     const unredactedBytes = await redactionDoc.save({ useObjectStreams: false });
 
-    const unredactedFile = new File([new Blob([unredactedBytes])], "Financial.pdf", { type: "application/pdf" });
+    const unredactedFile = new File([new Blob([toStrictUint8Array(unredactedBytes)])], "Financial.pdf", { type: "application/pdf" });
 
     // Execute permanent redaction on sensitive terms
     const redactResult = await redactPdfPermanently(
@@ -266,7 +267,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     scannedPage.drawImage(embeddedOrigImg, { x: 50, y: 50, width: 400, height: 600 });
     const rawScannedBytes = await scannedDoc.save();
 
-    const scannedFile = new File([new Blob([rawScannedBytes])], "ScannedDocument.pdf", { type: "application/pdf" });
+    const scannedFile = new File([new Blob([toStrictUint8Array(rawScannedBytes)])], "ScannedDocument.pdf", { type: "application/pdf" });
     const scannedRedactRes = await redactPdfPermanently(scannedFile, {
       boxes: [{ pageIndex: 0, x: 100, y: 200, width: 200, height: 50 }],
       strategy: "deep_raster",
@@ -296,7 +297,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     pageRes.set(PDFName.of("Font"), fontResDict);
     cidPage.drawText("Test CID Protected Data", { x: 50, y: 500 });
     const cidBytes = await cidDoc.save();
-    const cidFile = new File([new Blob([cidBytes])], "CIDDoc.pdf", { type: "application/pdf" });
+    const cidFile = new File([new Blob([toStrictUint8Array(cidBytes)])], "CIDDoc.pdf", { type: "application/pdf" });
     const cidRedactRes = await redactPdfPermanently(cidFile, {
       boxes: [{ pageIndex: 0, x: 50, y: 490, width: 200, height: 30 }],
       strategy: "auto",
@@ -312,7 +313,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     const ocrStreamRef = ocrDoc.context.register(ocrStream);
     ocrPage.node.set(PDFName.of("Contents"), ocrStreamRef);
     const ocrBytes = await ocrDoc.save();
-    const ocrFile = new File([new Blob([ocrBytes])], "OCRDoc.pdf", { type: "application/pdf" });
+    const ocrFile = new File([new Blob([toStrictUint8Array(ocrBytes)])], "OCRDoc.pdf", { type: "application/pdf" });
     const ocrRedactRes = await redactPdfPermanently(ocrFile, {
       boxes: [{ pageIndex: 0, x: 50, y: 490, width: 200, height: 30 }],
       strategy: "auto",
@@ -327,7 +328,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     const embImg = await rotDoc.embedPng(testPngBytes);
     rotPage.drawImage(embImg, { x: 50, y: 50, width: 400, height: 600 });
     const rotBytes = await rotDoc.save();
-    const rotFile = new File([new Blob([rotBytes])], "RotatedScanned.pdf", { type: "application/pdf" });
+    const rotFile = new File([new Blob([toStrictUint8Array(rotBytes)])], "RotatedScanned.pdf", { type: "application/pdf" });
     const rotRedactRes = await redactPdfPermanently(rotFile, {
       boxes: [{ pageIndex: 0, x: 50, y: 50, width: 100, height: 100 }],
       strategy: "deep_raster",
@@ -342,10 +343,10 @@ export async function runPdfEngineTestSuite(): Promise<{
     encP.drawText("Classified Encrypted Document Text");
     const rawEncBytes = await encTestDoc.save();
     const protectedTargetBytes = await protectPdf(
-      new File([new Blob([rawEncBytes])], "Locked.pdf", { type: "application/pdf" }),
+      new File([new Blob([toStrictUint8Array(rawEncBytes)])], "Locked.pdf", { type: "application/pdf" }),
       { userPassword: "AuthRequiredPass123" }
     );
-    const lockedFile = new File([new Blob([protectedTargetBytes])], "Locked.pdf", { type: "application/pdf" });
+    const lockedFile = new File([new Blob([toStrictUint8Array(protectedTargetBytes)])], "Locked.pdf", { type: "application/pdf" });
 
     // Step A: Attempt without password -> Must fail closed
     let encWithoutPassFailed = false;
@@ -555,7 +556,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     const loadedHtmlPdf = await PDFDocument.load(htmlResult.pdfBytes);
     assert(loadedHtmlPdf.getPageCount() >= 1, "HTML to PDF produces valid readable PDF document");
 
-    const htmlPdfText = await extractTextFromPdfFile(new File([new Blob([htmlResult.pdfBytes])], "rendered_html.pdf", { type: "application/pdf" }));
+    const htmlPdfText = await extractTextFromPdfFile(new File([new Blob([toStrictUint8Array(htmlResult.pdfBytes)])], "rendered_html.pdf", { type: "application/pdf" }));
     assert(htmlPdfText.includes("Executive Financial Summary"), "HTML output preserves main document heading");
     assert(htmlPdfText.includes("Step Alpha") && htmlPdfText.includes("Bullet Item 1"), "HTML output preserves ordered and unordered list items");
     assert(htmlPdfText.includes("Engineering") && htmlPdfText.includes("Approved"), "HTML output preserves table rows, headers, and cells");
@@ -582,7 +583,7 @@ export async function runPdfEngineTestSuite(): Promise<{
     const loadedXmlPdf = await PDFDocument.load(xmlResult.pdfBytes);
     assert(loadedXmlPdf.getPageCount() >= 1, "XML to PDF produces valid structured PDF document");
 
-    const xmlPdfTextRaw = await extractTextFromPdfFile(new File([new Blob([xmlResult.pdfBytes])], "rendered_xml.pdf", { type: "application/pdf" }));
+    const xmlPdfTextRaw = await extractTextFromPdfFile(new File([new Blob([toStrictUint8Array(xmlResult.pdfBytes)])], "rendered_xml.pdf", { type: "application/pdf" }));
     const xmlPdfText = xmlPdfTextRaw.replace(/\s+/g, " ");
     assert(xmlPdfText.includes("<company") && xmlPdfText.includes("CORP-99"), "XML output renders root tag and attributes");
     assert(xmlPdfText.includes("<division") && xmlPdfText.includes("Engineering Core"), "XML output renders nested parent container elements");

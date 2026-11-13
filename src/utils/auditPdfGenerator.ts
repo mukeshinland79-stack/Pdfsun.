@@ -278,7 +278,7 @@ export function generateAuditCompliancePdf(options: AuditPdfExportOptions): void
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(log.timestamp || "N/A", margin + 2, y + 4.5);
+    doc.text(log.timestamp != null ? String(log.timestamp) : "N/A", margin + 2, y + 4.5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);

@@ -1,6 +1,6 @@
 {
   "name": "PDFSun",
-  "description": "PDFSun — Your Smart Document Companion. Fast, private, browser-based PDF tools to convert, merge, split, compress, edit, OCR, and manage documents safely at pdfsun.in.",
+  "description": "PDFSun — Your Smart Document & Barcode Companion. Fast, private, browser-based PDF tools and barcode studio to convert, merge, split, compress, edit, generate barcodes, and manage documents safely at pdfsun.in.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -4,6 +4,7 @@
  */
 
 // Memory URL Revocation Tracking to prevent browser memory leaks
+import { toStrictUint8Array } from "../utils/binaryUtils";
 const activeBlobUrls = new Set<string>();
 
 export function registerBlobUrl(url: string): string {
@@ -128,7 +129,7 @@ export async function executePdfWorkerTask(
           }
 
           if (onProgress) onProgress(100);
-          const blob = new Blob([resultBytes], { type: "application/pdf" });
+          const blob = new Blob([toStrictUint8Array(resultBytes)], { type: "application/pdf" });
           const url = registerBlobUrl(URL.createObjectURL(blob));
           resolve({ blob, url, bytes: resultBytes });
         } catch (err) {

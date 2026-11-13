@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import {
   Smartphone,
   QrCode,
@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import { PDFSunLogoIcon } from "./PDFSunLogo";
 import { usePWAStatus } from "../pwaRegister";
-import { InstallAppModal } from "./InstallAppModal";
 import { useLanguage } from "../lib/i18n";
 import { getQrCodeDataUrl } from "../lib/qrGenerator";
+
+const InstallAppModal = lazy(() => import("./InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
 
 interface MobileAppPromotionCardProps {
   className?: string;
@@ -293,11 +294,15 @@ export const MobileAppPromotionCard: React.FC<MobileAppPromotionCardProps> = ({
         </div>
       </div>
 
-      <InstallAppModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        initialTab={modalTab}
-      />
+      {modalOpen && (
+        <Suspense fallback={null}>
+          <InstallAppModal
+            isOpen={modalOpen}
+            onClose={() => setModalOpen(false)}
+            initialTab={modalTab}
+          />
+        </Suspense>
+      )}
     </section>
   );
 };

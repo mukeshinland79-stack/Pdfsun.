@@ -1,0 +1,55 @@
+Backup Timestamp: 2026-11-13T04:20:23Z
+Node: v22.23.2
+npm: 10.9.8
+Git Available: fatal: not a git repository (or any of the parent directories): .git
+Files Backed Up: 37
+--- dist/ baseline ---
+total 881
+drwxr-xr-x 1 root    root       960 Nov 13 03:57 .
+drwxr-xr-x 1 appuser appuser   1120 Nov 13 04:20 ..
+-rw-r--r-- 1 root    root      2020 Nov 13 03:57 ads.json
+-rw-r--r-- 1 root    root        59 Nov 13 03:57 ads.txt
+-rw-r--r-- 1 root    root      9930 Nov 13 03:57 android-chrome-192x192.png
+-rw-r--r-- 1 root    root     50313 Nov 13 03:57 android-chrome-512x512.png
+-rw-r--r-- 1 root    root      4915 Nov 13 03:57 app.js
+-rw-r--r-- 1 root    root      9673 Nov 13 03:57 apple-touch-icon-180x180.png
+-rw-r--r-- 1 root    root      9673 Nov 13 03:57 apple-touch-icon.png
+-rw-r--r-- 1 root    root      9833 Nov 13 03:57 ard.json
+drwxr-xr-x 1 root    root       400 Nov 13 03:57 assets
+-rw-r--r-- 1 root    root      7506 Nov 13 03:57 favicon-144x144.png
+-rw-r--r-- 1 root    root       684 Nov 13 03:57 favicon-16x16.png
+-rw-r--r-- 1 root    root      9930 Nov 13 03:57 favicon-192x192.png
+-rw-r--r-- 1 root    root      1338 Nov 13 03:57 favicon-32x32.png
+-rw-r--r-- 1 root    root      2100 Nov 13 03:57 favicon-48x48.png
+-rw-r--r-- 1 root    root     50313 Nov 13 03:57 favicon-512x512.png
+-rw-r--r-- 1 root    root      4587 Nov 13 03:57 favicon-96x96.png
+-rw-r--r-- 1 root    root     15086 Nov 13 03:57 favicon.ico
+-rw-r--r-- 1 root    root      1688 Nov 13 03:57 favicon.svg
+-rw-r--r-- 1 root    root      4217 Nov 13 03:57 _headers
+-rw-r--r-- 1 root    root      2078 Nov 13 03:57 icon-192.svg
+-rw-r--r-- 1 root    root      2078 Nov 13 03:57 icon-512.svg
+-rw-r--r-- 1 root    root      1673 Nov 13 03:57 lang.json
+-rw-r--r-- 1 root    root      9480 Nov 13 03:57 llms.txt
+drwxr-xr-x 1 root    root       760 Nov 13 03:57 locales
+-rw-r--r-- 1 root    root      1688 Nov 13 03:57 logo-blue.svg
+-rw-r--r-- 1 root    root      3685 Nov 13 03:57 logo-dark.svg
+-rw-r--r-- 1 root    root     50313 Nov 13 03:57 logo-horizontal.png
+-rw-r--r-- 1 root    root      3545 Nov 13 03:57 logo-light.svg
+-rw-r--r-- 1 root    root     50313 Nov 13 03:57 logo.png
+-rw-r--r-- 1 root    root      4218 Nov 13 03:57 logo-stacked.svg
+-rw-r--r-- 1 root    root      1689 Nov 13 03:57 logo.svg
+-rw-r--r-- 1 root    root      2094 Nov 13 03:57 manifest.json
+-rw-r--r-- 1 root    root    129558 Nov 13 03:57 og-image.png
+-rw-r--r-- 1 root    root     50313 Nov 13 03:57 pwa-512.png
+-rw-r--r-- 1 root    root       343 Nov 13 03:57 robots.txt
+-rw-r--r-- 1 root    root      2659 Nov 13 03:57 sitemap-blog.xml
+-rw-r--r-- 1 root    root      3596 Nov 13 03:57 sitemap-compress-sizes.xml
+-rw-r--r-- 1 root    root    332827 Nov 13 03:57 sitemap-international.xml
+-rw-r--r-- 1 root    root      5581 Nov 13 03:57 sitemap-pseo.xml
+-rw-r--r-- 1 root    root     23525 Nov 13 03:57 sitemap.xml
+-rw-r--r-- 1 root    root      2212 Nov 13 03:57 site.webmanifest
+-rw-r--r-- 1 root    root      1417 Nov 13 03:57 style.css
+-rw-r--r-- 1 root    root      1321 Nov 13 03:57 styles.css
+-rw-r--r-- 1 root    root      5752 Nov 13 03:57 sw.js
+-rw-r--r-- 1 root    root      2774 Nov 13 03:57 themes.json
+drwxr-xr-x 1 root    root        60 Nov 13 03:57 .well-known

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { GeoDetectionResult } from "../types/history";
 import { fetchDayInHistory } from "../services/historyService";
-import { generateHistoryWorksheetPdf } from "../utils/historyPdfGenerator";
 import { useLanguage } from "../lib/i18n";
 import { getHistoryText } from "../data/historyData";
 import { TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
@@ -101,7 +100,8 @@ export const TodayInHistoryKnowledgeHubCard: React.FC<TodayInHistoryKnowledgeHub
     try {
       const data = await fetchDayInHistory(new Date(), effectiveLang, countryCode);
       if (data) {
-        generateHistoryWorksheetPdf(data);
+        const { generateHistoryWorksheetPdf } = await import("../utils/historyPdfGenerator");
+        await generateHistoryWorksheetPdf(data);
       }
     } catch (err) {
       console.error("Failed to generate quick history worksheet:", err);

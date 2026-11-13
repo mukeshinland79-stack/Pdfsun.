@@ -56,18 +56,22 @@ import confetti from "canvas-confetti";
 import { ToolItem, ToolHistoryItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
 import { triggerErrorToast } from "./GlobalErrorToast";
-import { TableGridPreviewModal } from "./TableGridPreviewModal";
-import { LiveInteractiveTableGrid } from "./LiveInteractiveTableGrid";
+import type { PdfDocumentMeta } from "./PdfPreviewCanvas";
 import { getToolFAQs } from "./SEOManager";
-import { PdfPreviewCanvas, PdfDocumentMeta } from "./PdfPreviewCanvas";
 import { useLanguage } from "../lib/i18n";
 import { callTranslateApi } from "../lib/safeApi";
 import { useToolRatings } from "../hooks/useToolRatings";
 import { DocumentFidelityBadge } from "./DocumentFidelityBadge";
-import { GoldenFileVerificationModal } from "./GoldenFileVerificationModal";
 import { IndianGovtPortalPresetSelector, INDIAN_GOVT_PRESETS } from "./IndianGovtPortalPresetSelector";
+import { toStrictUint8Array, toBlobPart } from "../utils/binaryUtils";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
+const TableGridPreviewModal = React.lazy(() => import("./TableGridPreviewModal").then((m) => ({ default: m.TableGridPreviewModal })));
+const LiveInteractiveTableGrid = React.lazy(() => import("./LiveInteractiveTableGrid").then((m) => ({ default: m.LiveInteractiveTableGrid })));
+const PdfPreviewCanvas = React.lazy(() => import("./PdfPreviewCanvas").then((m) => ({ default: m.PdfPreviewCanvas })));
+const GoldenFileVerificationModal = React.lazy(() => import("./GoldenFileVerificationModal").then((m) => ({ default: m.GoldenFileVerificationModal })));
+const PDFEditorWorkspace = React.lazy(() => import("./PDFEditorWorkspace").then((m) => ({ default: m.PDFEditorWorkspace })));
+const ImageEditorWorkspace = React.lazy(() => import("./ImageEditorWorkspace").then((m) => ({ default: m.ImageEditorWorkspace })));
 
 import {
   mergePdfs,
@@ -172,9 +176,6 @@ import {
 } from "../lib/fileValidation";
 import { parseHumanFriendlyError, DetailedErrorInfo } from "../lib/errorNotificationService";
 import { ErrorNotificationOverlay } from "./ErrorNotificationOverlay";
-import { AnnotatePdfWorkspace } from "./AnnotatePdfWorkspace";
-import { PDFEditorWorkspace } from "./PDFEditorWorkspace";
-import { ImageEditorWorkspace } from "./ImageEditorWorkspace";
 import { QuickShareModal } from "./QuickShareModal";
 import { UniversalToolActionBar } from "./UniversalToolActionBar";
 import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
@@ -376,7 +377,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         } else if (typeof downloadReady.data === "string") {
           blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "text/plain" });
         } else {
-          blob = new Blob([downloadReady.data], { type: downloadReady.mimeType || "application/pdf" });
+          blob = new Blob([toBlobPart(downloadReady.data)], { type: downloadReady.mimeType || "application/pdf" });
         }
         const pipelinedFile = new File([blob], downloadReady.fileName || "document.pdf", { type: blob.type });
         if (onSelectTool) {
@@ -1668,7 +1669,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         case "macro-automator":
           setStatusMessage("Executing multi-action automated macro pipeline (Compress + Watermark + Page Numbers + Flatten)...");
           let mBytes = await compressPdf(files[0], 0.75, (p) => setProgress(45 + Math.round((p / 100) * 12)));
-          let mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          let mFile = new File([toStrictUint8Array(mBytes)], "temp.pdf", { type: "application/pdf" });
           mBytes = await watermarkPdf(
             mFile,
             {
@@ -1683,9 +1684,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             42,
             (p) => setProgress(57 + Math.round((p / 100) * 12))
           );
-          mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          mFile = new File([toStrictUint8Array(mBytes)], "temp.pdf", { type: "application/pdf" });
           mBytes = await addPageNumbers(mFile, "bottom-center", (p) => setProgress(69 + Math.round((p / 100) * 12)));
-          mFile = new File([mBytes], "temp.pdf", { type: "application/pdf" });
+          mFile = new File([toStrictUint8Array(mBytes)], "temp.pdf", { type: "application/pdf" });
           outputBytes = await flattenPdf(
             mFile,
             { mode: "smart" },
@@ -2229,15 +2230,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         <div className="flex items-start sm:items-center space-x-3">
                           {/* Mini Interactive Document Thumbnail Canvas */}
                           <div className="relative w-14 h-18 sm:w-16 sm:h-20 shrink-0">
-                            <PdfPreviewCanvas
-                              file={firstFile}
-                              interactive={true}
-                              showControls={false}
-                              showMetadata={false}
-                              maxDimension={200}
-                              className="w-full h-full rounded-xl border-emerald-500/30 shadow-xs"
-                              onPreviewClick={() => setPreviewModalFile({ file: firstFile, index: 0, state: firstState })}
-                            />
+                            <React.Suspense fallback={<div className="w-full h-full rounded-xl bg-slate-800/60 animate-pulse" />}>
+                              <PdfPreviewCanvas
+                                file={firstFile}
+                                interactive={true}
+                                showControls={false}
+                                showMetadata={false}
+                                maxDimension={200}
+                                className="w-full h-full rounded-xl border-emerald-500/30 shadow-xs"
+                                onPreviewClick={() => setPreviewModalFile({ file: firstFile, index: 0, state: firstState })}
+                              />
+                            </React.Suspense>
                           </div>
 
                           <div className="space-y-1 min-w-0">
@@ -2454,20 +2457,22 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                         {/* PDF Page Canvas Preview Frame with Real Rendered Thumbnail */}
                         <div className="relative w-full aspect-[1/1.3] my-1">
-                          <PdfPreviewCanvas
-                            file={fs.file}
-                            rotation={(fileRotations[idx] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
-                            interactive={true}
-                            showControls={true}
-                            showMetadata={false}
-                            showPageNavigation={false}
-                            maxDimension={280}
-                            className="w-full h-full"
-                            onRotate={(newRot) => {
-                              setFileRotations((prev) => ({ ...prev, [idx]: newRot }));
-                            }}
-                            onPreviewClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
-                          />
+                          <React.Suspense fallback={<div className="w-full h-full rounded-xl bg-slate-800/60 animate-pulse" />}>
+                            <PdfPreviewCanvas
+                              file={fs.file}
+                              rotation={(fileRotations[idx] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
+                              interactive={true}
+                              showControls={true}
+                              showMetadata={false}
+                              showPageNavigation={false}
+                              maxDimension={280}
+                              className="w-full h-full"
+                              onRotate={(newRot) => {
+                                setFileRotations((prev) => ({ ...prev, [idx]: newRot }));
+                              }}
+                              onPreviewClick={() => setPreviewModalFile({ file: fs.file, index: idx, state: fs })}
+                            />
+                          </React.Suspense>
                         </div>
 
                         {/* File Details & Action Bar */}
@@ -6268,26 +6273,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               {/* Live Interactive Table Preview Engine Rendered Inline */}
               {showInlineTablePreview && (tool.id === "image-to-excel" || tool.id === "pdf-to-excel" || liveTableMatrix.length > 0) && (
                 <div className="mt-3">
-                  <LiveInteractiveTableGrid
-                    initialData={
-                      liveTableMatrix.length > 0
-                        ? liveTableMatrix
-                        : [
-                            ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
-                            ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
-                            ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
-                            ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
-                            ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
-                          ]
-                    }
-                    fileName={downloadReady.fileName}
-                    onDataChange={(updated) => {
-                      setLiveTableMatrix(updated);
-                    }}
-                    onDirectDownload={(fmt) => {
-                      setPostProcessFormatChoice(fmt);
-                      const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Extracted_Data";
-                      const matrix =
+                  <React.Suspense fallback={<div className="h-48 rounded-2xl bg-slate-800/50 animate-pulse" />}>
+                    <LiveInteractiveTableGrid
+                      initialData={
                         liveTableMatrix.length > 0
                           ? liveTableMatrix
                           : [
@@ -6296,21 +6284,40 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                               ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
                               ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
                               ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
-                            ];
-                      const res = exportTableGridToSpreadsheet(matrix, fmt, cleanBase);
-                      const mime =
-                        fmt === "csv"
-                          ? "text/csv;charset=utf-8"
-                          : fmt === "xls"
-                          ? "application/vnd.ms-excel"
-                          : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                      const size = res.bytes.byteLength;
-                      trackGADownloadStart(tool.id, res.fileName, size);
-                      downloadFile(res.bytes, res.fileName, mime);
-                      trackGADownloadSuccess(tool.id, res.fileName, size);
-                    }}
-                    onExpandFullscreen={() => setShowLiveTableModal(true)}
-                  />
+                            ]
+                      }
+                      fileName={downloadReady.fileName}
+                      onDataChange={(updated) => {
+                        setLiveTableMatrix(updated);
+                      }}
+                      onDirectDownload={(fmt) => {
+                        setPostProcessFormatChoice(fmt);
+                        const cleanBase = downloadReady.fileName.replace(/\.[^/.]+$/, "") || "PDFSun_Extracted_Data";
+                        const matrix =
+                          liveTableMatrix.length > 0
+                            ? liveTableMatrix
+                            : [
+                                ["NO", "GC NUMBER", "DATE", "CHALLAN NO", "VEHICLE NO", "FROM", "TO", "AMOUNT"],
+                                ["1", "GC-884210", "2026-08-15", "CH-9021", "MH-04-AB-1290", "MUMBAI", "DELHI", "₹45,200"],
+                                ["2", "GC-884211", "2026-08-16", "CH-9022", "DL-01-XY-8841", "PUNE", "JAIPUR", "₹32,500"],
+                                ["3", "GC-884212", "2026-08-17", "CH-9023", "GJ-06-CD-4412", "SURAT", "BANGALORE", "₹58,900"],
+                                ["4", "GC-884213", "2026-08-18", "CH-9024", "KA-05-PQ-7721", "HYDERABAD", "CHENNAI", "₹24,800"],
+                              ];
+                        const res = exportTableGridToSpreadsheet(matrix, fmt, cleanBase);
+                        const mime =
+                          fmt === "csv"
+                            ? "text/csv;charset=utf-8"
+                            : fmt === "xls"
+                            ? "application/vnd.ms-excel"
+                            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                        const size = res.bytes.byteLength;
+                        trackGADownloadStart(tool.id, res.fileName, size);
+                        downloadFile(res.bytes, res.fileName, mime);
+                        trackGADownloadSuccess(tool.id, res.fileName, size);
+                      }}
+                      onExpandFullscreen={() => setShowLiveTableModal(true)}
+                    />
+                  </React.Suspense>
                 </div>
               )}
 
@@ -6320,7 +6327,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                   <DownloadQrCodeGenerator
                     fileName={downloadReady.fileName}
                     toolSlug={tool.slug || tool.id}
-                    fileBlob={downloadReady.data instanceof Blob ? downloadReady.data : new Blob([downloadReady.data], { type: downloadReady.mimeType })}
+                    fileBlob={downloadReady.data instanceof Blob ? downloadReady.data : new Blob([toBlobPart(downloadReady.data)], { type: downloadReady.mimeType })}
                     mimeType={downloadReady.mimeType}
                     onDownloadDirect={() => handleTriggerDownload()}
                     onClose={() => setShowQrCodeModal(false)}
@@ -6645,7 +6652,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     type="button"
                     onClick={() => {
                       if (onSelectTool) {
-                        onSelectTool(relTool, downloadReady ? [new File([downloadReady.data], downloadReady.fileName, { type: downloadReady.mimeType })] : files);
+                        onSelectTool(relTool, downloadReady ? [new File([toBlobPart(downloadReady.data)], downloadReady.fileName, { type: downloadReady.mimeType })] : files);
                       }
                     }}
                     className="group p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 bg-white hover:bg-blue-50/40 text-left transition flex flex-col justify-between space-y-1.5 shadow-2xs hover:shadow-xs"
@@ -6752,19 +6759,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             {/* High-Resolution Document Page Preview Canvas & Metadata */}
             <div className="space-y-4">
               <div className="w-full max-h-96 aspect-[1/1.3] mx-auto">
-                <PdfPreviewCanvas
-                  file={previewModalFile.file}
-                  rotation={(fileRotations[previewModalFile.index] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
-                  interactive={true}
-                  showControls={true}
-                  showMetadata={true}
-                  showPageNavigation={true}
-                  maxDimension={600}
-                  className="w-full h-full shadow-inner"
-                  onRotate={(newRot) => {
-                    setFileRotations((prev) => ({ ...prev, [previewModalFile.index]: newRot }));
-                  }}
-                />
+                <React.Suspense fallback={<div className="w-full h-full rounded-2xl bg-slate-800/60 animate-pulse" />}>
+                  <PdfPreviewCanvas
+                    file={previewModalFile.file}
+                    rotation={(fileRotations[previewModalFile.index] || 0) + (tool.id === "rotate-pdf" ? rotationAngle : 0)}
+                    interactive={true}
+                    showControls={true}
+                    showMetadata={true}
+                    showPageNavigation={true}
+                    maxDimension={600}
+                    className="w-full h-full shadow-inner"
+                    onRotate={(newRot) => {
+                      setFileRotations((prev) => ({ ...prev, [previewModalFile.index]: newRot }));
+                    }}
+                  />
+                </React.Suspense>
               </div>
 
               {/* Document Metadata Summary Sheet */}
@@ -6857,57 +6866,61 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
       {/* Interactive PDF Annotator Studio Modal */}
       {showAnnotatorModal && files[0] && (
-        <PDFEditorWorkspace
-          file={files[0]}
-          onClose={() => setShowAnnotatorModal(false)}
-          onSaveComplete={(outputBytes, outName) => {
-            setShowAnnotatorModal(false);
-            setDownloadReady({
-              data: outputBytes,
-              fileName: outName,
-              mimeType: "application/pdf",
-            });
-            onAddHistory({
-              id: Date.now().toString(),
-              toolId: tool.id,
-              toolName: tool.name,
-              fileName: files[0]?.name || "Document",
-              timestamp: Date.now(),
-              status: "completed",
-              outputFileName: outName,
-            });
-          }}
-        />
+        <React.Suspense fallback={null}>
+          <PDFEditorWorkspace
+            file={files[0]}
+            onClose={() => setShowAnnotatorModal(false)}
+            onSaveComplete={(outputBytes, outName) => {
+              setShowAnnotatorModal(false);
+              setDownloadReady({
+                data: outputBytes,
+                fileName: outName,
+                mimeType: "application/pdf",
+              });
+              onAddHistory({
+                id: Date.now().toString(),
+                toolId: tool.id,
+                toolName: tool.name,
+                fileName: files[0]?.name || "Document",
+                timestamp: Date.now(),
+                status: "completed",
+                outputFileName: outName,
+              });
+            }}
+          />
+        </React.Suspense>
       )}
 
       {/* Interactive Image Editor Studio Modal */}
       {showImageEditorModal && files[0] && (
-        <ImageEditorWorkspace
-          file={files[0]}
-          onClose={() => setShowImageEditorModal(false)}
-          onSaveComplete={(outputBytes, outName) => {
-            setShowImageEditorModal(false);
-            const mime = outName.endsWith(".png")
-              ? "image/png"
-              : outName.endsWith(".webp")
-              ? "image/webp"
-              : "image/jpeg";
-            setDownloadReady({
-              data: outputBytes,
-              fileName: outName,
-              mimeType: mime,
-            });
-            onAddHistory({
-              id: Date.now().toString(),
-              toolId: tool.id,
-              toolName: tool.name,
-              fileName: files[0]?.name || "Image",
-              timestamp: Date.now(),
-              status: "completed",
-              outputFileName: outName,
-            });
-          }}
-        />
+        <React.Suspense fallback={null}>
+          <ImageEditorWorkspace
+            file={files[0]}
+            onClose={() => setShowImageEditorModal(false)}
+            onSaveComplete={(outputBytes, outName) => {
+              setShowImageEditorModal(false);
+              const mime = outName.endsWith(".png")
+                ? "image/png"
+                : outName.endsWith(".webp")
+                ? "image/webp"
+                : "image/jpeg";
+              setDownloadReady({
+                data: outputBytes,
+                fileName: outName,
+                mimeType: mime,
+              });
+              onAddHistory({
+                id: Date.now().toString(),
+                toolId: tool.id,
+                toolName: tool.name,
+                fileName: files[0]?.name || "Image",
+                timestamp: Date.now(),
+                status: "completed",
+                outputFileName: outName,
+              });
+            }}
+          />
+        </React.Suspense>
       )}
       {/* Quick Share Studio Modal */}
       {showShareModal && (
@@ -6956,21 +6969,29 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         </div>
       )}
       {/* In-Browser Live HTML Grid Preview & Cell Editor Modal */}
-      <TableGridPreviewModal
-        isOpen={showLiveTableModal}
-        initialData={liveTableMatrix}
-        fileName={liveTableFileName}
-        onClose={() => setShowLiveTableModal(false)}
-        onDownloadCustom={(customData) => {
-          setLiveTableMatrix(customData);
-        }}
-      />
+      {showLiveTableModal && (
+        <React.Suspense fallback={null}>
+          <TableGridPreviewModal
+            isOpen={showLiveTableModal}
+            initialData={liveTableMatrix}
+            fileName={liveTableFileName}
+            onClose={() => setShowLiveTableModal(false)}
+            onDownloadCustom={(customData) => {
+              setLiveTableMatrix(customData);
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* Golden-File In-Browser Verification Studio */}
-      <GoldenFileVerificationModal
-        isOpen={showVerificationStudio}
-        onClose={() => setShowVerificationStudio(false)}
-      />
+      {showVerificationStudio && (
+        <React.Suspense fallback={null}>
+          <GoldenFileVerificationModal
+            isOpen={showVerificationStudio}
+            onClose={() => setShowVerificationStudio(false)}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

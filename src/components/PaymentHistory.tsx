@@ -158,7 +158,14 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     try {
       setRefreshing(true);
       const email = userProfile.email || "mukeshinland79@gmail.com";
-      const result = await safeFetchJson<any>(`/api/user/payment-history?email=${encodeURIComponent(email)}`);
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
+      const result = await safeFetchJson<any>(`/api/user/payment-history?email=${encodeURIComponent(email)}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
 
       let apiTransactions: PaymentTransaction[] = [];
       if (result.ok && result.data) {
@@ -294,9 +301,17 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       setSyncing(true);
       setSyncMessage(null);
       const email = userProfile.email || "mukeshinland79@gmail.com";
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
       const result = await safeFetchJson<any>("/api/user/sync-payment-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ email }),
       });
       if (result.ok && result.data && result.data.success) {

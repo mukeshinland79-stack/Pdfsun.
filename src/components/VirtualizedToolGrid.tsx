@@ -26,6 +26,7 @@ export const VirtualizedToolGrid: React.FC<VirtualizedToolGridProps> = ({
   height = 680,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
   const [columns, setColumns] = useState<number>(4);
   const [scrollTop, setScrollTop] = useState<number>(0);
 
@@ -49,11 +50,23 @@ export const VirtualizedToolGrid: React.FC<VirtualizedToolGridProps> = ({
       observer.observe(scrollRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+    const nextScrollTop = e.currentTarget.scrollTop;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    rafRef.current = requestAnimationFrame(() => {
+      setScrollTop(nextScrollTop);
+      rafRef.current = null;
+    });
   };
 
   const cardRowHeight = 210; // Height per row including spacing

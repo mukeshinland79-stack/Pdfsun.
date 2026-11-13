@@ -35,6 +35,7 @@ import { PricingCompareTable } from "./PricingCompareTable";
 import { DynamicPaymentQR } from "./DynamicPaymentQR";
 import { PDFSUN_PAYMENT_PRODUCTS, PaymentProduct } from "../config/paymentProducts";
 import { PDFSunLogo } from "./PDFSunLogo";
+import { ensureRazorpayLoaded } from "../utils/loadRazorpay";
 
 interface PricingSectionProps {
   isOpen?: boolean;
@@ -230,7 +231,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   const fetchUserSubscription = async () => {
     if (!currentUserId) return;
     try {
-      const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`);
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
+      const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(currentUserId)}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (res.ok) {
         const data = await res.json();
         if ((data.active || data.isPro || data.status === "Plan Activated" || data.status === "active") && data.subscription) {
@@ -598,6 +606,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
   // Check URL query parameters for return from Razorpay Checkout with STRICT cryptographic server verification
   useEffect(() => {
+    ensureRazorpayLoaded();
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const paymentId = params.get("razorpay_payment_id") || params.get("payment_id");
@@ -709,6 +721,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
     setIsProcessing(true);
     const directRazorpayUrl = plan.razorpayLink || PDFSUN_PAYMENT_PRODUCTS[plan.id]?.razorpayPaymentLink || "";
+
+    await ensureRazorpayLoaded();
 
     // 1. Direct Razorpay Modal Launch if Razorpay SDK is available
     if (typeof window !== "undefined" && (window as any).Razorpay) {
@@ -840,9 +854,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
     setIsProcessing(true);
     try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
       const res = await fetch("/api/process-refund", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           transactionId: refundTxId,
           userEmail: currentUserId || "user@pdfsun.in",
@@ -2289,7 +2311,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   setActivePaymentDetails({
                     planName: data.planName || selectedProduct.productName,
                     paymentId: data.paymentId || `pay_rzp_${Date.now()}`,
-                    amountStr: currency === "INR" ? `₹${selectedProduct.displayPriceINR}` : `$${selectedProduct.displayPriceUSD}`,
+                    amountStr: currency === "INR" ? `₹${selectedProduct.displayPriceINR}` : `$${selectedProduct.displayPriceUSD ?? 0}`,
                     planId: selectedProduct.internalProductId,
                   });
                   setBlinkingModalOpen(true);

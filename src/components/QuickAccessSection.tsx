@@ -67,12 +67,14 @@ import {
   RefreshCw,
   Sliders,
   Shield,
+  Barcode,
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { useUserInteractionHistory } from "../hooks/useUserInteractionHistory";
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
+  Barcode,
   Combine,
   Scissors,
   Minimize2,

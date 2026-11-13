@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import {
   Mail,
   ShieldCheck,
@@ -7,16 +7,13 @@ import {
   Lock,
   Zap,
   CreditCard,
-  Facebook,
-  Linkedin,
-  Youtube,
-  Instagram,
 } from "lucide-react";
 import { PolicyType } from "../types";
 import { PDFSunLogo } from "./PDFSunLogo";
-import { PDFSunBrandShowcaseModal } from "./PDFSunBrandShowcaseModal";
 import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
+
+const PDFSunBrandShowcaseModal = lazy(() => import("./PDFSunBrandShowcaseModal").then((m) => ({ default: m.PDFSunBrandShowcaseModal })));
 
 // Custom modern X (formerly Twitter) SVG icon
 const XIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
@@ -27,6 +24,35 @@ const XIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
     aria-hidden="true"
   >
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const FacebookIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const InstagramIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const LinkedinIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const YoutubeIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+    <path d="m10 15 5-3-5-3v6Z" />
   </svg>
 );
 
@@ -415,7 +441,7 @@ export const Footer: React.FC<FooterProps> = ({
                   title="Follow PDFSun on Facebook"
                   className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
                 >
-                  <Facebook className="w-3.5 h-3.5" />
+                  <FacebookIcon className="w-3.5 h-3.5" />
                 </a>
                 <a
                   href="https://www.instagram.com/pdfsun.in"
@@ -425,7 +451,7 @@ export const Footer: React.FC<FooterProps> = ({
                   title="Follow PDFSun on Instagram"
                   className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
                 >
-                  <Instagram className="w-3.5 h-3.5" />
+                  <InstagramIcon className="w-3.5 h-3.5" />
                 </a>
                 <a
                   href="https://linkedin.com"
@@ -435,7 +461,7 @@ export const Footer: React.FC<FooterProps> = ({
                   title="Follow PDFSun on LinkedIn"
                   className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
                 >
-                  <Linkedin className="w-3.5 h-3.5" />
+                  <LinkedinIcon className="w-3.5 h-3.5" />
                 </a>
                 <a
                   href="https://youtube.com"
@@ -445,7 +471,7 @@ export const Footer: React.FC<FooterProps> = ({
                   title="Subscribe to PDFSun on YouTube"
                   className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-2xs"
                 >
-                  <Youtube className="w-3.5 h-3.5" />
+                  <YoutubeIcon className="w-3.5 h-3.5" />
                 </a>
                 <a
                   href="https://x.com"
@@ -494,7 +520,9 @@ export const Footer: React.FC<FooterProps> = ({
 
       {/* Brand Identity Master Showcase Modal */}
       {showBrandShowcase && (
-        <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+        <Suspense fallback={null}>
+          <PDFSunBrandShowcaseModal onClose={() => setShowBrandShowcase(false)} />
+        </Suspense>
       )}
     </footer>
   );

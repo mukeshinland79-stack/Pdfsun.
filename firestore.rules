@@ -14,7 +14,9 @@ service cloud.firestore {
     }
 
     function isOwnerAdmin() {
-      return isSignedIn() && request.auth.token.email == "mukeshinland79@gmail.com";
+      return isSignedIn()
+        && request.auth.token.email == "mukeshinland79@gmail.com"
+        && request.auth.token.email_verified == true;
     }
     
     function isOwner(emailOrUid) {
@@ -54,17 +56,42 @@ service cloud.firestore {
       );
     }
 
-    // Quick Tool Ratings Collection
+    // Quick Tool Ratings Collection (Bounded schema & +1 monotonic increment validation)
     match /quick_feedback/{toolId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create: if request.resource.data.keys().hasAll(['toolId', 'likes', 'dislikes'])
+                    && request.resource.data.keys().hasOnly(['toolId', 'likes', 'dislikes'])
+                    && request.resource.data.toolId is string
+                    && request.resource.data.toolId == toolId
+                    && toolId.size() >= 1
+                    && toolId.size() <= 100
+                    && request.resource.data.likes is int
+                    && request.resource.data.dislikes is int
+                    && (
+                      (request.resource.data.likes == 1 && request.resource.data.dislikes == 0) ||
+                      (request.resource.data.likes == 0 && request.resource.data.dislikes == 1)
+                    );
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])
+                    && request.resource.data.likes is int
+                    && request.resource.data.dislikes is int
+                    && request.resource.data.likes >= resource.data.likes
+                    && request.resource.data.dislikes >= resource.data.dislikes
+                    && (request.resource.data.likes - resource.data.likes) + (request.resource.data.dislikes - resource.data.dislikes) == 1;
       allow delete: if isOwnerAdmin();
     }
 
     // Tool Feedback Ratings Collection
     match /tool_feedback/{feedbackId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'timestamp']);
+      allow create: if request.resource.data.keys().hasAll(['toolId', 'rating', 'comment', 'timestamp'])
+                    && request.resource.data.toolId is string
+                    && request.resource.data.toolId.size() >= 1
+                    && request.resource.data.toolId.size() <= 100
+                    && request.resource.data.rating is number
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.comment is string
+                    && request.resource.data.comment.size() <= 5000;
       allow update, delete: if isSignedIn() && (
         isOwnerAdmin() ||
         resource.data.userId == request.auth.uid ||
@@ -72,10 +99,29 @@ service cloud.firestore {
       );
     }
 
-    // Today in History Engagement Metrics & Popular Content
+    // Today in History Engagement Metrics & Popular Content (Bounded schema & increment validation)
     match /history_engagement/{eventId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create: if request.resource.data.keys().hasAll(['eventId', 'views', 'reads', 'likes', 'shares', 'downloads', 'engagementScore', 'lastUpdated'])
+                    && request.resource.data.keys().hasOnly(['eventId', 'headline', 'year', 'category', 'tag', 'dateKey', 'views', 'reads', 'likes', 'shares', 'downloads', 'engagementScore', 'lastUpdated'])
+                    && request.resource.data.eventId is string
+                    && request.resource.data.eventId == eventId
+                    && eventId.size() >= 1
+                    && eventId.size() <= 160
+                    && request.resource.data.views is int && request.resource.data.views >= 0 && request.resource.data.views <= 1
+                    && request.resource.data.reads is int && request.resource.data.reads >= 0 && request.resource.data.reads <= 1
+                    && request.resource.data.likes is int && request.resource.data.likes >= 0 && request.resource.data.likes <= 1
+                    && request.resource.data.shares is int && request.resource.data.shares >= 0 && request.resource.data.shares <= 1
+                    && request.resource.data.downloads is int && request.resource.data.downloads >= 0 && request.resource.data.downloads <= 1
+                    && request.resource.data.engagementScore is int && request.resource.data.engagementScore >= 1 && request.resource.data.engagementScore <= 8
+                    && request.resource.data.lastUpdated is string && request.resource.data.lastUpdated.size() <= 64;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'reads', 'likes', 'shares', 'downloads', 'engagementScore', 'lastUpdated', 'headline', 'year', 'category', 'tag', 'dateKey'])
+                    && request.resource.data.views is int && request.resource.data.views >= resource.data.views && request.resource.data.views <= resource.data.views + 1
+                    && request.resource.data.reads is int && request.resource.data.reads >= resource.data.reads && request.resource.data.reads <= resource.data.reads + 1
+                    && request.resource.data.likes is int && request.resource.data.likes >= resource.data.likes && request.resource.data.likes <= resource.data.likes + 1
+                    && request.resource.data.shares is int && request.resource.data.shares >= resource.data.shares && request.resource.data.shares <= resource.data.shares + 1
+                    && request.resource.data.downloads is int && request.resource.data.downloads >= resource.data.downloads && request.resource.data.downloads <= resource.data.downloads + 1
+                    && request.resource.data.engagementScore is int && request.resource.data.engagementScore >= resource.data.engagementScore && request.resource.data.engagementScore <= resource.data.engagementScore + 8;
       allow delete: if isOwnerAdmin();
     }
 

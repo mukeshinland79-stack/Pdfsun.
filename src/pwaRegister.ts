@@ -47,15 +47,13 @@ export interface PWAState {
 const SW_URL = '/sw.js';
 const CACHE_NAME = 'pdfsun-v1';
 
-// Default list of core routes, fonts, icons, and static assets to precache for offline PDF tool functionality
+// Default list of core routes, icons, and static assets to precache for offline PDF tool functionality
 export const CORE_PWA_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/sw.js',
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
 ];
 
 /**
@@ -482,13 +480,40 @@ export function usePWAStatus() {
     window.addEventListener('pwa-offline-ready', handleOfflineReady);
     window.addEventListener('pwa-update-available', handleUpdateAvailable);
 
-    // Initial cache check & warm-up
-    precacheLoadedAppShell().then((count) => {
-      setCachedAssetsCount(count);
-      if (count > 0) setIsOfflineReady(true);
-    });
+    // Initial cache check & warm-up: defer cleanly until after first paint and page load in production
+    const isDev =
+      window.location.hostname.includes('ais-dev') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('127.0.0.1');
+
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+    const runDeferredPrecache = () => {
+      if (isDev) return;
+      precacheLoadedAppShell().then((count) => {
+        setCachedAssetsCount(count);
+        if (count > 0) setIsOfflineReady(true);
+      });
+    };
+
+    if (!isDev) {
+      if (typeof (window as any).requestIdleCallback === 'function') {
+        idleHandle = (window as any).requestIdleCallback(() => {
+          runDeferredPrecache();
+        }, { timeout: 4000 });
+      } else {
+        timeoutHandle = setTimeout(runDeferredPrecache, 3500);
+      }
+    }
 
     return () => {
+      if (idleHandle !== null && typeof (window as any).cancelIdleCallback === 'function') {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

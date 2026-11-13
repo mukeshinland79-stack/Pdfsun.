@@ -16,6 +16,7 @@ import { buildUdirTableFromTokens, RawSpatialToken } from "../core/udir/spatialT
 import { compileUdirToDocx } from "../core/udir/docxCompiler";
 import { compileUdirToXlsx } from "../core/udir/xlsxCompiler";
 import { compileUdirToMarkdown } from "../core/udir/markdownCompiler";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface MeshTaskOptions {
   timeoutMs?: number;
@@ -228,7 +229,7 @@ class DocumentMeshPoolService {
     options?: MeshTaskOptions
   ): Promise<{ blob: Blob; url: string; bytes: Uint8Array }> {
     const res = await this.execute<Uint8Array>("COMPILE_UDIR_TO_DOCX", { udir }, [], options);
-    const blob = new Blob([res.result], {
+    const blob = new Blob([toStrictUint8Array(res.result)], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     const rawUrl = typeof URL !== "undefined" && typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "";
@@ -244,7 +245,7 @@ class DocumentMeshPoolService {
     options?: MeshTaskOptions
   ): Promise<{ blob: Blob; url: string; bytes: Uint8Array }> {
     const res = await this.execute<Uint8Array>("COMPILE_UDIR_TO_XLSX", { udir }, [], options);
-    const blob = new Blob([res.result], {
+    const blob = new Blob([toStrictUint8Array(res.result)], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     const rawUrl = typeof URL !== "undefined" && typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "";

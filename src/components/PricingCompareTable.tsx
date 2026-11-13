@@ -263,7 +263,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
       <span
         className={`text-xs font-semibold ${
           isEnterprise
-            ? "text-emerald-300 font-bold"
+            ? "text-emerald-600 dark:text-emerald-300 font-bold"
             : "text-slate-800 dark:text-slate-200"
         }`}
       >
@@ -463,7 +463,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
                           </td>
 
                           {/* Enterprise SSO */}
-                          <td className="p-4 sm:p-5 text-center border-l border-indigo-500/20 bg-slate-950/40">
+                          <td className="p-4 sm:p-5 text-center border-l border-indigo-500/20 bg-emerald-500/5 dark:bg-slate-950/40">
                             {renderValue(feature.enterprise, true)}
                           </td>
                         </tr>

@@ -11,6 +11,7 @@ import {
 } from "pdf-lib";
 import * as pako from "pako";
 import { isEncrypted, decryptPDF } from "@pdfsmaller/pdf-decrypt";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface CompressionOptions {
   preset?: "extreme" | "recommended" | "low";
@@ -138,7 +139,7 @@ async function optimizeJpegBuffer(
 
   return new Promise((resolve) => {
     try {
-      const blob = new Blob([rawJpgBytes], { type: "image/jpeg" });
+      const blob = new Blob([toStrictUint8Array(rawJpgBytes)], { type: "image/jpeg" });
       const url = URL.createObjectURL(blob);
       const img = new Image();
 

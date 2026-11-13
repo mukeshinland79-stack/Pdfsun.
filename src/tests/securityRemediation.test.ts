@@ -361,16 +361,16 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     "PricingSection.tsx schema contains NO synthetic aggregateRating"
   );
 
-  // 7. Verify all 66 registered tools remain intact
+  // 7. Verify all registered tools remain intact
   assert(
-    ALL_TOOLS.length === 66,
-    `All 66 registered tools preserved intact (actual: ${ALL_TOOLS.length})`
+    ALL_TOOLS.length >= 66,
+    `All registered tools preserved intact (actual: ${ALL_TOOLS.length})`
   );
 
   const uniqueIds = new Set(ALL_TOOLS.map((t) => t.id));
   assert(
-    uniqueIds.size === 66,
-    `All 66 tool IDs are unique and without duplicates (actual: ${uniqueIds.size})`
+    uniqueIds.size === ALL_TOOLS.length,
+    `All ${ALL_TOOLS.length} tool IDs are unique and without duplicates (actual: ${uniqueIds.size})`
   );
 
   // 8. Phase 7B: Fail-Closed Razorpay Environment Isolation & Non-Production Live-Key Guard Tests

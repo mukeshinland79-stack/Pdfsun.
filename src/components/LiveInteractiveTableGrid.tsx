@@ -15,6 +15,7 @@ import {
   Filter,
 } from "lucide-react";
 import { exportTableGridToSpreadsheet } from "../lib/pdfEngine";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface LiveInteractiveTableGridProps {
   initialData: string[][];
@@ -132,7 +133,7 @@ export const LiveInteractiveTableGrid: React.FC<LiveInteractiveTableGridProps> =
             ? "application/vnd.ms-excel"
             : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-        const blob = new Blob([res.bytes], { type: mime });
+        const blob = new Blob([toStrictUint8Array(res.bytes)], { type: mime });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;

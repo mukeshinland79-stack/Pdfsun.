@@ -35,7 +35,7 @@ export const DynamicPaymentQR: React.FC<DynamicPaymentQRProps> = ({
   const displayAmount =
     currency === "INR"
       ? `₹${product.displayPriceINR.toLocaleString("en-IN")}`
-      : `$${product.displayPriceUSD.toLocaleString("en-US")}`;
+      : `$${(product.displayPriceUSD ?? 0).toLocaleString("en-US")}`;
 
   // Build the authentic payment destination URL
   // If userEmail is provided, attach it as a reference query param for tracking
@@ -87,8 +87,16 @@ export const DynamicPaymentQR: React.FC<DynamicPaymentQRProps> = ({
     setStatusMessage(null);
 
     try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
       const res = await fetch(`/api/user/subscription?userId=${encodeURIComponent(userEmail)}`, {
-        headers: { Accept: "application/json" },
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
 

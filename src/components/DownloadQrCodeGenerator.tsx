@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getPublicShareUrl, getPublicSiteUrl } from "../utils/siteConfig";
 import { getQrCodeDataUrl } from "../lib/qrGenerator";
+import { toStrictUint8Array } from "../utils/binaryUtils";
 
 export interface DownloadQrCodeGeneratorProps {
   fileName: string;
@@ -65,7 +66,7 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
         typeof navigator.canShare === "function" &&
         fileBlob
       ) {
-        const testBlob = fileBlob instanceof Blob ? fileBlob : new Blob([fileBlob], { type: mimeType || "application/octet-stream" });
+        const testBlob = fileBlob instanceof Blob ? fileBlob : new Blob([toStrictUint8Array(fileBlob)], { type: mimeType || "application/octet-stream" });
         const testFile = new File([testBlob], fileName, { type: mimeType || "application/octet-stream" });
         if (navigator.canShare({ files: [testFile] })) {
           setCanShareFile(true);
@@ -84,7 +85,7 @@ export const DownloadQrCodeGenerator: React.FC<DownloadQrCodeGeneratorProps> = (
     if (!fileBlob || typeof navigator === "undefined" || typeof navigator.share !== "function") return;
     try {
       setIsSharing(true);
-      const rawBlob = fileBlob instanceof Blob ? fileBlob : new Blob([fileBlob], { type: mimeType || "application/octet-stream" });
+      const rawBlob = fileBlob instanceof Blob ? fileBlob : new Blob([toStrictUint8Array(fileBlob)], { type: mimeType || "application/octet-stream" });
       const shareFile = new File([rawBlob], fileName, { type: mimeType || "application/octet-stream" });
 
       if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
