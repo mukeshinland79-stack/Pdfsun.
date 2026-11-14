@@ -41,12 +41,9 @@ import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
 
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 interface RemoveWatermarkToolProps {
   initialFile?: File | null;

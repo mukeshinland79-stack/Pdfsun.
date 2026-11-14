@@ -1,24 +1,26 @@
 /**
  * PDFSun Enterprise PDF to Word (.docx) Reconstruction Engine
- * 
- * Technical Architecture & Pipeline:
- * 1. Text & Layout Extraction Engine (pdf.js):
- *    - In-browser local WebAssembly parsing with spatial coordinate extraction (X, Y, font, size, weight, line-height).
- *    - Page dimension & orientation preservation (A4, Letter, Landscape, Portrait converted to Word DXA/twips).
- *    - Multi-column corridor detection (preventing 2-column newsletter/academic text interleaving).
- * 2. Document Assembly (docx.js):
- *    - Native OpenXML (.docx) XML structures (Sections, Paragraphs, TextRuns, native Tables, PageBreaks).
- *    - Intelligent token concatenation: merges sub-word glyphs and combines runs with identical styling.
- * 3. Table & Grid Preservation:
- *    - Columnar alignment analysis, cell boundary deduction, header rows, alternate row fills, cell padding & borders.
- *    - Numeric & currency cell right-alignment, textual cell left-alignment.
- * 4. Scanned PDF WASM OCR Fallback:
- *    - High-quality (150-300 DPI) in-browser rasterization & optical recognition for image-only pages.
- * 5. 100% Client-Side Privacy:
- *    - Zero server uploads. Pure client-side WASM execution with ephemeral memory purging.
+ *
+ * Enterprise Architecture & Reconstruction Pipeline:
+ * 1. Text, Vector & Media Extraction Engine (pdf.js + 2D Affine CTM):
+ *    - Extracts text tokens with coordinates, fonts, weights, and splits fixed-space multi-column strings.
+ *    - Extracts PDF vector horizontal/vertical table rules, borders & header fill shading boxes.
+ *    - Extracts ALL positioned images (logos, e-invoice/UPI QR codes, signatures, stamps) preserving real aspect ratio.
+ * 2. 4 Intelligent Reconstruction Modes:
+ *    - Mode A (High-Fidelity Editable DOCX): Genuine editable Word text, headings, native tables, headers/footers.
+ *    - Mode B (Advanced Layout & Financial Precision): Fixed-grid OOXML table widths, borders, vector box shading.
+ *    - Mode C (Scanned Document OCR): WASM OCR with preprocessing, table recovery, confidence scoring & warnings.
+ *    - Mode D (Hybrid Auto): Per-page/per-region native + OCR fusion without flattening native text pages into images.
+ * 3. Universal Table & Invoice Reconstruction:
+ *    - Vector-rule + data-corridor column solver, stacked 2-line & multi-word header merging, universal row grouping,
+ *      numeric right-alignment, <w:tblGrid> explicit column widths, cantSplit & tableHeader pagination repeat.
+ * 4. Real Post-Conversion OOXML Verification & Self-Correction Retry:
+ *    - Inspects compiled ZIP/XML parts via validateDocxPackageDeep; audits REAL extracted <w:t> XML text
+ *      and automatically retries fallback layout strategy if critical defects occur.
  */
 
 import * as pdfjsLib from "pdfjs-dist";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 import {
   Document as DocxDocument,
   Packer,
@@ -27,6 +29,7 @@ import {
   Table as DocxTable,
   TableRow,
   TableCell,
+  TableLayoutType,
   WidthType,
   BorderStyle,
   AlignmentType,
@@ -37,6 +40,8 @@ import {
   Footer,
   PageNumber,
   ImageRun,
+  VerticalAlign,
+  PageOrientation,
 } from "docx";
 import { createWorker } from "tesseract.js";
 import { createSafeCanvas } from "./enterpriseImageOcrEngine";
@@ -62,24 +67,87 @@ import {
   PdfStructuralClass,
 } from "./documentStructureAnalyzer";
 import {
-  validateDocxQuality,
+  validateDocxPackageDeep,
   DocxQualityAuditReport,
 } from "./docxQualityValidator";
+import {
+  extractPageVectorAndMedia,
+  findOptimalVerticalGutter,
+  ExtractedPdfImage,
+  HorizontalRule,
+  PageVectorAndMedia,
+  VerticalRule,
+} from "./pdfToWordGeometry";
 
-// Ensure pdf.js worker is registered in browser
-if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
+// ---------------------------------------------------------------------------
+// SAFE RUNTIME SHIMS FOR PDFJS-DIST v6+ ACROSS BROWSERS, WORKERS & NODE
+// ---------------------------------------------------------------------------
+
+if (typeof (Promise as any).try !== "function") {
+  (Promise as any).try = function (fn: any, ...args: any[]) {
+    return new Promise((resolve, reject) => {
+      try {
+        resolve(fn(...args));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  };
 }
 
-export type ReconstructionMode = "editable_word" | "visual_fidelity";
+if (typeof (Uint8Array.prototype as any).toHex !== "function") {
+  (Uint8Array.prototype as any).toHex = function (this: Uint8Array) {
+    let hex = "";
+    for (let i = 0; i < this.length; i++) {
+      hex += this[i].toString(16).padStart(2, "0");
+    }
+    return hex;
+  };
+}
+
+if (typeof (Map.prototype as any).getOrInsertComputed !== "function") {
+  (Map.prototype as any).getOrInsertComputed = function <K, V>(
+    this: Map<K, V>,
+    key: K,
+    callbackFn: (key: K) => V
+  ): V {
+    if (this.has(key)) return this.get(key) as V;
+    const value = callbackFn(key);
+    this.set(key, value);
+    return value;
+  };
+}
+
+if (typeof (WeakMap.prototype as any).getOrInsertComputed !== "function") {
+  (WeakMap.prototype as any).getOrInsertComputed = function <K extends object, V>(
+    this: WeakMap<K, V>,
+    key: K,
+    callbackFn: (key: K) => V
+  ): V {
+    if (this.has(key)) return this.get(key) as V;
+    const value = callbackFn(key);
+    this.set(key, value);
+    return value;
+  };
+}
+
+// Configure local Vite-bundled pdf.js worker in browser & Web Worker (no CDN dependency)
+ensurePdfJsWorkerConfigured(pdfjsLib);
+
+export type ReconstructionMode =
+  | "editable_word"
+  | "visual_fidelity"
+  | "advanced_layout"
+  | "scanned_ocr"
+  | "hybrid_auto";
 
 export type PdfToWordPreset =
   | "editable_word"
   | "financial_fidelity"
   | "visual_fidelity"
+  | "advanced_layout"
   | "scanned_ocr"
+  | "hybrid_auto"
   | "max_accuracy"
   | "high_speed"
   | "compact_vector"
@@ -95,6 +163,7 @@ export interface PdfToWordOptions {
   documentProfile?: DocumentProfileKey;
   detectionMode?: LayoutDetectionMode;
   preserveTables?: boolean;
+  preserveImages?: boolean;
   enableOcrFallback?: boolean;
   dpiQuality?: 150 | 300;
   onProgress?: (percent: number, statusMsg: string) => void;
@@ -130,7 +199,7 @@ export type HeadingLevelType = (typeof HeadingLevel)[keyof typeof HeadingLevel];
 export type AlignmentTypeValue = (typeof AlignmentType)[keyof typeof AlignmentType];
 
 export interface ReconstructedParagraph {
-  type: "heading" | "body" | "bullet" | "numbered" | "table" | "header_footer";
+  type: "heading" | "body" | "bullet" | "numbered" | "table" | "header_footer" | "image";
   level?: HeadingLevelType;
   lines: ReconstructedLine[];
   text: string;
@@ -138,13 +207,28 @@ export interface ReconstructedParagraph {
   fontSize: number;
   alignment: AlignmentTypeValue;
   page: number;
+  image?: ExtractedPdfImage;
   tableData?: {
     headers: string[];
     rows: string[][];
     colWidthsPct: number[];
+    colRightAligned?: boolean[];
     isBorderless?: boolean;
     headerStyle?: "navy" | "clean" | "borderless";
+    headerFillHex?: string;
+    borderColorHex?: string;
   };
+}
+
+export interface PerPageConversionSummary {
+  pageNumber: number;
+  mode: "native" | "ocr" | "hybrid";
+  ocrConfidence?: number;
+  imagesExtracted: number;
+  tablesDetected: number;
+  widthPt: number;
+  heightPt: number;
+  orientation: "portrait" | "landscape";
 }
 
 export interface PdfToWordResult {
@@ -157,6 +241,7 @@ export interface PdfToWordResult {
     tablesCount: number;
     headingsCount: number;
     ocrPagesCount: number;
+    imagesCount?: number;
     detectedTitle: string;
     previewSnippet: string;
     reconstructionMode?: ReconstructionMode;
@@ -172,13 +257,40 @@ export interface PdfToWordResult {
   qualityAudit?: FinancialQualityAuditReport;
   docxQualityReport?: DocxQualityAuditReport;
   reconstructionMode?: ReconstructionMode;
+  perPageSummary?: PerPageConversionSummary[];
+  warnings?: string[];
+}
+
+interface PageExtractedData {
+  pageNum: number;
+  width: number;
+  height: number;
+  tokens: SpatialTextToken[];
+  vectorMedia: PageVectorAndMedia;
+  modeUsed: "native" | "ocr" | "hybrid";
+  ocrConfidence?: number;
+}
+
+// ---------------------------------------------------------------------------
+// SECURITY & PDF HEADER VALIDATION
+// ---------------------------------------------------------------------------
+
+function validatePdfBinaryInput(buffer: ArrayBuffer): void {
+  if (!buffer || buffer.byteLength < 16) {
+    throw new Error("Invalid PDF input: File is empty or too small to be a valid PDF document.");
+  }
+  const probe = new Uint8Array(buffer, 0, Math.min(1024, buffer.byteLength));
+  const headerStr = new TextDecoder("latin1").decode(probe);
+  if (!headerStr.includes("%PDF-")) {
+    throw new Error("Invalid PDF format: Missing %PDF- binary file signature.");
+  }
 }
 
 /**
  * Checks if extracted tokens represent an invoice, bill, receipt or commercial financial statement
  */
 export function checkIfTokensRepresentInvoice(tokens: SpatialTextToken[]): boolean {
-  if (tokens.length < 5) return false;
+  if (tokens.length < 4) return false;
   const fullText = tokens.map((t) => t.text).join(" ").toLowerCase();
   const invoiceKeywords = [
     "tax invoice",
@@ -197,13 +309,21 @@ export function checkIfTokensRepresentInvoice(tokens: SpatialTextToken[]): boole
     "subtotal",
     "amount in words",
     "total amount",
+    "grand total",
     "place of supply",
     "bank details",
     "bank name",
-    "ifsc code",
+    "ifsc",
     "purchase order",
     "commercial invoice",
     "retail invoice",
+    "proforma",
+    "debit note",
+    "credit note",
+    "challan",
+    "withdrawal",
+    "closing balance",
+    "statement of account",
   ];
   let matches = 0;
   for (const kw of invoiceKeywords) {
@@ -213,88 +333,154 @@ export function checkIfTokensRepresentInvoice(tokens: SpatialTextToken[]): boole
 }
 
 /**
- * Extracts embedded image XObjects (logos, signatures, QR codes) from a PDF page
+ * Splits fixed-width multi-space strings emitted as a single PDF text run into clean column tokens,
+ * while leaving regular single-spaced prose intact.
  */
-async function extractPageImageElements(
-  page: any,
-  viewport: any
-): Promise<{ data: Uint8Array; width: number; height: number; x: number; y: number }[]> {
-  const extractedImages: { data: Uint8Array; width: number; height: number; x: number; y: number }[] = [];
-  try {
-    const ops = await page.getOperatorList();
-    if (!ops || !ops.fnArray) return extractedImages;
+function normalizePdfTextItems(
+  rawItems: any[],
+  viewportHeight: number,
+  pageNum: number
+): SpatialTextToken[] {
+  const pageTokens: SpatialTextToken[] = [];
 
-    for (let i = 0; i < ops.fnArray.length; i++) {
-      const fn = ops.fnArray[i];
-      if (
-        fn === (pdfjsLib as any).OPS?.paintImageXObject ||
-        fn === (pdfjsLib as any).OPS?.paintInlineImageXObject
-      ) {
-        const arg = ops.argsArray[i];
-        const imgName = arg ? arg[0] : null;
-        if (!imgName) continue;
+  for (const item of rawItems) {
+    const rawStr = typeof item?.str === "string" ? item.str : "";
+    if (!rawStr.trim()) continue;
 
-        const imgObj = page.objs?.get?.(imgName);
-        if (imgObj && imgObj.data && imgObj.width && imgObj.height) {
-          const w = Math.min(Math.max(imgObj.width, 20), 400);
-          const h = Math.min(Math.max(imgObj.height, 20), 200);
-          try {
-            const canvas = createSafeCanvas(imgObj.width, imgObj.height);
-            const ctx = canvas.getContext("2d");
-            if (ctx) {
-              const imgData = ctx.createImageData(imgObj.width, imgObj.height);
-              if (imgObj.data.length === imgData.data.length) {
-                imgData.data.set(imgObj.data);
-              } else {
-                let s = 0;
-                let d = 0;
-                while (s < imgObj.data.length && d < imgData.data.length) {
-                  imgData.data[d] = imgObj.data[s];
-                  imgData.data[d + 1] = imgObj.data[s + 1] || 0;
-                  imgData.data[d + 2] = imgObj.data[s + 2] || 0;
-                  imgData.data[d + 3] = 255;
-                  s += 3;
-                  d += 4;
-                }
-              }
-              ctx.putImageData(imgData, 0, 0);
-              const dataUrl = canvas.toDataURL("image/png");
-              const base64 = dataUrl.split(",")[1];
-              if (base64) {
-                const binStr = atob(base64);
-                const bytes = new Uint8Array(binStr.length);
-                for (let k = 0; k < binStr.length; k++) {
-                  bytes[k] = binStr.charCodeAt(k);
-                }
-                extractedImages.push({
-                  data: bytes,
-                  width: Math.min(Math.round(w * 0.75), 180),
-                  height: Math.min(Math.round(h * 0.75), 90),
-                  x: 0,
-                  y: 0,
-                });
-              }
-            }
-          } catch {
-            // Ignore canvas rasterization in non-browser env
-          }
+    const baseX = Math.round(item.transform?.[4] || 0);
+    const rawY = item.transform?.[5] || 0;
+    const y = Math.round(viewportHeight - rawY);
+    const fontSize = Math.max(6, Math.round(Math.hypot(item.transform?.[0] || 0, item.transform?.[1] || 0)) || 10);
+    const totalWidth = Math.max(4, Math.round(item.width || fontSize * rawStr.length * 0.55));
+    const height = Math.max(6, Math.round(item.height || fontSize));
+    const fontName = item.fontName || "";
+    const isBold = /bold|black|heavy|semibold|demi|700|800|900/i.test(fontName);
+    const isItalic = /italic|oblique/i.test(fontName);
+
+    // Split ONLY when 2+ consecutive spaces act as column alignment tabs inside one string
+    const multiSpaceParts = rawStr.split(/(\s{2,})/);
+    if (multiSpaceParts.length >= 3 && rawStr.trim().length > 4) {
+      let charCursor = 0;
+      const totalChars = Math.max(1, rawStr.length);
+      let emittedParts = 0;
+
+      for (const seg of multiSpaceParts) {
+        if (seg.trim().length > 0 && !/^\s+$/.test(seg)) {
+          const trimLead = seg.length - seg.trimStart().length;
+          const clean = seg.trim();
+          const startIdx = charCursor + trimLead;
+          const segX = Math.round(baseX + (startIdx / totalChars) * totalWidth);
+          const segW = Math.max(6, Math.round((clean.length / totalChars) * totalWidth));
+
+          pageTokens.push({
+            text: clean,
+            x: segX,
+            y,
+            width: segW,
+            height,
+            fontSize,
+            fontName,
+            isBold,
+            isItalic,
+            page: pageNum,
+          });
+          emittedParts++;
         }
+        charCursor += seg.length;
       }
+
+      if (emittedParts > 0) continue;
     }
-  } catch {
-    // Ignore operator list errors
+
+    pageTokens.push({
+      text: rawStr,
+      x: baseX,
+      y,
+      width: totalWidth,
+      height,
+      fontSize,
+      fontName,
+      isBold,
+      isItalic,
+      page: pageNum,
+    });
   }
-  return extractedImages;
+
+  return pageTokens;
+}
+
+// ---------------------------------------------------------------------------
+// ZONE-BASED INVOICE & FINANCIAL DOCUMENT RECONSTRUCTOR
+// ---------------------------------------------------------------------------
+
+function mergeAdjacentTokensForColumnHeaders(
+  rawHeaderTokens: SpatialTextToken[],
+  verticalLines: VerticalRule[],
+  headerY: number
+): SpatialTextToken[] {
+  const sorted = [...rawHeaderTokens].sort((a, b) => a.x - b.x);
+  if (sorted.length <= 1) return sorted;
+
+  const activeVerts = verticalLines
+    .filter((v) => headerY >= v.y1 - 8 && headerY <= v.y2 + 8)
+    .map((v) => v.x);
+
+  const merged: SpatialTextToken[] = [{ ...sorted[0] }];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = merged[merged.length - 1];
+    const curr = sorted[i];
+    const prevRight = prev.x + prev.width;
+    const gap = curr.x - prevRight;
+
+    const separatedByRule = activeVerts.some((vx) => vx > prevRight - 2 && vx < curr.x + 2);
+    const maxJoinGap = Math.max(7, Math.min(11, (prev.fontSize || 9) * 0.85));
+
+    if (!separatedByRule && gap <= maxJoinGap) {
+      prev.text = `${prev.text} ${curr.text}`.replace(/\s+/g, " ").trim();
+      prev.width = Math.max(prev.width, curr.x + curr.width - prev.x);
+      prev.isBold = prev.isBold || curr.isBold;
+    } else {
+      merged.push({ ...curr });
+    }
+  }
+  return merged;
 }
 
 /**
- * Intelligent Zone-Based Multi-Table Invoice Layout Reconstructor (Phase 11F / 18)
- * Features:
- * - Multi-Table Segmentation: Independently isolates Spare Parts, Labour, and HSN tables
- * - Vehicle & Job Card Metadata Grid: Renders clean 4-column key-value cards instead of 50/50 crushing
- * - Dedicated HSN/SAC Tax Summary Detection: Eliminates arbitrary Y-percentage chopping
- * - Adaptive Wide-Table & Annexure Engine: Micro-padding & dynamic column scaling for 8-14 column tables
- * - Page Budget Row Height Preservation: Zero cascading page-break inflation (3 PDF pages -> 3 DOCX pages)
+ * Checks whether line[1] is actually the second line of a stacked column header (e.g. "Taxable\nValue")
+ */
+function isStackedHeaderContinuation(
+  headerLine: ReconstructedLine,
+  candidateLine: ReconstructedLine
+): boolean {
+  const dy = candidateLine.y - headerLine.y;
+  if (dy <= 0 || dy > Math.max(18, headerLine.fontSize * 1.65)) return false;
+
+  const text = candidateLine.text.trim();
+  if (!text) return false;
+
+  // Reject if candidate starts with a serial number or contains currency amounts or HSN codes
+  if (/^[0-9]+[.)]?\s/.test(text) || /^[0-9]+$/.test(candidateLine.tokens[0]?.text || "")) return false;
+  if (/[0-9]+\.[0-9]{2}/.test(text)) return false;
+  if (/\b(?:84|85|87|99)[0-9]{4}\b/.test(text)) return false;
+
+  const headerSubWords =
+    /^(?:value|amount|amt|price|rate|no\.?|number|code|name|date|tax|%|inr|usd|qty|units|total|particulars|description|desc|\(%\)|\(inr\)|\(rs\)|cgst|sgst|igst|sac|hsn|disc)$/i;
+
+  const matchingTokens = candidateLine.tokens.filter((t) =>
+    t.text
+      .split(/\s+/)
+      .every((w) => headerSubWords.test(w.replace(/[:()]/g, "")) || w.length <= 4)
+  );
+
+  return (
+    (candidateLine.isBold || matchingTokens.length >= candidateLine.tokens.length * 0.7) &&
+    candidateLine.tokens.length <= Math.max(headerLine.tokens.length + 1, 6)
+  );
+}
+
+/**
+ * Intelligent Zone-Based Multi-Table Invoice Layout Reconstructor
  */
 export function reconstructInvoicePageLayout(
   tokens: SpatialTextToken[],
@@ -302,24 +488,57 @@ export function reconstructInvoicePageLayout(
   pageHeight: number,
   pageNum: number,
   options: PdfToWordOptions,
-  pageImages: { data: Uint8Array; width: number; height: number; x: number; y: number }[] = []
+  pageImages: ExtractedPdfImage[] | { data: Uint8Array; width: number; height: number; x: number; y: number }[] = [],
+  vectorGeometry?: { horizontalLines: HorizontalRule[]; verticalLines: VerticalRule[]; rects: any[] }
 ): (Paragraph | DocxTable)[] {
   const elements: (Paragraph | DocxTable)[] = [];
-  const isVisualMode = options.preset === "visual_fidelity" || options.reconstructionMode === "visual_fidelity";
+  const isVisualMode =
+    options.preset === "visual_fidelity" ||
+    options.preset === "advanced_layout" ||
+    options.reconstructionMode === "visual_fidelity" ||
+    options.reconstructionMode === "advanced_layout";
+
+  const printableWidthDxa = Math.max(7200, Math.round(pageWidth * 20) - 1440); // 0.5in left+right margins
+  const horizontalLines = vectorGeometry?.horizontalLines || [];
+  const verticalLines = vectorGeometry?.verticalLines || [];
 
   const sortedTokens = [...tokens].sort((a, b) => a.y - b.y || a.x - b.x);
   const lines = clusterTokensIntoSimpleLines(sortedTokens, pageNum);
 
   if (lines.length === 0) return elements;
 
-  // 1. Detect ALL Table Headers on the Page (Multi-Table Awareness)
+  // Normalize incoming image array cleanly for backward-compatible callers
+  const normalizedImages: ExtractedPdfImage[] = (pageImages || []).map((img: any) => ({
+    data: img.data,
+    width: img.width || 100,
+    height: img.height || 60,
+    widthPt: img.widthPt || img.width || 100,
+    heightPt: img.heightPt || img.height || 60,
+    pixelWidth: img.pixelWidth || img.width || 100,
+    pixelHeight: img.pixelHeight || img.height || 60,
+    x: img.x ?? 0,
+    y: img.y ?? 0,
+    role: img.role || "logo",
+    areaRatio: img.areaRatio || 0,
+  })).filter((img) => img.role !== "full_page_scan" || tokens.length < 15);
+
+  const headerImages = normalizedImages.filter((im) => im.role === "logo" || (im.role === "qr_or_seal" && im.y < pageHeight * 0.42));
+  const summaryImages = normalizedImages.filter((im) => im.role === "qr_or_seal" && im.y >= pageHeight * 0.42 && im.y <= pageHeight * 0.80);
+  const footerImages = normalizedImages.filter((im) => im.role === "signature_or_stamp" || (im.role === "qr_or_seal" && im.y > pageHeight * 0.80));
+  const bodyImages = normalizedImages.filter(
+    (im) => !headerImages.includes(im) && !summaryImages.includes(im) && !footerImages.includes(im)
+  );
+
+  // 1. Detect ALL Table Headers on the Page (Multi-Table Awareness + stacked header skip)
   const tableHeaderIndices: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (isLineInvoiceTableHeader(l, pageWidth)) {
-      // Avoid duplicate trigger on contiguous lines of a multi-line header
       if (tableHeaderIndices.length === 0 || i > tableHeaderIndices[tableHeaderIndices.length - 1] + 1) {
         tableHeaderIndices.push(i);
+        if (i + 1 < lines.length && isStackedHeaderContinuation(l, lines[i + 1])) {
+          i++; // skip second line of stacked header from triggering another header
+        }
       }
     }
   }
@@ -332,15 +551,18 @@ export function reconstructInvoicePageLayout(
   for (let i = searchStart; i < lines.length; i++) {
     const l = lines[i];
     const textLower = l.text.toLowerCase();
-    if (
-      (textLower.includes("bank") && (textLower.includes("account") || textLower.includes("details") || textLower.includes("name") || textLower.includes("ifsc"))) ||
+    const isTableSummaryMarker =
+      (textLower.includes("bank") &&
+        (textLower.includes("account") || textLower.includes("details") || textLower.includes("name") || textLower.includes("ifsc") || textLower.includes("a/c"))) ||
       textLower.includes("amount in words") ||
       textLower.includes("total taxable") ||
       textLower.includes("grand total") ||
       textLower.includes("invoice total") ||
       textLower.includes("net amount") ||
-      (textLower.includes("subtotal") && l.tokens.length <= 3)
-    ) {
+      textLower.includes("total estimated value") ||
+      (textLower.includes("subtotal") && l.tokens.length <= 4 && !/cgst|sgst|igst/i.test(textLower));
+
+    if (isTableSummaryMarker) {
       summaryStartLineIdx = i;
       break;
     }
@@ -362,15 +584,14 @@ export function reconstructInvoicePageLayout(
   const firstHeaderIdx = tableHeaderIndices.length > 0 ? tableHeaderIndices[0] : -1;
 
   if (firstHeaderIdx !== -1) {
-    // Process pre-table lines
     for (let i = 0; i < firstHeaderIdx; i++) {
       const l = lines[i];
       const isHeaderTitle =
-        i === 0 &&
-        (/tax invoice|bill of supply|commercial invoice|retail invoice|proforma invoice|annexure/i.test(l.text) ||
-          (l.fontSize >= 13 && !/sold by|billed to|supplier|details/i.test(l.text)));
+        i <= 1 &&
+        (/tax invoice|bill of supply|commercial invoice|retail invoice|proforma|annexure|quotation|purchase order|statement|credit note|debit note|receipt/i.test(l.text) ||
+          (l.fontSize >= 13 && !/sold by|billed to|supplier|details|gstin/i.test(l.text)));
 
-      if (isHeaderTitle) {
+      if (isHeaderTitle && !/gstin|sold by|billed to/i.test(l.text.toLowerCase())) {
         headerLines.push(l);
       } else if (isVehicleMetadataLine(l)) {
         vehicleLines.push(l);
@@ -379,31 +600,37 @@ export function reconstructInvoicePageLayout(
       }
     }
 
-    // Process each distinct table segment
     for (let t = 0; t < tableHeaderIndices.length; t++) {
       const hIdx = tableHeaderIndices[t];
       const nextHIdx = t < tableHeaderIndices.length - 1 ? tableHeaderIndices[t + 1] : -1;
-      const endLimit = nextHIdx !== -1 ? nextHIdx : (summaryStartLineIdx !== -1 ? summaryStartLineIdx : lines.length);
+      const endLimit = nextHIdx !== -1 ? nextHIdx : summaryStartLineIdx !== -1 ? summaryStartLineIdx : lines.length;
 
-      let tStart = hIdx;
-      let titleLine: ReconstructedLine | undefined = undefined;
-
-      // Check if preceding line is a table title/subheading (e.g., "Labour Charges", "Spare Parts")
+      let titleLine: ReconstructedLine | undefined;
       if (hIdx > 0 && hIdx - 1 > (t > 0 ? tableHeaderIndices[t - 1] : firstHeaderIdx - 1)) {
         const prevLine = lines[hIdx - 1];
         if (
-          prevLine.tokens.length <= 4 &&
-          /labour|spare|parts|services|hsn|tax summary|consumables|annexure/i.test(prevLine.text)
+          prevLine.tokens.length <= 5 &&
+          /labour|spare|parts|services|hsn|tax summary|consumables|annexure|charges|particulars/i.test(prevLine.text)
         ) {
           titleLine = prevLine;
         }
       }
 
       const tLines: ReconstructedLine[] = [];
-      for (let i = tStart; i < endLimit; i++) {
+      for (let i = hIdx; i < endLimit; i++) {
         const l = lines[i];
-        // If an intervening section heading was found before next table, exclude it from rows
-        if (nextHIdx !== -1 && i === nextHIdx - 1 && l.tokens.length <= 4 && /labour|parts|services/i.test(l.text)) {
+        if (nextHIdx !== -1 && i === nextHIdx - 1 && l.tokens.length <= 5 && /labour|parts|services|charges/i.test(l.text)) {
+          continue;
+        }
+        // Check if this post-table line is actually Terms/Signatory footer even without a summary keyword match
+        if (
+          summaryStartLineIdx === -1 &&
+          i > hIdx + 1 &&
+          l.tokens.length <= 3 &&
+          l.y > pageHeight * 0.72 &&
+          /authorized signatory|declaration|terms & conditions|terms and conditions|customer acceptance/i.test(l.text)
+        ) {
+          footerLines.push(l);
           continue;
         }
         tLines.push(l);
@@ -414,14 +641,13 @@ export function reconstructInvoicePageLayout(
       }
     }
 
-    // Process post-table summary & footer lines
     if (summaryStartLineIdx !== -1) {
       for (let i = summaryStartLineIdx; i < lines.length; i++) {
         const l = lines[i];
         const isFooterCandidate =
-          (/authorized signatory|for [a-z0-9]|declaration|terms & conditions|customer acceptance|signature/i.test(l.text) &&
-            l.y > pageHeight * 0.75) ||
-          /terms and conditions|loyalty acknowledgement/i.test(l.text);
+          (/authorized signatory|declaration|terms & conditions|customer acceptance|signature/i.test(l.text) &&
+            l.y > pageHeight * 0.68) ||
+          /terms and conditions|loyalty acknowledgement|^for\s+[a-z0-9]/i.test(l.text);
 
         if (isFooterCandidate) {
           footerLines.push(l);
@@ -431,13 +657,15 @@ export function reconstructInvoicePageLayout(
       }
     }
   } else {
-    // Fallback: If no explicit header pattern was matched, check if page contains an HSN summary or generic grid
     const candidateTableLines: ReconstructedLine[] = [];
     for (const l of lines) {
-      const isFooter = /authorized signatory|declaration|terms & conditions/i.test(l.text) && l.y > pageHeight * 0.8;
-      const isHeader = l.y < pageHeight * 0.15 && (l.fontSize >= 13 || /invoice|bill|statement/i.test(l.text));
+      const isFooter =
+        (/authorized signatory|declaration|terms & conditions|terms and conditions/i.test(l.text) &&
+          l.y > pageHeight * 0.74) ||
+        /for\s+[a-z0-9].*(signatory|signature)/i.test(l.text);
+      const isHeader = l.y < pageHeight * 0.16 && (l.fontSize >= 13 || /invoice|bill|statement|receipt|challan/i.test(l.text));
 
-      if (isHeader) {
+      if (isHeader && !/account no|gstin/i.test(l.text.toLowerCase())) {
         headerLines.push(l);
       } else if (isFooter) {
         footerLines.push(l);
@@ -457,39 +685,108 @@ export function reconstructInvoicePageLayout(
     }
   }
 
-  // ZONE 1: RECONSTRUCT HEADER (Logos, Title, Date)
-  if (pageImages.length > 0) {
-    const firstImg = pageImages[0];
-    elements.push(
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        spacing: { before: 0, after: 40 },
-        children: [
-          new ImageRun({
-            data: firstImg.data,
-            type: "png",
-            transformation: {
-              width: firstImg.width,
-              height: firstImg.height,
-            },
-          }),
-        ],
-      })
-    );
+  // ZONE 1: RECONSTRUCT HEADER (Logos, Title, Date, Top QR)
+  if (headerImages.length > 0 || (headerLines.length > 0 && headerImages.length > 0)) {
+    const leftLogos = headerImages.filter((im) => im.x < pageWidth * 0.55);
+    const rightQrs = headerImages.filter((im) => im.x >= pageWidth * 0.55);
+
+    if (leftLogos.length > 0 && rightQrs.length > 0) {
+      // Side-by-side borderless header band preserving Logo left + QR right
+      const halfW = Math.floor(printableWidthDxa / 2);
+      elements.push(
+        new DocxTable({
+          layout: TableLayoutType.FIXED,
+          columnWidths: [halfW, printableWidthDxa - halfW],
+          width: { size: printableWidthDxa, type: WidthType.DXA },
+          rows: [
+            new TableRow({
+              cantSplit: true,
+              children: [
+                new TableCell({
+                  width: { size: halfW, type: WidthType.DXA },
+                  borders: borderNone(),
+                  margins: { top: 0, bottom: 40, left: 0, right: 40 },
+                  children: leftLogos.map(
+                    (im) =>
+                      new Paragraph({
+                        alignment: AlignmentType.LEFT,
+                        spacing: { before: 0, after: 20 },
+                        children: [
+                          new ImageRun({
+                            data: im.data,
+                            type: "png",
+                            transformation: { width: im.width, height: im.height },
+                          }),
+                        ],
+                      })
+                  ),
+                }),
+                new TableCell({
+                  width: { size: printableWidthDxa - halfW, type: WidthType.DXA },
+                  borders: borderNone(),
+                  margins: { top: 0, bottom: 40, left: 40, right: 0 },
+                  children: rightQrs.map(
+                    (im) =>
+                      new Paragraph({
+                        alignment: AlignmentType.RIGHT,
+                        spacing: { before: 0, after: 20 },
+                        children: [
+                          new ImageRun({
+                            data: im.data,
+                            type: "png",
+                            transformation: { width: im.width, height: im.height },
+                          }),
+                        ],
+                      })
+                  ),
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    } else {
+      for (const im of headerImages) {
+        const align = im.x >= pageWidth * 0.55 ? AlignmentType.RIGHT : AlignmentType.LEFT;
+        elements.push(
+          new Paragraph({
+            alignment: align,
+            spacing: { before: 0, after: 40 },
+            children: [
+              new ImageRun({
+                data: im.data,
+                type: "png",
+                transformation: { width: im.width, height: im.height },
+              }),
+            ],
+          })
+        );
+      }
+    }
   }
 
   for (const hl of headerLines) {
-    const isTitle = hl.fontSize >= 13 || /tax invoice|proforma invoice|invoice|annexure/i.test(hl.text);
+    const isTitle =
+      hl.fontSize >= 12 || /tax invoice|proforma|invoice|annexure|statement|receipt|purchase order|quotation/i.test(hl.text);
+    const lineCenter = (hl.xStart + hl.xEnd) / 2;
+    const align =
+      Math.abs(lineCenter - pageWidth / 2) < pageWidth * 0.16
+        ? AlignmentType.CENTER
+        : hl.xStart > pageWidth * 0.52
+        ? AlignmentType.RIGHT
+        : AlignmentType.LEFT;
+
     elements.push(
       new Paragraph({
-        alignment: isTitle ? AlignmentType.CENTER : AlignmentType.RIGHT,
-        spacing: { before: isTitle ? 30 : 0, after: 40 },
+        alignment: align,
+        keepNext: true,
+        spacing: { before: isTitle ? 30 : 0, after: 35 },
         children: [
           new TextRun({
             text: hl.text,
-            bold: isTitle,
-            size: isTitle ? 26 : 18,
-            color: isTitle ? "1E3A8A" : "64748B",
+            bold: isTitle || hl.isBold,
+            size: isTitle ? Math.max(22, Math.min(30, hl.fontSize * 2)) : 18,
+            color: isTitle ? "1E3A8A" : "475569",
             font: detectOptimalFont(hl.text),
           }),
         ],
@@ -497,24 +794,46 @@ export function reconstructInvoicePageLayout(
     );
   }
 
-  // ZONE 2: RECONSTRUCT TWO-COLUMN PARTY TABLE (Seller vs Buyer)
+  // ZONE 2: RECONSTRUCT TWO-COLUMN PARTY TABLE (Adaptive Whitespace Gutter!)
   if (partyTokens.length > 0) {
-    const midpoint = pageWidth / 2;
-    const sellerTokens = partyTokens.filter((t) => t.x < midpoint);
-    const buyerTokens = partyTokens.filter((t) => t.x >= midpoint);
+    const gutterX = findOptimalVerticalGutter(partyTokens, pageWidth, 0.34, 0.68);
+    const partyLinesRaw = clusterTokensIntoSimpleLines(partyTokens, pageNum);
+
+    const sellerTokens: SpatialTextToken[] = [];
+    const buyerTokens: SpatialTextToken[] = [];
+
+    for (const line of partyLinesRaw) {
+      const leftPart = line.tokens.filter((t) => t.x + t.width * 0.35 < gutterX);
+      const rightPart = line.tokens.filter((t) => t.x + t.width * 0.35 >= gutterX);
+
+      if (leftPart.length > 0 && rightPart.length > 0) {
+        sellerTokens.push(...leftPart);
+        buyerTokens.push(...rightPart);
+      } else if (line.tokens[0] && line.tokens[0].x >= gutterX) {
+        buyerTokens.push(...line.tokens);
+      } else {
+        sellerTokens.push(...line.tokens);
+      }
+    }
 
     const sellerLines = clusterTokensIntoSimpleLines(sellerTokens, pageNum);
     const buyerLines = clusterTokensIntoSimpleLines(buyerTokens, pageNum);
 
-    if (sellerLines.length > 0 || buyerLines.length > 0) {
+    if (sellerLines.length > 0 && buyerLines.length > 0) {
+      const leftRatio = Math.max(0.38, Math.min(0.62, gutterX / Math.max(1, pageWidth)));
+      const leftColDxa = Math.round(printableWidthDxa * leftRatio);
+      const rightColDxa = printableWidthDxa - leftColDxa;
+
       const partyTable = new DocxTable({
-        width: { size: 100, type: WidthType.PERCENTAGE },
+        layout: TableLayoutType.FIXED,
+        columnWidths: [leftColDxa, rightColDxa],
+        width: { size: printableWidthDxa, type: WidthType.DXA },
         rows: [
           new TableRow({
+            cantSplit: true,
             children: [
-              // Left: Supplier Details
               new TableCell({
-                width: { size: 50, type: WidthType.PERCENTAGE },
+                width: { size: leftColDxa, type: WidthType.DXA },
                 shading: { type: ShadingType.CLEAR, fill: isVisualMode ? "F8FAFC" : "FFFFFF" },
                 borders: {
                   top: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
@@ -522,12 +841,12 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                   right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                 },
-                margins: { top: 60, bottom: 60, left: 100, right: 100 },
+                margins: { top: 55, bottom: 55, left: 90, right: 90 },
                 children: sellerLines.map((sl, idx) => {
-                  const isSectionHeader = idx === 0 || /sold by|supplier/i.test(sl.text);
+                  const isSectionHeader = idx === 0 || /sold by|supplier|from/i.test(sl.text);
                   const isCompanyName = idx === 1 || sl.isBold;
                   return new Paragraph({
-                    spacing: { before: idx === 0 ? 0 : 10, after: 10 },
+                    spacing: { before: idx === 0 ? 0 : 8, after: 8, line: 220 },
                     children: [
                       new TextRun({
                         text: sl.text,
@@ -540,9 +859,8 @@ export function reconstructInvoicePageLayout(
                   });
                 }),
               }),
-              // Right: Customer & Invoice Details
               new TableCell({
-                width: { size: 50, type: WidthType.PERCENTAGE },
+                width: { size: rightColDxa, type: WidthType.DXA },
                 shading: { type: ShadingType.CLEAR, fill: isVisualMode ? "F8FAFC" : "FFFFFF" },
                 borders: {
                   top: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
@@ -550,12 +868,12 @@ export function reconstructInvoicePageLayout(
                   left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
                   right: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                 },
-                margins: { top: 60, bottom: 60, left: 100, right: 100 },
+                margins: { top: 55, bottom: 55, left: 90, right: 90 },
                 children: buyerLines.map((bl, idx) => {
-                  const isSectionHeader = idx === 0 || /billed to|invoice details/i.test(bl.text);
-                  const isKey = /invoice no|invoice date|due date|billed to|gstin|place of supply|reverse charge/i.test(bl.text);
+                  const isSectionHeader = idx === 0 || /billed to|invoice details|buyer|recipient/i.test(bl.text);
+                  const isKey = /invoice no|invoice date|due date|billed to|gstin|place of supply|reverse charge|p\.o\./i.test(bl.text);
                   return new Paragraph({
-                    spacing: { before: idx === 0 ? 0 : 10, after: 10 },
+                    spacing: { before: idx === 0 ? 0 : 8, after: 8, line: 220 },
                     children: [
                       new TextRun({
                         text: bl.text,
@@ -574,23 +892,43 @@ export function reconstructInvoicePageLayout(
       });
 
       elements.push(partyTable);
+    } else {
+      // Single-column account/header metadata block (clean paragraphs, no fake empty column)
+      const singleLines = sellerLines.length > 0 ? sellerLines : buyerLines;
+      for (const sl of singleLines) {
+        elements.push(
+          new Paragraph({
+            spacing: { before: 8, after: 12 },
+            children: [
+              new TextRun({
+                text: sl.text,
+                bold: sl.isBold || /account|gstin|ifsc|invoice no/i.test(sl.text),
+                size: 18,
+                color: "1E293B",
+                font: detectOptimalFont(sl.text),
+              }),
+            ],
+          })
+        );
+      }
     }
   }
 
-  // ZONE 2B: VEHICLE & JOB CARD METADATA CARD TABLE (Key-Value Preservation)
+  // ZONE 2B: VEHICLE & JOB CARD METADATA CARD TABLE
   if (vehicleLines.length > 0) {
-    const vehicleTable = buildVehicleMetadataTable(vehicleLines, isVisualMode);
+    const vehicleTable = buildVehicleMetadataTable(vehicleLines, isVisualMode, printableWidthDxa);
     if (vehicleTable) {
       elements.push(vehicleTable);
     }
   }
 
-  // ZONE 3: RECONSTRUCT ALL DETECTED TABLE BLOCKS (Multi-Table Aware!)
+  // ZONE 3: RECONSTRUCT ALL DETECTED TABLE BLOCKS
   for (const block of tableBlocks) {
     if (block.titleLine) {
       elements.push(
         new Paragraph({
-          spacing: { before: 40, after: 20 },
+          keepNext: true,
+          spacing: { before: 45, after: 20 },
           children: [
             new TextRun({
               text: block.titleLine.text,
@@ -605,91 +943,166 @@ export function reconstructInvoicePageLayout(
     }
 
     if (block.lines.length >= 2) {
-      const gridTable = buildUnifiedInvoiceGridTable(block.lines, isVisualMode);
+      const gridTable = buildUnifiedInvoiceGridTable(
+        block.lines,
+        isVisualMode,
+        printableWidthDxa,
+        horizontalLines,
+        verticalLines
+      );
       if (gridTable) {
         elements.push(gridTable);
       }
     }
   }
 
-  // ZONE 4: RECONSTRUCT SUMMARY, BANK DETAILS & TOTALS
-  if (summaryTokens.length > 0) {
-    const summaryMidpoint = pageWidth * 0.52;
+  // Any inline body images inside invoice/body flow
+  for (const im of bodyImages) {
+    elements.push(
+      new Paragraph({
+        alignment: im.x > pageWidth * 0.55 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        spacing: { before: 30, after: 30 },
+        children: [
+          new ImageRun({
+            data: im.data,
+            type: "png",
+            transformation: { width: im.width, height: im.height },
+          }),
+        ],
+      })
+    );
+  }
+
+  // ZONE 4: RECONSTRUCT SUMMARY, BANK DETAILS & TOTALS (Line-aware & non-tearing)
+  if (summaryTokens.length > 0 || summaryImages.length > 0) {
+    const summaryRawLines = clusterTokensIntoSimpleLines(summaryTokens, pageNum);
+    const gutterX = findOptimalVerticalGutter(summaryTokens, pageWidth, 0.35, 0.65);
+
     const bankTokens: SpatialTextToken[] = [];
     const totalTokens: SpatialTextToken[] = [];
 
-    for (const t of summaryTokens) {
-      const isBankOrWords =
-        /bank|ifsc|account|a\/c|branch|words|terms|conditions|notes/i.test(t.text);
-      if (isBankOrWords || t.x < summaryMidpoint) {
-        bankTokens.push(t);
+    for (const sLine of summaryRawLines) {
+      const lineLower = sLine.text.toLowerCase();
+      const leftHalf = sLine.tokens.filter((t) => t.x < gutterX);
+      const rightHalf = sLine.tokens.filter((t) => t.x >= gutterX);
+
+      // If BOTH left (e.g. Bank details / Amount in words) and right (Subtotal / Grand Total) co-exist on same Y row
+      if (leftHalf.length > 0 && rightHalf.length > 0) {
+        const leftText = leftHalf.map((t) => t.text).join(" ").toLowerCase();
+        const rightHasMoney = rightHalf.some((t) => /[0-9,]+\.[0-9]{2}/.test(t.text));
+        const leftIsBankOrWords = /bank|ifsc|account|a\/c|branch|words|terms|conditions|notes|upi/i.test(leftText);
+        const wholeLineIsSingleTotalPair =
+          !leftIsBankOrWords &&
+          rightHasMoney &&
+          /subtotal|taxable|cgst|sgst|igst|grand total|invoice total|net amount|total|round off|discount|freight/i.test(leftText);
+
+        if (wholeLineIsSingleTotalPair) {
+          // Keep label + amount together on the Totals side!
+          totalTokens.push(...sLine.tokens);
+        } else {
+          bankTokens.push(...leftHalf);
+          totalTokens.push(...rightHalf);
+        }
+      } else if (/bank|ifsc|account|a\/c|branch|words|terms|conditions|notes/i.test(lineLower) || sLine.xStart < pageWidth * 0.35) {
+        bankTokens.push(...sLine.tokens);
       } else {
-        totalTokens.push(t);
+        totalTokens.push(...sLine.tokens);
       }
     }
 
     const bankLines = clusterTokensIntoSimpleLines(bankTokens, pageNum);
     const totalLines = clusterTokensIntoSimpleLines(totalTokens, pageNum);
 
-    if (bankLines.length > 0 || totalLines.length > 0) {
+    if (bankLines.length > 0 || totalLines.length > 0 || summaryImages.length > 0) {
+      const bankCellDxa = Math.round(printableWidthDxa * 0.55);
+      const totalCellDxa = printableWidthDxa - bankCellDxa;
+
+      const leftCellChildren: Paragraph[] = bankLines.map((bl, idx) => {
+        const isTitle = idx === 0 || /bank|amount in words/i.test(bl.text);
+        return new Paragraph({
+          spacing: { before: 8, after: 8, line: 220 },
+          children: [
+            new TextRun({
+              text: bl.text,
+              bold: isTitle || bl.isBold,
+              size: 17,
+              color: "1E293B",
+              font: detectOptimalFont(bl.text),
+            }),
+          ],
+        });
+      });
+
+      for (const qImg of summaryImages) {
+        leftCellChildren.push(
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            spacing: { before: 30, after: 10 },
+            children: [
+              new ImageRun({
+                data: qImg.data,
+                type: "png",
+                transformation: { width: qImg.width, height: qImg.height },
+              }),
+            ],
+          })
+        );
+      }
+
+      if (leftCellChildren.length === 0) {
+        leftCellChildren.push(new Paragraph({ children: [new TextRun({ text: " ", size: 17 })] }));
+      }
+
+      const rightCellChildren: Paragraph[] =
+        totalLines.length > 0
+          ? totalLines.map((tl) => {
+              const isGrandTotal = /invoice total|grand total|total amount|net payable|total payable/i.test(tl.text);
+              return new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 8, after: 8, line: 220 },
+                children: [
+                  new TextRun({
+                    text: tl.text,
+                    bold: isGrandTotal || tl.isBold || /total|taxable|igst|cgst|sgst/i.test(tl.text),
+                    size: isGrandTotal ? 20 : 17,
+                    color: isGrandTotal ? "0F172A" : "334155",
+                    font: detectOptimalFont(tl.text, true),
+                  }),
+                ],
+              });
+            })
+          : [new Paragraph({ children: [new TextRun({ text: " ", size: 17 })] })];
+
       const summaryTable = new DocxTable({
-        width: { size: 100, type: WidthType.PERCENTAGE },
+        layout: TableLayoutType.FIXED,
+        columnWidths: [bankCellDxa, totalCellDxa],
+        width: { size: printableWidthDxa, type: WidthType.DXA },
         rows: [
           new TableRow({
+            cantSplit: true,
             children: [
-              // Left: Bank details, Amount in words, Terms
               new TableCell({
-                width: { size: 55, type: WidthType.PERCENTAGE },
-                borders: {
-                  top: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
-                  bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
-                  left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                  right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                },
-                margins: { top: 60, bottom: 60, left: 80, right: 80 },
-                children: bankLines.map((bl, idx) => {
-                  const isTitle = idx === 0 || /bank|amount in words/i.test(bl.text);
-                  return new Paragraph({
-                    spacing: { before: 10, after: 10 },
-                    children: [
-                      new TextRun({
-                        text: bl.text,
-                        bold: isTitle,
-                        size: 17,
-                        color: "1E293B",
-                        font: detectOptimalFont(bl.text),
-                      }),
-                    ],
-                  });
-                }),
-              }),
-              // Right: Subtotals, Taxes, Total Amount
-              new TableCell({
-                width: { size: 45, type: WidthType.PERCENTAGE },
-                shading: { type: ShadingType.CLEAR, fill: isVisualMode ? "F1F5F9" : "FFFFFF" },
+                width: { size: bankCellDxa, type: WidthType.DXA },
                 borders: {
                   top: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                   bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                   left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                  right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                  right: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
                 },
-                margins: { top: 60, bottom: 60, left: 80, right: 80 },
-                children: totalLines.map((tl) => {
-                  const isGrandTotal = /invoice total|grand total|total amount/i.test(tl.text);
-                  return new Paragraph({
-                    alignment: AlignmentType.RIGHT,
-                    spacing: { before: 10, after: 10 },
-                    children: [
-                      new TextRun({
-                        text: tl.text,
-                        bold: isGrandTotal || /total|taxable|igst|cgst|sgst/i.test(tl.text),
-                        size: isGrandTotal ? 20 : 17,
-                        color: isGrandTotal ? "0F172A" : "334155",
-                        font: detectOptimalFont(tl.text, true),
-                      }),
-                    ],
-                  });
-                }),
+                margins: { top: 55, bottom: 55, left: 80, right: 80 },
+                children: leftCellChildren,
+              }),
+              new TableCell({
+                width: { size: totalCellDxa, type: WidthType.DXA },
+                shading: { type: ShadingType.CLEAR, fill: isVisualMode ? "F1F5F9" : "FFFFFF" },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
+                  bottom: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
+                  left: { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" },
+                  right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+                },
+                margins: { top: 55, bottom: 55, left: 80, right: 80 },
+                children: rightCellChildren,
               }),
             ],
           }),
@@ -700,15 +1113,31 @@ export function reconstructInvoicePageLayout(
     }
   }
 
-  // ZONE 5: RECONSTRUCT SIGNATORY, DECLARATION & TERMS
+  // ZONE 5: SIGNATURE IMAGES & FOOTER LINES
+  for (const sImg of footerImages) {
+    elements.push(
+      new Paragraph({
+        alignment: sImg.x >= pageWidth * 0.5 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        spacing: { before: 30, after: 15 },
+        children: [
+          new ImageRun({
+            data: sImg.data,
+            type: "png",
+            transformation: { width: sImg.width, height: sImg.height },
+          }),
+        ],
+      })
+    );
+  }
+
   for (const fl of footerLines) {
     const isSignatory = /signatory|signature/i.test(fl.text);
     const isTermsHeading = /terms & conditions|terms and conditions|declaration/i.test(fl.text);
 
     elements.push(
       new Paragraph({
-        alignment: isSignatory ? AlignmentType.RIGHT : AlignmentType.LEFT,
-        spacing: { before: isTermsHeading ? 30 : 15, after: 15 },
+        alignment: isSignatory || fl.xStart > pageWidth * 0.5 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        spacing: { before: isTermsHeading ? 25 : 10, after: 12 },
         children: [
           new TextRun({
             text: fl.text,
@@ -725,6 +1154,15 @@ export function reconstructInvoicePageLayout(
   return elements;
 }
 
+function borderNone() {
+  return {
+    top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  };
+}
+
 function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): boolean {
   if (l.tokens.length < 3) return false;
   const textLower = l.text.toLowerCase();
@@ -735,11 +1173,14 @@ function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): bool
     textLower.includes("item") ||
     textLower.includes("particular") ||
     textLower.includes("part no") ||
+    textLower.includes("partno") ||
     textLower.includes("part number") ||
     textLower.includes("product") ||
-    textLower.includes("material");
+    textLower.includes("material") ||
+    textLower.includes("narration");
   const hasMetricWord =
     textLower.includes("qty") ||
+    textLower.includes("quantity") ||
     textLower.includes("rate") ||
     textLower.includes("tax") ||
     textLower.includes("hsn") ||
@@ -748,11 +1189,16 @@ function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): bool
     textLower.includes("sr.") ||
     textLower.includes("price") ||
     textLower.includes("mrp") ||
-    textLower.includes("disc");
+    textLower.includes("disc") ||
+    textLower.includes("debit") ||
+    textLower.includes("credit") ||
+    textLower.includes("withdrawal") ||
+    textLower.includes("deposit") ||
+    textLower.includes("balance");
 
   if (hasItemWord && hasMetricWord) return true;
 
-  // Pattern B: Labour / Services / Operations / Work description
+  // Pattern B: Labour / Services / Operations
   const hasLabourWord =
     textLower.includes("labour") ||
     textLower.includes("labor") ||
@@ -769,7 +1215,7 @@ function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): bool
 
   if (hasLabourWord && hasLabourMetric) return true;
 
-  // Pattern C: Tax Summary / HSN / SAC Breakdown Table (Page 2)
+  // Pattern C: Tax Summary / HSN / SAC Breakdown Table
   const hasHsnWord = textLower.includes("hsn") || textLower.includes("sac");
   const hasTaxSummaryMetric =
     textLower.includes("taxable") ||
@@ -780,11 +1226,19 @@ function isLineInvoiceTableHeader(l: ReconstructedLine, pageWidth: number): bool
 
   if (hasHsnWord && hasTaxSummaryMetric) return true;
 
-  // Pattern D: Wide Annexure / Multi-column detail table (Page 3)
+  // Pattern D: Bank ledger headers
+  if (
+    textLower.includes("date") &&
+    (textLower.includes("balance") || textLower.includes("debit") || textLower.includes("withdrawal"))
+  ) {
+    return true;
+  }
+
+  // Pattern E: Wide Annexure / Multi-column detail table
   const spread = l.xEnd - l.xStart;
   if (l.tokens.length >= 4 && spread >= pageWidth * 0.45) {
     let kwHits = 0;
-    const kwList = ["part", "no", "desc", "qty", "mrp", "rate", "disc", "taxable", "cgst", "sgst", "total", "amount", "hsn", "sac"];
+    const kwList = ["part", "no", "desc", "qty", "mrp", "rate", "disc", "taxable", "cgst", "sgst", "total", "amount", "hsn", "sac", "date", "balance"];
     for (const kw of kwList) {
       if (textLower.includes(kw)) kwHits++;
     }
@@ -819,22 +1273,31 @@ function isVehicleMetadataLine(l: ReconstructedLine): boolean {
   return matches >= 1;
 }
 
-function buildVehicleMetadataTable(lines: ReconstructedLine[], isVisualMode: boolean): DocxTable | null {
+function buildVehicleMetadataTable(
+  lines: ReconstructedLine[],
+  isVisualMode: boolean,
+  printableWidthDxa: number
+): DocxTable | null {
   if (lines.length === 0) return null;
 
   const tableRows: TableRow[] = [];
+  let maxPairsPerRow = 1;
 
-  for (const line of lines) {
-    // Parse line into key-value pairs
+  const parsedLinesPairs = lines.map((line) => {
     const pairs: { key: string; val: string }[] = [];
     const tokens = [...line.tokens].sort((a, b) => a.x - b.x);
-
     let curKey = "";
     let curVal = "";
     let isReadingVal = false;
 
     for (const t of tokens) {
-      if (t.text.endsWith(":") || /^[A-Z][a-z0-9\s/.-]+:$/.test(t.text)) {
+      if (t.text.includes(":") && !t.text.endsWith(":") && t.text.split(":").length === 2) {
+        if (curKey) pairs.push({ key: curKey.trim(), val: curVal.trim() });
+        const [k, v] = t.text.split(":");
+        curKey = `${k.trim()}:`;
+        curVal = v.trim();
+        isReadingVal = true;
+      } else if (t.text.endsWith(":") || /^[A-Z][a-z0-9\s/.-]+:$/.test(t.text)) {
         if (curKey && curVal) {
           pairs.push({ key: curKey.trim(), val: curVal.trim() });
           curKey = "";
@@ -848,82 +1311,54 @@ function buildVehicleMetadataTable(lines: ReconstructedLine[], isVisualMode: boo
         curKey += " " + t.text;
       }
     }
-    if (curKey) {
-      pairs.push({ key: curKey.trim(), val: curVal.trim() });
-    }
+    if (curKey) pairs.push({ key: curKey.trim(), val: curVal.trim() });
+    if (pairs.length >= 2) maxPairsPerRow = 2;
+    return { line, pairs };
+  });
 
-    // Format pairs into a 4-column row (Key | Val | Key | Val) or 2-column row
-    if (pairs.length >= 2) {
-      const p1 = pairs[0];
-      const p2 = pairs[1];
+  const colWidths =
+    maxPairsPerRow === 2
+      ? [
+          Math.round(printableWidthDxa * 0.2),
+          Math.round(printableWidthDxa * 0.3),
+          Math.round(printableWidthDxa * 0.2),
+          printableWidthDxa - Math.round(printableWidthDxa * 0.7),
+        ]
+      : [Math.round(printableWidthDxa * 0.3), printableWidthDxa - Math.round(printableWidthDxa * 0.3)];
+
+  for (const { line, pairs } of parsedLinesPairs) {
+    if (maxPairsPerRow === 2) {
+      const p1 = pairs[0] || { key: line.text, val: "" };
+      const p2 = pairs[1] || { key: " ", val: " " };
       tableRows.push(
         new TableRow({
+          cantSplit: true,
           children: [
             new TableCell({
-              width: { size: 20, type: WidthType.PERCENTAGE },
+              width: { size: colWidths[0], type: WidthType.DXA },
               shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })],
-                }),
-              ],
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })] })],
             }),
             new TableCell({
-              width: { size: 30, type: WidthType.PERCENTAGE },
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })],
-                }),
-              ],
+              width: { size: colWidths[1], type: WidthType.DXA },
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })] })],
             }),
             new TableCell({
-              width: { size: 20, type: WidthType.PERCENTAGE },
+              width: { size: colWidths[2], type: WidthType.DXA },
               shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p2.key, bold: true, size: 17, color: "334155" })],
-                }),
-              ],
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p2.key, bold: true, size: 17, color: "334155" })] })],
             }),
             new TableCell({
-              width: { size: 30, type: WidthType.PERCENTAGE },
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p2.val || " ", size: 17, color: "0F172A" })],
-                }),
-              ],
+              width: { size: colWidths[3], type: WidthType.DXA },
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p2.val || " ", size: 17, color: "0F172A" })] })],
             }),
           ],
         })
@@ -932,39 +1367,20 @@ function buildVehicleMetadataTable(lines: ReconstructedLine[], isVisualMode: boo
       const p1 = pairs[0] || { key: line.text, val: "" };
       tableRows.push(
         new TableRow({
+          cantSplit: true,
           children: [
             new TableCell({
-              width: { size: 30, type: WidthType.PERCENTAGE },
+              width: { size: colWidths[0], type: WidthType.DXA },
               shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "F1F5F9" } : undefined,
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })],
-                }),
-              ],
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p1.key, bold: true, size: 17, color: "334155" })] })],
             }),
             new TableCell({
-              width: { size: 70, type: WidthType.PERCENTAGE },
-              margins: { top: 40, bottom: 40, left: 60, right: 60 },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              },
-              children: [
-                new Paragraph({
-                  spacing: { before: 0, after: 0 },
-                  children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })],
-                }),
-              ],
+              width: { size: colWidths[1], type: WidthType.DXA },
+              margins: { top: 35, bottom: 35, left: 60, right: 60 },
+              borders: thinGridBorder("E2E8F0"),
+              children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: p1.val || " ", size: 17, color: "0F172A" })] })],
             }),
           ],
         })
@@ -973,54 +1389,155 @@ function buildVehicleMetadataTable(lines: ReconstructedLine[], isVisualMode: boo
   }
 
   return new DocxTable({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    columnWidths: colWidths,
+    width: { size: printableWidthDxa, type: WidthType.DXA },
     rows: tableRows,
   });
 }
 
-function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: boolean): DocxTable | null {
+function thinGridBorder(color: string) {
+  return {
+    top: { style: BorderStyle.SINGLE, size: 1, color },
+    bottom: { style: BorderStyle.SINGLE, size: 1, color },
+    left: { style: BorderStyle.SINGLE, size: 1, color },
+    right: { style: BorderStyle.SINGLE, size: 1, color },
+  };
+}
+
+/**
+ * Reconstructs any invoice / ledger / tax summary / annexure grid with:
+ * - Merged multi-word & stacked 2-line column headers
+ * - Vector vertical & horizontal rule awareness
+ * - Principled multi-signal row segmentation (works WITH or WITHOUT S.No.!)
+ * - Explicit OOXML <w:tblGrid> DXA column widths & cantSplit pagination protection
+ */
+function buildUnifiedInvoiceGridTable(
+  lines: ReconstructedLine[],
+  isVisualMode: boolean,
+  printableWidthDxa: number,
+  horizontalLines: HorizontalRule[] = [],
+  verticalLines: VerticalRule[] = []
+): DocxTable | null {
   if (lines.length < 2) return null;
 
-  const headerLine = lines[0];
-  const headerTokens = [...headerLine.tokens].sort((a, b) => a.x - b.x);
-  const colStarts = headerTokens.map((t) => t.x);
-  const headerTitles = headerTokens.map((t) => t.text);
+  const primaryHeaderLine = lines[0];
+  let mergedHeaderTokens = mergeAdjacentTokensForColumnHeaders(
+    primaryHeaderLine.tokens,
+    verticalLines,
+    primaryHeaderLine.y
+  );
 
-  const colCount = colStarts.length;
-  const isWideAnnexure = colCount >= 8;
+  // Check if line[1] is stacked second row of column headers
+  let dataStartIdx = 1;
+  if (lines.length >= 3 && isStackedHeaderContinuation(primaryHeaderLine, lines[1])) {
+    const secondTokens = mergeAdjacentTokensForColumnHeaders(lines[1].tokens, verticalLines, lines[1].y);
+    for (const st of secondTokens) {
+      let bestCol = 0;
+      let minDist = Infinity;
+      const stCenter = st.x + st.width / 2;
+      for (let c = 0; c < mergedHeaderTokens.length; c++) {
+        const hcCenter = mergedHeaderTokens[c].x + mergedHeaderTokens[c].width / 2;
+        const d = Math.abs(stCenter - hcCenter);
+        if (d < minDist) {
+          minDist = d;
+          bestCol = c;
+        }
+      }
+      if (minDist < 55) {
+        mergedHeaderTokens[bestCol].text = `${mergedHeaderTokens[bestCol].text} ${st.text}`.trim();
+        mergedHeaderTokens[bestCol].x = Math.min(mergedHeaderTokens[bestCol].x, st.x);
+        mergedHeaderTokens[bestCol].width = Math.max(
+          mergedHeaderTokens[bestCol].width,
+          st.x + st.width - mergedHeaderTokens[bestCol].x
+        );
+      }
+    }
+    dataStartIdx = 2;
+  }
 
-  // Adaptive micro-padding and compact typography for wide 8-14 column annexure tables
-  const cellTopBottomPadding = isWideAnnexure ? 24 : 40;
-  const cellLeftRightPadding = isWideAnnexure ? 36 : 60;
-  const dataFontSize = isWideAnnexure ? 15 : 18; // 7.5pt for 8+ cols, 9pt for standard
-  const headerFontSize = isWideAnnexure ? 16 : 18; // 8pt for 8+ cols, 9pt for standard
-  const minColPct = isWideAnnexure ? 3 : 5;
+  if (dataStartIdx >= lines.length) return null;
 
-  const colWidthsPct: number[] = [];
-  for (let c = 0; c < colStarts.length; c++) {
-    if (c < colStarts.length - 1) {
-      colWidthsPct.push(colStarts[c + 1] - colStarts[c]);
+  const colCount = mergedHeaderTokens.length;
+  const colStarts = mergedHeaderTokens.map((t) => t.x);
+  const colEnds = mergedHeaderTokens.map((t) => t.x + Math.max(12, t.width));
+  const headerTitles = mergedHeaderTokens.map((t) => t.text);
+
+  // Deduce column interval corridors [boundLeft[c], boundRight[c]] using vertical vector rules or header midpoints
+  const tableMinY = primaryHeaderLine.y - 6;
+  const tableMaxY = lines[lines.length - 1].y + 12;
+  const tableVertRules = verticalLines
+    .filter((v) => v.y2 >= tableMinY && v.y1 <= tableMaxY && v.y2 - v.y1 >= 18)
+    .map((v) => v.x)
+    .sort((a, b) => a - b);
+
+  // Filter strictly internal column divider rules between headers
+  const internalDividers: number[] = [];
+  for (let c = 0; c < colCount - 1; c++) {
+    const hGapLeft = colStarts[c];
+    const hGapRight = colStarts[c + 1];
+    const matchingRule = tableVertRules.find((vx) => vx > hGapLeft + 4 && vx < hGapRight + 4);
+    if (matchingRule !== undefined) {
+      internalDividers.push(matchingRule);
     } else {
-      colWidthsPct.push(headerTokens[c].width + 25);
+      // Midpoint between right edge of header C (or slight shift for right-aligned numbers) and left edge of header C+1
+      const cMid = (colEnds[c] + colStarts[c + 1]) / 2;
+      const startMid = (colStarts[c] + colStarts[c + 1]) / 2;
+      internalDividers.push(Math.min(colStarts[c + 1] - 4, Math.max(cMid, startMid * 0.35 + cMid * 0.65)));
     }
   }
-  const totalRawWidth = colWidthsPct.reduce((a, b) => a + b, 0);
-  const normalizedColPct = colWidthsPct.map((w) => Math.max(minColPct, Math.round((w / totalRawWidth) * 100)));
-  const sumPct = normalizedColPct.reduce((a, b) => a + b, 0);
-  if (sumPct !== 100 && normalizedColPct.length > 0) {
-    normalizedColPct[normalizedColPct.length - 1] += 100 - sumPct;
+
+  const colBoundsLeft = colStarts.map((_, c) => (c === 0 ? -9999 : internalDividers[c - 1]));
+  const colBoundsRight = colStarts.map((_, c) => (c === colCount - 1 ? 999999 : internalDividers[c]));
+
+  // Refine right-aligned numeric column widths vs text columns
+  const isWideAnnexure = colCount >= 8;
+  const cellTopBottomPadding = isWideAnnexure ? 24 : 38;
+  const cellLeftRightPadding = isWideAnnexure ? 32 : 55;
+  const dataFontSize = isWideAnnexure ? 15 : 18;
+  const headerFontSize = isWideAnnexure ? 16 : 18;
+  const minColPct = isWideAnnexure ? 4 : 5;
+
+  const rawWidths: number[] = [];
+  for (let c = 0; c < colCount; c++) {
+    if (c < colCount - 1) {
+      rawWidths.push(Math.max(18, colStarts[c + 1] - colStarts[c]));
+    } else {
+      rawWidths.push(Math.max(35, mergedHeaderTokens[c].width + 26));
+    }
   }
+  const totalRawWidth = Math.max(1, rawWidths.reduce((a, b) => a + b, 0));
+  const colWidthsDxa = rawWidths.map((w) =>
+    Math.max(Math.round((printableWidthDxa * minColPct) / 100), Math.round((w / totalRawWidth) * printableWidthDxa))
+  );
+  const sumDxa = colWidthsDxa.reduce((a, b) => a + b, 0);
+  if (sumDxa !== printableWidthDxa && colWidthsDxa.length > 0) {
+    // Adjust widest description column (or last) cleanly so sum matches printableWidthDxa to the exact twip
+    let widestIdx = 0;
+    for (let c = 1; c < colWidthsDxa.length; c++) {
+      if (colWidthsDxa[c] > colWidthsDxa[widestIdx]) widestIdx = c;
+    }
+    colWidthsDxa[widestIdx] += printableWidthDxa - sumDxa;
+  }
+
+  const colIsNumeric = headerTitles.map((hTitle) =>
+    /qty|quantity|rate|tax|total|amount|mrp|disc|value|debit|credit|withdrawal|deposit|balance|price|cgst|sgst|igst/i.test(
+      hTitle
+    )
+  );
 
   const tableRows: TableRow[] = [];
 
-  // Header row
+  // Header row (repeats on multi-page overflow via tableHeader: true)
   tableRows.push(
     new TableRow({
       tableHeader: true,
+      cantSplit: true,
       children: headerTitles.map((hTitle, cIdx) => {
-        const isNum = /qty|rate|tax|total|amount|mrp|disc|value/i.test(hTitle);
+        const isNum = colIsNumeric[cIdx];
         return new TableCell({
-          width: { size: normalizedColPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
+          width: { size: colWidthsDxa[cIdx], type: WidthType.DXA },
+          verticalAlign: VerticalAlign.CENTER,
           shading: isVisualMode ? { type: ShadingType.CLEAR, fill: "1E3A8A" } : { type: ShadingType.CLEAR, fill: "F1F5F9" },
           borders: {
             top: { style: BorderStyle.SINGLE, size: 1, color: isVisualMode ? "1E3A8A" : "CBD5E1" },
@@ -1037,7 +1554,7 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
           children: [
             new Paragraph({
               alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
-              spacing: { before: 0, after: isWideAnnexure ? 0 : 5 },
+              spacing: { before: 0, after: isWideAnnexure ? 0 : 4 },
               children: [
                 new TextRun({
                   text: hTitle,
@@ -1054,54 +1571,72 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
     })
   );
 
+  // Estimate typical line leading among data lines
+  const leadings: number[] = [];
+  for (let i = dataStartIdx + 1; i < lines.length; i++) {
+    const dy = lines[i].y - lines[i - 1].y;
+    if (dy > 2 && dy < 45) leadings.push(dy);
+  }
+  leadings.sort((a, b) => a - b);
+  const medianLeading = leadings.length > 0 ? leadings[Math.floor(leadings.length * 0.35)] : 14;
+
   let currentItemCells: string[][] = [];
   let hasItem = false;
+  let currentRowHasNumericAmounts = false;
 
   function initEmptyRow(): string[][] {
-    return Array.from({ length: colStarts.length }, () => []);
+    return Array.from({ length: colCount }, () => []);
   }
 
   function flushCurrentItem(rowIdx: number) {
     if (!hasItem) return;
-    const isAlt = isVisualMode && rowIdx % 2 === 1;
+    const isSummaryRow = currentItemCells.some((cLines) =>
+      /\b(?:sub\s*total|cgst|sgst|igst|round\s*off|total\s*tax|freight|discount)\b/i.test(cLines.join(" "))
+    );
+    const isAlt = isVisualMode && rowIdx % 2 === 1 && !isSummaryRow;
+
     tableRows.push(
       new TableRow({
+        cantSplit: true,
         children: currentItemCells.map((cellLines, cIdx) => {
-          const header = headerTitles[cIdx] || "";
-          const isNum = /qty|rate|tax|total|amount|mrp|disc|value/i.test(header);
+          const isNumCol = colIsNumeric[cIdx];
+          const joined = cellLines.join(" ").trim();
+          const cellLooksNum = /^[₹$€£-]?\s*[0-9,]+(\.[0-9]+)?%?$/.test(joined);
+          const rightAlign = isNumCol || cellLooksNum;
 
           return new TableCell({
-            width: { size: normalizedColPct[cIdx] || Math.floor(100 / colCount), type: WidthType.PERCENTAGE },
-            shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
-            borders: {
-              top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-            },
+            width: { size: colWidthsDxa[cIdx], type: WidthType.DXA },
+            shading: isSummaryRow
+              ? { type: ShadingType.CLEAR, fill: "F1F5F9" }
+              : isAlt
+              ? { type: ShadingType.CLEAR, fill: "F8FAFC" }
+              : undefined,
+            borders: thinGridBorder("E2E8F0"),
             margins: {
               top: cellTopBottomPadding,
               bottom: cellTopBottomPadding,
               left: cellLeftRightPadding,
               right: cellLeftRightPadding,
             },
-            children: cellLines.length > 0
-              ? cellLines.map(
-                  (lText, lIdx) =>
-                    new Paragraph({
-                      alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
-                      spacing: { before: 0, after: isWideAnnexure ? 0 : 5, line: isWideAnnexure ? 200 : 230 },
-                      children: [
-                        new TextRun({
-                          text: lText,
-                          size: lIdx === 0 ? dataFontSize : Math.max(14, dataFontSize - 1),
-                          color: lIdx === 0 ? "0F172A" : "64748B",
-                          font: detectOptimalFont(lText, isNum),
-                        }),
-                      ],
-                    })
-                )
-              : [new Paragraph({ children: [new TextRun({ text: " ", size: dataFontSize })] })],
+            children:
+              cellLines.length > 0
+                ? cellLines.map(
+                    (lText, lIdx) =>
+                      new Paragraph({
+                        alignment: rightAlign ? AlignmentType.RIGHT : AlignmentType.LEFT,
+                        spacing: { before: 0, after: isWideAnnexure ? 0 : 4, line: isWideAnnexure ? 200 : 225 },
+                        children: [
+                          new TextRun({
+                            text: lText,
+                            bold: isSummaryRow,
+                            size: lIdx === 0 ? dataFontSize : Math.max(14, dataFontSize - 1),
+                            color: lIdx === 0 || isSummaryRow ? "0F172A" : "64748B",
+                            font: detectOptimalFont(lText, rightAlign),
+                          }),
+                        ],
+                      })
+                  )
+                : [new Paragraph({ children: [new TextRun({ text: " ", size: dataFontSize })] })],
           });
         }),
       })
@@ -1109,64 +1644,96 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
   }
 
   let rowCounter = 0;
-  let lastLineIdxPerCol: number[] = new Array(colStarts.length).fill(-1);
-  for (let lIdx = 1; lIdx < lines.length; lIdx++) {
+  const lastLineIdxPerCol: number[] = new Array(colCount).fill(-1);
+
+  for (let lIdx = dataStartIdx; lIdx < lines.length; lIdx++) {
     const line = lines[lIdx];
+    const prevLine = lIdx > dataStartIdx ? lines[lIdx - 1] : null;
     const firstToken = line.tokens[0];
 
-    // Intelligent new row detection:
-    // 1. Serial number at col 0
-    // 2. Alphanumeric part / job code (e.g. ED123, 87082900, L01) near col 0 or col 1
-    // 3. High column occupancy (line has tokens across >= 50% of columns)
-    // 4. In wide annexures, distinct Y lines are generally distinct rows
-    const isSerialNum = firstToken && /^[0-9]+$/.test(firstToken.text) && Math.abs(firstToken.x - colStarts[0]) <= 25;
-    const isPartCode = firstToken && /^[A-Z0-9_-]{3,18}$/.test(firstToken.text) && Math.abs(firstToken.x - colStarts[0]) <= 35;
-    const isDenseRow = line.tokens.length >= Math.max(3, Math.ceil(colStarts.length * 0.45));
-    const isNewItemStart = isSerialNum || (isWideAnnexure && (isPartCode || isDenseRow));
+    const hasHorizDivider =
+      prevLine !== null &&
+      horizontalLines.some(
+        (h) => h.y > prevLine.y + 1 && h.y < line.y - 1 && h.x2 - h.x1 >= 100
+      );
 
-    if (isNewItemStart) {
-      flushCurrentItem(rowCounter++);
-      currentItemCells = initEmptyRow();
-      lastLineIdxPerCol.fill(-1);
-      hasItem = true;
-    } else if (!hasItem) {
-      currentItemCells = initEmptyRow();
-      lastLineIdxPerCol.fill(-1);
-      hasItem = true;
-    }
-
-    for (const t of line.tokens) {
-      // Determine column by interval containment first, protecting right-aligned numeric amounts
-      let matchedCol = -1;
-      for (let c = 0; c < colStarts.length; c++) {
-        const leftBound = colStarts[c] - (c === 0 ? 30 : 12);
-        const rightBound = c < colStarts.length - 1 ? colStarts[c + 1] - 6 : 999999;
-        if (t.x >= leftBound && t.x < rightBound) {
-          matchedCol = c;
-          break;
+    // Map tokens of this line onto columns to inspect column occupancy
+    const matchedCols: number[] = line.tokens.map((t) => {
+      const tCenter = t.x + Math.min(t.width, 28) * 0.45;
+      for (let c = 0; c < colCount; c++) {
+        if (tCenter >= colBoundsLeft[c] && tCenter < colBoundsRight[c]) return c;
+      }
+      let best = 0;
+      let minDiff = Infinity;
+      for (let c = 0; c < colCount; c++) {
+        const diff = Math.abs(t.x - colStarts[c]);
+        if (diff < minDiff) {
+          minDiff = diff;
+          best = c;
         }
       }
-      const closestCol = matchedCol !== -1 ? matchedCol : (() => {
-        let best = 0;
-        let minDiff = 999999;
-        for (let c = 0; c < colStarts.length; c++) {
-          const diff = Math.abs(t.x - colStarts[c]);
-          if (diff < minDiff) {
-            minDiff = diff;
-            best = c;
-          }
-        }
-        return best;
-      })();
+      return best;
+    });
 
-      if (currentItemCells[closestCol]) {
-        if (lastLineIdxPerCol[closestCol] === lIdx && currentItemCells[closestCol].length > 0) {
-          // Same horizontal line: join with space
-          currentItemCells[closestCol][currentItemCells[closestCol].length - 1] += " " + t.text;
+    const uniqueCols = new Set(matchedCols);
+    const hasNumericOnLine = line.tokens.some((t, idx) => colIsNumeric[matchedCols[idx]] && /[0-9]/.test(t.text));
+    const isSerialNum = firstToken && /^[0-9]{1,4}[.)]?$/.test(firstToken.text) && matchedCols[0] === 0;
+    const isPartOrDateStart =
+      firstToken &&
+      matchedCols[0] === 0 &&
+      (/^[A-Z0-9_-]{3,20}$/.test(firstToken.text) || /^[0-9]{1,2}[/-][0-9A-Za-z]{2,3}[/-][0-9]{2,4}$/.test(firstToken.text));
+    const isMultiColumnLine = uniqueCols.size >= 2;
+    const isExplicitTaxOrTotalLine =
+      hasNumericOnLine &&
+      /\b(?:sub\s*total|cgst|sgst|igst|utgst|cess|freight|discount|round\s*off|total)\b/i.test(line.text);
+    const dyFromPrev = prevLine ? line.y - prevLine.y : 0;
+    const hasRowGapJump = prevLine !== null && dyFromPrev > Math.max(18, medianLeading * 1.45) && currentRowHasNumericAmounts;
+
+    // Wrapped continuation lines ONLY populate 1 text column with tight leading and no new numeric amount on a filled row
+    const isWrappedContinuation =
+      hasItem &&
+      !hasHorizDivider &&
+      !isSerialNum &&
+      !isExplicitTaxOrTotalLine &&
+      !hasRowGapJump &&
+      !(isMultiColumnLine && hasNumericOnLine && currentRowHasNumericAmounts) &&
+      uniqueCols.size === 1 &&
+      !colIsNumeric[matchedCols[0]];
+
+    const isNewItemStart =
+      !hasItem ||
+      (!isWrappedContinuation &&
+        (hasHorizDivider ||
+          isSerialNum ||
+          isPartOrDateStart ||
+          isExplicitTaxOrTotalLine ||
+          (isMultiColumnLine && hasNumericOnLine) ||
+          hasRowGapJump));
+
+    if (isNewItemStart) {
+      if (hasItem) {
+        flushCurrentItem(rowCounter++);
+      }
+      currentItemCells = initEmptyRow();
+      lastLineIdxPerCol.fill(-1);
+      hasItem = true;
+      currentRowHasNumericAmounts = false;
+    }
+
+    if (hasNumericOnLine) {
+      currentRowHasNumericAmounts = true;
+    }
+
+    for (let ti = 0; ti < line.tokens.length; ti++) {
+      const t = line.tokens[ti];
+      const targetCol = matchedCols[ti];
+
+      if (currentItemCells[targetCol]) {
+        if (lastLineIdxPerCol[targetCol] === lIdx && currentItemCells[targetCol].length > 0) {
+          currentItemCells[targetCol][currentItemCells[targetCol].length - 1] += " " + t.text;
         } else {
-          // Wrapped or new line within cell
-          currentItemCells[closestCol].push(t.text);
-          lastLineIdxPerCol[closestCol] = lIdx;
+          currentItemCells[targetCol].push(t.text);
+          lastLineIdxPerCol[targetCol] = lIdx;
         }
       }
     }
@@ -1175,7 +1742,9 @@ function buildUnifiedInvoiceGridTable(lines: ReconstructedLine[], isVisualMode: 
   flushCurrentItem(rowCounter++);
 
   return new DocxTable({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    columnWidths: colWidthsDxa,
+    width: { size: printableWidthDxa, type: WidthType.DXA },
     rows: tableRows,
   });
 }
@@ -1189,43 +1758,379 @@ function clusterTokensIntoSimpleLines(tokens: SpatialTextToken[], pageNum: numbe
   let curY = -1;
 
   for (const t of sorted) {
-    if (curY === -1 || Math.abs(t.y - curY) <= 5) {
+    const tol = Math.max(4, Math.min(6, (t.fontSize || 10) * 0.45));
+    if (curY === -1 || Math.abs(t.y - curY) <= tol) {
       curTokens.push(t);
       if (curY === -1) curY = t.y;
     } else {
-      curTokens.sort((a, b) => a.x - b.x);
-      lines.push({
-        y: curY,
-        xStart: curTokens[0].x,
-        xEnd: curTokens[curTokens.length - 1].x + curTokens[curTokens.length - 1].width,
-        tokens: curTokens,
-        text: curTokens.map((ct) => ct.text).join(" "),
-        fontSize: curTokens[0].fontSize,
-        isBold: curTokens.some((ct) => ct.isBold),
-        isItalic: curTokens.some((ct) => ct.isItalic),
-        page: pageNum,
-      });
+      lines.push(buildSimpleLine(curTokens, curY, pageNum));
       curTokens = [t];
       curY = t.y;
     }
   }
 
   if (curTokens.length > 0) {
-    curTokens.sort((a, b) => a.x - b.x);
-    lines.push({
-      y: curY,
-      xStart: curTokens[0].x,
-      xEnd: curTokens[curTokens.length - 1].x + curTokens[curTokens.length - 1].width,
-      tokens: curTokens,
-      text: curTokens.map((ct) => ct.text).join(" "),
-      fontSize: curTokens[0].fontSize,
-      isBold: curTokens.some((ct) => ct.isBold),
-      isItalic: curTokens.some((ct) => ct.isItalic),
-      page: pageNum,
-    });
+    lines.push(buildSimpleLine(curTokens, curY, pageNum));
   }
 
   return lines;
+}
+
+function buildSimpleLine(curTokens: SpatialTextToken[], y: number, pageNum: number): ReconstructedLine {
+  curTokens.sort((a, b) => a.x - b.x);
+  let text = "";
+  for (let i = 0; i < curTokens.length; i++) {
+    const t = curTokens[i];
+    if (i === 0) {
+      text = t.text;
+    } else {
+      const prev = curTokens[i - 1];
+      const gap = t.x - (prev.x + prev.width);
+      const spaceThreshold = Math.max(1.5, (t.fontSize || 10) * 0.2);
+      if (gap > spaceThreshold && !prev.text.endsWith(" ") && !t.text.startsWith(" ")) {
+        text += " " + t.text;
+      } else {
+        text += t.text;
+      }
+    }
+  }
+
+  return {
+    y,
+    xStart: curTokens[0].x,
+    xEnd: curTokens[curTokens.length - 1].x + curTokens[curTokens.length - 1].width,
+    tokens: curTokens,
+    text: text.trim(),
+    fontSize: curTokens[0].fontSize,
+    isBold: curTokens.filter((ct) => ct.isBold).length >= Math.ceil(curTokens.length / 2),
+    isItalic: curTokens.some((ct) => ct.isItalic),
+    page: pageNum,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CORE ENGINE PIPELINE (4 MODES + SELF-VERIFICATION + RETRY)
+// ---------------------------------------------------------------------------
+
+function normalizeRequestedMode(options: PdfToWordOptions): ReconstructionMode {
+  if (options.reconstructionMode) return options.reconstructionMode;
+  if (options.preset === "visual_fidelity") return "visual_fidelity";
+  if (options.preset === "advanced_layout") return "advanced_layout";
+  if (options.preset === "scanned_ocr") return "scanned_ocr";
+  if (options.preset === "hybrid_auto") return "hybrid_auto";
+  return "editable_word";
+}
+
+function buildDocxArchiveFromPages(params: {
+  baseName: string;
+  title: string;
+  pages: PageExtractedData[];
+  options: PdfToWordOptions;
+  strategy: "primary" | "structured_flow_fallback";
+}): {
+  docx: DocxDocument;
+  stats: {
+    tablesCount: number;
+    paragraphsCount: number;
+    headingsCount: number;
+    detectedTitle: string;
+    hasInvoicePages: boolean;
+    detectedSourceTables: number;
+  };
+} {
+  const { baseName, title, pages, options, strategy } = params;
+  const preset = options.preset || "max_accuracy";
+  const detectionMode = options.detectionMode || "auto";
+  const preserveTables = options.preserveTables !== false;
+
+  let tablesCount = 0;
+  let paragraphsCount = 0;
+  let headingsCount = 0;
+  let detectedTitle = title;
+  let hasInvoicePages = false;
+  let detectedSourceTables = 0;
+
+  interface BuiltPageResult {
+    widthPt: number;
+    heightPt: number;
+    isCompactMargin: boolean;
+    elements: (Paragraph | DocxTable)[];
+  }
+
+  const builtPages: BuiltPageResult[] = [];
+
+  for (const p of pages) {
+    const isPageInvoice =
+      strategy === "primary" &&
+      detectionMode !== "flow" &&
+      (detectionMode === "invoice" ||
+        (options.documentProfile && /invoice|bill|statement|purchase_order|ledger|quotation|credit|debit/i.test(options.documentProfile)) ||
+        checkIfTokensRepresentInvoice(p.tokens));
+
+    if (isPageInvoice) hasInvoicePages = true;
+
+    const isCompactMargin =
+      isPageInvoice ||
+      detectionMode === "invoice" ||
+      preset === "financial_fidelity" ||
+      preset === "visual_fidelity" ||
+      preset === "advanced_layout";
+
+    const marginInPts = isCompactMargin ? 36 : 54;
+    const printableWidthDxa = Math.max(6800, Math.round((p.width - marginInPts * 2) * 20));
+    let pageElements: (Paragraph | DocxTable)[] = [];
+
+    if (isPageInvoice) {
+      pageElements = reconstructInvoicePageLayout(
+        p.tokens,
+        p.width,
+        p.height,
+        p.pageNum,
+        options,
+        p.vectorMedia.images,
+        p.vectorMedia
+      );
+
+      let pageTables = 0;
+      for (const el of pageElements) {
+        if (el instanceof DocxTable) {
+          tablesCount++;
+          pageTables++;
+        } else {
+          paragraphsCount++;
+        }
+      }
+      detectedSourceTables += Math.max(1, pageTables);
+    } else {
+      const pageLines = clusterPageTokensIntoLines(p.tokens, p.width, p.pageNum);
+      const pageBlocks = reconstructDocumentBlocks(pageLines, {
+        preserveTables: preserveTables && detectionMode !== "flow",
+        detectionMode,
+        isFastMode: preset === "high_speed",
+        pageWidth: p.width,
+        verticalLines: p.vectorMedia.verticalLines,
+      });
+
+      // Interleave authentic non-full-scan images (or scanned region crops) cleanly in Y-order
+      const nonScanImages = p.vectorMedia.images.filter(
+        (im) => im.role !== "full_page_scan" || p.tokens.length < 15
+      );
+      const insertedImages = new Set<number>();
+
+      // Emit top images before first block if Y is above first text line
+      const firstTextY = pageLines[0]?.y ?? p.height;
+      nonScanImages.forEach((im, idx) => {
+        if (im.y + im.heightPt * 0.5 < firstTextY) {
+          pageElements.push(buildNativeImageParagraph(im, p.width));
+          insertedImages.add(idx);
+        }
+      });
+
+      for (const block of pageBlocks) {
+        const blockStartY = block.lines[0]?.y ?? 0;
+
+        // Place any inline image belonging before this block
+        nonScanImages.forEach((im, idx) => {
+          if (!insertedImages.has(idx) && im.y <= blockStartY) {
+            pageElements.push(buildNativeImageParagraph(im, p.width));
+            insertedImages.add(idx);
+          }
+        });
+
+        if (block.type === "heading") {
+          headingsCount++;
+          if (!detectedTitle && block.level === HeadingLevel.TITLE) {
+            detectedTitle = block.text;
+          }
+        } else if (block.type === "table") {
+          tablesCount++;
+          detectedSourceTables++;
+        } else {
+          paragraphsCount++;
+        }
+
+        if (block.type === "table" && block.tableData) {
+          pageElements.push(buildNativeWordTable(block.tableData, printableWidthDxa));
+        } else {
+          pageElements.push(buildNativeWordParagraph(block));
+        }
+      }
+
+      // Append trailing bottom images (stamps/signatures/QRs)
+      nonScanImages.forEach((im, idx) => {
+        if (!insertedImages.has(idx)) {
+          pageElements.push(buildNativeImageParagraph(im, p.width));
+          insertedImages.add(idx);
+        }
+      });
+    }
+
+    if (pageElements.length === 0) {
+      pageElements.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `[Page ${p.pageNum} Blank / Scanned Content]`,
+              italics: true,
+              color: "94A3B8",
+              size: 20,
+            }),
+          ],
+        })
+      );
+    }
+
+    builtPages.push({
+      widthPt: p.width,
+      heightPt: p.height,
+      isCompactMargin,
+      elements: pageElements,
+    });
+  }
+
+  // Group consecutive pages sharing dimensions/margins into Word sections (<w:sectPr>)
+  interface SectionGroup {
+    widthDxa: number;
+    heightDxa: number;
+    marginDxa: number;
+    children: (Paragraph | DocxTable)[];
+  }
+
+  const sectionGroups: SectionGroup[] = [];
+
+  for (const bp of builtPages) {
+    const wDxa = Math.round(bp.widthPt * 20);
+    const hDxa = Math.round(bp.heightPt * 20);
+    const mDxa = bp.isCompactMargin ? 720 : 1080;
+
+    const lastSec = sectionGroups[sectionGroups.length - 1];
+    if (
+      lastSec &&
+      Math.abs(lastSec.widthDxa - wDxa) <= 40 &&
+      Math.abs(lastSec.heightDxa - hDxa) <= 40 &&
+      lastSec.marginDxa === mDxa
+    ) {
+      if (lastSec.children.length > 0) {
+        lastSec.children.push(new Paragraph({ children: [new PageBreak()] }));
+      }
+      lastSec.children.push(...bp.elements);
+    } else {
+      sectionGroups.push({
+        widthDxa: wDxa,
+        heightDxa: hDxa,
+        marginDxa: mDxa,
+        children: [...bp.elements],
+      });
+    }
+  }
+
+  if (sectionGroups.length === 0) {
+    sectionGroups.push({
+      widthDxa: 11906,
+      heightDxa: 16838,
+      marginDxa: 1080,
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: "No readable text content was detected in this document.", italics: true })],
+        }),
+      ],
+    });
+  }
+
+  const docHeader = new Header({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({
+            text: detectedTitle ? `${detectedTitle.slice(0, 50)} | PDFSun` : "PDFSun Reconstructed Document",
+            size: 16,
+            color: "94A3B8",
+            font: "Calibri",
+          }),
+        ],
+      }),
+    ],
+  });
+
+  const docFooter = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({ text: "Page ", size: 16, color: "94A3B8", font: "Calibri" }),
+          new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "94A3B8", font: "Calibri" }),
+          new TextRun({ text: " of ", size: 16, color: "94A3B8", font: "Calibri" }),
+          new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: "94A3B8", font: "Calibri" }),
+        ],
+      }),
+    ],
+  });
+
+  const docx = new DocxDocument({
+    creator: "PDFSun In-Browser Enterprise Engine",
+    title: detectedTitle || baseName,
+    description: "Reconstructed Editable Microsoft Word Document (.docx)",
+    styles: {
+      default: {
+        document: {
+          run: { font: "Calibri", size: 22, color: "0F172A" },
+          paragraph: { spacing: { line: 276, after: 110 } },
+        },
+      },
+    },
+    sections: sectionGroups.map((sg) => {
+      const isLandscape = sg.widthDxa > sg.heightDxa;
+      return {
+        headers: { default: docHeader },
+        footers: { default: docFooter },
+        properties: {
+          page: {
+            size: {
+              width: isLandscape ? sg.heightDxa : sg.widthDxa,
+              height: isLandscape ? sg.widthDxa : sg.heightDxa,
+              orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+            },
+            margin: { top: sg.marginDxa, right: sg.marginDxa, bottom: sg.marginDxa, left: sg.marginDxa },
+          },
+        },
+        children: sg.children,
+      };
+    }),
+  });
+
+  return {
+    docx,
+    stats: {
+      tablesCount,
+      paragraphsCount,
+      headingsCount,
+      detectedTitle,
+      hasInvoicePages,
+      detectedSourceTables: Math.max(detectedSourceTables, tablesCount > 0 ? 1 : 0),
+    },
+  };
+}
+
+function buildNativeImageParagraph(img: ExtractedPdfImage, pageWidth: number): Paragraph {
+  const align =
+    img.x >= pageWidth * 0.52
+      ? AlignmentType.RIGHT
+      : img.x + img.widthPt * 0.5 > pageWidth * 0.35 && img.x + img.widthPt * 0.5 < pageWidth * 0.65
+      ? AlignmentType.CENTER
+      : AlignmentType.LEFT;
+
+  return new Paragraph({
+    alignment: align,
+    spacing: { before: 40, after: 40 },
+    children: [
+      new ImageRun({
+        data: img.data,
+        type: "png",
+        transformation: { width: img.width, height: img.height },
+      }),
+    ],
+  });
 }
 
 /**
@@ -1239,6 +2144,7 @@ export async function convertPdfToWordEnterprise(
     preset = "max_accuracy",
     detectionMode = "auto",
     preserveTables = true,
+    preserveImages = true,
     enableOcrFallback = true,
     dpiQuality = 300,
     onProgress,
@@ -1246,381 +2152,264 @@ export async function convertPdfToWordEnterprise(
 
   const baseName = file.name.replace(/\.[^/.]+$/, "") || "PDFSun_Word_Doc";
   const arrayBuffer = await file.arrayBuffer();
+  validatePdfBinaryInput(arrayBuffer);
 
   if (onProgress) onProgress(8, "Initializing in-browser WebAssembly PDF extraction engine...");
 
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+  const loadingTask = pdfjsLib.getDocument({
+    data: arrayBuffer.slice(0),
+    verbosity: 0,
+  });
   const pdf = await loadingTask.promise;
   const numPages = pdf.numPages;
 
+  const activeMode = normalizeRequestedMode(options);
+  const warnings: string[] = [];
+
   let totalExtractedWords = 0;
   let ocrUsedPages = 0;
-  let totalTablesCount = 0;
-  let totalHeadingsCount = 0;
-  let totalParagraphsCount = 0;
-  let detectedDocumentTitle = "";
+  let totalImagesExtracted = 0;
+  const ocrLowConfidencePages: number[] = [];
+  const ocrConfidences: number[] = [];
   let fullPlainTextAccumulator = "";
-  let hasInvoicePages = false;
 
   const allDocumentTokens: SpatialTextToken[] = [];
   const pageDimensionsList: { width: number; height: number }[] = [];
+  const extractedPages: PageExtractedData[] = [];
+  const perPageSummary: PerPageConversionSummary[] = [];
 
-  const pageDocElementsMap = new Map<number, (Paragraph | DocxTable)[]>();
-  let primaryPageWidthDxa = 11906; // Default A4 width: 595.28 pt * 20
-  let primaryPageHeightDxa = 16838; // Default A4 height: 841.89 pt * 20
-
-  // 1. Process Page by Page: Extract coordinates, detect columns, cluster lines, reconstruct blocks
+  // 1. Process Each Page Independently (Per-page Hybrid Native + Vector + Image + OCR)
   for (let pNum = 1; pNum <= numPages; pNum++) {
-    const pageProgress = 10 + Math.round((pNum / numPages) * 50);
-    if (onProgress) onProgress(pageProgress, `Parsing spatial bounding boxes on page ${pNum} of ${numPages}...`);
+    const pageProgress = 10 + Math.round((pNum / Math.max(1, numPages)) * 52);
+    if (onProgress) {
+      onProgress(pageProgress, `Parsing text, vector table lines & graphics on page ${pNum} of ${numPages}...`);
+    }
 
     const page = await pdf.getPage(pNum);
     const viewport = page.getViewport({ scale: 1.0 });
     pageDimensionsList.push({ width: viewport.width, height: viewport.height });
 
-    // Store page dimensions in dxa (1 pt = 20 dxa/twips)
-    if (pNum === 1) {
-      primaryPageWidthDxa = Math.round(viewport.width * 20);
-      primaryPageHeightDxa = Math.round(viewport.height * 20);
-    }
-
     const textContent = await (page.getTextContent as any)({ normalizeWhitespace: true });
     const rawItems = textContent.items as any[];
 
-    let pageTextLength = 0;
-    const pageTokens: SpatialTextToken[] = [];
+    const pageTokens = normalizePdfTextItems(rawItems, viewport.height, pNum);
+    const pageTextLength = pageTokens.reduce((acc, t) => acc + t.text.trim().length, 0);
 
-    for (const item of rawItems) {
-      const rawStr = item.str || "";
-      if (!rawStr.trim()) continue;
-      pageTextLength += rawStr.trim().length;
+    // Extract Vector Lines, Shading Boxes & Embedded Images via CTM traversal
+    const vectorMedia = await extractPageVectorAndMedia(page, viewport, preserveImages);
+    totalImagesExtracted += vectorMedia.images.length;
 
-      // Extract coordinates: PDF y=0 is at bottom, convert to top-down coordinates
-      const x = Math.round(item.transform[4]);
-      const rawY = item.transform[5];
-      const y = Math.round(viewport.height - rawY);
-      const fontSize = Math.round(Math.hypot(item.transform[0], item.transform[1])) || 10;
-      const width = Math.round(item.width || fontSize * rawStr.length * 0.55);
-      const height = Math.round(item.height || fontSize);
-      const fontName = item.fontName || "";
-      const isBold = /bold|black|heavy|semibold|700|800|900/i.test(fontName);
-      const isItalic = /italic|oblique/i.test(fontName);
+    // Classify page mode (Native vs Scanned OCR vs Hybrid)
+    const isScannedPage = pageTokens.length === 0 || pageTextLength < 25;
+    const isMixedHybridPage =
+      !isScannedPage &&
+      vectorMedia.totalImageAreaRatio >= 0.35 &&
+      vectorMedia.images.some((im) => im.areaRatio >= 0.25 && im.widthPt >= 160 && im.heightPt >= 120);
 
-      pageTokens.push({
-        text: rawStr,
-        x,
-        y,
-        width,
-        height,
-        fontSize,
-        fontName,
-        isBold,
-        isItalic,
-        page: pNum,
-      });
-    }
+    const forceOcr = activeMode === "scanned_ocr" && isScannedPage;
+    const shouldRunOcr =
+      enableOcrFallback &&
+      preset !== "high_speed" &&
+      preset !== "compact_vector" &&
+      (forceOcr ||
+        (activeMode === "scanned_ocr" && pageTextLength < 80) ||
+        isScannedPage ||
+        (activeMode === "hybrid_auto" && isMixedHybridPage));
 
-    // SCANNED PDF WASM OCR FALLBACK: If page has < 25 characters or scanned_ocr preset is active
-    const isScannedOrLowText = pageTokens.length === 0 || pageTextLength < 25;
-    const shouldRunOcr = enableOcrFallback && (preset === "scanned_ocr" || (isScannedOrLowText && preset !== "high_speed" && preset !== "compact_vector"));
+    let modeUsed: "native" | "ocr" | "hybrid" = "native";
+    let pageOcrConfidence: number | undefined;
 
     if (shouldRunOcr) {
-      if (onProgress) onProgress(pageProgress + 2, `Page ${pNum} optical OCR active: Running in-browser WASM OCR pipeline...`);
+      if (onProgress) {
+        onProgress(
+          pageProgress + 2,
+          `Page ${pNum}: Running ${isMixedHybridPage ? "Hybrid region" : "Scanned PDF"} WASM OCR...`
+        );
+      }
       ocrUsedPages++;
 
       try {
-        const ocrTokens = await performLightweightPageOcr(page, pNum, dpiQuality);
-        pageTokens.push(...ocrTokens);
+        const ocrRes = await performLightweightPageOcr(page, pNum, dpiQuality);
+        pageOcrConfidence = ocrRes.confidence;
+        ocrConfidences.push(ocrRes.confidence);
+
+        if (isMixedHybridPage && pageTokens.length > 0) {
+          // Merge ONLY OCR tokens falling in non-text image regions (prevent duplicates)
+          const nonOverlapping = ocrRes.tokens.filter(
+            (ot) =>
+              !pageTokens.some(
+                (nt) =>
+                  Math.abs(nt.y - ot.y) <= Math.max(8, nt.fontSize) &&
+                  nt.x <= ot.x + ot.width &&
+                  nt.x + nt.width >= ot.x
+              )
+          );
+          pageTokens.push(...nonOverlapping);
+          modeUsed = "hybrid";
+        } else {
+          pageTokens.push(...ocrRes.tokens);
+          modeUsed = pageTextLength > 0 ? "hybrid" : "ocr";
+        }
+
+        if (ocrRes.tokens.length === 0) {
+          warnings.push(`Page ${pNum}: Scanned content detected but OCR yielded minimal text (verify source scan contrast).`);
+        } else if (ocrRes.confidence < 75) {
+          ocrLowConfidencePages.push(pNum);
+          warnings.push(
+            `Page ${pNum}: OCR confidence was moderate (${Math.round(ocrRes.confidence)}%) — inspect financial digits carefully.`
+          );
+        }
       } catch (ocrErr) {
-        console.warn(`[enterprisePdfToWord] OCR fallback warning for page ${pNum}:`, ocrErr);
+        warnings.push(`Page ${pNum}: OCR engine encountered an error; retained native graphics/text.`);
       }
     }
 
-    // Extract any embedded images/logos (company logo, QR code, signature)
-    let pageImages: { data: Uint8Array; width: number; height: number; x: number; y: number }[] = [];
-    try {
-      pageImages = await extractPageImageElements(page, viewport);
-    } catch {
-      // Graceful fallback if image extraction is unavailable
-    }
-
-    // Determine if page has invoice or financial tabular structure
-    const isInvoicePage =
-      options.detectionMode === "invoice" ||
-      (options.documentProfile && /invoice|bill|statement|purchase_order|ledger/i.test(options.documentProfile)) ||
-      checkIfTokensRepresentInvoice(pageTokens);
-
-    if (isInvoicePage) {
-      hasInvoicePages = true;
-    }
-
-    let pageDocElements: (Paragraph | DocxTable)[] = [];
-
-    if (isInvoicePage && options.detectionMode !== "flow") {
-      pageDocElements = reconstructInvoicePageLayout(
-        pageTokens,
-        viewport.width,
-        viewport.height,
-        pNum,
-        options,
-        pageImages
-      );
-      for (const el of pageDocElements) {
-        if (el instanceof DocxTable) totalTablesCount++;
-        else totalParagraphsCount++;
-      }
-    } else {
-      // 2. Spatial line clustering per page with column awareness (guarded against false 2-column splitting)
-      const pageLines = clusterPageTokensIntoLines(pageTokens, viewport.width, pNum);
-
-      // 3. Structural block analysis (headings, tables, lists, fluid paragraphs)
-      const pageBlocks = reconstructDocumentBlocks(pageLines, {
-        preserveTables: preserveTables && detectionMode !== "flow",
-        detectionMode,
-        isFastMode: preset === "high_speed",
-        pageWidth: viewport.width,
-      });
-
-      for (let bIdx = 0; bIdx < pageBlocks.length; bIdx++) {
-        const block = pageBlocks[bIdx];
-
-        if (block.type === "heading") {
-          totalHeadingsCount++;
-          if (!detectedDocumentTitle && block.level === HeadingLevel.TITLE) {
-            detectedDocumentTitle = block.text;
-          }
-        } else if (block.type === "table") {
-          totalTablesCount++;
-        } else {
-          totalParagraphsCount++;
-        }
-
-        if (block.type === "table" && block.tableData) {
-          const table = buildNativeWordTable(block.tableData);
-          pageDocElements.push(table);
-        } else {
-          const paragraph = buildNativeWordParagraph(block);
-          pageDocElements.push(paragraph);
-        }
-      }
-    }
-
-    // Word and text tracking
     for (const t of pageTokens) {
-      if (fullPlainTextAccumulator.length < 2500) {
+      if (fullPlainTextAccumulator.length < 3000) {
         fullPlainTextAccumulator += t.text + " ";
       }
     }
-    const words = pageTokens.map((t) => t.text).filter(Boolean);
-    totalExtractedWords += words.length;
+    totalExtractedWords += pageTokens.filter((t) => t.text.trim().length > 0).length;
     allDocumentTokens.push(...pageTokens);
 
-    pageDocElementsMap.set(pNum, pageDocElements);
+    extractedPages.push({
+      pageNum: pNum,
+      width: viewport.width,
+      height: viewport.height,
+      tokens: pageTokens,
+      vectorMedia,
+      modeUsed,
+      ocrConfidence: pageOcrConfidence,
+    });
+
+    perPageSummary.push({
+      pageNumber: pNum,
+      mode: modeUsed,
+      ocrConfidence: pageOcrConfidence,
+      imagesExtracted: vectorMedia.images.length,
+      tablesDetected: vectorMedia.horizontalLines.length >= 2 && vectorMedia.verticalLines.length >= 2 ? 1 : 0,
+      widthPt: Math.round(viewport.width),
+      heightPt: Math.round(viewport.height),
+      orientation: viewport.width > viewport.height ? "landscape" : "portrait",
+    });
   }
 
-  // 5. Combine Pages into Section with Native PageBreaks
-  if (onProgress) onProgress(75, "Assembling native Microsoft Word OpenXML sections & fluid flows...");
+  // 2. Build Primary DOCX Candidate & Run Real OOXML Inspection
+  if (onProgress) onProgress(76, "Assembling Microsoft Word OpenXML tables, images & page geometry...");
 
-  const allDocumentChildren: (Paragraph | DocxTable)[] = [];
-
-  for (let pNum = 1; pNum <= numPages; pNum++) {
-    const pageElements = pageDocElementsMap.get(pNum) || [];
-
-    // If not first page and previous page had content, insert a page break
-    if (pNum > 1 && allDocumentChildren.length > 0) {
-      allDocumentChildren.push(
-        new Paragraph({
-          children: [new PageBreak()],
-        })
-      );
-    }
-
-    if (pageElements.length > 0) {
-      allDocumentChildren.push(...pageElements);
-    } else {
-      // Empty page placeholder
-      allDocumentChildren.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `[Page ${pNum} Blank / Scanned Content]`,
-              italics: true,
-              color: "94A3B8",
-              size: 20,
-            }),
-          ],
-        })
-      );
-    }
-  }
-
-  // Safety fallback if entirely blank
-  if (allDocumentChildren.length === 0) {
-    allDocumentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "No readable text content was detected in this document.",
-            italics: true,
-          }),
-        ],
-      })
-    );
-  }
-
-  // 6. Build Docx Document structure with native formatting
-  if (onProgress) onProgress(88, "Packaging OpenXML document archive (.docx)...");
-
-  const docx = new DocxDocument({
-    creator: "PDFSun In-Browser Engine",
-    title: detectedDocumentTitle || baseName,
-    description: "Lossless Reconstructed Microsoft Word Document (.docx)",
-    styles: {
-      default: {
-        document: {
-          run: {
-            font: "Calibri",
-            size: 22, // 11pt
-            color: "0F172A",
-          },
-          paragraph: {
-            spacing: { line: 276, after: 120 }, // 1.15 line spacing
-          },
-        },
-      },
-    },
-    sections: [
-      {
-        headers: {
-          default: new Header({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({
-                    text: detectedDocumentTitle ? `${detectedDocumentTitle.slice(0, 50)} | PDFSun` : "PDFSun Reconstructed Document",
-                    size: 16, // 8pt
-                    color: "94A3B8",
-                    font: "Calibri",
-                  }),
-                ],
-              }),
-            ],
-          }),
-        },
-        footers: {
-          default: new Footer({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({
-                    text: "Page ",
-                    size: 16,
-                    color: "94A3B8",
-                    font: "Calibri",
-                  }),
-                  new TextRun({
-                    children: [PageNumber.CURRENT],
-                    size: 16,
-                    color: "94A3B8",
-                    font: "Calibri",
-                  }),
-                  new TextRun({
-                    text: " of ",
-                    size: 16,
-                    color: "94A3B8",
-                    font: "Calibri",
-                  }),
-                  new TextRun({
-                    children: [PageNumber.TOTAL_PAGES],
-                    size: 16,
-                    color: "94A3B8",
-                    font: "Calibri",
-                  }),
-                ],
-              }),
-            ],
-          }),
-        },
-        properties: {
-          page: {
-            size: {
-              width: primaryPageWidthDxa,
-              height: primaryPageHeightDxa,
-            },
-            margin: (hasInvoicePages || options.detectionMode === "invoice" || options.preset === "financial_fidelity" || options.preset === "visual_fidelity")
-              ? {
-                  top: 720, // 0.5 inch compact invoice margin (prevents multi-column table overflow)
-                  right: 720,
-                  bottom: 720,
-                  left: 720,
-                }
-              : {
-                  top: 1080, // 0.75 inch clean standard margin
-                  right: 1080,
-                  bottom: 1080,
-                  left: 1080,
-                },
-          },
-        },
-        children: allDocumentChildren,
-      },
-    ],
+  const primaryBuild = buildDocxArchiveFromPages({
+    baseName,
+    title: "",
+    pages: extractedPages,
+    options: { ...options, preserveTables },
+    strategy: "primary",
   });
 
-  if (onProgress) onProgress(96, "Generating binary stream and releasing ephemeral buffers...");
+  if (onProgress) onProgress(86, "Compiling binary OpenXML (.docx) package & validating XML integrity...");
 
-  const blob = await Packer.toBlob(docx);
-  const buffer = await blob.arrayBuffer();
+  let bestBytes = new Uint8Array(await Packer.toArrayBuffer(primaryBuild.docx));
+  let bestStats = primaryBuild.stats;
 
-  // 7. Universal Financial Document Intelligence & Quality Assurance Audit
-  const classification = detectDocumentProfile(fullPlainTextAccumulator, file.name);
+  let docxQualityReport = await validateDocxPackageDeep({
+    sourceTokens: allDocumentTokens,
+    sourcePageCount: numPages,
+    docxBytes: bestBytes,
+    fallbackText: fullPlainTextAccumulator,
+    reconstructedTablesCount: bestStats.tablesCount,
+    detectedSourceTables: bestStats.detectedSourceTables,
+    sourceImagesCount: preserveImages
+      ? extractedPages.reduce(
+          (sum, p) => sum + p.vectorMedia.images.filter((im) => im.role !== "full_page_scan" || p.tokens.length < 15).length,
+          0
+        )
+      : 0,
+    ocrLowConfidencePages,
+  });
+
+  // 3. Automatic Quality-Driven Strategy Retry if Critical Failure or Low Retention Detected
+  const shouldAttemptRetry =
+    allDocumentTokens.length >= 10 &&
+    (docxQualityReport.overallStatus === "FAIL" || docxQualityReport.textPreservationPct < 80);
+
+  if (shouldAttemptRetry) {
+    if (onProgress) onProgress(92, "Optimizing layout reconstruction strategy for higher fidelity...");
+    const retryBuild = buildDocxArchiveFromPages({
+      baseName,
+      title: bestStats.detectedTitle,
+      pages: extractedPages,
+      options: { ...options, preserveTables },
+      strategy: "structured_flow_fallback",
+    });
+    const retryBytes = new Uint8Array(await Packer.toArrayBuffer(retryBuild.docx));
+    const retryReport = await validateDocxPackageDeep({
+      sourceTokens: allDocumentTokens,
+      sourcePageCount: numPages,
+      docxBytes: retryBytes,
+      fallbackText: fullPlainTextAccumulator,
+      reconstructedTablesCount: retryBuild.stats.tablesCount,
+      detectedSourceTables: retryBuild.stats.detectedSourceTables,
+      sourceImagesCount: preserveImages ? totalImagesExtracted : 0,
+      ocrLowConfidencePages,
+    });
+
+    if (
+      retryReport.confidenceScore > docxQualityReport.confidenceScore ||
+      retryReport.textPreservationPct > docxQualityReport.textPreservationPct + 5
+    ) {
+      bestBytes = retryBytes;
+      bestStats = retryBuild.stats;
+      docxQualityReport = retryReport;
+      warnings.push("Applied structured layout recovery pass to maximize text & financial data retention.");
+    }
+  }
+
+  // Merge QA warnings cleanly
+  for (const w of docxQualityReport.warnings || []) {
+    if (!warnings.includes(w)) warnings.push(w);
+  }
+
+  // 4. Financial & Global Document Intelligence Audit Against REAL Extracted DOCX XML Text
+  const realDocxText =
+    docxQualityReport.ooxmlDetails?.extractedXmlText && docxQualityReport.ooxmlDetails.extractedXmlText.length > 0
+      ? docxQualityReport.ooxmlDetails.extractedXmlText
+      : fullPlainTextAccumulator;
+
+  const sourceFullText = allDocumentTokens.map((t) => t.text).join(" ") || fullPlainTextAccumulator;
+  const classification = detectDocumentProfile(sourceFullText, file.name);
   if (options.documentProfile && DOCUMENT_PROFILES[options.documentProfile]) {
     classification.profile = options.documentProfile;
     classification.profileMeta = DOCUMENT_PROFILES[options.documentProfile];
   }
 
-  const qualityAudit = auditFinancialDocxIntegrity(classification, fullPlainTextAccumulator);
+  const minOcrConf = ocrConfidences.length > 0 ? Math.min(...ocrConfidences) : 98;
+  const qualityAudit = auditFinancialDocxIntegrity(classification, realDocxText, minOcrConf);
 
-  // 8. Phase 19: Global Document Category Intelligence (25 Categories), Structural Analysis & Independent QA
   const globalClassification = classifyGlobalDocument(allDocumentTokens, numPages);
   const technicalStructure = analyzePdfTechnicalStructure(
     allDocumentTokens,
     numPages,
     pageDimensionsList,
-    ocrUsedPages
-  );
-  const docxQualityReport = validateDocxQuality(
-    allDocumentTokens,
-    numPages,
-    new Uint8Array(buffer),
-    fullPlainTextAccumulator,
-    totalTablesCount,
-    hasInvoicePages ? 2 : 1
+    totalImagesExtracted
   );
 
   if (onProgress) onProgress(100, "PDF to Word conversion complete!");
 
-  const activeReconstructionMode: ReconstructionMode =
-    options.reconstructionMode ||
-    (options.preset === "visual_fidelity" ? "visual_fidelity" : "editable_word");
-
   return {
-    bytes: new Uint8Array(buffer),
+    bytes: bestBytes,
     fileName: `${baseName}.docx`,
     stats: {
       pagesCount: numPages,
       wordCount: totalExtractedWords,
-      paragraphsCount: totalParagraphsCount,
-      tablesCount: totalTablesCount,
-      headingsCount: totalHeadingsCount,
+      paragraphsCount: bestStats.paragraphsCount,
+      tablesCount: bestStats.tablesCount,
+      headingsCount: bestStats.headingsCount,
       ocrPagesCount: ocrUsedPages,
-      detectedTitle: detectedDocumentTitle || baseName,
-      previewSnippet: fullPlainTextAccumulator.trim().slice(0, 1500),
-      reconstructionMode: activeReconstructionMode,
-      layoutFidelityScore: hasInvoicePages ? 99 : 98,
-      isInvoiceDetected: hasInvoicePages,
+      imagesCount: totalImagesExtracted,
+      detectedTitle: bestStats.detectedTitle || baseName,
+      previewSnippet: realDocxText.trim().slice(0, 1500),
+      reconstructionMode: activeMode,
+      layoutFidelityScore: docxQualityReport.confidenceScore,
+      isInvoiceDetected: bestStats.hasInvoicePages,
       globalCategory: globalClassification.primaryCategory.key,
       globalCategoryName: globalClassification.primaryCategory.name,
       structuralClass: technicalStructure.structuralClass,
@@ -1630,13 +2419,16 @@ export async function convertPdfToWordEnterprise(
     technicalStructure,
     qualityAudit,
     docxQualityReport,
-    reconstructionMode: activeReconstructionMode,
+    reconstructionMode: activeMode,
+    perPageSummary,
+    warnings,
   };
 }
 
-/**
- * Clusters spatial tokens of a single page into lines with multi-column support
- */
+// ---------------------------------------------------------------------------
+// GENERAL FLOW LINE CLUSTERING, MULTI-COLUMN & NATIVE BLOCK ASSEMBLY
+// ---------------------------------------------------------------------------
+
 function clusterPageTokensIntoLines(
   tokens: SpatialTextToken[],
   pageWidth: number,
@@ -1645,34 +2437,30 @@ function clusterPageTokensIntoLines(
 ): ReconstructedLine[] {
   if (tokens.length === 0) return [];
 
-  // Multi-column detection: Check if tokens naturally split into 2 or 3 distinct columns
-  const midpoint = pageWidth / 2;
+  const gutterX = findOptimalVerticalGutter(tokens, pageWidth, 0.38, 0.62);
   const leftTokens: SpatialTextToken[] = [];
   const rightTokens: SpatialTextToken[] = [];
   const spanningTokens: SpatialTextToken[] = [];
 
   for (const t of tokens) {
-    if (t.x + t.width < midpoint - 15) {
+    if (t.x + t.width < gutterX - 12) {
       leftTokens.push(t);
-    } else if (t.x > midpoint + 15) {
+    } else if (t.x > gutterX + 12) {
       rightTokens.push(t);
     } else {
       spanningTokens.push(t);
     }
   }
 
-  // Detect genuine 2-column layout: both left & right columns have substantial paragraphs and few spanning tokens
-  // Strict guard: Do not split if wide headers, tables, or spanning elements exist
-  const hasWideElements = tokens.some((t) => t.width > pageWidth * 0.45);
+  const hasWideElements = tokens.some((t) => t.width > pageWidth * 0.48);
   const isTwoColumnLayout =
     allowMultiColumn &&
     !hasWideElements &&
     leftTokens.length > 25 &&
     rightTokens.length > 25 &&
-    spanningTokens.length < (leftTokens.length + rightTokens.length) * 0.10;
+    spanningTokens.length < (leftTokens.length + rightTokens.length) * 0.1;
 
   if (isTwoColumnLayout) {
-    // Cluster left column top-to-bottom, then right column top-to-bottom
     const leftLines = clusterTokensIntoLinesInternal(leftTokens, pageNum, 0);
     const rightLines = clusterTokensIntoLinesInternal(rightTokens, pageNum, 1);
     const topSpanning = clusterTokensIntoLinesInternal(
@@ -1689,7 +2477,6 @@ function clusterPageTokensIntoLines(
     return [...topSpanning, ...leftLines, ...rightLines, ...bottomSpanning];
   }
 
-  // Standard single column or mixed layout
   return clusterTokensIntoLinesInternal(tokens, pageNum, undefined);
 }
 
@@ -1700,16 +2487,14 @@ function clusterTokensIntoLinesInternal(
 ): ReconstructedLine[] {
   if (tokens.length === 0) return [];
 
-  // Sort by Y ascending, then X ascending
   const sorted = [...tokens].sort((a, b) => a.y - b.y || a.x - b.x);
-
   const lines: ReconstructedLine[] = [];
-  const yTolerance = 4; // pixels tolerance for same baseline
 
   let currentLineTokens: SpatialTextToken[] = [];
   let currentLineY = -1;
 
   for (const token of sorted) {
+    const yTolerance = Math.max(4, Math.min(6, (token.fontSize || 10) * 0.42));
     if (currentLineY === -1 || Math.abs(token.y - currentLineY) <= yTolerance) {
       currentLineTokens.push(token);
       if (currentLineY === -1) currentLineY = token.y;
@@ -1729,16 +2514,12 @@ function clusterTokensIntoLinesInternal(
   return lines;
 }
 
-/**
- * Builds a single coherent line from tokens, intelligently merging glyphs and inserting spaces only where true gaps exist
- */
 function buildLineFromTokens(
   tokens: SpatialTextToken[],
   y: number,
   page: number,
   columnIdx?: number
 ): ReconstructedLine {
-  // Sort horizontally
   tokens.sort((a, b) => a.x - b.x);
 
   let fullText = "";
@@ -1757,7 +2538,6 @@ function buildLineFromTokens(
       const gap = t.x - (prev.x + prev.width);
       const spaceThreshold = Math.max(1.8, t.fontSize * 0.22);
 
-      // Only insert space if gap is wider than normal character kerning
       if (gap > spaceThreshold && !prev.text.endsWith(" ") && !t.text.startsWith(" ")) {
         fullText += " " + t.text;
       } else {
@@ -1783,9 +2563,6 @@ function buildLineFromTokens(
   };
 }
 
-/**
- * Reconstructs lines into headings, native tables, bullet lists, and fluid body paragraphs
- */
 function reconstructDocumentBlocks(
   lines: ReconstructedLine[],
   options: {
@@ -1793,21 +2570,21 @@ function reconstructDocumentBlocks(
     detectionMode: LayoutDetectionMode;
     isFastMode: boolean;
     pageWidth: number;
+    verticalLines?: VerticalRule[];
   }
 ): ReconstructedParagraph[] {
   if (lines.length === 0) return [];
 
-  // Calculate median body font size across the page
   const fontSizes = lines.map((l) => l.fontSize).sort((a, b) => a - b);
   const medianFontSize = fontSizes[Math.floor(fontSizes.length / 2)] || 10;
 
   const blocks: ReconstructedParagraph[] = [];
-
   let i = 0;
+
   while (i < lines.length) {
     const line = lines[i];
 
-    // 1. Table & Multi-Column Detection: Check if current line + subsequent lines form a grid or invoice row
+    // 1. Table & Multi-Column Grid Detection
     if (options.preserveTables && isPossibleTableRow(line, options.detectionMode)) {
       const tableLines: ReconstructedLine[] = [line];
       let j = i + 1;
@@ -1816,14 +2593,15 @@ function reconstructDocumentBlocks(
         j < lines.length &&
         isPossibleTableRow(lines[j], options.detectionMode) &&
         lines[j].page === line.page &&
-        lines[j].columnIdx === line.columnIdx
+        lines[j].columnIdx === line.columnIdx &&
+        lines[j].y - lines[j - 1].y <= 45
       ) {
         tableLines.push(lines[j]);
         j++;
       }
 
       if (tableLines.length >= 2) {
-        const tableBlock = parseTableFromLines(tableLines, line.page, options.detectionMode);
+        const tableBlock = parseTableFromLines(tableLines, line.page, options.detectionMode, options.verticalLines);
         if (tableBlock) {
           blocks.push(tableBlock);
           i = j;
@@ -1849,10 +2627,9 @@ function reconstructDocumentBlocks(
         headingLevel = HeadingLevel.HEADING_3;
       }
 
-      // Check alignment (center heading if centered in page)
       const pageMidpoint = options.pageWidth / 2;
       const lineCenter = (line.xStart + line.xEnd) / 2;
-      const isCentered = Math.abs(lineCenter - pageMidpoint) < 40;
+      const isCentered = Math.abs(lineCenter - pageMidpoint) < 45;
 
       blocks.push({
         type: "heading",
@@ -1901,7 +2678,6 @@ function reconstructDocumentBlocks(
         (next.isBold && next.text.length < 75 && !next.text.endsWith(".") && !next.text.endsWith(","));
       const isNextBullet = /^([•\-\*▪–—]|([0-9]+|[a-zA-Z])[.)])\s+/.test(next.text);
 
-      // If gap exceeds 2.2x font size, column changed, or next is heading/bullet/table, break paragraph
       if (
         !samePage ||
         !sameColumn ||
@@ -1924,7 +2700,7 @@ function reconstructDocumentBlocks(
       text: combinedText,
       isBold: line.isBold,
       fontSize: medianFontSize,
-      alignment: AlignmentType.BOTH, // Clean justified body text
+      alignment: AlignmentType.LEFT,
       page: line.page,
     });
 
@@ -1934,14 +2710,10 @@ function reconstructDocumentBlocks(
   return blocks;
 }
 
-/**
- * Checks if a line contains multiple horizontally separated tokens that could indicate a table row or multi-column layout
- */
 function isPossibleTableRow(line: ReconstructedLine, mode?: LayoutDetectionMode): boolean {
   if (line.tokens.length < 2) return false;
 
-  // Strict gap check for invoices/forms (20px) vs standard documents
-  const gapThreshold = mode === "invoice" ? 20 : mode === "fields" ? 20 : 18;
+  const gapThreshold = mode === "invoice" || mode === "fields" ? 18 : 16;
   let significantGaps = 0;
   for (let i = 1; i < line.tokens.length; i++) {
     const prev = line.tokens[i - 1];
@@ -1953,63 +2725,56 @@ function isPossibleTableRow(line: ReconstructedLine, mode?: LayoutDetectionMode)
   return significantGaps >= 1;
 }
 
-/**
- * Parses consecutive candidate lines into a structured table with headers and data rows
- */
 function parseTableFromLines(
   lines: ReconstructedLine[],
   pageNum: number,
-  mode: LayoutDetectionMode = "auto"
+  mode: LayoutDetectionMode = "auto",
+  verticalLines: VerticalRule[] = []
 ): ReconstructedParagraph | null {
   if (lines.length < 2) return null;
 
-  const allXPositions: number[] = [];
-  for (const line of lines) {
-    for (const t of line.tokens) {
-      allXPositions.push(t.x);
+  // Merge close words on the header row first so "Taxable Value" isn't split into 2 columns
+  const mergedHeaderTokens = mergeAdjacentTokensForColumnHeaders(lines[0].tokens, verticalLines, lines[0].y);
+  let colStarts: number[] = [];
+
+  if (mergedHeaderTokens.length >= 2) {
+    colStarts = mergedHeaderTokens.map((t) => t.x);
+  } else {
+    const allXPositions: number[] = [];
+    for (const line of lines) {
+      for (const t of line.tokens) allXPositions.push(t.x);
     }
-  }
-
-  allXPositions.sort((a, b) => a - b);
-
-  // Cluster X positions into column start corridors using spatial mode-aware threshold
-  const colStarts: number[] = [];
-  const colTolerance = mode === "invoice" || mode === "fields" ? 20 : 25;
-
-  for (const x of allXPositions) {
-    const existing = colStarts.find((cx) => Math.abs(cx - x) <= colTolerance);
-    if (!existing) {
-      colStarts.push(x);
+    allXPositions.sort((a, b) => a - b);
+    const colTolerance = mode === "invoice" || mode === "fields" ? 18 : 22;
+    for (const x of allXPositions) {
+      if (!colStarts.some((cx) => Math.abs(cx - x) <= colTolerance)) {
+        colStarts.push(x);
+      }
     }
   }
 
   colStarts.sort((a, b) => a - b);
   if (colStarts.length < 2) return null;
 
+  const colBounds: number[] = [];
+  for (let c = 0; c < colStarts.length - 1; c++) {
+    colBounds.push((colStarts[c] + colStarts[c + 1]) / 2);
+  }
+
   const tableRows: string[][] = [];
 
   for (const line of lines) {
     const rowCells = new Array(colStarts.length).fill("");
-
     for (const token of line.tokens) {
-      let closestCol = 0;
-      let minDiff = 999999;
-
-      for (let c = 0; c < colStarts.length; c++) {
-        const diff = Math.abs(token.x - colStarts[c]);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestCol = c;
+      let targetCol = colStarts.length - 1;
+      for (let c = 0; c < colBounds.length; c++) {
+        if (token.x < colBounds[c]) {
+          targetCol = c;
+          break;
         }
       }
-
-      if (rowCells[closestCol]) {
-        rowCells[closestCol] += " " + token.text;
-      } else {
-        rowCells[closestCol] = token.text;
-      }
+      rowCells[targetCol] = rowCells[targetCol] ? `${rowCells[targetCol]} ${token.text}` : token.text;
     }
-
     tableRows.push(rowCells.map((c) => c.trim()));
   }
 
@@ -2020,7 +2785,6 @@ function parseTableFromLines(
   const rows = validRows.slice(1);
   const colCount = colStarts.length;
 
-  // Calculate proportional column widths from spatial column start coordinates
   const rawWidths: number[] = [];
   for (let c = 0; c < colCount; c++) {
     if (c < colCount - 1) {
@@ -2035,11 +2799,11 @@ function parseTableFromLines(
   const colWidthsPct = rawWidths.map((w) => Math.max(5, Math.round((w / totalRaw) * 100)));
   const sumPct = colWidthsPct.reduce((a, b) => a + b, 0);
   if (sumPct !== 100 && colWidthsPct.length > 0) {
-    colWidthsPct[colWidthsPct.length - 1] += (100 - sumPct);
+    colWidthsPct[colWidthsPct.length - 1] += 100 - sumPct;
   }
 
-  // Determine if this is a borderless layout (e.g. invoices, forms, tax details)
-  const isBorderless = mode === "invoice" || mode === "fields";
+  const semantics = classifyTableSemantics([headers, ...rows]);
+  const isBorderless = mode === "fields";
 
   return {
     type: "table",
@@ -2054,60 +2818,66 @@ function parseTableFromLines(
       rows,
       colWidthsPct,
       isBorderless,
-      headerStyle: isBorderless ? "clean" : "navy",
+      headerStyle: isBorderless ? "clean" : semantics.isFinancialTable ? "navy" : "clean",
     },
   };
 }
 
-/**
- * Detects optimal font based on language Unicode glyph ranges and monospace indicators
- */
 export function detectOptimalFont(text: string, isMonospace?: boolean): string {
   if (isMonospace) return "Consolas";
   if (!text) return "Calibri";
-  if (/[\u0900-\u097F]/.test(text)) return "Mangal"; // Devanagari / Hindi Unicode
-  if (/[\u0600-\u06FF]/.test(text)) return "Traditional Arabic"; // Arabic Unicode
-  if (/[\u4E00-\u9FFF\u3040-\u30FF]/.test(text)) return "Microsoft YaHei"; // CJK Unicode
+  if (/[\u0900-\u097F]/.test(text)) return "Mangal";
+  if (/[\u0600-\u06FF]/.test(text)) return "Traditional Arabic";
+  if (/[\u4E00-\u9FFF\u3040-\u30FF]/.test(text)) return "Microsoft YaHei";
   return "Calibri";
 }
 
-/**
- * Builds a native Microsoft Word Table with clean OpenXML borderless tables or styled borders
- * In invoice mode, produces 100% layout fidelity with BorderStyle.NONE to eliminate arbitrary grid lines.
- * Supports merged cells (columnSpan) for spanning headers and subtotal summary rows.
- */
-function buildNativeWordTable(tableData: {
-  headers: string[];
-  rows: string[][];
-  colWidthsPct: number[];
-  isBorderless?: boolean;
-  headerStyle?: "navy" | "clean" | "borderless";
-}): DocxTable {
+function buildNativeWordTable(
+  tableData: {
+    headers: string[];
+    rows: string[][];
+    colWidthsPct: number[];
+    isBorderless?: boolean;
+    headerStyle?: "navy" | "clean" | "borderless";
+  },
+  printableWidthDxa: number
+): DocxTable {
   const tableRows: TableRow[] = [];
   const colCount = tableData.headers.length;
-  const isBorderless = tableData.isBorderless || tableData.headerStyle === "clean";
+  const isBorderless = tableData.isBorderless || false;
+  const isNavy = tableData.headerStyle === "navy" && !isBorderless;
 
-  // Header Row with columnSpan detection for multi-column spanning headers
+  const colWidthsDxa = tableData.colWidthsPct.map((pct) =>
+    Math.max(400, Math.round((printableWidthDxa * pct) / 100))
+  );
+  const totalAssigned = colWidthsDxa.reduce((a, b) => a + b, 0);
+  if (colWidthsDxa.length > 0 && totalAssigned !== printableWidthDxa) {
+    colWidthsDxa[colWidthsDxa.length - 1] += printableWidthDxa - totalAssigned;
+  }
+
   const headerCells: TableCell[] = [];
   for (let cIdx = 0; cIdx < colCount; cIdx++) {
     const hText = tableData.headers[cIdx] || " ";
-    
-    // Check if next column is empty and can be spanned
+
     let span = 1;
     while (cIdx + span < colCount && !tableData.headers[cIdx + span]?.trim()) {
       span++;
     }
 
-    let cellWidth = 0;
+    let cellWidthDxa = 0;
     for (let s = 0; s < span; s++) {
-      cellWidth += tableData.colWidthsPct[cIdx + s] || Math.floor(100 / colCount);
+      cellWidthDxa += colWidthsDxa[cIdx + s] || Math.floor(printableWidthDxa / colCount);
     }
 
     headerCells.push(
       new TableCell({
         columnSpan: span > 1 ? span : undefined,
-        width: { size: cellWidth, type: WidthType.PERCENTAGE },
-        shading: isBorderless ? undefined : { type: ShadingType.CLEAR, fill: "1E3A8A" },
+        width: { size: cellWidthDxa, type: WidthType.DXA },
+        shading: isBorderless
+          ? undefined
+          : isNavy
+          ? { type: ShadingType.CLEAR, fill: "1E3A8A" }
+          : { type: ShadingType.CLEAR, fill: "F1F5F9" },
         borders: isBorderless
           ? {
               top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
@@ -2115,10 +2885,10 @@ function buildNativeWordTable(tableData: {
               left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
               right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
             }
-          : undefined,
+          : thinGridBorder(isNavy ? "1E3A8A" : "CBD5E1"),
         margins: isBorderless
-          ? { top: 80, bottom: 80, left: 100, right: 100 }
-          : { top: 120, bottom: 120, left: 140, right: 140 },
+          ? { top: 60, bottom: 60, left: 80, right: 80 }
+          : { top: 80, bottom: 80, left: 100, right: 100 },
         children: [
           new Paragraph({
             alignment: AlignmentType.LEFT,
@@ -2126,8 +2896,8 @@ function buildNativeWordTable(tableData: {
               new TextRun({
                 text: hText,
                 bold: true,
-                color: isBorderless ? "0F172A" : "FFFFFF",
-                size: 20, // 10pt
+                color: isNavy ? "FFFFFF" : "0F172A",
+                size: 19,
                 font: detectOptimalFont(hText),
               }),
             ],
@@ -2136,12 +2906,11 @@ function buildNativeWordTable(tableData: {
       })
     );
 
-    cIdx += span - 1; // skip spanned columns
+    cIdx += span - 1;
   }
 
-  tableRows.push(new TableRow({ children: headerCells, tableHeader: true }));
+  tableRows.push(new TableRow({ children: headerCells, tableHeader: true, cantSplit: true }));
 
-  // Data Rows with alternating row background for standard tables, clean borderless for invoices
   for (let rIdx = 0; rIdx < tableData.rows.length; rIdx++) {
     const row = tableData.rows[rIdx];
     const isAlt = !isBorderless && rIdx % 2 === 1;
@@ -2150,7 +2919,6 @@ function buildNativeWordTable(tableData: {
     for (let cIdx = 0; cIdx < colCount; cIdx++) {
       const cellText = row[cIdx] || " ";
 
-      // Check if subsequent cells in this row are empty and can be spanned (e.g. subtotal row)
       let span = 1;
       if (cellText.trim().length > 0 && rIdx === tableData.rows.length - 1 && /total|subtotal|amount in words/i.test(cellText)) {
         while (cIdx + span < colCount - 1 && !row[cIdx + span]?.trim()) {
@@ -2158,41 +2926,29 @@ function buildNativeWordTable(tableData: {
         }
       }
 
-      let cellWidth = 0;
+      let cellWidthDxa = 0;
       for (let s = 0; s < span; s++) {
-        cellWidth += tableData.colWidthsPct[cIdx + s] || Math.floor(100 / colCount);
+        cellWidthDxa += colWidthsDxa[cIdx + s] || Math.floor(printableWidthDxa / colCount);
       }
 
-      const isNum = /^[$\u20ac\u00a3\u20b9]?[0-9,]+(\.[0-9]+)?%?$/.test(cellText.trim());
+      const isNum = /^[₹$€£-]?\s*[0-9,]+(\.[0-9]+)?%?$/.test(cellText.trim());
 
       cells.push(
         new TableCell({
           columnSpan: span > 1 ? span : undefined,
-          width: { size: cellWidth, type: WidthType.PERCENTAGE },
+          width: { size: cellWidthDxa, type: WidthType.DXA },
           shading: isAlt ? { type: ShadingType.CLEAR, fill: "F8FAFC" } : undefined,
           margins: isBorderless
-            ? { top: 60, bottom: 60, left: 100, right: 100 }
-            : { top: 100, bottom: 100, left: 140, right: 140 },
-          borders: isBorderless
-            ? {
-                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              }
-            : {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                left: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-                right: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
-              },
+            ? { top: 50, bottom: 50, left: 80, right: 80 }
+            : { top: 70, bottom: 70, left: 100, right: 100 },
+          borders: isBorderless ? borderNone() : thinGridBorder("E2E8F0"),
           children: [
             new Paragraph({
               alignment: isNum ? AlignmentType.RIGHT : AlignmentType.LEFT,
               children: [
                 new TextRun({
                   text: cellText,
-                  size: 19, // 9.5pt
+                  size: 18,
                   color: "1E293B",
                   font: detectOptimalFont(cellText, isNum),
                 }),
@@ -2202,30 +2958,28 @@ function buildNativeWordTable(tableData: {
         })
       );
 
-      cIdx += span - 1; // skip spanned columns
+      cIdx += span - 1;
     }
 
-    tableRows.push(new TableRow({ children: cells }));
+    tableRows.push(new TableRow({ children: cells, cantSplit: true }));
   }
 
   return new DocxTable({
+    layout: TableLayoutType.FIXED,
+    columnWidths: colWidthsDxa,
     rows: tableRows,
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: printableWidthDxa, type: WidthType.DXA },
   });
 }
 
-/**
- * Builds a native Microsoft Word fluid Paragraph with smooth TextRun concatenation
- * Applies keepNext on headings to avoid orphaned headings at page boundaries.
- */
 function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
   if (block.type === "heading") {
     const font = detectOptimalFont(block.text);
     return new Paragraph({
       heading: block.level || HeadingLevel.HEADING_1,
       alignment: block.alignment,
-      spacing: { before: 240, after: 120 },
-      keepNext: true, // Prevents orphan headings at bottom of page
+      spacing: { before: 200, after: 100 },
+      keepNext: true,
       children: [
         new TextRun({
           text: block.text,
@@ -2247,7 +3001,7 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
         new TextRun({
           text: block.text,
           bold: block.isBold,
-          size: 21, // 10.5pt
+          size: 21,
           color: "1E293B",
           font,
         }),
@@ -2271,16 +3025,13 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
     });
   }
 
-  // Fluid body paragraph: Merge tokens with identical styling into unified TextRuns
   const textRuns: TextRun[] = [];
-
   interface UnifiedRun {
     text: string;
     isBold: boolean;
     isItalic: boolean;
     fontSize: number;
   }
-
   const mergedRuns: UnifiedRun[] = [];
 
   for (const line of block.lines) {
@@ -2288,7 +3039,6 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
       const token = line.tokens[tIdx];
       const prevToken = tIdx > 0 ? line.tokens[tIdx - 1] : null;
 
-      // Calculate gap
       let prefix = "";
       if (prevToken) {
         const gap = token.x - (prevToken.x + prevToken.width);
@@ -2297,13 +3047,10 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
           prefix = " ";
         }
       } else if (mergedRuns.length > 0 && !mergedRuns[mergedRuns.length - 1].text.endsWith(" ")) {
-        // Space between lines of the same paragraph
         prefix = " ";
       }
 
       const tokenText = prefix + token.text;
-
-      // Check if can merge with last run
       const lastRun = mergedRuns.length > 0 ? mergedRuns[mergedRuns.length - 1] : null;
       if (
         lastRun &&
@@ -2350,30 +3097,47 @@ function buildNativeWordParagraph(block: ReconstructedParagraph): Paragraph {
 
   return new Paragraph({
     alignment: block.alignment,
-    spacing: { before: 0, after: 140, line: 276 }, // 1.15 line spacing
+    spacing: { before: 0, after: 120, line: 276 },
     children: textRuns,
   });
 }
 
 /**
- * Lightweight in-browser WASM OCR fallback for scanned PDF pages
+ * In-browser WASM OCR fallback for scanned/hybrid PDF pages with contrast enhancement & real confidence reporting
  */
 async function performLightweightPageOcr(
   page: any,
   pageNum: number,
   dpiQuality: 150 | 300 = 300
-): Promise<SpatialTextToken[]> {
-  const scale = dpiQuality === 300 ? 3.0 : 2.0; // 150 or 300 DPI crisp rasterization
+): Promise<{ tokens: SpatialTextToken[]; confidence: number }> {
+  const scale = dpiQuality === 300 ? 3.0 : 2.0;
   const viewport = page.getViewport({ scale });
   const canvas = createSafeCanvas(Math.round(viewport.width), Math.round(viewport.height));
   const ctx = canvas.getContext("2d");
-  if (!ctx) return [];
+  if (!ctx) return { tokens: [], confidence: 0 };
 
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   try {
     await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Lightweight adaptive contrast boost to sharpen faint GST numbers & table digits for Tesseract
+    try {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = imgData.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+        const stretched = lum < 210 ? Math.max(0, Math.round((lum - 30) * 1.15)) : 255;
+        px[i] = stretched;
+        px[i + 1] = stretched;
+        px[i + 2] = stretched;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    } catch {
+      // Skip if canvas does not support getImageData
+    }
+
     const dataUrl = canvas.toDataURL("image/png");
     const worker = await createWorker("eng");
     const ret = await worker.recognize(dataUrl);
@@ -2381,65 +3145,67 @@ async function performLightweightPageOcr(
 
     const ocrTokens: SpatialTextToken[] = [];
     const lines = (ret.data as any)?.lines || [];
+    const overallConfidence = Number((ret.data as any)?.confidence ?? 85);
 
-  for (const line of lines) {
-    const rawText = (line.text || "").trim();
-    if (!rawText) continue;
+    for (const line of lines) {
+      const rawText = (line.text || "").trim();
+      if (!rawText) continue;
 
-    const words = line.words || [];
-    if (words.length > 0) {
-      for (const w of words) {
-        const wText = (w.text || "").trim();
-        if (!wText) continue;
-        const box = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
+      const words = line.words || [];
+      if (words.length > 0) {
+        for (const w of words) {
+          const wText = (w.text || "").trim();
+          if (!wText) continue;
+          const box = w.bbox || { x0: 0, y0: 0, x1: 50, y1: 15 };
+          const x = Math.round(box.x0 / scale);
+          const y = Math.round(box.y0 / scale);
+          const width = Math.max(4, Math.round((box.x1 - box.x0) / scale));
+          const height = Math.max(6, Math.round((box.y1 - box.y0) / scale));
+          const fontSize = Math.max(9, Math.round(height * 0.8));
+
+          ocrTokens.push({
+            text: wText,
+            x,
+            y,
+            width,
+            height,
+            fontSize,
+            fontName: "Calibri",
+            isBold: w.is_bold || false,
+            isItalic: false,
+            page: pageNum,
+          });
+        }
+      } else {
+        const box = line.bbox || { x0: 0, y0: 0, x1: 100, y1: 20 };
         const x = Math.round(box.x0 / scale);
         const y = Math.round(box.y0 / scale);
-        const width = Math.round((box.x1 - box.x0) / scale);
-        const height = Math.round((box.y1 - box.y0) / scale);
+        const width = Math.max(8, Math.round((box.x1 - box.x0) / scale));
+        const height = Math.max(8, Math.round((box.y1 - box.y0) / scale));
         const fontSize = Math.max(9, Math.round(height * 0.8));
 
         ocrTokens.push({
-          text: wText,
+          text: rawText,
           x,
           y,
           width,
           height,
           fontSize,
           fontName: "Calibri",
-          isBold: w.is_bold || false,
+          isBold: /^[A-Z0-9\s:_-]+$/.test(rawText) && rawText.length < 50,
           isItalic: false,
           page: pageNum,
         });
       }
-    } else {
-      const box = line.bbox || { x0: 0, y0: 0, x1: 100, y1: 20 };
-      const x = Math.round(box.x0 / scale);
-      const y = Math.round(box.y0 / scale);
-      const width = Math.round((box.x1 - box.x0) / scale);
-      const height = Math.round((box.y1 - box.y0) / scale);
-      const fontSize = Math.max(9, Math.round(height * 0.8));
-
-      ocrTokens.push({
-        text: rawText,
-        x,
-        y,
-        width,
-        height,
-        fontSize,
-        fontName: "Calibri",
-        isBold: /^[A-Z0-9\s:_-]+$/.test(rawText) && rawText.length < 50,
-        isItalic: false,
-        page: pageNum,
-      });
     }
-  }
 
-    // Cleanup canvas
     canvas.width = 0;
     canvas.height = 0;
 
-    return ocrTokens;
-  } catch (err: any) {
-    return [];
+    return { tokens: ocrTokens, confidence: overallConfidence };
+  } catch {
+    canvas.width = 0;
+    canvas.height = 0;
+    return { tokens: [], confidence: 0 };
   }
 }

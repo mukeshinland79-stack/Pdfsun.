@@ -18,7 +18,7 @@ import {
   ArrowUpDown,
   CornerUpLeft,
 } from "lucide-react";
-import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
+import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
 import {
@@ -378,7 +378,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     []
   );
 
-  const searchableTools = useMemo(() => [...ALL_TOOLS, BARCODE_STUDIO_TOOL], []);
+  const searchableTools = useMemo(() => ALL_TOOLS, []);
 
   // Filter tools based on query & selected category
   const filteredTools = useMemo(() => {

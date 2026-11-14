@@ -20,13 +20,10 @@
 import * as pdfjsLib from "pdfjs-dist";
 import PptxGenJS from "pptxgenjs";
 import { createWorker } from "tesseract.js";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
-// Ensure pdf.js worker is registered
-if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Ensure local pdf.js worker is registered
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export type PdfToPptPreset = "vector_editable" | "hybrid_master" | "compact_deck";
 

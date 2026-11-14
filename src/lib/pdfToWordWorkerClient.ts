@@ -1,6 +1,7 @@
 /**
- * PDFSun.in — Phase 20 Web Worker Client Bridge
- * Manages background worker execution with progress relay and synchronous fallback
+ * PDFSun.in — Web Worker Client Bridge for Enterprise PDF-to-Word Engine
+ * Manages background worker execution with progress relay, complete option forwarding,
+ * result normalization, and synchronous fallback.
  */
 
 import {
@@ -15,7 +16,6 @@ export async function convertPdfToWordViaWorker(
   file: File,
   options: EnterprisePdfToWordOptions = {}
 ): Promise<EnterprisePdfToWordResult> {
-  // Check if Web Workers and ES modules in workers are supported in the current environment
   const canUseWorker =
     typeof window !== "undefined" &&
     typeof Worker !== "undefined" &&
@@ -23,7 +23,6 @@ export async function convertPdfToWordViaWorker(
     typeof File !== "undefined";
 
   if (!canUseWorker) {
-    // Graceful fallback: run directly on the current thread
     return convertPdfToWordEnterprise(file, options);
   }
 
@@ -48,9 +47,8 @@ export async function convertPdfToWordViaWorker(
           worker.terminate();
           worker = null;
         }
-        // If worker times out (e.g. stuck script), fall back to synchronous execution
         convertPdfToWordEnterprise(file, options).then(resolve).catch(reject);
-      }, 120000); // 2 minute maximum timeout
+      }, 150000);
 
       worker.onmessage = (e: MessageEvent) => {
         const data = e.data;
@@ -73,23 +71,25 @@ export async function convertPdfToWordViaWorker(
             worker.terminate();
             worker = null;
           }
-          // On worker-level error, attempt synchronous fallback before rejecting
-          console.warn("[pdfToWordWorkerClient] Worker error, falling back to direct engine:", data.error);
+          // Preserve genuine validation failures cleanly instead of masking corrupt file errors
+          const errMsg = String(data.error || "");
+          if (/Invalid PDF|Missing %PDF-|too small/i.test(errMsg)) {
+            reject(new Error(errMsg));
+            return;
+          }
           convertPdfToWordEnterprise(file, options).then(resolve).catch(reject);
         }
       };
 
-      worker.onerror = (err) => {
+      worker.onerror = () => {
         clearTimeout(timer);
         if (worker) {
           worker.terminate();
           worker = null;
         }
-        console.warn("[pdfToWordWorkerClient] Worker error event, falling back to direct engine:", err);
         convertPdfToWordEnterprise(file, options).then(resolve).catch(reject);
       };
 
-      // Post the message transferring the buffer
       worker.postMessage(
         {
           id: requestId,
@@ -98,7 +98,8 @@ export async function convertPdfToWordViaWorker(
           fileName: file.name,
           options: {
             preset: options.preset,
-            preserveImages: (options as any).preserveImages,
+            reconstructionMode: options.reconstructionMode,
+            preserveImages: options.preserveImages,
             dpiQuality: options.dpiQuality,
             preserveTables: options.preserveTables,
             enableOcrFallback: options.enableOcrFallback,
@@ -109,8 +110,7 @@ export async function convertPdfToWordViaWorker(
         [buffer]
       );
     });
-  } catch (initErr) {
-    console.warn("[pdfToWordWorkerClient] Could not spawn worker, falling back to direct engine:", initErr);
+  } catch {
     if (worker) {
       try {
         worker.terminate();

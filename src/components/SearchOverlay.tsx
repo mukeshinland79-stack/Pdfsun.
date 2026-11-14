@@ -12,7 +12,7 @@ import {
   Compass,
   Zap,
 } from "lucide-react";
-import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
+import { ALL_TOOLS } from "../data/toolsData";
 import { ToolItem } from "../types";
 import { useLanguage } from "../lib/i18n";
 
@@ -61,7 +61,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
     []
   );
 
-  const searchableTools = useMemo(() => [...ALL_TOOLS, BARCODE_STUDIO_TOOL], []);
+  const searchableTools = useMemo(() => ALL_TOOLS, []);
 
   // Filter tools based on search query & category
   const filteredTools = useMemo(() => {

@@ -33,13 +33,10 @@ import { watermarkPdf, downloadFile, WatermarkOptions } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
 
-// Configure PDF.js worker
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Configure local PDF.js worker
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 interface WatermarkPdfToolProps {
   initialFile?: File | null;

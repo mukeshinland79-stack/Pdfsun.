@@ -32,13 +32,10 @@ import { protectPdf, downloadFile } from "../lib/pdfEngine";
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
 
 // Configure PDF.js worker
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 interface ProtectPdfToolProps {
   initialFile?: File | null;

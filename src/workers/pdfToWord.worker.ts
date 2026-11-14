@@ -1,12 +1,13 @@
 /**
- * PDFSun.in — Phase 20 Web Worker for Asynchronous PDF-to-Word Conversion
- * Offloads CPU-intensive PDF parsing, AST table synthesis and OpenXML packing
- * to maintain 60fps UI responsiveness during 100+ page conversions.
+ * PDFSun.in — Web Worker for Asynchronous Enterprise PDF-to-Word Conversion
+ * Offloads CPU-intensive PDF parsing, vector/CTM extraction, AST synthesis and OpenXML packing
+ * to maintain smooth UI responsiveness across multi-page financial & mixed documents.
  */
 
 import {
   convertPdfToWordEnterprise,
   PdfToWordOptions as EnterprisePdfToWordOptions,
+  PdfToWordResult as EnterprisePdfToWordResult,
 } from "../lib/enterprisePdfToWordEngine";
 
 export interface WorkerRequestMessage {
@@ -27,15 +28,10 @@ export interface WorkerProgressMessage {
 export interface WorkerSuccessMessage {
   id: string;
   type: "SUCCESS";
-  result: {
-    bytes: Uint8Array;
-    fileName: string;
-    pageCount: number;
-    stats: any;
-    classification?: any;
+  result: EnterprisePdfToWordResult & {
+    pageCount?: number;
     structure?: any;
     qualityReport?: any;
-    qualityAudit?: any;
   };
 }
 
@@ -71,18 +67,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequestMessage>) => {
       id,
       type: "SUCCESS",
       result: {
-        bytes: result.bytes,
-        fileName: result.fileName,
+        ...result,
         pageCount: result.stats?.pagesCount || 1,
-        stats: result.stats,
-        classification: result.classification,
-        structure: (result as any).technicalStructure || (result as any).structure,
+        structure: result.technicalStructure,
         qualityReport: result.docxQualityReport,
-        qualityAudit: result.qualityAudit,
       },
     };
 
-    // Transfer bytes buffer for zero-copy performance
     (self as any).postMessage(successMsg, [result.bytes.buffer]);
   } catch (err: any) {
     const errorMsg: WorkerErrorMessage = {

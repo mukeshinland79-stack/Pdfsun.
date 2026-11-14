@@ -334,69 +334,6 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
   }
 
   // -------------------------------------------------------------
-  // Route: Barcode Studio (/barcode or /barcode-studio)
-  // -------------------------------------------------------------
-  if (subRoute === "/barcode" || subRoute === "/barcode-studio") {
-    const title = "Free Online Barcode Studio & Avery Label Generator | PDFSun.in";
-    const description = "Generate 21+ standard 1D linear and 2D matrix barcodes (Code 128, EAN-13, UPC-A, QR Code, Data Matrix, PDF417). Design print-ready Avery & Zebra label sheets with bulk sequential numbering & CSV export.";
-
-    return {
-      title,
-      description,
-      canonicalUrl: `${baseUrl}/barcode`,
-      ogTitle: title,
-      ogDescription: description,
-      ogType: "website",
-      ogImage: defaultOgImage,
-      keywords: "barcode generator, free barcode studio, code 128, ean 13 generator, upc-a, qr code, data matrix, avery 5160 labels, zebra thermal labels, bulk barcode generator, pdfsun",
-      activeLang: langCode,
-      isRtl,
-      reciprocalHreflangs,
-      jsonLdSchemas: [
-        {
-          "@context": "https://schema.org",
-          "@type": "WebApplication",
-          "name": "PDFSun Barcode Studio",
-          "url": `${baseUrl}/barcode`,
-          "applicationCategory": "BusinessApplication",
-          "operatingSystem": "All",
-          "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD",
-          },
-          "featureList": [
-            "21+ Barcode Symbologies (Linear, 2D Matrix, Business Presets)",
-            "Automated GS1 Modulo-10 Check Digit Calculation",
-            "Avery 5160, L7160, L7163 & Zebra 4x6 Label Sheet Imposition",
-            "Bulk CSV & Excel Spreadsheet Ingestion",
-            "Automated Sequential Numbering & Batch ZIP Export",
-            "Vector SVG, 300+ DPI PNG, and Print-Ready PDF Downloads",
-            "100% Client-Side Privacy: No Server Data Uploads",
-          ],
-        },
-      ],
-      crawlableHtml: `
-        <article dir="${isRtl ? 'rtl' : 'ltr'}" style="max-width: 900px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
-          <h1>Free Online Barcode Studio &amp; Sheet Imposition Designer</h1>
-          <p>Generate professional, standards-compliant barcodes in vector SVG and high-resolution raster formats directly in your browser. Design print-ready label sheets for Avery® and thermal rolls with 100% privacy and zero server uploads.</p>
-          <h2>Supported Barcode Standards</h2>
-          <ul>
-            <li><strong>Code 128:</strong> High-density alphanumeric barcode supporting all 128 ASCII characters for enterprise asset tracking.</li>
-            <li><strong>EAN-13 &amp; UPC-A:</strong> Global retail point-of-sale barcodes with automated GS1 Modulo-10 check digit calculation.</li>
-            <li><strong>ITF-14:</strong> Master shipping carton barcode with sturdy bearer bars for corrugated cardboard transit.</li>
-            <li><strong>QR Code &amp; Data Matrix (ECC 200):</strong> High-capacity 2D matrix symbologies for URLs, contact cards, and FDA UDI healthcare labeling.</li>
-            <li><strong>PDF417 &amp; Aztec Code:</strong> Stacked 2D and bulls-eye codes used in airline boarding passes and transit ticketing.</li>
-            <li><strong>Business Presets:</strong> Pre-configured workflows for Amazon FBA (FNSKU), Book Publishing (ISBN-13), and Periodicals (ISSN).</li>
-          </ul>
-          <h2>Print-Ready Sheet Imposition</h2>
-          <p>Format barcodes onto standard adhesive label templates including Avery 5160 (Letter 30-up), Avery L7160/L7163 (A4 European standards), and Zebra 4"x6" direct thermal shipping labels.</p>
-        </article>
-      `,
-    };
-  }
-
-  // -------------------------------------------------------------
   // Route 4: Single Blog Article (/blog/:slug)
   // -------------------------------------------------------------
   if (subRoute.startsWith("/blog/")) {

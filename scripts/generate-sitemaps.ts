@@ -144,7 +144,6 @@ const staticPages = [
   { loc: `${BASE_URL}/about-us`, priority: "0.6", changefreq: "monthly" },
   { loc: `${BASE_URL}/contact-us`, priority: "0.6", changefreq: "monthly" },
   { loc: `${BASE_URL}/today-in-history`, priority: "0.8", changefreq: "daily" },
-  { loc: `${BASE_URL}/barcode`, priority: "0.95", changefreq: "daily" },
 ];
 
 const toolPages = ALL_TOOLS.map((t) => ({

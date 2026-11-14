@@ -23,6 +23,9 @@ import ExcelJS from "exceljs";
 import jsQR from "jsqr";
 import * as pdfjsLib from "pdfjs-dist";
 import { releaseCanvasMemory } from "./memoryGuard";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
+
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export interface ExcelConversionStats {
   qualityEnhanced: boolean;

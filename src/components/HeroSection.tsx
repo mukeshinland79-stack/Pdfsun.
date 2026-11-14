@@ -12,10 +12,9 @@ import {
   Combine,
   Minimize2,
   FileText,
-  Barcode,
 } from "lucide-react";
 import { ToolItem } from "../types";
-import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
+import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -76,7 +75,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { name: t("pdfToWord", "PDF to Word"), toolId: "pdf-to-word", icon: FileText },
     { name: t("chatWithPdf", "AI Chat with PDF"), toolId: "ai-chat-pdf", icon: Sparkles },
     { name: t("aiSummary", "AI Summary"), toolId: "ai-pdf-summary", icon: Zap },
-    { name: t("tools.barcode-studio.name", "Barcode Studio"), toolId: "barcode-studio", icon: Barcode, isNew: true },
     { name: t("tools.ai-resume-builder.name", "AI Resume Builder"), toolId: "ai-resume-builder", icon: FileText },
   ];
 
@@ -215,10 +213,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mr-1 hidden sm:inline">{t("quick_actions.title", "Popular:")}</span>
             {quickTags.map((tag) => {
-              const tool =
-                tag.toolId === BARCODE_STUDIO_TOOL.id
-                  ? BARCODE_STUDIO_TOOL
-                  : ALL_TOOLS.find((t) => t.id === tag.toolId);
+              const tool = ALL_TOOLS.find((t) => t.id === tag.toolId);
               if (!tool) return null;
               const Icon = tag.icon;
               return (

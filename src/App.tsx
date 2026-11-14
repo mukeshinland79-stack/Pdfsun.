@@ -26,7 +26,7 @@ import { detectUserGeoAndLanguage } from "./utils/geoLanguageDetector";
 import { GeoDetectionResult } from "./types/history";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserProfile, AdminSettings, AdminUserAccount } from "./types";
-import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "./data/toolsData";
+import { ALL_TOOLS } from "./data/toolsData";
 import { matchPSEORoute, PSEOLandingPage, generateCompressSizePseoPage } from "./data/pSEOData";
 import { useAuth } from "./hooks/useAuth";
 import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
@@ -44,7 +44,6 @@ const EditPdfMetadataTool = lazy(() => import("./components/EditPdfMetadataTool"
 const ViewPdfMetadataTool = lazy(() => import("./components/ViewPdfMetadataTool").then((m) => ({ default: m.ViewPdfMetadataTool })));
 const ProtectPdfTool = lazy(() => import("./components/ProtectPdfTool").then((m) => ({ default: m.ProtectPdfTool })));
 const AservusPdfCompressor = lazy(() => import("./components/AservusPdfCompressor").then((m) => ({ default: m.AservusPdfCompressor })));
-const BarcodeStudioWorkspace = lazy(() => import("./components/BarcodeStudioWorkspace").then((m) => ({ default: m.BarcodeStudioWorkspace })));
 const SharePdfSunModal = lazy(() => import("./components/SharePdfSunModal").then((m) => ({ default: m.SharePdfSunModal })));
 const PricingSection = lazy(() => import("./components/PricingSection").then((m) => ({ default: m.PricingSection })));
 const PolicyModals = lazy(() => import("./components/PolicyModals").then((m) => ({ default: m.PolicyModals })));
@@ -618,10 +617,7 @@ function MainApp() {
           setActiveTool(null);
           return;
         }
-        const targetTool =
-          matchedSlug === "barcode" || matchedSlug === "barcode-studio"
-            ? BARCODE_STUDIO_TOOL
-            : ALL_TOOLS.find((t) => t.slug === matchedSlug || t.id === matchedSlug);
+        const targetTool = ALL_TOOLS.find((t) => t.slug === matchedSlug || t.id === matchedSlug);
         if (targetTool) setActiveTool(targetTool);
       } else if (effectivePath === "/" || effectivePath === "") {
         setActiveTool(null);
@@ -905,10 +901,7 @@ function MainApp() {
               onNavigateArticle={handleNavigateArticle}
               onSelectTool={(toolId) => {
                 handleExitBlogToHome();
-                const tool =
-                  toolId === "barcode" || toolId === "barcode-studio"
-                    ? BARCODE_STUDIO_TOOL
-                    : ALL_TOOLS.find((t) => t.id === toolId || t.slug === toolId);
+                const tool = ALL_TOOLS.find((t) => t.id === toolId || t.slug === toolId);
                 if (tool) handleSelectTool(tool);
               }}
             />
@@ -1063,8 +1056,6 @@ function MainApp() {
                   <ProtectPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
                 ) : activeTool.id === "compress-pdf" ? (
                   <AservusPdfCompressor initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
-                ) : activeTool.id === "barcode-studio" ? (
-                  <BarcodeStudioWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onBackToHome={handleCloseTool} onAddHistory={addHistory} />
                 ) : activeTool.isAi ? (
                   <AIChatWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onAddHistory={addHistory} />
                 ) : (

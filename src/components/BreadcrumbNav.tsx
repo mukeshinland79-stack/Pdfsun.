@@ -17,7 +17,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { CategoryId, ToolItem } from "../types";
-import { ALL_TOOLS, BARCODE_STUDIO_TOOL } from "../data/toolsData";
+import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
 
 export interface BreadcrumbItem {
@@ -61,9 +61,6 @@ const CATEGORY_META: Record<CategoryId, { name: string; icon: React.FC<{ classNa
  */
 export const formatSlugToTitle = (slug: string): string => {
   const cleanSlug = slug.toLowerCase().replace(/^\/+|\/+$/g, "");
-  if (cleanSlug === "barcode" || cleanSlug === "barcode-studio") {
-    return BARCODE_STUDIO_TOOL.name;
-  }
   const matched = ALL_TOOLS.find(
     (t) => t.id.toLowerCase() === cleanSlug || t.slug.toLowerCase() === cleanSlug
   );
@@ -113,9 +110,6 @@ export function BreadcrumbNav({
       const firstSegment = pathSegments[0].toLowerCase();
       // Ignore known non-tool paths
       if (!["blog", "pricing", "install", "today-in-history"].includes(firstSegment)) {
-        if (firstSegment === "barcode" || firstSegment === "barcode-studio") {
-          return BARCODE_STUDIO_TOOL;
-        }
         const found = ALL_TOOLS.find(
           (t) => t.id.toLowerCase() === firstSegment || t.slug.toLowerCase() === firstSegment
         );

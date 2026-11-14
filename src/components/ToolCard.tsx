@@ -62,7 +62,6 @@ import {
   RefreshCw,
   Sliders,
   Shield,
-  Barcode,
   QrCode,
 } from "lucide-react";
 import { ToolItem } from "../types";
@@ -133,7 +132,6 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   RefreshCw,
   Sliders,
   Shield,
-  Barcode,
   QrCode,
 };
 

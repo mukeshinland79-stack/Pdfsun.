@@ -5456,6 +5456,15 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== "production") {
+    // Serve raw self-contained PDF.js worker module without Vite client HMR wrapper
+    app.get("/node_modules/pdfjs-dist/build/pdf.worker.min.mjs", (_req, res) => {
+      const workerFile = path.join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.min.mjs");
+      res.setHeader("Content-Type", "text/javascript; charset=utf-8");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.sendFile(workerFile);
+    });
+
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false, ws: false },
       appType: "custom",

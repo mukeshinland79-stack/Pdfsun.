@@ -21,13 +21,10 @@ import JSZip from "jszip";
 import { createWorker } from "tesseract.js";
 import { preprocessImageForOcr, yieldToEventLoop } from "./enterpriseImageOcrEngine";
 import { validateConversionOutput } from "./smartDocumentEngine";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
-// Initialize PDF.js worker fallback safely
-if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Initialize local PDF.js worker
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 // ---------------------------------------------------------------------------
 // TYPE DEFINITIONS & INTERFACES

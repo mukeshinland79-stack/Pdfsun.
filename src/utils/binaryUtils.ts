@@ -1,8 +1,8 @@
 /**
- * Binary buffer narrowing utilities for strict TypeScript 5.9+ ArrayBuffer / BlobPart compatibility.
+ * Binary buffer narrowing utilities for ArrayBuffer / BlobPart compatibility.
  * Zero-copy when backed by a standard ArrayBuffer; copies safely only if backed by SharedArrayBuffer.
  */
-export function toStrictUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+export function toStrictUint8Array(bytes: Uint8Array): Uint8Array {
   if (bytes.buffer instanceof ArrayBuffer) {
     return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   }

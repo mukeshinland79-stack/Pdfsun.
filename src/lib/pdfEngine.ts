@@ -14,6 +14,7 @@ import { compressPdfEnterprise, CompressionResult, CompressionOptions } from "./
 import { readLargeFileChunked } from "./fileValidationService";
 import { trackGADownloadStart, trackGADownloadSuccess } from "../utils/analytics";
 import { toStrictUint8Array } from "../utils/binaryUtils";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 import {
   mergePdfsCore,
   MergePdfOptions,
@@ -155,12 +156,7 @@ export {
 
 async function getPdfJs() {
   const pdfjsLib = await import("pdfjs-dist");
-  if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-      pdfjsLib.version || "4.10.38"
-    }/pdf.worker.min.mjs`;
-  }
-  return pdfjsLib;
+  return ensurePdfJsWorkerConfigured(pdfjsLib);
 }
 
 // Helper to read File as ArrayBuffer

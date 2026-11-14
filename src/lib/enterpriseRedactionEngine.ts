@@ -2,13 +2,10 @@ import { PDFDocument, rgb, StandardFonts, PDFName, PDFPage, PDFContext, PDFRef, 
 import * as pdfjsLib from "pdfjs-dist";
 import * as pako from "pako";
 import { decryptPDF, isEncrypted } from "@pdfsmaller/pdf-decrypt";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
-// Configure PDF.js worker fallback safely for browser environments
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Configure local PDF.js worker safely for browser environments
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export interface RedactionBox {
   pageIndex: number; // 0-based
@@ -327,6 +324,7 @@ export async function redactPdfPermanently(
           activePdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
         } catch {}
       }
+      ensurePdfJsWorkerConfigured(activePdfjs);
       const loadingTask = activePdfjs.getDocument({
         data: rawBytes.slice(0),
         useSystemFonts: true,

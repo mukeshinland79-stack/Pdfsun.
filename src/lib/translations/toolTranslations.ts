@@ -54,7 +54,6 @@ export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; d
     "compare-pdf": { name: "पीडीएफ तुलना (Compare PDF)", desc: "दो पीडीएफ फाइलों के अंतर को सामने देखें।" },
     "ocr-pdf": { name: "ओसीआर टेक्स्ट निकालें (OCR PDF)", desc: "स्कैन किए गए पीडीएफ से संपादन योग्य टेक्स्ट निकालें।" },
     "ocr-image-to-text": { name: "ओसीआर इमेज से टेक्स्ट", desc: "फोटो से टेक्स्ट निकालकर सर्च योग्य बनाएं।" },
-    "barcode-studio": { name: "बारकोड स्टूडियो (Barcode Studio)", desc: "1D/2D बारकोड, QR कोड, लेबल शीट और बल्क एक्सपोर्ट बनाएं।" },
     "batch-pdf-tools": { name: "बैच पीडीएफ टूल्स (Batch Tools)", desc: "एक साथ दर्जनों पीडीएफ फाइलों को प्रोसेस करें।" },
     "scan-to-pdf": { name: "स्कैन से पीडीएफ (Scan to PDF)", desc: "कैमरे से सीधे दस्तावेज़ स्कैन कर पीडीएफ बनाएं।" },
     "extract-images": { name: "इमेज निकालें (Extract Images)", desc: "पीडीएफ से सभी तस्वीरें अलग फाइल में निकालें।" },

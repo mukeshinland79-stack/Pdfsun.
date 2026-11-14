@@ -49,13 +49,10 @@ import confetti from "canvas-confetti";
 import { downloadFile } from "../lib/pdfEngine";
 import { useLanguage } from "../lib/i18n";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
 
-// Set PDF.js worker
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Set local PDF.js worker
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export type EditorToolMode =
   | "select"
@@ -240,10 +237,10 @@ export const PDFEditorWorkspace: React.FC<PDFEditorWorkspaceProps> = ({
         setLoadingMessage("Parsing document structure & rendering pages...");
         const arrayBuffer = await file.arrayBuffer();
 
+        ensurePdfJsWorkerConfigured(pdfjsLib);
         const loadingTask = pdfjsLib.getDocument({
           data: new Uint8Array(arrayBuffer),
-          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/cmaps/",
-          cMapPacked: true,
+          useSystemFonts: true,
         });
 
         const doc = await loadingTask.promise;

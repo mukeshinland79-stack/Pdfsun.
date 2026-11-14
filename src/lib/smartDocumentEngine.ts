@@ -21,11 +21,10 @@ import mammoth from "mammoth";
 import { sanitizeOcrText } from "./pdfEngine";
 import { generateEnterpriseExcel, verifyTableStructure, ensurePaddedMatrix } from "./enterpriseExcelGenerator";
 import { convertWordToPdfEnterprise } from "./enterpriseWordToPdfEngine";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
-// Configure pdfjs worker if available in browser
-if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
+// Configure local pdfjs worker
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export type DetectionMode = "auto" | "table" | "fields" | "invoice";
 

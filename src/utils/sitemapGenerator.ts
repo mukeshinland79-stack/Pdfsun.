@@ -56,7 +56,6 @@ export function buildSitemapEntries(customBaseUrl?: string): SitemapUrlEntry[] {
   const corePages = [
     { path: "", priority: "1.0", changefreq: "daily" as const, title: "PDF Sun - Free All-in-One Online PDF & AI Document Suite" },
     { path: "#tools", priority: "0.9", changefreq: "daily" as const, title: "All Online PDF Tools Index" },
-    { path: "barcode", priority: "0.9", changefreq: "daily" as const, title: "PDFSun Barcode Studio - Professional Generator & Label Designer" },
     { path: "#ai-workspace", priority: "0.9", changefreq: "daily" as const, title: "Gemini 3.6 AI PDF Assistant & Summarizer" },
     { path: "#pricing", priority: "0.8", changefreq: "weekly" as const, title: "Pricing & Student Pro Plans" },
     { path: "#blog", priority: "0.8", changefreq: "weekly" as const, title: "PDF Tutorials, AI Guides & Productivity Blog" },

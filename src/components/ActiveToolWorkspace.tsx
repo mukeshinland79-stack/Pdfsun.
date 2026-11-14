@@ -211,6 +211,79 @@ import type { PdfToExcelAuditReport } from "../lib/enterprisePdfToExcelEngine";
 import type { DocumentProfileKey, FinancialDocumentClassification } from "../lib/financialDocumentIntelligence";
 import { DOCUMENT_PROFILES } from "../lib/financialDocumentIntelligence";
 import type { FinancialQualityAuditReport } from "../lib/financialDataIntegrityEngine";
+import type { PerPageConversionSummary, ReconstructionMode } from "../lib/enterprisePdfToWordEngine";
+import type { DocxQualityAuditReport } from "../lib/docxQualityValidator";
+
+const SAFE_DOCX_HTML_TAGS = new Set([
+  "p", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
+  "ul", "ol", "li", "strong", "b", "em", "i", "u", "br", "span", "img", "div", "a",
+]);
+
+function renderSafeDocxDomNode(node: ChildNode, key: string): React.ReactNode {
+  if (node.nodeType === 3) {
+    return node.textContent;
+  }
+  if (node.nodeType !== 1) return null;
+  const el = node as Element;
+  const tag = el.tagName.toLowerCase();
+  if (!SAFE_DOCX_HTML_TAGS.has(tag)) {
+    return Array.from(el.childNodes).map((c, idx) => renderSafeDocxDomNode(c, `${key}-${idx}`));
+  }
+  if (tag === "br") return <br key={key} />;
+  if (tag === "img") {
+    const src = el.getAttribute("src") || "";
+    if (!/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(src)) return null;
+    return (
+      <img
+        key={key}
+        src={src}
+        alt={el.getAttribute("alt") || "Embedded PDF graphic"}
+        className="max-h-24 w-auto object-contain rounded border border-slate-200 dark:border-slate-700 my-1 inline-block"
+      />
+    );
+  }
+  const children = Array.from(el.childNodes).map((c, idx) => renderSafeDocxDomNode(c, `${key}-${idx}`));
+  if (tag === "table") {
+    return (
+      <div key={key} className="overflow-x-auto my-2.5 rounded-lg border border-slate-300 dark:border-slate-700">
+        <table className="w-full border-collapse text-[11px]">{children}</table>
+      </div>
+    );
+  }
+  if (tag === "th") {
+    return (
+      <th key={key} className="border border-slate-300 dark:border-slate-700 bg-slate-800 text-white px-2 py-1 text-left font-bold">
+        {children}
+      </th>
+    );
+  }
+  if (tag === "td") {
+    return (
+      <td key={key} className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-slate-700 dark:text-slate-200 align-top">
+        {children}
+      </td>
+    );
+  }
+  if (tag === "h1") return <h1 key={key} className="text-sm font-black text-slate-900 dark:text-white mt-2 mb-1">{children}</h1>;
+  if (tag === "h2") return <h2 key={key} className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-2 mb-1">{children}</h2>;
+  if (tag === "h3" || tag === "h4") return <h3 key={key} className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1.5 mb-0.5">{children}</h3>;
+  if (tag === "ul") return <ul key={key} className="list-disc pl-5 my-1 space-y-0.5">{children}</ul>;
+  if (tag === "ol") return <ol key={key} className="list-decimal pl-5 my-1 space-y-0.5">{children}</ol>;
+  if (tag === "p") return <p key={key} className="my-1 leading-relaxed">{children}</p>;
+  if (tag === "strong" || tag === "b") return <strong key={key} className="font-bold">{children}</strong>;
+  if (tag === "em" || tag === "i") return <em key={key} className="italic">{children}</em>;
+  if (tag === "u") return <u key={key}>{children}</u>;
+  return <span key={key}>{children}</span>;
+}
+
+function SafeDocxHtmlPreview({ html }: { html: string }) {
+  const nodes = useMemo(() => {
+    if (!html || typeof DOMParser === "undefined") return null;
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    return Array.from(parsed.body.childNodes).map((c, idx) => renderSafeDocxDomNode(c, `docx-n-${idx}`));
+  }, [html]);
+  return <div className="space-y-1 text-xs text-slate-800 dark:text-slate-200">{nodes}</div>;
+}
 
 export interface ExtendedFileState extends FileValidationResult {
   progress: number;
@@ -559,6 +632,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   } | null>(null);
   const [pdfRasterThumbnails, setPdfRasterThumbnails] = useState<string[]>([]);
   const [pdfToWordDpi, setPdfToWordDpi] = useState<150 | 300>(300);
+  const [wordPreserveImages, setWordPreserveImages] = useState<boolean>(true);
   const [wordConversionStats, setWordConversionStats] = useState<{
     pagesCount: number;
     wordCount: number;
@@ -566,6 +640,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     tablesCount: number;
     headingsCount: number;
     ocrPagesCount: number;
+    imagesCount?: number;
     detectedTitle: string;
     previewSnippet: string;
     reconstructionMode?: string;
@@ -573,10 +648,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     isInvoiceDetected?: boolean;
   } | null>(null);
   const [showWordPreviewSnippet, setShowWordPreviewSnippet] = useState(false);
+  const [renderedDocxHtml, setRenderedDocxHtml] = useState<string | null>(null);
+  const [loadingDocxPreview, setLoadingDocxPreview] = useState(false);
   const [pdfToWordPreset, setPdfToWordPreset] = useState<PdfToWordPreset>("financial_fidelity");
   const [selectedDocumentProfile, setSelectedDocumentProfile] = useState<DocumentProfileKey | "auto">("auto");
   const [wordClassification, setWordClassification] = useState<FinancialDocumentClassification | null>(null);
   const [wordQualityAudit, setWordQualityAudit] = useState<FinancialQualityAuditReport | null>(null);
+  const [wordDocxReport, setWordDocxReport] = useState<DocxQualityAuditReport | null>(null);
+  const [wordPerPageSummary, setWordPerPageSummary] = useState<PerPageConversionSummary[]>([]);
+  const [wordWarnings, setWordWarnings] = useState<string[]>([]);
   const [showAmbiguityDetails, setShowAmbiguityDetails] = useState(false);
   const [showFullAuditReport, setShowFullAuditReport] = useState(false);
   const [excelAuditReport, setExcelAuditReport] = useState<PdfToExcelAuditReport | null>(null);
@@ -1249,11 +1329,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           break;
 
         case "pdf-to-word": {
-          setStatusMessage("Initializing Web Worker & parsing PDF spatial bounding boxes...");
+          setStatusMessage("Initializing Web Worker & parsing PDF vectors, tables, images & CTM layout...");
+          const resolvedReconstructionMode: ReconstructionMode =
+            pdfToWordPreset === "editable_word"
+              ? "editable_word"
+              : pdfToWordPreset === "scanned_ocr"
+              ? "scanned_ocr"
+              : pdfToWordPreset === "hybrid_auto"
+              ? "hybrid_auto"
+              : "visual_fidelity";
+          setRenderedDocxHtml(null);
+          setShowWordPreviewSnippet(false);
           const res = await convertPdfToWordViaWorker(files[0], {
             preset: pdfToWordPreset,
+            reconstructionMode: resolvedReconstructionMode,
             detectionMode: smartDetectionMode === "invoice" ? "invoice" : smartDetectionMode === "table" ? "table" : smartDetectionMode === "fields" ? "fields" : "auto",
             preserveTables: true,
+            preserveImages: wordPreserveImages,
             enableOcrFallback: true,
             dpiQuality: pdfToWordDpi,
             documentProfile: selectedDocumentProfile === "auto" ? undefined : selectedDocumentProfile,
@@ -1264,12 +1356,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           });
           validateConversionOutput(res.bytes, "docx", res.fileName);
           setWordConversionStats(res.stats);
-          if (res.classification) {
-            setWordClassification(res.classification);
-          }
-          if (res.qualityAudit) {
-            setWordQualityAudit(res.qualityAudit);
-          }
+          setWordClassification(res.classification || null);
+          setWordQualityAudit(res.qualityAudit || null);
+          setWordDocxReport(res.docxQualityReport || null);
+          setWordPerPageSummary(res.perPageSummary || []);
+          setWordWarnings(res.warnings || []);
           outputBytes = res.bytes;
           outputName = res.fileName;
           mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -4582,22 +4673,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                         </div>
                       </div>
 
-                      {/* 3 Dedicated Conversion Modes */}
+                      {/* 4 Dedicated Conversion Modes */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-1.5">
                           <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                             <span>🛠️ Conversion & Document Reconstruction Modes</span>
                           </label>
                           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
                             {pdfToWordPreset === "financial_fidelity"
-                              ? "Mode 2: Financial Fidelity & Formats (Recommended)"
+                              ? "Mode B: Layout & Financial Fidelity (Recommended)"
                               : pdfToWordPreset === "editable_word"
-                              ? "Mode 1: Editable Word Document"
-                              : "Mode 3: Scanned Document OCR"}
+                              ? "Mode A: High-Fidelity Editable Word"
+                              : pdfToWordPreset === "hybrid_auto"
+                              ? "Mode D: Hybrid Auto (Native + Scanned)"
+                              : "Mode C: Scanned Document OCR"}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                           <button
                             type="button"
                             onClick={() => setPdfToWordPreset("financial_fidelity")}
@@ -4608,10 +4701,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             }`}
                           >
                             <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1">
-                              <span>💼 Financial Fidelity & Formats</span>
+                              <span>💼 Layout & Financial</span>
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                              Strict numeric formatting, currency alignment, GSTIN/PAN preservation, debit/credit parity.
+                              Fixed OOXML grids, logo/QR embedding, GSTIN/PAN precision, right-aligned amounts.
                             </span>
                           </button>
 
@@ -4625,10 +4718,27 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             }`}
                           >
                             <span className="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1">
-                              <span>✏️ Editable Word Document</span>
+                              <span>✏️ Editable Word</span>
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                              100% fluid flowing paragraphs, native OpenXML headings, and editable tables. Zero text boxes.
+                              100% fluid flowing paragraphs, native OpenXML headings & editable tables. Zero text boxes.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPdfToWordPreset("hybrid_auto")}
+                            className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                              pdfToWordPreset === "hybrid_auto"
+                                ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600 ring-2 ring-emerald-500/40 shadow-xs"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300"
+                            }`}
+                          >
+                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                              <span>⚡ Hybrid Auto</span>
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                              Mixed native + scanned pages handled per page without flattening vector text.
                             </span>
                           </button>
 
@@ -4642,21 +4752,30 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             }`}
                           >
                             <span className="text-xs font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1">
-                              <span>🔍 Scanned Document OCR</span>
+                              <span>🔍 Scanned OCR</span>
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                              WASM OCR engine for photocopies & scans with auto-deskew, noise filter & spatial word recovery.
+                              WASM OCR engine for photocopies & scans with contrast boost & table recovery.
                             </span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Optical Fidelity DPI */}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
-                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                          Optical & Canvas Quality (DPI Resolution)
-                        </span>
+                      {/* Image & Logo Extraction + Optical Fidelity DPI */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <label className="inline-flex items-center space-x-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={wordPreserveImages}
+                            onChange={(e) => setWordPreserveImages(e.target.checked)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                          />
+                          <span>Extract & Preserve Logos, QR Codes & Signatures</span>
+                        </label>
                         <div className="flex items-center space-x-1.5">
+                          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden sm:inline">
+                            Resolution:
+                          </span>
                           <button
                             type="button"
                             onClick={() => setPdfToWordDpi(300)}
@@ -4677,7 +4796,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                             }`}
                           >
-                            150 DPI Standard Speed
+                            150 DPI Standard
                           </button>
                         </div>
                       </div>
@@ -5487,6 +5606,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       setWordConversionStats(null);
                       setWordClassification(null);
                       setWordQualityAudit(null);
+                      setWordDocxReport(null);
+                      setWordPerPageSummary([]);
+                      setWordWarnings([]);
+                      setRenderedDocxHtml(null);
                       setShowWordPreviewSnippet(false);
                       setShowAmbiguityDetails(false);
                       setShowFullAuditReport(false);
@@ -5927,7 +6050,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                           </span>
                           {wordConversionStats?.reconstructionMode && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
-                              {wordConversionStats.reconstructionMode === "visual_fidelity" ? "Mode B: Visual Fidelity" : "Mode A: Fully Editable Word"}
+                              {wordConversionStats.reconstructionMode === "visual_fidelity" || wordConversionStats.reconstructionMode === "advanced_layout"
+                                ? "Mode B: Layout & Financial Fidelity"
+                                : wordConversionStats.reconstructionMode === "scanned_ocr"
+                                ? "Mode C: Scanned OCR"
+                                : wordConversionStats.reconstructionMode === "hybrid_auto"
+                                ? "Mode D: Hybrid Auto"
+                                : "Mode A: Editable Word"}
                             </span>
                           )}
                           {wordConversionStats?.isInvoiceDetected && (
@@ -5946,20 +6075,39 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <div className="flex items-center space-x-2">
                       <div
                         className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black border ${
-                          (wordQualityAudit?.overallStatus || "PASS") === "PASS"
+                          (wordQualityAudit?.overallStatus || wordDocxReport?.overallStatus || "PASS") === "PASS"
                             ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
-                            : (wordQualityAudit?.overallStatus || "PASS") === "WARNING"
+                            : (wordQualityAudit?.overallStatus || wordDocxReport?.overallStatus || "PASS") === "WARNING"
                             ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
                             : "bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/30"
                         }`}
                       >
                         <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          {wordQualityAudit ? `${wordQualityAudit.fidelityScore}% Fidelity • ${wordQualityAudit.overallStatus}` : "100% Fidelity • PASS"}
+                          {wordQualityAudit
+                            ? `${wordQualityAudit.fidelityScore}% Fidelity • ${wordQualityAudit.overallStatus}`
+                            : wordDocxReport
+                            ? `${wordDocxReport.confidenceScore}% OOXML Verified • ${wordDocxReport.overallStatus}`
+                            : "OOXML Verified"}
                         </span>
                       </div>
                     </div>
                   </div>
+
+                  {/* Honest Warnings Banner (OCR confidence / image parity / layout notices) */}
+                  {wordWarnings.length > 0 && (
+                    <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/60 space-y-1 text-xs">
+                      <div className="font-bold text-amber-800 dark:text-amber-200 flex items-center space-x-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Conversion Verification Notices ({wordWarnings.length})</span>
+                      </div>
+                      <ul className="list-disc pl-5 text-[11px] text-amber-800/90 dark:text-amber-300/90 space-y-0.5">
+                        {wordWarnings.map((warn, idx) => (
+                          <li key={idx}>{warn}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Extracted Financial Entities Summary Banner (GSTIN, PAN, Invoice #, Tax) */}
                   {wordClassification?.entities && (
@@ -6009,8 +6157,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     </div>
                   )}
 
-                  {/* Core Metrics Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  {/* Core Metrics Grid (with Real OOXML Verification Stats) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Pages Processed</span>
                       <span className="font-black text-slate-900 dark:text-white text-sm">
@@ -6024,24 +6172,69 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       </span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Fluid Paragraphs</span>
-                      <span className="font-black text-slate-900 dark:text-white text-sm">
-                        {wordConversionStats.paragraphsCount} paragraphs
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Native Tables</span>
                       <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm">
                         {wordConversionStats.tablesCount} {wordConversionStats.tablesCount === 1 ? "table" : "tables"}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700 col-span-2 sm:col-span-1">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Client WASM Engine</span>
-                      <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs">
-                        100% In-Browser
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Embedded Media</span>
+                      <span className="font-black text-purple-600 dark:text-purple-400 text-sm">
+                        {wordConversionStats.imagesCount ?? wordDocxReport?.imageParity?.embeddedDocxMediaCount ?? 0} {((wordConversionStats.imagesCount ?? wordDocxReport?.imageParity?.embeddedDocxMediaCount ?? 0) === 1) ? "graphic" : "graphics"}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">XML Text Retention</span>
+                      <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                        {wordDocxReport ? `${wordDocxReport.textPreservationPct}%` : "Verified"}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-indigo-100 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Fluid Paragraphs</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">
+                        {wordConversionStats.paragraphsCount}
                       </span>
                     </div>
                   </div>
+
+                  {/* Per-Page Pipeline Summary (Native / OCR / Hybrid + Orientation) */}
+                  {wordPerPageSummary.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {wordPerPageSummary.map((pg) => (
+                        <span
+                          key={pg.pageNumber}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                          <span className="font-bold">P{pg.pageNumber}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                              pg.mode === "native"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                : pg.mode === "hybrid"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+                                : "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+                            }`}
+                          >
+                            {pg.mode}{typeof pg.ocrConfidence === "number" ? ` ${pg.ocrConfidence}%` : ""}
+                          </span>
+                          <span className="text-slate-400">•</span>
+                          <span>{pg.orientation === "landscape" ? "Landscape" : "Portrait"}</span>
+                          {pg.tablesDetected > 0 && (
+                            <>
+                              <span className="text-slate-400">•</span>
+                              <span>{pg.tablesDetected} tbl</span>
+                            </>
+                          )}
+                          {pg.imagesExtracted > 0 && (
+                            <>
+                              <span className="text-slate-400">•</span>
+                              <span>{pg.imagesExtracted} img</span>
+                            </>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Interactive Financial Integrity Audit Checklist */}
                   {wordQualityAudit && wordQualityAudit.checks && wordQualityAudit.checks.length > 0 && (
@@ -6136,7 +6329,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <div className="flex items-center space-x-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>
-                        Maintains original layout, fonts, table cell borders & multi-page page breaks. Zero text-box overlapping.
+                        Maintains original layout, fonts, table cell borders, embedded images & multi-page section breaks. Zero text-box overlapping.
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-slate-400">
@@ -6144,7 +6337,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     </span>
                   </div>
 
-                  {/* Quick Action Buttons: Download Audit Report & Instant Text Preview */}
+                  {/* Quick Action Buttons: Download Audit Report & Rendered DOCX Preview */}
                   <div className="flex items-center space-x-2 pt-1 flex-wrap gap-y-2">
                     {wordQualityAudit && (
                       <button
@@ -6160,7 +6353,25 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => setShowWordPreviewSnippet(!showWordPreviewSnippet)}
+                      onClick={async () => {
+                        const nextOpen = !showWordPreviewSnippet;
+                        setShowWordPreviewSnippet(nextOpen);
+                        if (nextOpen && !renderedDocxHtml && downloadReady?.data instanceof Uint8Array) {
+                          setLoadingDocxPreview(true);
+                          try {
+                            const mammothMod: any = await import("mammoth");
+                            const mammoth = mammothMod.default || mammothMod;
+                            const rawBytes = downloadReady.data;
+                            const arrayBuffer = rawBytes.buffer.slice(rawBytes.byteOffset, rawBytes.byteOffset + rawBytes.byteLength);
+                            const htmlRes = await mammoth.convertToHtml({ arrayBuffer });
+                            setRenderedDocxHtml(htmlRes?.value || "");
+                          } catch {
+                            setRenderedDocxHtml(null);
+                          } finally {
+                            setLoadingDocxPreview(false);
+                          }
+                        }
+                      }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border shadow-2xs ${
                         showWordPreviewSnippet
                           ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
@@ -6172,23 +6383,31 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                       ) : (
                         <Eye className="w-3.5 h-3.5 text-blue-600" />
                       )}
-                      <span>{showWordPreviewSnippet ? "Hide Preview" : "Instant Preview"}</span>
+                      <span>{showWordPreviewSnippet ? "Hide Word Preview" : "Live DOCX Layout Preview"}</span>
                     </button>
                   </div>
 
-                  {/* Collapsible Instant Preview */}
+                  {/* Collapsible Rendered OOXML DOCX Preview (tables + embedded images + headings) */}
                   {showWordPreviewSnippet && (
                     <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 animate-in fade-in">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Extracted Fluid Paragraphs (Instant Validation Preview)
+                          Rendered Generated DOCX Preview (Compiled OpenXML Package)
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          First 1,500 characters
+                          {renderedDocxHtml ? "Live OOXML DOM Preview" : "Text Validation Fallback"}
                         </span>
                       </div>
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-700 dark:text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text border border-slate-200/60 dark:border-slate-800">
-                        {wordConversionStats.previewSnippet || "No text preview available."}
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 max-h-96 overflow-y-auto border border-slate-200/60 dark:border-slate-800">
+                        {loadingDocxPreview ? (
+                          <div className="text-xs text-slate-500 py-4 text-center">Rendering DOCX tables, graphics & structure...</div>
+                        ) : renderedDocxHtml ? (
+                          <SafeDocxHtmlPreview html={renderedDocxHtml} />
+                        ) : (
+                          <div className="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed select-text">
+                            {wordConversionStats.previewSnippet || "No preview available."}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

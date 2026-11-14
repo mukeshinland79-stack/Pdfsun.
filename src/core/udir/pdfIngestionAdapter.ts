@@ -28,6 +28,9 @@ if (typeof (globalThis as any).DOMMatrix === "undefined") {
 }
 
 import * as pdfjsLib from "pdfjs-dist";
+import { ensurePdfJsWorkerConfigured } from "../../lib/pdfjsWorkerSetup";
+
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 import {
   UdirDocument,

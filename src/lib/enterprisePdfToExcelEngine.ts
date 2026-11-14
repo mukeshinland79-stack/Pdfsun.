@@ -16,13 +16,10 @@ import { normalizeExcelCell, ensurePaddedMatrix, verifyTableStructure } from "./
 import { enhancePageQualityAndExtractAssets, ExtractedQrCode } from "./documentQualityEnhancer";
 import { parseInvoiceStructureFromGrid } from "./invoiceLayoutSplitter";
 import { generateEnterpriseMultiTabWorkbook } from "./enterpriseMultiTabExcelGenerator";
+import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
-// Ensure pdf.js worker is registered
-if (typeof window !== "undefined" && !(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Ensure local pdf.js worker is registered
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export type PdfToExcelPreset = "auto" | "table" | "fields" | "invoice" | "per-page";
 

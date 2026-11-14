@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { toStrictArrayBuffer } from "../utils/binaryUtils";
+import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
 import {
   FileText,
   RefreshCw,
@@ -16,12 +17,8 @@ import {
   Lock,
 } from "lucide-react";
 
-// Ensure PDF.js worker is registered
-if (typeof window !== "undefined" && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-    pdfjsLib.version || "4.10.38"
-  }/pdf.worker.min.mjs`;
-}
+// Ensure local PDF.js worker is registered
+ensurePdfJsWorkerConfigured(pdfjsLib);
 
 export interface PdfDocumentMeta {
   pageCount: number;
@@ -260,10 +257,10 @@ export const PdfPreviewCanvas: React.FC<PdfPreviewCanvasProps> = ({
 
         if (isCancelled) return;
 
+        ensurePdfJsWorkerConfigured(pdfjsLib);
         const loadingTask = pdfjsLib.getDocument({
           data: bufferData.slice(0),
-          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/cmaps/",
-          cMapPacked: true,
+          useSystemFonts: true,
         });
 
         loadingTask.onPassword = () => {
