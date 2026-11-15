@@ -10,11 +10,31 @@ import {
   maskPhoneNumber,
   maskUserIdentifier,
 } from "./otpNotificationService";
+import { getJwtSecret, isValidAdminSecret } from "./middleware/adminAuth";
+import { getUserSubscription } from "./paymentStore";
 
 export { maskEmailAddress, maskPhoneNumber, maskUserIdentifier };
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_SECRET_KEY || "PDFSun_Secure_JWT_Secret_Token_2026_Enterprise";
 const USERS_FILE_PATH = path.join(process.cwd(), "users_store.json");
+
+function isOwnerAccountEmail(email: string): boolean {
+  const clean = (email || "").toLowerCase().trim();
+  return DUAL_OWNER_EMAILS.includes(clean) || clean === "mukeshkalonia241@gmail.com" || clean === "mukeshinland79@gmail.com";
+}
+
+function resolveAuthoritativeEntitlement(user: Pick<StoredUser, "email" | "role" | "plan" | "hasAdminAccess">): {
+  isPro: boolean;
+  plan: string;
+} {
+  if (isOwnerAccountEmail(user.email) || user.role === "owner") {
+    return { isPro: true, plan: "Founder & Owner" };
+  }
+  const { subscription, isActive } = getUserSubscription(user.email);
+  return {
+    isPro: isActive,
+    plan: isActive ? subscription?.plan_name || user.plan || "Pro Sun Plan" : "Free Plan",
+  };
+}
 
 export interface StoredUser {
   id: string;
@@ -178,42 +198,32 @@ function loadUsersStore(): void {
     usersStore = {};
   }
 
-  // Ensure default Owner and Demo accounts exist
+  // Ensure default Owner accounts exist without hardcoded plaintext passwords in source
+  const ownerDefaultPass = (process.env.OWNER_BOOTSTRAP_PASSWORD || process.env.ADMIN_SECRET_KEY || "").trim();
+  const ownerPhone = (process.env.OWNER_MFA_PHONE || "").trim();
   const defaultAccounts = [
     {
       id: "owner-001",
       name: "Mukesh Kalonia",
       email: "mukeshkalonia241@gmail.com",
-      phone: "+91 9991659655",
+      phone: ownerPhone,
       role: "owner" as UserRole,
       plan: "Founder & Owner",
       hasAdminAccess: true,
       isPro: true,
-      defaultPass: "mukesh123",
+      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
     },
     {
       id: "owner-002",
       name: "Mukesh Inland",
       email: "mukeshinland79@gmail.com",
-      phone: "+91 9991659655",
+      phone: ownerPhone,
       role: "owner" as UserRole,
       plan: "Founder & Owner",
       hasAdminAccess: true,
       isPro: true,
-      defaultPass: "mukesh123",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-    },
-    {
-      id: "usr-demo-01",
-      name: "Alex Rivera",
-      email: "alex.rivera@university.edu",
-      phone: "+91 9991659655",
-      role: "user" as UserRole,
-      plan: "Student Pro",
-      hasAdminAccess: false,
-      isPro: true,
-      defaultPass: "demo123",
+      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     },
   ];
@@ -259,9 +269,10 @@ export function normalizeLoginIdentifier(input: string): string {
   if (!input) return "";
   const cleaned = input.trim().toLowerCase();
 
-  // Check for primary Owner contact / phone numbers
+  // Check for configured Owner contact number (only when explicitly configured via env)
+  const ownerPhoneDigits = (process.env.OWNER_MFA_PHONE || "").replace(/\D/g, "");
   const digitsOnly = cleaned.replace(/\D/g, "");
-  if (digitsOnly === "9991659655" || digitsOnly.endsWith("9991659655") || cleaned.includes("9991659655")) {
+  if (ownerPhoneDigits.length >= 10 && digitsOnly.length >= 10 && (digitsOnly === ownerPhoneDigits || digitsOnly.endsWith(ownerPhoneDigits))) {
     return "mukeshinland79@gmail.com";
   }
 
@@ -318,7 +329,7 @@ export function generateUserJwtToken(payload: AuthSessionPayload): string {
       isPro: payload.isPro || false,
       clientBinding: payload.clientBinding,
     },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: "7d" }
   );
 }
@@ -364,7 +375,7 @@ export function verifySessionToken(token: string, ip?: string, userAgent?: strin
   try {
     if (!token) return null;
     if (REVOKED_SESSION_TOKENS.has(token)) return null;
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthSessionPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as AuthSessionPayload;
     if (decoded && decoded.email) {
       if (decoded.clientBinding && ip && userAgent) {
         const expectedBinding = hashClientBinding(ip, userAgent);
@@ -481,7 +492,7 @@ export async function initiateBankingStep1Login(params: {
   // 4. Generate & Dispatch 6-Digit Banking OTP
   const otp = generateSecureOtp();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
-  const phone = user?.phone || "+91 9991659655";
+  const phone = user?.phone || (isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "");
 
   bankingOtpStore[email] = {
     otp,
@@ -602,12 +613,7 @@ export async function verifyBankingStep2Otp(params: {
   resetFailedAttempts(email);
   delete bankingOtpStore[email];
 
-  const isOwnerEmail =
-    DUAL_OWNER_EMAILS.includes(email) ||
-    email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com" ||
-    email.includes("mukeshinland") ||
-    email.includes("mukeshkalonia");
+  const isOwnerEmail = isOwnerAccountEmail(email);
 
   let user = usersStore[email];
   if (!user) {
@@ -616,11 +622,11 @@ export async function verifyBankingStep2Otp(params: {
       id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
       name: isOwnerEmail ? (email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia") : email.split("@")[0].replace(/[._]/g, " "),
       email,
-      phone: "+91 9991659655",
-      passwordHash: hashPassword("pdfsunPass2026", salt),
+      phone: isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "",
+      passwordHash: hashPassword(crypto.randomBytes(24).toString("hex"), salt),
       salt,
       role: isOwnerEmail ? "owner" : "user",
-      plan: isOwnerEmail ? "Founder & Owner" : "Free Customer",
+      plan: isOwnerEmail ? "Founder & Owner" : "Free Plan",
       hasAdminAccess: isOwnerEmail,
       isPro: isOwnerEmail,
       avatar: isOwnerEmail ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : undefined,
@@ -635,6 +641,10 @@ export async function verifyBankingStep2Otp(params: {
       user.hasAdminAccess = true;
       user.isPro = true;
       user.plan = "Founder & Owner";
+    } else {
+      const ent = resolveAuthoritativeEntitlement(user);
+      user.isPro = ent.isPro;
+      user.plan = ent.plan;
     }
     user.lastLoginAt = new Date().toISOString();
   }
@@ -711,7 +721,7 @@ export async function resendBankingOtp(params: {
   }
 
   const user = usersStore[email];
-  const phone = user?.phone || "+91 9991659655";
+  const phone = user?.phone || (isOwnerAccountEmail(email) ? process.env.OWNER_MFA_PHONE || "" : "");
   const otp = generateSecureOtp();
   const expiresAt = Date.now() + 5 * 60 * 1000;
 
@@ -766,10 +776,13 @@ export async function requestPasswordResetOtp(params: {
   }
 
   const isPhone = !rawInput.includes("@");
-  let user = findUserByIdentifier(rawInput);
+  const user = findUserByIdentifier(rawInput);
   const clean = normalizeLoginIdentifier(rawInput);
   const email = user?.email || (clean || rawInput).toLowerCase().trim();
-  const phone = user?.phone || (isPhone ? rawInput : "+91 9991659655");
+  if (!user && !email.includes("@")) {
+    return { success: false, error: "No registered account found for that mobile number." };
+  }
+  const phone = user?.phone || (isPhone ? rawInput : isOwnerAccountEmail(email) ? process.env.OWNER_MFA_PHONE || "" : "");
   const ip = params.ip || "127.0.0.1";
 
   const rateLimit = checkOtpRateLimit(email, ip);
@@ -794,7 +807,6 @@ export async function requestPasswordResetOtp(params: {
     lastSentAt: Date.now(),
   };
 
-  // Also bind by phone if given
   if (phone) {
     bankingOtpStore[phone] = bankingOtpStore[email];
   }
@@ -803,7 +815,7 @@ export async function requestPasswordResetOtp(params: {
 
   const dispatchResult = await dispatchMultiChannelOtp({
     otp,
-    recipientEmail: email.includes("@") ? email : "mukeshinland79@gmail.com",
+    recipientEmail: user?.email || email,
     recipientPhone: phone,
     userName: user?.name || "Valued User",
     purpose: "PASSWORD_RESET",
@@ -866,21 +878,22 @@ export async function verifyAndResetPassword(params: {
   resetFailedAttempts(email);
 
   let user = usersStore[email];
-  const isOwnerEmail = DUAL_OWNER_EMAILS.includes(email) || email.includes("mukesh");
+  const isOwnerEmail = isOwnerAccountEmail(email);
   const salt = crypto.randomBytes(16).toString("hex");
 
   if (!user) {
+    const ent = resolveAuthoritativeEntitlement({ email, role: isOwnerEmail ? "owner" : "user", plan: "Free Plan", hasAdminAccess: isOwnerEmail });
     user = {
       id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
       name: isOwnerEmail ? "Mukesh Owner" : email.split("@")[0].replace(/[._]/g, " "),
       email,
-      phone: "+91 9991659655",
+      phone: isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "",
       passwordHash: hashPassword(newPassword, salt),
       salt,
       role: isOwnerEmail ? "owner" : "user",
-      plan: isOwnerEmail ? "Founder & Owner" : "Free Customer",
+      plan: ent.plan,
       hasAdminAccess: isOwnerEmail,
-      isPro: isOwnerEmail,
+      isPro: ent.isPro,
       avatar: isOwnerEmail ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : undefined,
       joinedDate: isOwnerEmail ? "Founder & Owner" : "Jan 2026",
       createdAt: new Date().toISOString(),
@@ -890,6 +903,9 @@ export async function verifyAndResetPassword(params: {
   } else {
     user.passwordHash = hashPassword(newPassword, salt);
     user.salt = salt;
+    const ent = resolveAuthoritativeEntitlement(user);
+    user.isPro = ent.isPro;
+    user.plan = ent.plan;
     user.lastLoginAt = new Date().toISOString();
   }
 
@@ -1012,21 +1028,22 @@ export async function updatePasswordWithResetToken(params: {
   delete resetTokenStore[resetToken];
 
   let user = usersStore[email];
-  const isOwnerEmail = DUAL_OWNER_EMAILS.includes(email) || email.includes("mukesh");
+  const isOwnerEmail = isOwnerAccountEmail(email);
   const salt = crypto.randomBytes(16).toString("hex");
 
   if (!user) {
+    const ent = resolveAuthoritativeEntitlement({ email, role: isOwnerEmail ? "owner" : "user", plan: "Free Plan", hasAdminAccess: isOwnerEmail });
     user = {
       id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
       name: isOwnerEmail ? "Mukesh Owner" : email.split("@")[0].replace(/[._]/g, " "),
       email,
-      phone: "+91 9991659655",
+      phone: isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "",
       passwordHash: hashPassword(newPassword, salt),
       salt,
       role: isOwnerEmail ? "owner" : "user",
-      plan: isOwnerEmail ? "Founder & Owner" : "Free Customer",
+      plan: ent.plan,
       hasAdminAccess: isOwnerEmail,
-      isPro: isOwnerEmail,
+      isPro: ent.isPro,
       avatar: isOwnerEmail ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : undefined,
       joinedDate: isOwnerEmail ? "Founder & Owner" : "Jan 2026",
       createdAt: new Date().toISOString(),
@@ -1036,6 +1053,9 @@ export async function updatePasswordWithResetToken(params: {
   } else {
     user.passwordHash = hashPassword(newPassword, salt);
     user.salt = salt;
+    const ent = resolveAuthoritativeEntitlement(user);
+    user.isPro = ent.isPro;
+    user.plan = ent.plan;
     user.lastLoginAt = new Date().toISOString();
   }
 
@@ -1101,9 +1121,13 @@ export function registerUserAccount(params: {
     return { success: false, error: "Please enter your Email Address or Mobile Number." };
   }
 
+  if (!params.password || params.password.length < 4) {
+    return { success: false, error: "Password must be at least 4 characters long." };
+  }
+
   const isEmail = rawInput.includes("@");
   let email = isEmail ? rawInput.toLowerCase() : "";
-  let phone = params.phone || (!isEmail ? rawInput : "+91 9991659655");
+  let phone = params.phone || (!isEmail ? rawInput : "");
 
   if (!isEmail) {
     const digits = rawInput.replace(/\D/g, "");
@@ -1114,6 +1138,10 @@ export function registerUserAccount(params: {
     phone = rawInput.startsWith("+") ? rawInput : `+91 ${digits}`;
   }
 
+  if (isOwnerAccountEmail(email)) {
+    return { success: false, error: "This email is reserved. Please sign in with verified owner credentials." };
+  }
+
   // Duplicate Check across both email and phone
   const existingUser = findUserByIdentifier(rawInput) || (email ? usersStore[email] : null);
   if (existingUser) {
@@ -1121,26 +1149,20 @@ export function registerUserAccount(params: {
   }
 
   const salt = crypto.randomBytes(16).toString("hex");
-  const defaultPass = params.password || "pdfsunPass2026";
-  const passwordHash = hashPassword(defaultPass, salt);
-
-  const isOwnerEmail =
-    DUAL_OWNER_EMAILS.includes(email) ||
-    email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com" ||
-    rawInput.includes("9991659655");
+  const passwordHash = hashPassword(params.password, salt);
+  const ent = resolveAuthoritativeEntitlement({ email, role: "user", plan: "Free Plan", hasAdminAccess: false });
 
   const newUser: StoredUser = {
     id: "usr-" + Math.random().toString(36).substring(2, 9),
-    name: params.name?.trim() || (isOwnerEmail ? "Mukesh Owner" : isEmail ? email.split("@")[0].replace(/[._]/g, " ") : "PDFSun User"),
+    name: params.name?.trim() || (isEmail ? email.split("@")[0].replace(/[._]/g, " ") : "PDFSun User"),
     email,
     phone,
     passwordHash,
     salt,
-    role: isOwnerEmail ? "owner" : "user",
-    plan: isOwnerEmail ? "Founder & Owner" : "Free Customer",
-    hasAdminAccess: isOwnerEmail,
-    isPro: isOwnerEmail,
+    role: "user",
+    plan: ent.plan,
+    hasAdminAccess: false,
+    isPro: ent.isPro,
     joinedDate: "Jan 2026",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
@@ -1175,7 +1197,7 @@ export function registerUserAccount(params: {
 }
 
 /**
- * Authenticate existing user with credentials
+ * Authenticate existing user with credentials (fail-closed: never auto-registers or skips password check)
  */
 export function authenticateUser(params: {
   email: string;
@@ -1184,30 +1206,51 @@ export function authenticateUser(params: {
   isOwnerLogin?: boolean;
 }): { success: boolean; token?: string; user?: UserProfile; error?: string } {
   const rawInput = (params.email || "").trim();
+  const passwordInput = (params.password || params.ownerSecretKey || "").trim();
+
   if (!rawInput) {
     return { success: false, error: "Please enter your email or registered mobile number." };
+  }
+  if (!passwordInput) {
+    return { success: false, error: "Password or security passkey is required." };
   }
 
   let user = findUserByIdentifier(rawInput);
   const normalizedInput = normalizeLoginIdentifier(rawInput);
   const email = user ? user.email : (normalizedInput || rawInput).toLowerCase().trim();
+  const isOwnerEmail = isOwnerAccountEmail(email);
 
-  const isOwnerEmail =
-    DUAL_OWNER_EMAILS.includes(email) ||
-    email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com" ||
-    rawInput.includes("9991659655") ||
-    email.includes("mukeshinland") ||
-    email.includes("mukeshkalonia");
-
+  // Only permit bootstrap owner access when an authentic cryptographic ADMIN_SECRET_KEY is supplied
   if (!user) {
-    const registerResult = registerUserAccount({
-      email,
-      identifier: rawInput,
-      name: email.split("@")[0].replace(/[._]/g, " "),
-      password: params.password || "pdfsunPass2026",
-    });
-    return registerResult;
+    if (isOwnerEmail && params.isOwnerLogin && isValidAdminSecret(passwordInput)) {
+      const salt = crypto.randomBytes(16).toString("hex");
+      user = {
+        id: "owner-" + Math.random().toString(36).substring(2, 7),
+        name: email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia",
+        email,
+        phone: process.env.OWNER_MFA_PHONE || "",
+        passwordHash: hashPassword(passwordInput, salt),
+        salt,
+        role: "owner",
+        plan: "Founder & Owner",
+        hasAdminAccess: true,
+        isPro: true,
+        joinedDate: "Founder & Owner",
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      usersStore[email] = user;
+    } else {
+      return { success: false, error: "Invalid login credentials. Account not found or password incorrect." };
+    }
+  }
+
+  const isOwnerSecretMatch = isOwnerEmail && isValidAdminSecret(passwordInput);
+  const computedHash = user.salt && user.passwordHash ? hashPassword(passwordInput, user.salt) : "";
+  const isPasswordMatch = Boolean(computedHash && user.passwordHash && computedHash === user.passwordHash);
+
+  if (!isPasswordMatch && !isOwnerSecretMatch) {
+    return { success: false, error: "Incorrect password. Please verify your credentials and try again." };
   }
 
   if (isOwnerEmail) {
@@ -1215,16 +1258,11 @@ export function authenticateUser(params: {
     user.hasAdminAccess = true;
     user.isPro = true;
     user.plan = "Founder & Owner";
-  }
-
-  if (params.password && user.salt && user.passwordHash) {
-    const computedHash = hashPassword(params.password, user.salt);
-    const configuredSecret = process.env.ADMIN_SECRET_KEY;
-    const isOwnerSecretMatch = isOwnerEmail && configuredSecret && configuredSecret !== "12345" && params.password === configuredSecret;
-
-    if (computedHash !== user.passwordHash && !isOwnerSecretMatch) {
-      return { success: false, error: "Incorrect password. Please verify your credentials and try again." };
-    }
+  } else {
+    user.hasAdminAccess = user.role === "admin";
+    const ent = resolveAuthoritativeEntitlement(user);
+    user.isPro = ent.isPro;
+    user.plan = ent.plan;
   }
 
   user.lastLoginAt = new Date().toISOString();
@@ -1258,19 +1296,20 @@ export function authenticateUser(params: {
 }
 
 /**
- * Get user profile by email
+ * Get user profile by email with real-time subscription synchronization
  */
 export function getUserProfileByEmail(email: string): UserProfile | null {
   const user = usersStore[email.toLowerCase().trim()];
   if (!user) return null;
+  const ent = resolveAuthoritativeEntitlement(user);
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    plan: user.plan,
+    plan: ent.plan,
     hasAdminAccess: user.hasAdminAccess,
-    isPro: user.isPro,
+    isPro: ent.isPro,
     avatar: user.avatar,
     joinedDate: user.joinedDate,
   };
@@ -1278,6 +1317,7 @@ export function getUserProfileByEmail(email: string): UserProfile | null {
 
 /**
  * Authenticate or register a social OAuth user (Google, Facebook, SSO)
+ * Strictly derives PRO entitlement from verified payment/subscription store (never auto-grants PRO on provider === "sso").
  */
 export function authenticateSocialUser(params: {
   provider: "google" | "facebook" | "apple" | "sso";
@@ -1291,14 +1331,16 @@ export function authenticateSocialUser(params: {
     return { success: false, error: "Valid email address is required for social sign-in." };
   }
 
-  const isOwnerEmail =
-    DUAL_OWNER_EMAILS.includes(email) ||
-    email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com" ||
-    email.includes("mukeshinland") ||
-    email.includes("mukeshkalonia");
+  const isOwnerEmail = isOwnerAccountEmail(email);
 
   let user = usersStore[email];
+  const ent = resolveAuthoritativeEntitlement({
+    email,
+    role: isOwnerEmail ? "owner" : "user",
+    plan: user?.plan || "Free Plan",
+    hasAdminAccess: isOwnerEmail,
+  });
+
   if (!user) {
     const salt = crypto.randomBytes(16).toString("hex");
     const defaultName = params.name?.trim() || email.split("@")[0].replace(/[._]/g, " ");
@@ -1306,14 +1348,14 @@ export function authenticateSocialUser(params: {
       id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
       name: defaultName,
       email,
-      phone: "+91 9991659655",
+      phone: isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "",
       passwordHash: hashPassword(crypto.randomBytes(16).toString("hex"), salt),
       salt,
       role: isOwnerEmail ? "owner" : "user",
-      plan: isOwnerEmail ? "Founder & Owner" : params.provider === "sso" ? "Enterprise SSO" : "Free Plan",
+      plan: ent.plan,
       hasAdminAccess: isOwnerEmail,
-      isPro: isOwnerEmail || params.provider === "sso",
-      avatar: params.avatar || (params.provider === "google" ? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" : undefined),
+      isPro: ent.isPro,
+      avatar: params.avatar,
       joinedDate: "Jan 2026",
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
@@ -1325,9 +1367,9 @@ export function authenticateSocialUser(params: {
       user.hasAdminAccess = true;
       user.isPro = true;
       user.plan = "Founder & Owner";
-    } else if (params.provider === "sso") {
-      user.plan = "Enterprise SSO";
-      user.isPro = true;
+    } else {
+      user.isPro = ent.isPro;
+      user.plan = ent.plan;
     }
     if (params.name && (!user.name || user.name === "PDFSun User")) {
       user.name = params.name;
@@ -1492,6 +1534,8 @@ export function repairAndRestoreDatabase(): {
   let ownersRestored = 0;
   let customersRestored = 0;
 
+  const ownerDefaultPass = (process.env.OWNER_BOOTSTRAP_PASSWORD || process.env.ADMIN_SECRET_KEY || "").trim();
+  const ownerPhone = (process.env.OWNER_MFA_PHONE || "").trim();
   const primaryOwners = [
     {
       id: "owner-001",
@@ -1501,7 +1545,7 @@ export function repairAndRestoreDatabase(): {
       plan: "Founder & Owner - Unlimited",
       hasAdminAccess: true,
       isPro: true,
-      defaultPass: "mukesh123",
+      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
     },
     {
@@ -1512,7 +1556,7 @@ export function repairAndRestoreDatabase(): {
       plan: "Founder & Owner - Unlimited",
       hasAdminAccess: true,
       isPro: true,
-      defaultPass: "mukesh123",
+      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     },
   ];
@@ -1525,7 +1569,7 @@ export function repairAndRestoreDatabase(): {
         id: owner.id,
         name: owner.name,
         email: owner.email,
-        phone: "+91 9991659655",
+        phone: ownerPhone,
         passwordHash: hashPassword(owner.defaultPass, salt),
         salt,
         role: "owner",
@@ -1550,10 +1594,7 @@ export function repairAndRestoreDatabase(): {
   }
 
   for (const [email, user] of Object.entries(usersStore)) {
-    const isOwner =
-      DUAL_OWNER_EMAILS.includes(email) ||
-      email === "mukeshkalonia241@gmail.com" ||
-      email === "mukeshinland79@gmail.com";
+    const isOwner = isOwnerAccountEmail(email);
 
     if (isOwner) {
       user.role = "owner";
@@ -1566,8 +1607,10 @@ export function repairAndRestoreDatabase(): {
         user.role = "user";
         modified = true;
       }
-      if (!user.plan) {
-        user.plan = "Free Customer";
+      const ent = resolveAuthoritativeEntitlement(user);
+      if (user.isPro !== ent.isPro || user.plan !== ent.plan) {
+        user.isPro = ent.isPro;
+        user.plan = ent.plan;
         modified = true;
       }
       customersRestored++;

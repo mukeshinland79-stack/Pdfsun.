@@ -56,88 +56,9 @@ export interface SEOPerformanceDashboardProps {
   className?: string;
 }
 
-const mockSeoTimeSeries: SeoTrendPoint[] = [
-  { date: "Jul 1", clicks: 4200, impressions: 32000, ctrPct: 13.1, avgPosition: 4.2 },
-  { date: "Jul 5", clicks: 4800, impressions: 35400, ctrPct: 13.5, avgPosition: 3.9 },
-  { date: "Jul 10", clicks: 5300, impressions: 38200, ctrPct: 13.8, avgPosition: 3.7 },
-  { date: "Jul 15", clicks: 5900, impressions: 41000, ctrPct: 14.3, avgPosition: 3.5 },
-  { date: "Jul 20", clicks: 6400, impressions: 43500, ctrPct: 14.7, avgPosition: 3.3 },
-  { date: "Jul 25", clicks: 7100, impressions: 47200, ctrPct: 15.0, avgPosition: 3.1 },
-  { date: "Jul 30", clicks: 7800, impressions: 51000, ctrPct: 15.2, avgPosition: 2.9 },
-];
+const seoTimeSeries: SeoTrendPoint[] = [];
 
-const mockKeywordRankings: KeywordRankingItem[] = [
-  {
-    query: "compress pdf online free",
-    clicks: 42100,
-    impressions: 245000,
-    ctrPct: 17.18,
-    avgPosition: 1.8,
-    positionChange: +0.6,
-    targetUrl: "/compress-pdf",
-    intent: "Transactional",
-  },
-  {
-    query: "merge pdf files without limits",
-    clicks: 34800,
-    impressions: 210000,
-    ctrPct: 16.57,
-    avgPosition: 2.1,
-    positionChange: +1.2,
-    targetUrl: "/merge-pdf",
-    intent: "Transactional",
-  },
-  {
-    query: "pdf to word converter free",
-    clicks: 29400,
-    impressions: 195000,
-    ctrPct: 15.07,
-    avgPosition: 2.4,
-    positionChange: -0.2,
-    targetUrl: "/pdf-to-word",
-    intent: "Transactional",
-  },
-  {
-    query: "edit pdf text online free",
-    clicks: 22100,
-    impressions: 168000,
-    ctrPct: 13.15,
-    avgPosition: 3.2,
-    positionChange: +2.1,
-    targetUrl: "/pdf-editor",
-    intent: "Transactional",
-  },
-  {
-    query: "split pdf pages online",
-    clicks: 18500,
-    impressions: 142000,
-    ctrPct: 13.02,
-    avgPosition: 3.5,
-    positionChange: +0.8,
-    targetUrl: "/split-pdf",
-    intent: "Transactional",
-  },
-  {
-    query: "how to compress pdf to 100kb",
-    clicks: 14200,
-    impressions: 118000,
-    ctrPct: 12.03,
-    avgPosition: 4.1,
-    positionChange: +1.5,
-    targetUrl: "/blog/how-to-compress-pdf-100kb",
-    intent: "Informational",
-  },
-  {
-    query: "pdfsun pdf tools",
-    clicks: 12800,
-    impressions: 24000,
-    ctrPct: 53.33,
-    avgPosition: 1.0,
-    positionChange: 0.0,
-    targetUrl: "/",
-    intent: "Navigational",
-  },
-];
+const keywordRankings: KeywordRankingItem[] = [];
 
 export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = ({
   className = "",
@@ -147,19 +68,22 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  const filteredKeywords = mockKeywordRankings.filter(
+  const filteredKeywords = keywordRankings.filter(
     (k) =>
       (k.query || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
       (k.targetUrl || "").toLowerCase().includes((searchTerm || "").toLowerCase())
   );
 
-  const totalClicks = mockKeywordRankings.reduce((sum, k) => sum + k.clicks, 0);
-  const totalImpressions = mockKeywordRankings.reduce((sum, k) => sum + k.impressions, 0);
-  const avgCtr = (totalClicks / totalImpressions) * 100;
-  const weightedPosition = (
-    mockKeywordRankings.reduce((sum, k) => sum + k.avgPosition * k.impressions, 0) /
-    totalImpressions
-  ).toFixed(1);
+  const totalClicks = keywordRankings.reduce((sum, k) => sum + k.clicks, 0);
+  const totalImpressions = keywordRankings.reduce((sum, k) => sum + k.impressions, 0);
+  const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const weightedPosition =
+    totalImpressions > 0
+      ? (
+          keywordRankings.reduce((sum, k) => sum + k.avgPosition * k.impressions, 0) /
+          totalImpressions
+        ).toFixed(1)
+      : "—";
 
   const handleRefreshSync = () => {
     setIsSyncing(true);
@@ -170,7 +94,7 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
 
   const exportKeywordCsv = () => {
     let csv = "Query,Clicks,Impressions,CTR (%),Avg Position,Position Change,Target URL,Intent\n";
-    mockKeywordRankings.forEach((k) => {
+    keywordRankings.forEach((k) => {
       csv += `"${k.query}",${k.clicks},${k.impressions},${k.ctrPct}%,${k.avgPosition},${k.positionChange},"${k.targetUrl}","${k.intent}"\n`;
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -195,8 +119,8 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
               <h3 className="text-sm font-black uppercase tracking-wider text-white">
                 Google Search Console SEO & Keyword Rankings
               </h3>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
-                GSC API Synced
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-700/80 text-slate-300 border border-slate-600 uppercase">
+                Awaiting GSC OAuth
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -262,10 +186,6 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
               {totalClicks.toLocaleString()}
             </span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +18.4%
-            </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Organic clicks from Google SERP
@@ -280,11 +200,7 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {(totalImpressions / 1000).toFixed(1)}K
-            </span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +24.1%
+              {totalImpressions > 0 ? `${(totalImpressions / 1000).toFixed(1)}K` : "0"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -300,11 +216,7 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {avgCtr.toFixed(2)}%
-            </span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +2.1%
+              {totalImpressions > 0 ? `${avgCtr.toFixed(2)}%` : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -321,10 +233,6 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
               {weightedPosition}
-            </span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +0.8 Rank
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -371,81 +279,87 @@ export const SEOPerformanceDashboard: React.FC<SEOPerformanceDashboardProps> = (
         </div>
 
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            {activeTab === "traffic" ? (
-              <AreaChart data={mockSeoTimeSeries}>
-                <defs>
-                  <linearGradient id="clicksGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    borderRadius: "12px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="clicks"
-                  name="Organic Clicks"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  fill="url(#clicksGrad)"
-                />
-              </AreaChart>
-            ) : (
-              <LineChart data={mockSeoTimeSeries}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis yAxisId="left" stroke="#a855f7" fontSize={12} tickLine={false} />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#f59e0b"
-                  fontSize={12}
-                  tickLine={false}
-                  reversed
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    borderRadius: "12px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="ctrPct"
-                  name="CTR (%)"
-                  stroke="#a855f7"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="avgPosition"
-                  name="Avg Position (Lower = Better)"
-                  stroke="#f59e0b"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
+          {seoTimeSeries.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-slate-400 text-center px-6">
+              No Search Console series imported yet. Synthetic/mock SEO curves have been removed for analytics integrity.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {activeTab === "traffic" ? (
+                <AreaChart data={seoTimeSeries}>
+                  <defs>
+                    <linearGradient id="clicksGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      borderRadius: "12px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="clicks"
+                    name="Organic Clicks"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    fill="url(#clicksGrad)"
+                  />
+                </AreaChart>
+              ) : (
+                <LineChart data={seoTimeSeries}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis yAxisId="left" stroke="#a855f7" fontSize={12} tickLine={false} />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#f59e0b"
+                    fontSize={12}
+                    tickLine={false}
+                    reversed
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      borderRadius: "12px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="ctrPct"
+                    name="CTR (%)"
+                    stroke="#a855f7"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="avgPosition"
+                    name="Avg Position (Lower = Better)"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

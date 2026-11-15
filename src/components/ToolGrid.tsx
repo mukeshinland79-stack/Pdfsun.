@@ -18,6 +18,7 @@ import { LazyToolCard } from "./LazyToolCard";
 import { VirtualizedToolGrid } from "./VirtualizedToolGrid";
 import { useUsageAnalytics } from "../hooks/useUsageAnalytics";
 import { useToolRatings } from "../hooks/useToolRatings";
+import { trackToolOpened } from "../utils/analytics";
 import { useLanguage } from "../lib/i18n";
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
@@ -58,7 +59,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
   popularTools,
 }) => {
   const { t } = useLanguage();
-  const { isMostPopular, getFormattedUsage, trackToolUsage } = useUsageAnalytics();
+  const { isMostPopular, getFormattedUsage } = useUsageAnalytics();
   const { getToolRating, rateTool } = useToolRatings();
 
   // Track tool usage frequency in localStorage
@@ -92,7 +93,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Record tool usage frequency to localStorage and trigger analytics
+  // Record personal shortcut preference locally and emit tool_opened (clicks do not count as conversions)
   const handleToolSelect = (tool: ToolItem) => {
     try {
       const updated = {
@@ -104,7 +105,7 @@ export const ToolGrid: React.FC<ToolGridProps> = ({
     } catch (e) {
       console.warn("Failed to store tool usage frequency:", e);
     }
-    trackToolUsage(tool.id);
+    trackToolOpened(tool.id);
     onSelectTool(tool);
   };
 

@@ -1,7 +1,7 @@
 /**
  * PDFSun.in — Phase 11E: Real-World File Testing & Customer Acceptance Harness
  * Comprehensive verification of the 8 prioritized video workflows, 404 root cause,
- * download reliability, and complete 66-tool catalog audit.
+ * download reliability, and complete 68-tool catalog audit.
  */
 
 import http from "http";
@@ -628,9 +628,9 @@ async function runAcceptanceTesting() {
   }
 
   // =========================================================================
-  // SECTION 3: AUDITING THE REMAINING 58 TOOLS (COMPLETE 66 CATALOG)
+  // SECTION 3: AUDITING THE REMAINING 60 TOOLS (COMPLETE 68 CATALOG)
   // =========================================================================
-  console.log("\n--- [3/4] Auditing Remaining 58 Registered Tools Across Catalog ---");
+  console.log("\n--- [3/4] Auditing Remaining 60 Registered Tools Across Catalog ---");
   const workspaceSrc = fs.readFileSync("src/components/ActiveToolWorkspace.tsx", "utf-8");
   const appSrc = fs.readFileSync("src/App.tsx", "utf-8");
 
@@ -705,7 +705,7 @@ async function runAcceptanceTesting() {
   const failCount = auditResults.filter((r) => r.status === "FAIL").length;
   const untestedCount = auditResults.filter((r) => r.status === "NOT TESTED").length;
 
-  console.log(`Total Tools Audited: ${auditResults.length} / 66`);
+  console.log(`Total Tools Audited: ${auditResults.length} / 68`);
   console.log(`PASS: ${passCount}`);
   console.log(`PASS WITH WARNINGS: ${warnCount}`);
   console.log(`FAIL: ${failCount}`);

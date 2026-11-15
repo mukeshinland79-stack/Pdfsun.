@@ -63,6 +63,7 @@ import {
   Sliders,
   Shield,
   QrCode,
+  Barcode,
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ToolRating } from "./ToolRating";
@@ -133,6 +134,7 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   Sliders,
   Shield,
   QrCode,
+  Barcode,
 };
 
 interface ToolCardProps {
@@ -174,7 +176,7 @@ export const ToolCard: React.FC<ToolCardProps> = React.memo(({
     tool.isPro ? " Pro feature." : ""
   }${tool.isAi ? " AI powered." : ""}${tool.isStudentFavorite ? " Student essential." : ""}${
     isMostPopular ? " Most popular tool." : ""
-  }${ratingState ? ` Rating ${ratingState.avgRating.toFixed(1)} out of 5 stars with ${ratingState.totalRatings} ratings.` : ""}`;
+  }${ratingState && ratingState.totalRatings > 0 ? ` Rating ${ratingState.avgRating.toFixed(1)} out of 5 stars with ${ratingState.totalRatings} ratings.` : ""}`;
 
   return (
     <article

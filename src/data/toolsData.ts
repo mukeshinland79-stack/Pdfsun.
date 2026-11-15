@@ -85,6 +85,68 @@ export const ALL_TOOLS: ToolItem[] = [
     ],
   },
   {
+    id: "barcode-generator",
+    name: "Barcode Generator",
+    slug: "barcode-generator",
+    description: "Generate ISO/GS1 verified 1D barcodes including Code 128, EAN-13, UPC-A, UPC-E, EAN-8, Code 39, ITF-14, Codabar, and GS1-128 with bulk CSV/Excel batch generation and vector SVG, PNG, JPG, and PDF exports.",
+    icon: "Barcode",
+    category: "advanced",
+    isPopular: true,
+    isStudentFavorite: true,
+    badge: "NEW",
+    supportedInput: [".csv", ".xls", ".xlsx"],
+    outputFormat: "PNG / SVG / PDF / ZIP",
+    faqs: [
+      {
+        question: "Which barcode symbologies does PDFSun Barcode Generator support?",
+        answer: "PDFSun supports 9 industrial and retail symbologies: Code 128 (Auto B/C), EAN-13, UPC-A, UPC-E, EAN-8, Code 39 (with optional Mod-43), ITF-14 (with shipping bearer bars), Codabar, and GS1-128 with FNC1 and Application Identifiers.",
+      },
+      {
+        question: "Does PDFSun automatically calculate and validate check digits?",
+        answer: "Yes. EAN-13, EAN-8, UPC-A, UPC-E, ITF-14, and GS1-128 GTIN fields automatically compute GS1 Mod-10 check digits when given the base digits, or strictly validate user-provided check digits to prevent unscannable labels.",
+      },
+      {
+        question: "Can I generate barcodes in bulk from an Excel or CSV spreadsheet?",
+        answer: "Yes. Switch to the Bulk CSV/Excel mode to import spreadsheets with leading zeros preserved, validate every row, and download a ZIP archive of PNG/SVG barcodes or a printable A4 PDF label sheet.",
+      },
+      {
+        question: "Are my product codes or inventory spreadsheets uploaded to a server?",
+        answer: "No. Barcode encoding, spreadsheet parsing, and SVG/PNG/PDF generation run 100% client-side inside your browser.",
+      },
+    ],
+  },
+  {
+    id: "qr-code-generator",
+    name: "QR Code Generator",
+    slug: "qr-code-generator",
+    description: "Create custom QR codes for URLs, Wi-Fi networks, vCard contacts, WhatsApp chats, emails, SMS, phone calls, GPS coordinates, Google Forms, and PDF menus with live jsQR scan verification and transparent PNG/SVG/PDF export.",
+    icon: "QrCode",
+    category: "advanced",
+    isPopular: true,
+    isStudentFavorite: true,
+    badge: "NEW",
+    supportedInput: [".csv", ".xls", ".xlsx", ".png", ".jpg", ".webp"],
+    outputFormat: "PNG / SVG / JPG / PDF / ZIP",
+    faqs: [
+      {
+        question: "What types of QR codes can I generate with PDFSun QR Code Generator?",
+        answer: "You can create structured QR codes for Website URLs, Plain Text, Email, Phone Calls, SMS, Wi-Fi networks, vCard 3.0 contacts, WhatsApp click-to-chat, GPS Location coordinates, Google Forms, and PDF/Digital Menu links.",
+      },
+      {
+        question: "How does PDFSun verify that my custom or logo QR code is scannable?",
+        answer: "After rendering your QR code on canvas, PDFSun runs a real in-browser jsQR decoder check against the generated pixels and only displays the Verified Scannable badge when the decoded payload matches your exact input.",
+      },
+      {
+        question: "Can I upload a center brand logo or export a transparent PNG?",
+        answer: "Yes. You can toggle transparent PNG output in Simple or Advanced mode, or upload a PNG, JPG, or WEBP logo up to 5 MB (SVG logos are blocked for security), which automatically elevates error correction to Level H (30%).",
+      },
+      {
+        question: "Are Wi-Fi passwords and vCard contact details kept private?",
+        answer: "Yes. Every QR payload, canvas render, jsQR scan verification, and export runs 100% locally in your browser with zero server transmission of your Wi-Fi credentials or contact data.",
+      },
+    ],
+  },
+  {
     id: "compress-pdf",
     name: "Compress PDF",
     slug: "compress-pdf",
@@ -894,13 +956,16 @@ export function getToolCount(): number {
   return ALL_TOOLS.length;
 }
 
+const countByCategory = (catId: string): number =>
+  ALL_TOOLS.filter((tool) => tool.category === catId).length;
+
 export const CATEGORIES = [
-  { id: "all", label: "All 66+ Tools", icon: "Grid" },
-  { id: "convert", label: "Convert PDF (15 Tools)", icon: "RefreshCw" },
-  { id: "edit", label: "Edit & Annotate (12 Tools)", icon: "Sliders" },
-  { id: "security", label: "Security & Privacy (8 Tools)", icon: "Shield" },
-  { id: "ai", label: "AI PDF Tools (10 Tools)", icon: "Sparkles" },
-  { id: "advanced", label: "Image & Utilities (21 Tools)", icon: "Wrench" },
+  { id: "all", label: `All ${ALL_TOOLS.length}+ Tools`, icon: "Grid" },
+  { id: "convert", label: `Convert PDF (${countByCategory("convert")} Tools)`, icon: "RefreshCw" },
+  { id: "edit", label: `Edit & Annotate (${countByCategory("edit")} Tools)`, icon: "Sliders" },
+  { id: "security", label: `Security & Privacy (${countByCategory("security")} Tools)`, icon: "Shield" },
+  { id: "ai", label: `AI PDF Tools (${countByCategory("ai")} Tools)`, icon: "Sparkles" },
+  { id: "advanced", label: `Image & Utilities (${countByCategory("advanced")} Tools)`, icon: "Wrench" },
   { id: "student", label: "Student Essentials", icon: "GraduationCap" },
   { id: "popular", label: "Most Popular", icon: "Flame" },
 ] as const;

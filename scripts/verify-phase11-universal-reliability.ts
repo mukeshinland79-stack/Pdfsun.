@@ -8,7 +8,7 @@
  * 4. PDF Filename & CSV MIME Sanitization (Path Traversal, Control Chars, Double Extensions)
  * 5. Excel & CSV Formula Injection Regression
  * 6. Cloud Run Proxy & IP Trust Architecture
- * 7. Complete 66-Tool Inventory & Routing Verification
+ * 7. Complete 68-Tool Inventory & Routing Verification
  */
 
 // Node environment polyfill for pdfjs-dist and DOMMatrix
@@ -256,10 +256,10 @@ async function runPhase11Tests() {
     assert(false, "Proxy & interceptor inspection", err?.message);
   }
 
-  // --- Task 7: Complete 66-Tool Inventory & Routing Verification ---
-  console.log("\n--- [7/7] Verifying Complete 66-Tool Inventory & Routing Integrity ---");
+  // --- Task 7: Complete 68-Tool Inventory & Routing Verification ---
+  console.log("\n--- [7/7] Verifying Complete 68-Tool Inventory & Routing Integrity ---");
   try {
-    assert(ALL_TOOLS.length === 66, `ALL_TOOLS contains exactly 66 registered tools (count: ${ALL_TOOLS.length})`);
+    assert(ALL_TOOLS.length === 68, `ALL_TOOLS contains exactly 68 registered tools (count: ${ALL_TOOLS.length})`);
 
     const appCode = fs.readFileSync("src/App.tsx", "utf-8");
     const workspaceCode = fs.readFileSync("src/components/ActiveToolWorkspace.tsx", "utf-8");
@@ -277,12 +277,12 @@ async function runPhase11Tests() {
         allCovered = false;
       }
     }
-    assert(allCovered, "All 66 registered tools mapped to active workspace cases, AI workspace, or dedicated tool components");
+    assert(allCovered, "All 68 registered tools mapped to active workspace cases, AI workspace, or dedicated tool components");
 
     const qrCodeDisplayUsage = workspaceCode.includes('QrCodeDisplay\n                    url={`${getPublicSiteUrl()}/#download=');
     assert(!qrCodeDisplayUsage, "ActiveToolWorkspace.tsx purged non-functional #download= QR code URL");
   } catch (err: any) {
-    assert(false, "66-tool audit verification", err?.message);
+    assert(false, "68-tool audit verification", err?.message);
   }
 
   console.log("=".repeat(80));

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { PSEOLandingPage, POPULAR_COMPRESS_SIZES, generateCompressSizePseoPage } from "../data/pSEOData";
 import { ALL_TOOLS } from "../data/toolsData";
+import { getToolPrivacyDetails } from "../data/privacyModes";
+import { PrivacyBadge } from "./PrivacyBadge";
 import { ToolItem } from "../types";
 import {
   ShieldCheck,
@@ -40,8 +42,12 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
     pseoPage.crossLinkToolIds.includes(t.id) || pseoPage.crossLinkToolIds.includes(t.slug)
   ).slice(0, 6);
 
+  const resolvedToolId = pseoPage.targetToolId || "compress-pdf";
+  const privacyDetails = getToolPrivacyDetails(resolvedToolId);
+  const isLocalMode = privacyDetails.mode === "local_wasm";
+
   const isCompressionTool =
-    pseoPage.targetToolId === "compress-pdf" || pseoPage.slug.includes("compress-pdf");
+    resolvedToolId === "compress-pdf" || pseoPage.slug.includes("compress-pdf");
 
   const targetSizeDisplay = pseoPage.targetLimit || "200KB";
 
@@ -83,12 +89,21 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
             {/* Green Status Badge ('Verified' tag) perfectly aligned on top-left with proper spacing */}
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-2xs">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Verified • 100% In-Browser Privacy</span>
+              <span>
+                {isLocalMode
+                  ? "Verified • 100% In-Browser Privacy"
+                  : `Verified • ${privacyDetails.badgeLabel}`}
+              </span>
             </span>
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs">
               <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              {pseoPage.region} • High-Speed WebAssembly Engine
+              {pseoPage.region} •{" "}
+              {isLocalMode
+                ? "High-Speed WebAssembly Engine"
+                : privacyDetails.mode === "ai_cloud"
+                ? "Server-Proxied Gemini AI"
+                : "Local-First + Cloud Fallback"}
             </span>
 
             {pseoPage.targetLimit && (
@@ -99,9 +114,7 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
             )}
           </div>
 
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-            <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
-          </span>
+          <PrivacyBadge toolId={resolvedToolId} variant="compact" />
         </div>
 
         {/* H1 & Sub-heading (WCAG AAA High Contrast: Deep Navy #0F172A & Dark Slate #1E293B) */}
@@ -116,19 +129,31 @@ export const PSEOLandingBanner: React.FC<PSEOLandingBannerProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-medium text-slate-800 dark:text-slate-200">
             <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-            <span>100% Client-Side Privacy</span>
+            <span>
+              {isLocalMode
+                ? "100% Client-Side Privacy"
+                : privacyDetails.mode === "ai_cloud"
+                ? "TLS Encrypted AI Proxy"
+                : "Client-First Architecture"}
+            </span>
           </div>
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-medium text-slate-800 dark:text-slate-200">
             <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>Under 2 Secs Processing</span>
+            <span>Fast In-App Processing</span>
           </div>
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-medium text-slate-800 dark:text-slate-200">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>Zero Server Uploads</span>
+            <span>
+              {isLocalMode
+                ? "Zero Server Uploads"
+                : privacyDetails.mode === "ai_cloud"
+                ? "No Training Retention"
+                : "Ephemeral Fallback Only"}
+            </span>
           </div>
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-medium text-slate-800 dark:text-slate-200">
             <FileCheck2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span>HIPAA & GDPR Compliant</span>
+            <span>{isLocalMode ? "Local Browser Sandbox" : "Strict Privacy Disclosure"}</span>
           </div>
         </div>
       </div>

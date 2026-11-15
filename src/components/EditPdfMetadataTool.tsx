@@ -34,6 +34,14 @@ import {
 import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { triggerErrorToast } from "./GlobalErrorToast";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 
 interface EditPdfMetadataToolProps {
   initialFile?: File | null;
@@ -66,6 +74,10 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
     fileName: string;
   } | null>(null);
   const [showShareModal, setShowShareModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    trackToolOpened("pdf-metadata");
+  }, []);
 
   // Load existing metadata on file set
   useEffect(() => {
@@ -161,6 +173,8 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
   const handleSaveMetadata = async () => {
     if (!file) return;
 
+    const startTime = performance.now();
+    trackProcessStarted("pdf-metadata", "pdf", file.size);
     setIsProcessing(true);
     setProgress(15);
 
@@ -179,6 +193,9 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
       );
 
       const outFileName = `PDFSun_Metadata_${file.name}`;
+      const latencyMs = performance.now() - startTime;
+      trackProcessCompleted("pdf-metadata", latencyMs, "pdf", updatedBytes.byteLength);
+      trackOutputValidated("pdf-metadata", "pdf", updatedBytes.byteLength);
       setDownloadReady({ data: updatedBytes, fileName: outFileName });
       setIsProcessing(false);
 
@@ -199,6 +216,7 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
       }
     } catch (err: any) {
       console.error("Metadata save error:", err);
+      trackProcessFailed("pdf-metadata", performance.now() - startTime);
       setIsProcessing(false);
       triggerErrorToast(
         "Save Metadata Failed",
@@ -209,6 +227,7 @@ export const EditPdfMetadataTool: React.FC<EditPdfMetadataToolProps> = ({
 
   const handleDownload = () => {
     if (!downloadReady) return;
+    trackDownloadInitiated("pdf-metadata", "pdf", downloadReady.data.byteLength);
     downloadFile(downloadReady.data, downloadReady.fileName, "application/pdf");
   };
 

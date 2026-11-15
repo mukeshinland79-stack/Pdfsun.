@@ -1,0 +1,13 @@
+{
+  "dayKey": "2026-11-14",
+  "totalConversionsToday": 2,
+  "successfulConversions": 2,
+  "failedConversions": 0,
+  "cancelledProcesses": 0,
+  "latencyHistory": [
+    145,
+    150
+  ],
+  "toolCounters": {},
+  "recentEventIds": []
+}

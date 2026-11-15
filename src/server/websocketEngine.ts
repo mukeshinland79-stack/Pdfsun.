@@ -80,14 +80,17 @@ export function initWebSocketServer(server: HttpServer) {
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const memUsagePct = Math.round(((totalMem - freeMem) / totalMem) * 100);
+    const cpuCount = Math.max(1, os.cpus().length);
+    const load1m = os.loadavg()[0] || 0;
+    const cpuLoadPct = Math.min(100, Math.max(0, Math.round((load1m / cpuCount) * 100)));
 
     const telemetryPayload = JSON.stringify({
       type: "TELEMETRY_TICK",
       timestamp: new Date().toISOString(),
       activeConnections: activeClients.size,
-      cpuLoadPct: Math.floor(12 + Math.random() * 25),
+      cpuLoadPct,
       memoryUsagePct: memUsagePct,
-      activeTasks: Math.floor(Math.random() * 6),
+      activeTasks: activeClients.size,
     });
 
     activeClients.forEach((client) => {

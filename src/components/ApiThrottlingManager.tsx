@@ -67,28 +67,12 @@ interface BannedIpItem {
   country: string;
 }
 
-const INITIAL_TRAFFIC_DATA: TrafficDataPoint[] = [
-  { time: "04:35:00", totalRequests: 145, allowedRequests: 142, throttledRequests: 3, activeIpCount: 42 },
-  { time: "04:36:00", totalRequests: 180, allowedRequests: 172, throttledRequests: 8, activeIpCount: 55 },
-  { time: "04:37:00", totalRequests: 210, allowedRequests: 195, throttledRequests: 15, activeIpCount: 68 },
-  { time: "04:38:00", totalRequests: 165, allowedRequests: 160, throttledRequests: 5, activeIpCount: 50 },
-  { time: "04:39:00", totalRequests: 290, allowedRequests: 250, throttledRequests: 40, activeIpCount: 94 },
-  { time: "04:40:00", totalRequests: 195, allowedRequests: 188, throttledRequests: 7, activeIpCount: 58 },
-  { time: "04:41:00", totalRequests: 230, allowedRequests: 215, throttledRequests: 15, activeIpCount: 72 },
-];
-
-const INITIAL_BANNED_IPS: BannedIpItem[] = [
-  { id: "b1", ip: "185.220.101.5", reason: "Rate Limit Exceeded (140 req/min)", blockedAt: "04:32:15", requestCount: 340, country: "DE" },
-  { id: "b2", ip: "194.26.29.114", reason: "Repeated 403 API Probing", blockedAt: "04:28:40", requestCount: 512, country: "RU" },
-  { id: "b3", ip: "45.154.255.88", reason: "Malformed Payload Flooding", blockedAt: "04:15:02", requestCount: 890, country: "NL" },
-];
-
 export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   currentUserProfile,
   className = "",
 }) => {
-  const userEmail = (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
-  const isDualOwner = DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === userEmail);
+  const userEmail = (currentUserProfile?.email || "").toLowerCase().trim();
+  const isDualOwner = Boolean(userEmail) && DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === userEmail);
 
   // Configuration States
   const [globalRateLimit, setGlobalRateLimit] = useState<number>(10000);
@@ -99,9 +83,9 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   const [heavyTransformCap, setHeavyTransformCap] = useState<number>(1000);
   const [stealthModeEnabled, setStealthModeEnabled] = useState<boolean>(true);
 
-  // Live Monitoring State
-  const [trafficStream, setTrafficStream] = useState<TrafficDataPoint[]>(INITIAL_TRAFFIC_DATA);
-  const [bannedIps, setBannedIps] = useState<BannedIpItem[]>(INITIAL_BANNED_IPS);
+  // Live Monitoring State (server-driven only, zero fake defaults)
+  const [trafficStream, setTrafficStream] = useState<TrafficDataPoint[]>([]);
+  const [bannedIps, setBannedIps] = useState<BannedIpItem[]>([]);
   const [newIpToBlock, setNewIpToBlock] = useState<string>("");
   const [isLiveStream, setIsLiveStream] = useState<boolean>(true);
 
@@ -123,40 +107,56 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   });
   const [internalTrafficFiltered, setInternalTrafficFiltered] = useState<boolean>(() => isInternalOwnerTraffic());
 
-  // Fetch live traffic security summary from server
+  // Fetch live traffic security summary from server & record real telemetry points
   useEffect(() => {
+    if (!isLiveStream) return;
+    let active = true;
+
     const fetchSummary = async () => {
       try {
         const storedToken =
           (typeof window !== "undefined" && (
             localStorage.getItem("pdfsun_admin_token") ||
-            sessionStorage.getItem("pdfsun_admin_token") ||
-            localStorage.getItem("token")
+            sessionStorage.getItem("pdfsun_admin_token")
           )) || "";
-        const headers: Record<string, string> = {
-          "x-user-email": userEmail,
-        };
+        const headers: Record<string, string> = {};
         if (storedToken) {
           headers["Authorization"] = `Bearer ${storedToken}`;
           headers["x-admin-token"] = storedToken;
         }
 
-        const res = await fetch("/api/admin/traffic-security-summary", { headers });
-        if (res.ok) {
+        const res = await fetch("/api/admin/traffic-security-summary", {
+          headers,
+          credentials: "include",
+        });
+        if (res.ok && active) {
           const data = await res.json();
           if (data.summary) {
             setSecuritySummary(data.summary);
+            const allowed = Number(data.summary.normalTraffic || 0);
+            const throttled = Number(data.summary.rateLimited || 0) + Number(data.summary.blockedTemporarily || 0);
+            const point: TrafficDataPoint = {
+              time: new Date().toLocaleTimeString(),
+              totalRequests: allowed + throttled + Number(data.summary.suspiciousRequests || 0),
+              allowedRequests: allowed,
+              throttledRequests: throttled,
+              activeIpCount: Number(data.summary.blockedTemporarily || 0),
+            };
+            setTrafficStream((prev) => [...prev.slice(-13), point]);
           }
         }
-      } catch (e) {
+      } catch {
         // Non-blocking telemetry fetch
       }
     };
 
     fetchSummary();
     const interval = setInterval(fetchSummary, 5000);
-    return () => clearInterval(interval);
-  }, [userEmail]);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [isLiveStream, userEmail]);
 
   // Fetch initial config from server
   useEffect(() => {
@@ -165,18 +165,18 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
         const storedToken =
           (typeof window !== "undefined" && (
             localStorage.getItem("pdfsun_admin_token") ||
-            sessionStorage.getItem("pdfsun_admin_token") ||
-            localStorage.getItem("token")
+            sessionStorage.getItem("pdfsun_admin_token")
           )) || "";
-        const headers: Record<string, string> = {
-          "x-user-email": userEmail,
-        };
+        const headers: Record<string, string> = {};
         if (storedToken) {
           headers["Authorization"] = `Bearer ${storedToken}`;
           headers["x-admin-token"] = storedToken;
         }
 
-        const res = await fetch("/api/admin/system-config", { headers });
+        const res = await fetch("/api/admin/system-config", {
+          headers,
+          credentials: "include",
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.config) {
@@ -193,33 +193,6 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
     };
     fetchConfig();
   }, [userEmail]);
-
-  // Real-time Traffic Simulation
-  useEffect(() => {
-    if (!isLiveStream) return;
-
-    const interval = setInterval(() => {
-      const now = new Date().toLocaleTimeString();
-      const base = Math.floor(150 + Math.random() * 120);
-      const isSpike = Math.random() > 0.8;
-      const total = isSpike ? base + Math.floor(Math.random() * 150) : base;
-      const throttled = Math.max(0, Math.floor((total - perIpRateLimit * 1.5) * 0.3));
-      const allowed = total - throttled;
-      const activeIps = Math.floor(45 + Math.random() * 35);
-
-      const newPoint: TrafficDataPoint = {
-        time: now,
-        totalRequests: total,
-        allowedRequests: allowed,
-        throttledRequests: throttled,
-        activeIpCount: activeIps,
-      };
-
-      setTrafficStream((prev) => [...prev.slice(-13), newPoint]);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isLiveStream, perIpRateLimit]);
 
   // Save Settings to Backend API
   const handleSaveThrottlingConfig = async (e?: React.FormEvent) => {
@@ -240,12 +213,10 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
       const storedToken =
         (typeof window !== "undefined" && (
           localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("token")
+          sessionStorage.getItem("pdfsun_admin_token")
         )) || "";
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "x-user-email": userEmail,
       };
       if (storedToken) {
         headers["Authorization"] = `Bearer ${storedToken}`;
@@ -255,6 +226,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
       const res = await fetch("/api/admin/system-config", {
         method: "POST",
         headers,
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -265,9 +237,8 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
         const data = await res.json().catch(() => ({}));
         setErrorMessage(data.error || "Failed to sync updates to server.");
       }
-    } catch (err) {
-      setSaveSuccess("Local rate limits and throttling thresholds applied successfully.");
-      setTimeout(() => setSaveSuccess(null), 4000);
+    } catch {
+      setErrorMessage("Network error syncing throttling configuration to server.");
     } finally {
       setIsSaving(false);
     }
@@ -320,7 +291,13 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
     setBannedIps(bannedIps.filter((item) => item.id !== id));
   };
 
-  const latestTraffic = trafficStream[trafficStream.length - 1] || INITIAL_TRAFFIC_DATA[0];
+  const latestTraffic: TrafficDataPoint = trafficStream[trafficStream.length - 1] || {
+    time: "—",
+    totalRequests: securitySummary.normalTraffic + securitySummary.rateLimited,
+    allowedRequests: securitySummary.normalTraffic,
+    throttledRequests: securitySummary.rateLimited,
+    activeIpCount: securitySummary.blockedTemporarily,
+  };
 
   return (
     <div className={`space-y-6 ${className}`}>

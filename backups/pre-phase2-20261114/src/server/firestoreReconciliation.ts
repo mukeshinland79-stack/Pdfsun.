@@ -1,0 +1,871 @@
+import { initializeApp, getApps, getApp } from "firebase/app";
+import {
+  initializeFirestore,
+  getFirestore,
+  setLogLevel,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  increment,
+  collection,
+  query,
+  where,
+  getDocs,
+  Firestore,
+} from "firebase/firestore";
+import firebaseConfigData from "../../firebase-applet-config.json";
+import {
+  PDFSUN_PAYMENT_PRODUCTS,
+  PaymentProduct,
+  resolvePaymentProduct,
+} from "../config/paymentProducts";
+import { recordVerifiedTransaction } from "./paymentStore";
+
+export interface PaymentReconciliationInput {
+  paymentId: string;
+  orderId?: string;
+  subscriptionId?: string;
+  userEmail: string;
+  amountPaise: number;
+  currency: string;
+  status: string;
+  planId: string;
+  signatureVerified: boolean;
+  rawEvent?: any;
+  source?: "webhook" | "client_verify" | "manual_sync" | "qr_scan";
+}
+
+export interface InternalOrderInput {
+  orderId: string;
+  userEmail: string;
+  planId: string;
+  amountPaise: number;
+  currency?: string;
+  status?: string;
+}
+
+export interface ReconciliationResult {
+  success: boolean;
+  reconciled: boolean;
+  paymentId: string;
+  userEmail: string;
+  status: string;
+  entitlementGranted?: string;
+  creditsBalance?: number;
+  subscription?: any;
+  alreadyReconciled?: boolean;
+  verifiedOrder?: any;
+  error?: string;
+  details?: {
+    expectedAmountPaise: number;
+    receivedAmountPaise: number;
+    expectedCurrency: string;
+    receivedCurrency: string;
+    verifiedSignature: boolean;
+    orderVerifiedInFirestore?: boolean;
+  };
+}
+
+// Suppress gRPC stream idle disconnect logs in Node.js runtime
+try {
+  setLogLevel("error");
+} catch {}
+
+let serverFirestore: Firestore | null = null;
+
+export function getServerFirestore(): Firestore {
+  if (!serverFirestore) {
+    let app;
+    if (getApps().length > 0) {
+      app = getApp();
+    } else {
+      app = initializeApp({
+        apiKey: firebaseConfigData.apiKey,
+        authDomain: firebaseConfigData.authDomain,
+        projectId: firebaseConfigData.projectId,
+        storageBucket: firebaseConfigData.storageBucket,
+        messagingSenderId: firebaseConfigData.messagingSenderId,
+        appId: firebaseConfigData.appId,
+      });
+    }
+    const dbId = firebaseConfigData.firestoreDatabaseId || "(default)";
+    try {
+      serverFirestore = initializeFirestore(
+        app,
+        {
+          experimentalForceLongPolling: true,
+          ignoreUndefinedProperties: true,
+        },
+        dbId
+      );
+    } catch {
+      serverFirestore = getFirestore(app, dbId);
+    }
+  }
+  return serverFirestore;
+}
+
+/**
+ * Record internal order in Firestore before checkout
+ */
+export async function createInternalOrderInFirestore(order: InternalOrderInput) {
+  try {
+    const db = getServerFirestore();
+    const cleanOrderId = order.orderId.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const matchedProduct =
+      PDFSUN_PAYMENT_PRODUCTS[order.planId] || PDFSUN_PAYMENT_PRODUCTS["pro-monthly"];
+    const now = new Date().toISOString();
+
+    const orderDoc = {
+      orderId: order.orderId,
+      userEmail: (order.userEmail || "user@pdfsun.in").toLowerCase().trim(),
+      planId: order.planId,
+      planName: matchedProduct.productName,
+      amountPaise: order.amountPaise || matchedProduct.displayPriceINR * 100,
+      amountINR: (order.amountPaise || matchedProduct.displayPriceINR * 100) / 100,
+      currency: (order.currency || "INR").toUpperCase(),
+      status: order.status || "created",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await setDoc(doc(db, "orders", cleanOrderId), orderDoc, { merge: true });
+    console.log(`[Firestore Order Engine] Saved order ${order.orderId} in Firestore for ${orderDoc.userEmail}`);
+    return orderDoc;
+  } catch (err) {
+    console.error("[Firestore Order Engine] Failed to save order:", err);
+    return null;
+  }
+}
+
+/**
+ * Server-side helper function to verify Razorpay transaction details.
+ * Cross-references the received Order ID, amount, and currency with the Firestore
+ * transactions and orders collections to ensure authenticity before account credits or entitlements are updated.
+ */
+export interface VerifyTransactionDetailsParams {
+  orderId?: string;
+  paymentId?: string;
+  amountPaise: number;
+  currency: string;
+  userEmail?: string;
+}
+
+export interface VerifyTransactionDetailsResult {
+  isValid: boolean;
+  orderId?: string;
+  paymentId?: string;
+  matchedTransaction?: any;
+  matchedOrder?: any;
+  error?: string;
+  details?: {
+    expectedAmountPaise?: number;
+    receivedAmountPaise: number;
+    expectedCurrency?: string;
+    receivedCurrency: string;
+    orderFoundInFirestore: boolean;
+    transactionFoundInFirestore: boolean;
+  };
+}
+
+export async function verifyRazorpayTransactionDetails(
+  params: VerifyTransactionDetailsParams
+): Promise<VerifyTransactionDetailsResult> {
+  const receivedAmountPaise = Number(params.amountPaise) || 0;
+  const receivedCurrency = (params.currency || "INR").toUpperCase();
+  const cleanOrderId = params.orderId ? params.orderId.replace(/[^a-zA-Z0-9_-]/g, "_") : "";
+  const cleanPaymentId = params.paymentId ? params.paymentId.replace(/[^a-zA-Z0-9_-]/g, "_") : "";
+
+  // 1. Early validation of transaction parameters before database lookup
+  if (receivedAmountPaise <= 0) {
+    return {
+      isValid: false,
+      orderId: params.orderId,
+      paymentId: params.paymentId,
+      error: "Invalid transaction amount (amount must be greater than zero)",
+      details: {
+        receivedAmountPaise,
+        receivedCurrency,
+        orderFoundInFirestore: false,
+        transactionFoundInFirestore: false,
+      },
+    };
+  }
+
+  if (receivedCurrency !== "INR" && receivedCurrency !== "USD") {
+    return {
+      isValid: false,
+      orderId: params.orderId,
+      paymentId: params.paymentId,
+      error: `Unsupported transaction currency '${receivedCurrency}'`,
+      details: {
+        receivedAmountPaise,
+        receivedCurrency,
+        orderFoundInFirestore: false,
+        transactionFoundInFirestore: false,
+      },
+    };
+  }
+
+  try {
+    const db = getServerFirestore();
+
+    let matchedOrder: any = null;
+    let matchedTransaction: any = null;
+    let orderFoundInFirestore = false;
+    let transactionFoundInFirestore = false;
+
+    // 1. Check transactions collection by paymentId or orderId
+    if (cleanPaymentId) {
+      const txDocRef = doc(db, "transactions", cleanPaymentId);
+      const txSnap = await getDoc(txDocRef);
+      if (txSnap.exists()) {
+        matchedTransaction = txSnap.data();
+        transactionFoundInFirestore = true;
+      }
+    }
+
+    // If not found by paymentId directly, query transactions by orderId
+    if (!matchedTransaction && params.orderId) {
+      try {
+        const txQuery = query(collection(db, "transactions"), where("orderId", "==", params.orderId));
+        const txQuerySnap = await getDocs(txQuery);
+        if (!txQuerySnap.empty) {
+          matchedTransaction = txQuerySnap.docs[0].data();
+          transactionFoundInFirestore = true;
+        }
+      } catch (qErr) {
+        console.warn("[Transaction Verifier] Query transactions by orderId exception:", qErr);
+      }
+    }
+
+    // 2. Check orders collection by orderId
+    if (cleanOrderId) {
+      const orderDocRef = doc(db, "orders", cleanOrderId);
+      const orderSnap = await getDoc(orderDocRef);
+      if (orderSnap.exists()) {
+        matchedOrder = orderSnap.data();
+        orderFoundInFirestore = true;
+      }
+    }
+
+    // If order was found, cross-reference transaction details
+    const expectedAmountPaise = matchedOrder?.amountPaise || matchedTransaction?.amountPaise;
+    const expectedCurrency = (matchedOrder?.currency || matchedTransaction?.currency || "INR").toUpperCase();
+
+    const verificationDetails = {
+      expectedAmountPaise,
+      receivedAmountPaise,
+      expectedCurrency,
+      receivedCurrency,
+      orderFoundInFirestore,
+      transactionFoundInFirestore,
+    };
+
+    // If an existing order or transaction was located in Firestore, perform strict cross-referencing
+    if (matchedOrder || matchedTransaction) {
+      // Amount verification: received amount must match expected amount (rejects underpayment and unexplained overpayment)
+      if (expectedAmountPaise && receivedAmountPaise > 0 && receivedAmountPaise !== expectedAmountPaise) {
+        const isUnderpaid = receivedAmountPaise < expectedAmountPaise;
+        const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
+        console.error(
+          `[Transaction Verifier] Amount mismatch (${mismatchType}) for order ${params.orderId}: expected ₹${expectedAmountPaise / 100}, received ₹${receivedAmountPaise / 100}`
+        );
+        return {
+          isValid: false,
+          orderId: params.orderId,
+          paymentId: params.paymentId,
+          error: `Transaction amount mismatch: expected ₹${expectedAmountPaise / 100}, got ₹${receivedAmountPaise / 100} (${mismatchType})`,
+          details: verificationDetails,
+        };
+      }
+
+      // User association verification: prevent cross-user verification
+      if (params.userEmail && (matchedOrder?.userEmail || matchedTransaction?.userEmail)) {
+        const expectedUser = (matchedOrder?.userEmail || matchedTransaction?.userEmail).toLowerCase().trim();
+        const callerUser = params.userEmail.toLowerCase().trim();
+        if (expectedUser !== callerUser) {
+          console.error(
+            `[Transaction Verifier] User association mismatch for ${params.orderId || params.paymentId}: record belongs to ${expectedUser}, caller is ${callerUser}`
+          );
+          return {
+            isValid: false,
+            orderId: params.orderId,
+            paymentId: params.paymentId,
+            error: `Order user association mismatch: record belongs to ${expectedUser}, not ${callerUser}`,
+            details: verificationDetails,
+          };
+        }
+      }
+
+      // Currency verification: must match expected currency
+      if (expectedCurrency && receivedCurrency !== expectedCurrency && receivedCurrency !== "USD") {
+        console.error(
+          `[Transaction Verifier] Currency mismatch for order ${params.orderId}: expected ${expectedCurrency}, received ${receivedCurrency}`
+        );
+        return {
+          isValid: false,
+          orderId: params.orderId,
+          paymentId: params.paymentId,
+          error: `Transaction currency mismatch: expected ${expectedCurrency}, got ${receivedCurrency}`,
+          details: verificationDetails,
+        };
+      }
+
+      console.log(
+        `[Transaction Verifier] Successfully verified transaction details against Firestore records for Order ID: ${params.orderId || params.paymentId}`
+      );
+
+      return {
+        isValid: true,
+        orderId: params.orderId,
+        paymentId: params.paymentId,
+        matchedTransaction,
+        matchedOrder,
+        details: verificationDetails,
+      };
+    }
+
+    // If no prior Firestore order was saved (e.g. direct gateway payment link), validate against positive amount and standard currency
+    if (receivedAmountPaise <= 0) {
+      return {
+        isValid: false,
+        orderId: params.orderId,
+        paymentId: params.paymentId,
+        error: "Invalid transaction amount (amount must be greater than zero)",
+        details: verificationDetails,
+      };
+    }
+
+    if (receivedCurrency !== "INR" && receivedCurrency !== "USD") {
+      return {
+        isValid: false,
+        orderId: params.orderId,
+        paymentId: params.paymentId,
+        error: `Unsupported transaction currency '${receivedCurrency}'`,
+        details: verificationDetails,
+      };
+    }
+
+    return {
+      isValid: true,
+      orderId: params.orderId,
+      paymentId: params.paymentId,
+      details: verificationDetails,
+    };
+  } catch (err: any) {
+    console.warn("[Transaction Verifier] Firestore lookup unavailable, evaluated baseline transaction integrity:", err?.message || err);
+    if (receivedAmountPaise > 0 && (receivedCurrency === "INR" || receivedCurrency === "USD")) {
+      return {
+        isValid: true,
+        orderId: params.orderId,
+        paymentId: params.paymentId,
+        details: {
+          receivedAmountPaise,
+          receivedCurrency,
+          orderFoundInFirestore: false,
+          transactionFoundInFirestore: false,
+        },
+      };
+    }
+    return {
+      isValid: false,
+      orderId: params.orderId,
+      paymentId: params.paymentId,
+      error: `Firestore transaction verification exception: ${err.message}`,
+    };
+  }
+}
+
+/**
+ * Sanitize email for document key usage
+ */
+function sanitizeDocId(email: string): string {
+  return email.toLowerCase().trim().replace(/[/\\.#$\[\]]/g, "_");
+}
+
+/**
+ * Core Secure Payment Reconciliation Engine for PDFSun
+ * 
+ * Verifies:
+ * 1. Cryptographic signature and event integrity
+ * 2. Payment status is 'captured' or completed
+ * 3. Verifies transaction details against internal order in Firestore (if orderId exists)
+ * 4. Order / Payment amount (Paise) matches product catalog & order record
+ * 5. Currency matches INR
+ * 6. Idempotency against double-crediting
+ * 7. Atomically commits payments, subscriptions, credit balances, and audit records to Firestore
+ */
+export async function reconcilePaymentWithFirestore(
+  input: PaymentReconciliationInput
+): Promise<ReconciliationResult> {
+  const normalizedEmail = (input.userEmail || "user@pdfsun.in").toLowerCase().trim();
+  const receivedAmountPaise = Number(input.amountPaise) || 0;
+  const receivedCurrency = (input.currency || "INR").toUpperCase();
+  const rawStatus = (input.status || "").toLowerCase();
+
+  // Dynamically resolve exact product using actual amount and plan
+  const matchedProduct: PaymentProduct = resolvePaymentProduct({
+    planId: input.planId,
+    amountPaise: receivedAmountPaise,
+    currency: receivedCurrency,
+  });
+
+  const expectedAmountPaise = matchedProduct.displayPriceINR * 100;
+  const expectedCurrency = "INR";
+
+  const details: NonNullable<ReconciliationResult["details"]> = {
+    expectedAmountPaise,
+    receivedAmountPaise,
+    expectedCurrency,
+    receivedCurrency,
+    verifiedSignature: input.signatureVerified,
+    orderVerifiedInFirestore: false,
+  };
+
+  // 1. Signature Verification Requirement Check (Fail closed: must be strictly true)
+  if (input.signatureVerified !== true) {
+    console.error(`[Payment Reconciliation REJECTED] Signature verification failed or unverified for ${input.paymentId}`);
+    return {
+      success: false,
+      reconciled: false,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: "INVALID_SIGNATURE",
+      error: "Webhook or checkout HMAC-SHA256 signature verification failed or signature was not verified",
+      details,
+    };
+  }
+
+  // 2. Payment Status Verification: Must be confirmed as 'captured' / 'paid'
+  const isCapturedStatus =
+    rawStatus === "captured" ||
+    rawStatus === "paid" ||
+    rawStatus === "completed" ||
+    rawStatus === "active" ||
+    rawStatus === "authenticated";
+
+  if (!isCapturedStatus) {
+    console.warn(
+      `[Payment Reconciliation REJECTED] Non-captured status '${rawStatus}' for ${input.paymentId}`
+    );
+    return {
+      success: false,
+      reconciled: false,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: rawStatus.toUpperCase(),
+      error: `Payment is not in 'captured' state (current state: ${rawStatus})`,
+      details,
+    };
+  }
+
+  const now = new Date();
+  const db = getServerFirestore();
+  const paymentDocId = input.paymentId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const userDocId = sanitizeDocId(normalizedEmail);
+
+  let verifiedOrderData: any = null;
+
+  // 3. Verify Transaction Details Against Internal Order in Firestore
+  if (input.orderId) {
+    try {
+      const cleanOrderId = input.orderId.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const orderRef = doc(db, "orders", cleanOrderId);
+      const orderSnap = await getDoc(orderRef);
+
+      if (orderSnap.exists()) {
+        verifiedOrderData = orderSnap.data();
+        details.orderVerifiedInFirestore = true;
+        console.log(`[Firestore Reconcile] Cross-verified payment against internal Firestore order ${input.orderId}`);
+
+        // Strict authenticated user association check: prevent User B from claiming User A's order
+        if (
+          verifiedOrderData?.userEmail &&
+          normalizedEmail &&
+          verifiedOrderData.userEmail.toLowerCase().trim() !== normalizedEmail
+        ) {
+          console.error(
+            `[Payment Reconciliation REJECTED] Order user association mismatch for ${input.orderId}: order belongs to ${verifiedOrderData.userEmail}, caller is ${normalizedEmail}`
+          );
+          return {
+            success: false,
+            reconciled: false,
+            paymentId: input.paymentId,
+            userEmail: normalizedEmail,
+            status: "USER_MISMATCH",
+            error: `Order belongs to ${verifiedOrderData.userEmail}, cannot be claimed by ${normalizedEmail}`,
+            details,
+          };
+        }
+
+        // Validate order amount (exact match required)
+        if (
+          verifiedOrderData.amountPaise &&
+          receivedAmountPaise > 0 &&
+          receivedAmountPaise !== verifiedOrderData.amountPaise
+        ) {
+          const isUnderpaid = receivedAmountPaise < verifiedOrderData.amountPaise;
+          const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
+          console.error(
+            `[Payment Reconciliation REJECTED] Order amount mismatch (${mismatchType}) for ${input.orderId}: expected ₹${verifiedOrderData.amountPaise / 100}, received ₹${receivedAmountPaise / 100}`
+          );
+          return {
+            success: false,
+            reconciled: false,
+            paymentId: input.paymentId,
+            userEmail: normalizedEmail,
+            status: "ORDER_AMOUNT_MISMATCH",
+            error: `Payment amount ₹${receivedAmountPaise / 100} does not match internal order amount ₹${verifiedOrderData.amountPaise / 100} (${mismatchType})`,
+            details,
+          };
+        }
+
+        // Mark internal order as paid in Firestore
+        await updateDoc(orderRef, {
+          status: "paid",
+          paymentId: input.paymentId,
+          paidAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+      }
+    } catch (orderErr) {
+      console.warn("[Firestore Reconcile] Order lookup exception (continuing with product catalog verification):", orderErr);
+    }
+  }
+
+  // 4. Exact Amount Verification Check (Rejects both underpayment and unexplained overpayment)
+  if (receivedAmountPaise > 0 && receivedAmountPaise !== expectedAmountPaise) {
+    const isUnderpaid = receivedAmountPaise < expectedAmountPaise;
+    const mismatchType = isUnderpaid ? "underpayment" : "unexplained overpayment";
+    console.error(
+      `[Payment Reconciliation REJECTED] Amount mismatch (${mismatchType}) for ${input.paymentId}: expected ${expectedAmountPaise} paise, received ${receivedAmountPaise} paise.`
+    );
+    return {
+      success: false,
+      reconciled: false,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: "AMOUNT_MISMATCH",
+      error: `Payment amount ₹${receivedAmountPaise / 100} does not match required ₹${expectedAmountPaise / 100} (${mismatchType}) for ${matchedProduct.productName}`,
+      details,
+    };
+  }
+
+  // 5. Currency Verification Check
+  if (receivedCurrency !== expectedCurrency && receivedCurrency !== "USD") {
+    console.error(
+      `[Payment Reconciliation REJECTED] Currency mismatch for ${input.paymentId}: expected ${expectedCurrency}, got ${receivedCurrency}`
+    );
+    return {
+      success: false,
+      reconciled: false,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: "CURRENCY_MISMATCH",
+      error: `Unsupported currency: ${receivedCurrency}. Expected ${expectedCurrency}`,
+      details,
+    };
+  }
+
+  let alreadyReconciled = false;
+
+  try {
+    // 6. Idempotency Check in Firestore (Checking both payments and transactions collections)
+    const paymentRef = doc(db, "payments", paymentDocId);
+    const transactionRef = doc(db, "transactions", paymentDocId);
+    
+    const [existingPaymentSnap, existingTxSnap] = await Promise.all([
+      getDoc(paymentRef),
+      getDoc(transactionRef),
+    ]);
+
+    if (existingPaymentSnap.exists() || existingTxSnap.exists()) {
+      const existingData = existingPaymentSnap.exists() ? existingPaymentSnap.data() : existingTxSnap.data();
+      if (
+        existingData?.status === "COMPLETED" ||
+        existingData?.status === "CAPTURED" ||
+        existingData?.status === "captured" ||
+        existingData?.status === "paid"
+      ) {
+        // Prevent cross-user replay attack on previously reconciled payment
+        if (
+          existingData.userEmail &&
+          normalizedEmail &&
+          existingData.userEmail.toLowerCase().trim() !== normalizedEmail
+        ) {
+          console.error(
+            `[Payment Reconciliation REJECTED] Replay attack: Payment ${input.paymentId} was already claimed by ${existingData.userEmail}, caller is ${normalizedEmail}`
+          );
+          return {
+            success: false,
+            reconciled: false,
+            paymentId: input.paymentId,
+            userEmail: normalizedEmail,
+            status: "USER_MISMATCH",
+            error: `Payment was already processed and claimed by another user account (${existingData.userEmail})`,
+            details,
+          };
+        }
+        alreadyReconciled = true;
+        console.log(
+          `[Payment Reconciliation IDEMPOTENT] Payment ${input.paymentId} was already processed in transactions/payments at ${existingData.reconciledAt || existingData.createdAt}`
+        );
+      }
+    }
+
+    let entitlementGranted = "";
+    let creditsBalance: number | undefined;
+    let subscriptionData: any = null;
+
+    if (!alreadyReconciled) {
+      // 5. Grant Entitlements in Firestore
+      if (matchedProduct.internalProductId === "flexi" || matchedProduct.internalProductId === "flex-pass") {
+        // Flex Pass (₹99 / 7 Days): Pay-as-you-go access, valid for 7 days
+        const durationDays = 7;
+        const activatedAt = now.toISOString();
+        const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+        subscriptionData = {
+          userId: normalizedEmail,
+          planId: "flexi",
+          planName: "Flex Pass",
+          status: "active",
+          activatedAt,
+          expiresAt,
+          durationDays,
+          paymentId: input.paymentId,
+          orderId: input.orderId || "",
+          subscriptionId: input.subscriptionId || "",
+          updatedAt: now.toISOString(),
+        };
+
+        const subDocRef = doc(db, "user_subscriptions", userDocId);
+        await setDoc(subDocRef, subscriptionData, { merge: true });
+        entitlementGranted = `Flex Pass Active (7 Days Unlimited Access until ${expiresAt.split("T")[0]})`;
+        console.log(`[Firestore Reconcile] Activated Flex Pass for ${normalizedEmail} until ${expiresAt}`);
+      } else if (matchedProduct.type === "one-time") {
+        // Credits Pack
+        const creditAmount = matchedProduct.credits || 50;
+        const creditDocRef = doc(db, "user_credits", userDocId);
+        const creditSnap = await getDoc(creditDocRef);
+
+        if (creditSnap.exists()) {
+          await updateDoc(creditDocRef, {
+            balance: increment(creditAmount),
+            lifetimeGranted: increment(creditAmount),
+            lastUpdated: now.toISOString(),
+            lastPaymentId: input.paymentId,
+          });
+          const updatedSnap = await getDoc(creditDocRef);
+          creditsBalance = updatedSnap.data()?.balance;
+        } else {
+          creditsBalance = creditAmount;
+          await setDoc(creditDocRef, {
+            userEmail: normalizedEmail,
+            balance: creditAmount,
+            lifetimeGranted: creditAmount,
+            lastUpdated: now.toISOString(),
+            lastPaymentId: input.paymentId,
+          });
+        }
+        entitlementGranted = `${creditAmount} Lifetime PDF Credits Granted`;
+        console.log(`[Firestore Reconcile] Credited ${creditAmount} credits to ${normalizedEmail}`);
+      } else {
+        // PRO Subscription Activation
+        const isYearly =
+          matchedProduct.billingInterval === "yearly" ||
+          matchedProduct.internalProductId === "pro-yearly" ||
+          matchedProduct.internalProductId === "enterprise" ||
+          matchedProduct.internalProductId === "enterprise-sso";
+        const durationDays = isYearly ? 365 : 30;
+        const activatedAt = now.toISOString();
+        const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+        subscriptionData = {
+          userId: normalizedEmail,
+          planId: matchedProduct.internalProductId,
+          planName: matchedProduct.productName,
+          status: "active",
+          activatedAt,
+          expiresAt,
+          durationDays,
+          paymentId: input.paymentId,
+          orderId: input.orderId || "",
+          subscriptionId: input.subscriptionId || "",
+          updatedAt: now.toISOString(),
+        };
+
+        const subDocRef = doc(db, "user_subscriptions", userDocId);
+        await setDoc(subDocRef, subscriptionData, { merge: true });
+        entitlementGranted = `PRO Customer Subscription Active (${matchedProduct.productName}) until ${expiresAt.split("T")[0]}`;
+        console.log(`[Firestore Reconcile] Activated PRO subscription for ${normalizedEmail} until ${expiresAt}`);
+      }
+
+      // 6. Record Verified Payment in Firestore (payments & transactions collections)
+      const transactionPayload = {
+        paymentId: input.paymentId,
+        orderId: input.orderId || "",
+        subscriptionId: input.subscriptionId || "",
+        userEmail: normalizedEmail,
+        amount: (receivedAmountPaise || expectedAmountPaise) / 100,
+        amountPaise: receivedAmountPaise || expectedAmountPaise,
+        amountINR: (receivedAmountPaise || expectedAmountPaise) / 100,
+        currency: receivedCurrency,
+        status: "COMPLETED",
+        planId: matchedProduct.internalProductId,
+        planName: matchedProduct.productName,
+        plan: matchedProduct.productName,
+        signatureVerified: input.signatureVerified,
+        source: input.source || "webhook",
+        entitlementGranted,
+        reconciledAt: now.toISOString(),
+        createdAt: now.toISOString(),
+      };
+
+      await Promise.all([
+        setDoc(paymentRef, transactionPayload, { merge: true }),
+        setDoc(transactionRef, transactionPayload, { merge: true }),
+      ]);
+
+      // 7. Record Audit Trail in Firestore
+      const reconAuditRef = doc(db, "payment_reconciliations", `recon_${paymentDocId}`);
+      await setDoc(
+        reconAuditRef,
+        {
+          id: `recon_${paymentDocId}`,
+          paymentId: input.paymentId,
+          userEmail: normalizedEmail,
+          eventType: input.rawEvent?.event || input.source || "webhook_reconcile",
+          verifiedAmountINR: (receivedAmountPaise || expectedAmountPaise) / 100,
+          entitlementGranted,
+          signatureVerified: input.signatureVerified,
+          reconciledAt: now.toISOString(),
+        },
+        { merge: true }
+      );
+
+      // 7.1 Owner Payment Audit Log (Admin Panel) strictly per AGENTS_md:
+      // Includes User ID, Email, Payment Gateway Reference ID, Date & Time, Exact Plan Purchased, and Actual Amount Received.
+      const ownerAuditDocId = `owner_audit_${paymentDocId}`;
+      const ownerAuditRef = doc(db, "owner_payment_audit_logs", ownerAuditDocId);
+      await setDoc(
+        ownerAuditRef,
+        {
+          id: ownerAuditDocId,
+          userId: normalizedEmail,
+          email: normalizedEmail,
+          paymentGatewayRefId: input.paymentId,
+          paymentId: input.paymentId,
+          orderId: input.orderId || "",
+          dateTime: now.toISOString(),
+          exactPlanPurchased: matchedProduct.productName,
+          planId: matchedProduct.internalProductId,
+          actualAmountReceived: (receivedAmountPaise || expectedAmountPaise) / 100,
+          currency: receivedCurrency,
+          status: "SUCCESS",
+          ownerEmail: "mukeshinland79@gmail.com",
+          tamperProof: true,
+          reconciledAt: now.toISOString(),
+        },
+        { merge: true }
+      );
+    }
+
+    // 8. Reconcile with local in-memory store for instant dashboard and UI responsiveness
+    const localResult = recordVerifiedTransaction({
+      paymentId: input.paymentId,
+      orderId: input.orderId,
+      subscriptionId: input.subscriptionId,
+      userEmail: normalizedEmail,
+      amountPaise: receivedAmountPaise || expectedAmountPaise,
+      currency: receivedCurrency,
+      status: "COMPLETED",
+      planId: matchedProduct.internalProductId,
+      paymentMethod: input.source === "qr_scan" ? "Dynamic UPI QR" : "Razorpay Gateway",
+      signatureVerified: input.signatureVerified,
+    });
+
+    return {
+      success: true,
+      reconciled: true,
+      alreadyReconciled,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: "COMPLETED",
+      entitlementGranted: entitlementGranted || "Entitlements active",
+      creditsBalance,
+      subscription: subscriptionData || localResult.subscription,
+      details,
+    };
+  } catch (err: any) {
+    console.error("[Firestore Reconciliation Error]:", err);
+
+    // Fallback: Still ensure in-memory store is recorded so customer is never blocked
+    recordVerifiedTransaction({
+      paymentId: input.paymentId,
+      orderId: input.orderId,
+      subscriptionId: input.subscriptionId,
+      userEmail: normalizedEmail,
+      amountPaise: receivedAmountPaise || expectedAmountPaise,
+      currency: receivedCurrency,
+      status: "COMPLETED",
+      planId: matchedProduct.internalProductId,
+      signatureVerified: input.signatureVerified,
+    });
+
+    return {
+      success: true,
+      reconciled: true,
+      alreadyReconciled: false,
+      paymentId: input.paymentId,
+      userEmail: normalizedEmail,
+      status: "COMPLETED",
+      entitlementGranted: "Local Entitlement Granted (Firestore sync logged)",
+      error: err.message,
+      details,
+    };
+  }
+}
+
+/**
+ * Fetch immutable Owner Payment Audit Logs from Firestore
+ * Strictly enforces AGENTS_md Section 3: Owner Payment Audit Log
+ */
+export async function getOwnerPaymentAuditLogs() {
+  try {
+    const db = getServerFirestore();
+    const auditColl = collection(db, "owner_payment_audit_logs");
+    const snap = await getDocs(auditColl);
+    if (!snap.empty) {
+      const logs = snap.docs.map((d) => d.data());
+      logs.sort((a: any, b: any) => new Date(b.dateTime || b.reconciledAt || 0).getTime() - new Date(a.dateTime || a.reconciledAt || 0).getTime());
+      return logs;
+    }
+  } catch (err) {
+    console.warn("[Owner Payment Audit Log] Firestore fetch warning:", err);
+  }
+
+  // Fallback to local verified transactions mapped to exact audit log schema
+  const { getAllVerifiedTransactions } = await import("./paymentStore");
+  const txs = getAllVerifiedTransactions();
+  return txs.map((tx) => ({
+    id: `owner_audit_${tx.id}`,
+    userId: tx.email,
+    email: tx.email,
+    paymentGatewayRefId: tx.id,
+    paymentId: tx.id,
+    orderId: tx.orderId || "",
+    dateTime: tx.timestamp || `${tx.date}T12:00:00.000Z`,
+    exactPlanPurchased: tx.planName,
+    planId: tx.planId,
+    actualAmountReceived: tx.amountINR,
+    currency: tx.currency || "INR",
+    status: tx.status === "COMPLETED" || tx.status === "CAPTURED" ? "SUCCESS" : tx.status,
+    ownerEmail: "mukeshinland79@gmail.com",
+    tamperProof: true,
+    reconciledAt: tx.timestamp,
+  }));
+}
+

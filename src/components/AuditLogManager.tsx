@@ -44,243 +44,7 @@ export interface AuditLogManagerProps {
   currentUserProfile?: UserProfile | null;
 }
 
-const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [
-  {
-    id: "aud-sso-001",
-    timestamp: new Date(Date.now() - 1000 * 60 * 3).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_AUTH_SUCCESS",
-    action: "Enterprise SSO Authentication Succeeded (Okta SAML 2.0)",
-    target: "User: david.miller@acmecorp.com (Acme Corporation)",
-    adminOperator: "david.miller@acmecorp.com",
-    status: "SUCCESS",
-    ipAddress: "198.51.100.45",
-    details: "Okta SAML 2.0 assertion successfully parsed and verified. Granted access under Enterprise SSO plan with SCIM role sync and MFA validation.",
-    metadata: {
-      provider: "okta",
-      ssoDomain: "acmecorp.com",
-      organizationName: "Acme Corporation",
-      planType: "Enterprise SSO",
-      samlRequestId: "_pdfsun_okta_98f12a",
-      enforceMfa: true,
-      roleGranted: "user",
-      scimEnabled: true,
-      authMethod: "SAML_2_0_POST_BINDING",
-    },
-  },
-  {
-    id: "aud-sso-002",
-    timestamp: new Date(Date.now() - 1000 * 60 * 8).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_DOMAIN_VALIDATION_ERROR",
-    action: "SSO Domain Validation Error (Consumer Webmail Attempt)",
-    target: "Input Domain: user@gmail.com",
-    adminOperator: "SSO_SECURITY_VALIDATOR",
-    status: "WARNING",
-    ipAddress: "103.21.124.88",
-    details: "Public consumer domain (@gmail.com) rejected on Enterprise SSO login portal. Advised user to authenticate via standard Google OAuth or specify corporate workspace domain.",
-    metadata: {
-      input: "user@gmail.com",
-      rejectedReason: "CONSUMER_WEBMAIL_DOMAIN_NOT_ALLOWED",
-      providerRequested: "google",
-      suggestedResolution: "Use Google OAuth or enter verified enterprise workspace domain",
-    },
-  },
-  {
-    id: "aud-sso-003",
-    timestamp: new Date(Date.now() - 1000 * 60 * 14).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_LOGIN_ATTEMPT",
-    action: "SAML 2.0 AuthRequest Initiated (Microsoft Azure AD / Entra ID)",
-    target: "Domain: kontor.nordicconsulting.se (Nordic Consulting)",
-    adminOperator: "elena.svensson@nordicconsulting.se",
-    status: "SUCCESS",
-    ipAddress: "193.180.240.11",
-    details: "Constructed HTTP-POST SAML 2.0 assertion request with EntityID urn:pdfsun:sp:nordicconsulting.se. Redirecting browser to Microsoft Entra tenant.",
-    metadata: {
-      provider: "azure",
-      tenantUrl: "nordicconsulting.onmicrosoft.com",
-      entityId: "urn:pdfsun:sp:nordicconsulting.se",
-      assertionUrl: "https://www.pdfsun.in/api/v1/auth/saml/callback",
-      requestId: "_pdfsun_az_44821c",
-    },
-  },
-  {
-    id: "aud-sso-004",
-    timestamp: new Date(Date.now() - 1000 * 60 * 22).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 22).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_AUTH_SUCCESS",
-    action: "Enterprise SSO Login Succeeded (Google Workspace SAML)",
-    target: "User: alex.rivera@edu.org (Edu Org)",
-    adminOperator: "alex.rivera@edu.org",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Verified Google Workspace SAML assertion for educational tenant. Multi-tenant workspace activated under Custom SAML 2.0 tier.",
-    metadata: {
-      provider: "google",
-      ssoDomain: "edu.org",
-      organizationName: "Edu Org",
-      planType: "Custom SAML 2.0",
-      mfaVerified: true,
-      samlRequestId: "_pdfsun_gw_31940d",
-    },
-  },
-  {
-    id: "aud-sso-005",
-    timestamp: new Date(Date.now() - 1000 * 60 * 35).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_DOMAIN_VALIDATION_ERROR",
-    action: "SSO Domain Validation Error (Malformed Tenant / Unregistered IdP)",
-    target: "Input Domain: corp..invalid-internal",
-    adminOperator: "SSO_SECURITY_VALIDATOR",
-    status: "FAILED",
-    ipAddress: "45.33.32.156",
-    details: "Domain validation failed: syntax contains consecutive dots or invalid top-level domain. Pre-flight DNS and IdP entity descriptor lookup aborted.",
-    metadata: {
-      input: "corp..invalid-internal",
-      error: "Invalid domain syntax format",
-      errorCode: "ERR_INVALID_DOMAIN_SYNTAX",
-    },
-  },
-  {
-    id: "aud-sso-006",
-    timestamp: new Date(Date.now() - 1000 * 60 * 48).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 48).toISOString(),
-    category: "sso_auth",
-    eventType: "SSO_AUTH_FAILURE",
-    action: "SAML Response Signature Verification Failed",
-    target: "Domain: staging-internal.partner.net",
-    adminOperator: "test-sso@partner.net",
-    status: "CRITICAL",
-    ipAddress: "194.26.29.112",
-    details: "X.509 certificate signature mismatch in SAML response assertion from partner.net. Authentication token rejected by platform security gateway.",
-    metadata: {
-      error: "X509_CERT_MISMATCH",
-      provider: "saml",
-      ssoDomain: "partner.net",
-      securityAction: "BLOCKED",
-    },
-  },
-  {
-    id: "aud-101",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    category: "sponsorship",
-    eventType: "SPONSORSHIP_ACTIVATION",
-    action: "Verified Sponsorship Campaign Activated",
-    target: "Sponsor: National EdTech Initiative 2026",
-    adminOperator: "mukeshinland79@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Enabled verified educational campaign with explicit sponsorship disclosure and strict ad isolation.",
-    metadata: {
-      campaignId: "camp-edu-2026",
-      sponsorName: "National EdTech Initiative",
-      disclosureEnabled: true,
-      validUntil: "2026-12-31",
-      authorizedBy: "Owner",
-    },
-  },
-  {
-    id: "aud-102",
-    timestamp: new Date(Date.now() - 1000 * 60 * 75).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    category: "user_status",
-    eventType: "USER_STATUS_CHANGE",
-    action: "User Account Suspended",
-    target: "User: bad_bot_99@spammer.net (ID: usr-9941)",
-    adminOperator: "mukeshkalonia241@gmail.com",
-    status: "WARNING",
-    ipAddress: "103.21.124.9",
-    details: "Flagged account suspended automatically due to 50+ abnormal rapid conversion requests.",
-    metadata: {
-      userId: "usr-9941",
-      email: "bad_bot_99@spammer.net",
-      previousStatus: "Active",
-      newStatus: "Suspended",
-      reason: "Rate limit violation & scraping prevention",
-    },
-  },
-  {
-    id: "aud-103",
-    timestamp: new Date(Date.now() - 1000 * 60 * 90).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    category: "settings_update",
-    eventType: "SETTINGS_UPDATE",
-    action: "Runtime Config & Rate Limit Modified",
-    target: "SystemConfig: GLOBAL_RATE_LIMIT",
-    adminOperator: "mukeshinland79@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Updated GLOBAL_RATE_LIMIT to 10,000 req/hr and TEMP_STORAGE_RETENTION_MINUTES to 60m with Zero Downtime.",
-    metadata: {
-      changedFields: {
-        GLOBAL_RATE_LIMIT: { old: 5000, new: 10000 },
-        TEMP_STORAGE_RETENTION_MINUTES: { old: 30, new: 60 },
-      },
-      zeroDowntimeApplied: true,
-    },
-  },
-  {
-    id: "aud-104",
-    timestamp: new Date(Date.now() - 1000 * 60 * 110).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    category: "user_status",
-    eventType: "USER_ROLE_PROMOTION",
-    action: "Admin Permission Granted to Customer",
-    target: "User: Sarah Jenkins (sarah.j@lawfirm.com)",
-    adminOperator: "mukeshkalonia241@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "103.21.124.9",
-    details: "Assigned Team Enterprise role with analytics & file moderation permissions.",
-    metadata: {
-      userId: "usr-03",
-      email: "sarah.j@lawfirm.com",
-      plan: "Team Enterprise",
-      hasAdminAccess: true,
-    },
-  },
-  {
-    id: "aud-105",
-    timestamp: new Date(Date.now() - 1000 * 60 * 140).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
-    category: "security",
-    eventType: "UNAUTHORIZED_ADMIN_ATTEMPT",
-    action: "Unauthorized Secret Endpoint Probe Blocked",
-    target: "Route: /api/admin/hidden-gateway",
-    adminOperator: "ANONYMOUS_IP",
-    status: "CRITICAL",
-    ipAddress: "185.220.101.5",
-    details: "Stealth security cloaking activated. Endpoint returned standard 404 response and IP logged for throttling.",
-    metadata: {
-      blockedIp: "185.220.101.5",
-      httpStatus: 404,
-      stealthModeTriggered: true,
-    },
-  },
-  {
-    id: "aud-106",
-    timestamp: new Date(Date.now() - 1000 * 60 * 180).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    category: "system",
-    eventType: "DATABASE_BACKUP_EXPORT",
-    action: "System Configuration Snapshot Exported",
-    target: "System Backup: pdfsun_backup_snapshot.json",
-    adminOperator: "mukeshinland79@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Generated encrypted JSON recovery snapshot containing all RBAC rules and runtime settings.",
-    metadata: {
-      backupSizeKb: 48,
-      checksumVerified: true,
-    },
-  },
-];
+const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [];
 
 type SortField = "timestamp" | "eventType" | "target" | "adminOperator" | "status" | "category" | "details";
 type SortOrder = "asc" | "desc";
@@ -289,26 +53,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
   className = "",
   currentUserProfile,
 }) => {
-  const [logs, setLogs] = useState<AuditLogEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem("pdfsun_admin_audit_logs");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge defaults if saved does not have SSO logs
-          const hasSso = parsed.some((l: AuditLogEntry) => l.category === "sso_auth");
-          if (!hasSso) {
-            const ssoItems = DEFAULT_AUDIT_LOGS.filter((l) => l.category === "sso_auth");
-            return [...ssoItems, ...parsed];
-          }
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return DEFAULT_AUDIT_LOGS;
-  });
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -340,19 +85,10 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
   const [newStatus, setNewStatus] = useState<AuditLogStatus>("SUCCESS");
   const [newDetails, setNewDetails] = useState("");
 
-  const activeEmail = (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
+  const activeEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isVerifiedOwner = DUAL_OWNER_EMAILS.includes(activeEmail);
 
-  // Sync to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("pdfsun_admin_audit_logs", JSON.stringify(logs));
-    } catch {
-      // ignore
-    }
-  }, [logs]);
-
-  // Fetch live audit logs from backend if available
+  // Fetch live audit logs from backend
   const fetchLiveAuditLogs = async () => {
     setIsLoading(true);
     try {
@@ -362,27 +98,23 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
           sessionStorage.getItem("pdfsun_admin_token") ||
           localStorage.getItem("token")
         )) || "";
-      const headers: Record<string, string> = {
-        "x-user-email": activeEmail,
-      };
+      const headers: Record<string, string> = {};
       if (storedToken) {
         headers["Authorization"] = `Bearer ${storedToken}`;
         headers["x-admin-token"] = storedToken;
       }
-      const res = await fetch("/api/admin/audit-logs", { headers });
+      const res = await fetch("/api/admin/audit-logs", {
+        credentials: "include",
+        headers,
+      });
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.logs) && data.logs.length > 0) {
-          setLogs((prev) => {
-            // Keep any local-only recent entries merged with server logs
-            const serverIds = new Set(data.logs.map((l: AuditLogEntry) => l.id));
-            const uniqueLocal = prev.filter((l) => !serverIds.has(l.id));
-            return [...uniqueLocal, ...data.logs];
-          });
+        if (data.success && Array.isArray(data.logs)) {
+          setLogs(data.logs);
         }
       }
     } catch (e) {
-      console.warn("Could not sync with server audit logs API, using client store:", e);
+      console.warn("Could not sync with server audit logs API:", e);
     } finally {
       setIsLoading(false);
     }
@@ -392,71 +124,14 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
     fetchLiveAuditLogs();
   }, []);
 
-  // Live simulation ticker to reflect continuous enterprise SSO and audit monitoring
+  // Live polling stream when enabled (polls genuine server audit log store)
   useEffect(() => {
     if (!isLiveStream) return;
-
     const interval = setInterval(() => {
-      const sampleEvents: Partial<AuditLogEntry>[] = [
-        {
-          category: "sso_auth",
-          eventType: "SSO_AUTH_SUCCESS",
-          action: "Enterprise SSO Session Renewed (Okta SAML 2.0)",
-          target: "User: david.miller@acmecorp.com (Acme Corporation)",
-          status: "SUCCESS",
-          details: "Verified Okta session assertion validity and cryptographic signature for corporate workspace.",
-          metadata: { provider: "okta", ssoDomain: "acmecorp.com", sessionRefresh: true },
-        },
-        {
-          category: "sso_auth",
-          eventType: "SSO_LOGIN_ATTEMPT",
-          action: "SAML 2.0 AuthRequest Initiated (Azure AD)",
-          target: "Domain: workspace.globalfin.org",
-          status: "SUCCESS",
-          details: "Initiated Entra ID SSO challenge for employee session token issuance.",
-          metadata: { provider: "azure", ssoDomain: "globalfin.org" },
-        },
-        {
-          category: "sso_auth",
-          eventType: "SSO_DOMAIN_VALIDATION_ERROR",
-          action: "SSO Domain Pre-Check Failed (Consumer Domain)",
-          target: "Input: testuser@yahoo.com",
-          status: "WARNING",
-          details: "Attempt to use public webmail domain for corporate SAML entity ID was blocked by security policy.",
-          metadata: { input: "testuser@yahoo.com", reason: "CONSUMER_DOMAIN" },
-        },
-        {
-          category: "user_status",
-          eventType: "USER_AUTH_CHECK",
-          action: "Session Token Verified",
-          target: `User: ${Math.random() > 0.5 ? "sarah.j@lawfirm.com" : "alex.rivera@edu.org"}`,
-          status: "SUCCESS",
-          details: "Validated RBAC permissions and session expiration successfully.",
-          metadata: { checkType: "jwt_refresh", ip: "152.58.16.42" },
-        },
-      ];
-
-      const chosen = sampleEvents[Math.floor(Math.random() * sampleEvents.length)];
-      const newEntry: AuditLogEntry = {
-        id: `aud-sso-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-        isoTimestamp: new Date().toISOString(),
-        category: chosen.category || "sso_auth",
-        eventType: chosen.eventType || "SSO_AUDIT_EVENT",
-        action: chosen.action || "Automated SSO Compliance Check",
-        target: chosen.target || "Enterprise SSO Gateway",
-        adminOperator: isVerifiedOwner ? activeEmail : "SSO_GATEWAY_MONITOR",
-        status: chosen.status || "SUCCESS",
-        ipAddress: "127.0.0.1",
-        details: chosen.details || "Automated background enterprise security audit.",
-        metadata: chosen.metadata,
-      };
-
-      setLogs((prev) => [newEntry, ...prev.slice(0, 149)]);
-    }, 28000);
-
+      fetchLiveAuditLogs();
+    }, 15000);
     return () => clearInterval(interval);
-  }, [isLiveStream, isVerifiedOwner, activeEmail]);
+  }, [isLiveStream]);
 
   // Statistics calculation
   const stats = useMemo(() => {
@@ -589,12 +264,11 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
       eventType: "AUDIT_LOGS_PURGED",
       action: "System Audit Logs Cleared by Administrator",
       target: "System: Audit Log Storage",
-      adminOperator: activeEmail,
+      adminOperator: activeEmail || "verified-owner",
       status: "WARNING",
-      ipAddress: "152.58.16.42",
-      details: `Administrator ${activeEmail} initiated an audit log purge. Prior log events cleared, security oversight record initialized.`,
+      details: `Administrator ${activeEmail || "verified-owner"} initiated an audit log purge. Prior log events cleared, security oversight record initialized.`,
       metadata: {
-        clearedBy: activeEmail,
+        clearedBy: activeEmail || "verified-owner",
         clearedAt: isoTime,
         mode: purgeMode,
       },
@@ -609,7 +283,6 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
         )) || "";
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "x-user-email": activeEmail,
       };
       if (storedToken) {
         headers["Authorization"] = `Bearer ${storedToken}`;
@@ -617,11 +290,12 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
       }
       await fetch("/api/admin/audit-logs/clear", {
         method: "POST",
+        credentials: "include",
         headers,
         body: JSON.stringify({ mode: purgeMode }),
       });
     } catch (e) {
-      console.warn("Backend audit clear endpoint call completed with client fallback:", e);
+      console.warn("Backend audit clear endpoint call failed:", e);
     }
 
     setLogs([clearNoticeEntry]);
@@ -642,9 +316,8 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
       eventType: newCategory === "sso_auth" ? "SSO_MANUAL_AUDIT" : newCategory.toUpperCase() + "_MANUAL_ACTION",
       action: newAction.trim(),
       target: newTarget.trim(),
-      adminOperator: activeEmail,
+      adminOperator: activeEmail || "verified-owner",
       status: newStatus,
-      ipAddress: "152.58.16.42",
       details: newDetails.trim() || "Manual administrative action recorded for system oversight.",
       metadata: {
         manualEntry: true,

@@ -1,0 +1,179 @@
+import { DayInHistoryData } from "../types/history";
+import { DAILY_HISTORY_DATABASE, generateAlgorithmicDayInHistory } from "../data/historyData";
+import { formatLocalizedHistoryDate, COUNTRY_META_MAP, TOP_30_LANGUAGES } from "../utils/geoLanguageDetector";
+import { localizeHistoryData } from "../utils/historyTranslationEngine";
+
+/**
+ * Utility to guarantee strictly unique keys across all history event and birthday items
+ */
+function ensureUniqueHistoryIds(data: DayInHistoryData): DayInHistoryData {
+  if (!data) return data;
+  const seenIds = new Set<string>();
+  const sanitizeList = (list?: any[]) => {
+    if (!Array.isArray(list)) return [];
+    return list.map((item, idx) => {
+      let id = item.id || `item-${idx}`;
+      if (seenIds.has(id)) {
+        id = `${id}-${idx}`;
+      }
+      seenIds.add(id);
+      return { ...item, id };
+    });
+  };
+
+  return {
+    ...data,
+    events: sanitizeList(data.events),
+    births: sanitizeList(data.births),
+    discoveries: sanitizeList(data.discoveries)
+  };
+}
+
+/**
+ * Service to fetch and provide rich Day in History data with client persistence and internet updates
+ */
+export async function fetchDayInHistory(
+  date: Date,
+  langCode: string = "en",
+  countryCode: string = "IN",
+  forceRefresh: boolean = false
+): Promise<DayInHistoryData> {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dateKey = `${month}-${day}`;
+  const localCacheKey = `pdfsun_daily_history_${month}_${day}_${countryCode.toUpperCase()}_${langCode.toLowerCase()}`;
+
+  // If not forcing refresh, check client localStorage first for instant rendering
+  if (!forceRefresh) {
+    try {
+      const stored = localStorage.getItem(localCacheKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.events && parsed.events.length > 0 && parsed.version?.includes("verified-internet")) {
+          // Revalidate in background if cached > 6 hours
+          const cachedTime = parsed.generatedAt ? new Date(parsed.generatedAt).getTime() : 0;
+          if (Date.now() - cachedTime < 6 * 60 * 60 * 1000) {
+            return ensureUniqueHistoryIds(parsed);
+          }
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
+  // 1. Try fetching from server API which connects to Wikimedia Foundation REST API
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+
+    const clientTz = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
+
+    const res = await fetch(
+      `/api/history/today?month=${month}&day=${day}&year=${year}&lang=${encodeURIComponent(langCode)}&country=${encodeURIComponent(countryCode)}&tz=${encodeURIComponent(clientTz)}${forceRefresh ? "&forceRefresh=true" : ""}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.events && data.events.length > 0) {
+        const localizedData = localizeHistoryData(data, langCode, countryCode);
+        const sanitizedData = ensureUniqueHistoryIds(localizedData);
+        try {
+          localStorage.setItem(localCacheKey, JSON.stringify(sanitizedData));
+        } catch {
+          // Quota exceeded or private browsing
+        }
+        return sanitizedData;
+      }
+    }
+  } catch (e) {
+    // Gracefully handle network disconnects or API errors without failing
+  }
+
+  // 2. Client-side database fallback
+  const fallbackEntry = DAILY_HISTORY_DATABASE[dateKey];
+  const formattedDateStr = formatLocalizedHistoryDate(date, langCode);
+  const countryMeta = COUNTRY_META_MAP[countryCode] || { name: "Global", defaultLang: "en", flag: "🌐" };
+  const langMeta = TOP_30_LANGUAGES.find((l) => l.code === langCode) || TOP_30_LANGUAGES[0];
+
+  if (fallbackEntry && fallbackEntry.events && fallbackEntry.events.length > 0) {
+    const countryMatches = fallbackEntry.events.some((e) => e.countryCode === countryCode);
+    const rawFallback: DayInHistoryData = {
+      dateString: formattedDateStr,
+      month,
+      day,
+      formattedDate: formattedDateStr,
+      dayOfYear: Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)),
+      featuredHeadline: fallbackEntry.featuredHeadline || `Historic Milestones on ${formattedDateStr}`,
+      countryCode,
+      countryName: countryMeta.name,
+      languageCode: langCode,
+      languageName: langMeta.name,
+      isCountrySpecific: countryMatches,
+      isGlobalFallback: !countryMatches,
+      events: fallbackEntry.events || [],
+      births: fallbackEntry.births || [],
+      discoveries: fallbackEntry.discoveries || [],
+      dailyTrivia: fallbackEntry.dailyTrivia || {
+        id: `trv-${month}-${day}`,
+        question: `Which significant historical event took place on this day?`,
+        options: ["Major Historic Treaty", "Scientific Invention", "Exploration Milestone", "All of the above"],
+        correctIndex: 3,
+        explanation: `${formattedDateStr} marks multiple interconnected historic breakthroughs.`,
+        historicalContext: "History is defined by key human achievements.",
+        relatedYear: "Multiple"
+      },
+      quoteOfTheDay: fallbackEntry.quoteOfTheDay || {
+        quote: "History is a gallery of pictures in which there are few originals and many copies.",
+        author: "Alexis de Tocqueville",
+        context: "Historian & Political Philosopher"
+      }
+    };
+    return ensureUniqueHistoryIds(localizeHistoryData(rawFallback, langCode, countryCode));
+  }
+
+  // 3. Dynamic algorithmic fallback for all 365 days
+  const algorithmic = generateAlgorithmicDayInHistory(month, day, countryCode, langCode);
+  algorithmic.formattedDate = formattedDateStr;
+  algorithmic.dateString = formattedDateStr;
+  algorithmic.isGlobalFallback = true;
+  return ensureUniqueHistoryIds(localizeHistoryData(algorithmic, langCode, countryCode));
+}
+
+/**
+ * Queries the engine health and status from server
+ */
+export async function fetchHistoryEngineStatus(): Promise<any> {
+  try {
+    const res = await fetch("/api/history/status");
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Could not fetch history status:", err);
+  }
+  return null;
+}
+
+/**
+ * Forces a cache purge and internet refetch for today's data
+ */
+export async function refreshTodayHistory(month: number, day: number, country: string, lang: string): Promise<DayInHistoryData | null> {
+  try {
+    const res = await fetch("/api/history/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month, day, country, lang }),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      return body.data;
+    }
+  } catch (err) {
+    console.error("Failed to refresh today history:", err);
+  }
+  return null;
+}

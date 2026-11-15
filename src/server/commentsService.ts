@@ -26,88 +26,10 @@ let quickFeedbackStore: Map<string, ToolQuickFeedback> = new Map();
 let rateLimitMap: Map<string, { count: number; resetAt: number }> = new Map();
 let customBannedIps: Set<string> = new Set();
 
-// Seed initial high-trust verified reviews for PDFSun.in
-const INITIAL_SEED_COMMENTS: UserComment[] = [
-  {
-    id: "cmt_seed_1",
-    toolId: "merge-pdf",
-    toolName: "Merge PDF",
-    userName: "Aarav Sharma",
-    userEmail: "aarav.s@gmail.com",
-    rating: 5,
-    comment: "Extremely fast and seamless! Merged 15 heavy PDFs in under 3 seconds without losing any formatting. Best PDF tool in India!",
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    status: "approved",
-    ipHash: "hash_seed_1",
-    helpfulCount: 24,
-    verifiedUser: true
-  },
-  {
-    id: "cmt_seed_2",
-    toolId: "merge-pdf",
-    toolName: "Merge PDF",
-    userName: "Priya Patel",
-    userEmail: "priya.design@outlook.com",
-    rating: 5,
-    comment: "I love that all processing happens securely. Zero file upload delays and super clean user interface!",
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    status: "approved",
-    ipHash: "hash_seed_2",
-    helpfulCount: 18,
-    verifiedUser: true
-  },
-  {
-    id: "cmt_seed_3",
-    toolId: "compress-pdf",
-    toolName: "Compress PDF",
-    userName: "Rajesh Kumar",
-    userEmail: "rajesh.k@company.in",
-    rating: 5,
-    comment: "Reduced my 45MB scan down to 1.8MB while maintaining perfect text crispness! Absolutely essential tool for official submissions.",
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    status: "approved",
-    ipHash: "hash_seed_3",
-    helpfulCount: 31,
-    verifiedUser: true
-  },
-  {
-    id: "cmt_seed_4",
-    toolId: "pdf-editor",
-    toolName: "Edit PDF",
-    userName: "Neha Gupta",
-    userEmail: "neha.g@gmail.com",
-    rating: 5,
-    comment: "The inline text editing and annotations work like magic. Saved me hours on my college assignments!",
-    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    status: "approved",
-    ipHash: "hash_seed_4",
-    helpfulCount: 15,
-    verifiedUser: true
-  },
-  {
-    id: "cmt_seed_5",
-    toolId: "split-pdf",
-    toolName: "Split PDF",
-    userName: "David Miller",
-    userEmail: "david.m@techcorp.io",
-    rating: 5,
-    comment: "Clean split options and instant page extraction. PDFSun is hands down the most reliable PDF suite.",
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    status: "approved",
-    ipHash: "hash_seed_5",
-    helpfulCount: 20,
-    verifiedUser: true
-  }
-];
+// Do not seed fabricated user reviews or fake like counts; start empty until real user submissions arrive.
+const INITIAL_SEED_COMMENTS: UserComment[] = [];
 
-const INITIAL_QUICK_FEEDBACK: { [toolId: string]: ToolQuickFeedback } = {
-  "merge-pdf": { toolId: "merge-pdf", likes: 342, dislikes: 4 },
-  "compress-pdf": { toolId: "compress-pdf", likes: 489, dislikes: 6 },
-  "split-pdf": { toolId: "split-pdf", likes: 215, dislikes: 2 },
-  "pdf-editor": { toolId: "pdf-editor", likes: 398, dislikes: 8 },
-  "protect-pdf": { toolId: "protect-pdf", likes: 187, dislikes: 1 },
-  "ocr-pdf": { toolId: "ocr-pdf", likes: 276, dislikes: 5 }
-};
+const INITIAL_QUICK_FEEDBACK: { [toolId: string]: ToolQuickFeedback } = {};
 
 // Load or Initialize Persistence
 function loadCommentsFromDisk() {
@@ -242,10 +164,10 @@ export function getCommentsHandler(req: Request, res: Response) {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  // Calculate Average Star Rating
+  // Calculate Average Star Rating (0 when unrated)
   const totalReviews = filtered.length;
   const sumRating = filtered.reduce((acc, c) => acc + c.rating, 0);
-  const avgRating = totalReviews > 0 ? Number((sumRating / totalReviews).toFixed(1)) : 4.9;
+  const avgRating = totalReviews > 0 ? Number((sumRating / totalReviews).toFixed(1)) : 0;
 
   // Star breakdown
   const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -258,8 +180,8 @@ export function getCommentsHandler(req: Request, res: Response) {
   const targetToolId = toolId || "merge-pdf";
   const feedback = quickFeedbackStore.get(targetToolId) || {
     toolId: targetToolId,
-    likes: 120,
-    dislikes: 2
+    likes: 0,
+    dislikes: 0
   };
 
   return res.json({

@@ -26,11 +26,8 @@ import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { sanitizeAuthError } from "../hooks/useAuth";
 import { trackGASignup } from "../utils/analytics";
 import {
-  mockLoginHandler,
-  mockRegisterHandler,
   saveLocalStoredUser,
   clearLocalStoredUser,
-  createMockUserProfile,
 } from "../utils/mockAuth";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import {
@@ -134,14 +131,14 @@ export function maskClientEmail(email: string): string {
   return `${first}***${last}@${domain}`;
 }
 
-export function maskClientPhone(phone: string = "9991659655"): string {
+export function maskClientPhone(phone: string = ""): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length >= 10) {
     const start = digits.slice(-10, -6);
     const end = digits.slice(-2);
     return `${start}****${end}`;
   }
-  return "9050****55";
+  return "••••••••";
 }
 
 export function maskClientIdentifier(identifier: string): string {
@@ -282,45 +279,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      let profile: UserProfile;
-      let token = `jwt-local-${Date.now()}`;
-      let roleToSet: UserRole = "user";
+      const endpoint = customerSubMode === "signup" ? "/api/v1/auth/register" : "/api/v1/auth/login";
+      const payload =
+        customerSubMode === "signup"
+          ? { name: nameInput.trim(), email, password: passwordInput }
+          : { email, password: passwordInput };
+
+      const { ok, data, error } = await safeFetchJson<{
+        success: boolean;
+        token?: string;
+        user?: UserProfile;
+        role?: UserRole;
+        error?: string;
+        message?: string;
+      }>(endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!ok || !data?.success || !data?.user) {
+        setErrorMsg(sanitizeAuthError(error || data?.error || data?.message, "Authentication failed. Please verify your credentials."));
+        return;
+      }
+
+      const profile: UserProfile = {
+        ...data.user,
+        isPro: Boolean(data.user.isPro),
+        hasAdminAccess: Boolean(data.user.hasAdminAccess),
+      };
+      const roleToSet: UserRole = profile.role || data.role || "user";
 
       if (customerSubMode === "signup") {
-        const res = await mockRegisterHandler({
-          name: nameInput.trim(),
-          email,
-          password: passwordInput,
-        });
-        profile = res.user;
-        token = res.token;
-        roleToSet = res.role;
         trackGASignup("email", roleToSet);
-      } else {
-        const res = await mockLoginHandler({
-          email,
-          password: passwordInput,
-        });
-        profile = res.user;
-        token = res.token;
-        roleToSet = res.role;
       }
 
-      // Save user in local storage immediately
-      saveLocalStoredUser(profile, token);
-
-      // Trigger optional non-blocking background notification to server if online
-      if (typeof navigator !== "undefined" && navigator.onLine) {
-        fetch(customerSubMode === "signup" ? "/api/v1/auth/register" : "/api/v1/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            customerSubMode === "signup"
-              ? { name: nameInput.trim(), email, password: passwordInput }
-              : { email, password: passwordInput }
-          ),
-        }).catch(() => null);
-      }
+      saveLocalStoredUser(profile, data.token);
 
       setSuccessMsg(customerSubMode === "signup" ? "Free account activated! Welcome to PDFSun." : "Signed in successfully!");
 
@@ -339,7 +334,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Social Sign In Handler (Google, Facebook, SSO) with enforced explicit account selection & re-request
+  // Social Sign In Handler (Google, Facebook, SSO) with strict server verification
   const handleSocialSignIn = async (provider: "google" | "facebook" | "sso") => {
     setErrorMsg("");
     setSuccessMsg("");
@@ -352,14 +347,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       let providerToken: string | undefined = undefined;
 
       if (provider === "google") {
-        // Enforce prompt: "select_account" so the user always chooses an account
         const googleAuth = await triggerGoogleExplicitLogin();
         email = googleAuth.email;
         name = googleAuth.name;
         avatar = googleAuth.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80";
         providerToken = googleAuth.providerToken;
       } else if (provider === "facebook") {
-        // Enforce auth_type: "rerequest" to force interactive permission/login check
         const fbAuth = await triggerFacebookExplicitLogin();
         email = fbAuth.email;
         name = fbAuth.name;
@@ -377,9 +370,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         const roleToSet: UserRole = ssoResult.role || "user";
-        const profile: UserProfile = ssoResult.user;
+        const profile: UserProfile = {
+          ...ssoResult.user,
+          isPro: Boolean(ssoResult.user.isPro),
+          hasAdminAccess: Boolean(ssoResult.user.hasAdminAccess),
+        };
 
-        saveLocalStoredUser(profile, `jwt-sso-${Date.now()}`);
+        saveLocalStoredUser(profile, ssoResult.token);
 
         setSuccessMsg(
           ssoResult.message ||
@@ -397,16 +394,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         return;
       }
 
-      const profile = createMockUserProfile({
-        name,
-        email,
-        avatar,
-        role: "user",
-        isPro: true,
-        plan: "Pro Sun (OAuth)",
+      const { ok, data, error } = await safeFetchJson<{
+        success: boolean;
+        token?: string;
+        user?: UserProfile;
+        role?: UserRole;
+        error?: string;
+        message?: string;
+      }>("/api/v1/auth/social-login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, email, name, avatar, providerToken }),
       });
-      const token = `jwt-social-${Date.now()}`;
-      saveLocalStoredUser(profile, token);
+
+      if (!ok || !data?.success || !data?.user) {
+        throw new Error(error || data?.error || data?.message || "Social login verification failed.");
+      }
+
+      const profile: UserProfile = {
+        ...data.user,
+        isPro: Boolean(data.user.isPro),
+        hasAdminAccess: Boolean(data.user.hasAdminAccess),
+      };
+      const roleToSet: UserRole = profile.role || data.role || "user";
+
+      saveLocalStoredUser(profile, data.token);
       if (typeof window !== "undefined") {
         localStorage.setItem("pdfsun_provider", provider);
         if (providerToken) {
@@ -414,19 +427,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }
 
-      // Sync with server session
-      fetch("/api/v1/auth/social-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, email, name, avatar, providerToken }),
-      }).catch(() => null);
-
       setSuccessMsg(`Signed in successfully with ${provider === "google" ? "Google" : "Facebook"}!`);
 
       setTimeout(() => {
-        onSelectRole("user", profile);
+        onSelectRole(roleToSet, profile);
         handlePostLoginRedirectAndCleanup();
         onClose();
+        if (roleToSet === "owner" && onSuccessOpenAdmin) {
+          onSuccessOpenAdmin();
+        }
       }, 350);
     } catch (err: any) {
       setErrorMsg(sanitizeAuthError(err, `${provider.toUpperCase()} sign-in was cancelled or failed. Please try again.`));
@@ -460,20 +469,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      setOwnerMaskedEmail(maskClientEmail(email));
-      setOwnerMaskedPhone(maskClientPhone("+91 9991659655"));
-      setOwnerMfaStep(2);
-      setOwnerMfaCountdown(60);
-      setOwnerMfaOtpHint("999165");
-
-      // Optional background sync
-      fetch("/api/v1/auth/send-mfa", {
+      const { ok, data, error } = await safeFetchJson<{
+        success: boolean;
+        maskedEmail?: string;
+        maskedPhone?: string;
+        cooldownSeconds?: number;
+        message?: string;
+        error?: string;
+      }>("/api/v1/auth/send-mfa", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, secretKey: key }),
-      }).catch(() => null);
+        body: JSON.stringify({ email, secretKey: key, password: key, isOwnerLogin: true }),
+      });
 
-      setSuccessMsg(`Multi-Factor Authentication initiated. 6-digit OTP code sent to registered Email and Phone.`);
+      if (!ok || !data?.success) {
+        setErrorMsg(sanitizeAuthError(error || data?.error || data?.message, "Invalid owner credentials or access denied."));
+        return;
+      }
+
+      setOwnerMaskedEmail(data.maskedEmail || maskClientEmail(email));
+      setOwnerMaskedPhone(data.maskedPhone || "••••••••");
+      setOwnerMfaStep(2);
+      setOwnerMfaCountdown(data.cooldownSeconds || 60);
+      setOwnerMfaOtpHint(null);
+
+      setSuccessMsg(data.message || "Multi-Factor Authentication initiated. Check your registered verification channels.");
     } catch (err: any) {
       setErrorMsg(sanitizeAuthError(err, "Failed to initiate Multi-Factor Authentication. Please verify your credentials."));
     } finally {
@@ -498,35 +519,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const ownerName = email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia";
-      const ownerProfile: UserProfile = {
-        id: "owner-001",
-        name: ownerName,
-        email,
-        role: "owner",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        plan: "Founder & Owner",
-        joinedDate: "Founder & Owner",
-        hasAdminAccess: true,
-        isPro: true,
-      };
-
-      const token = `jwt-owner-mfa-${Date.now()}`;
-      saveLocalStoredUser(ownerProfile, token);
-
-      // Optional background sync
-      fetch("/api/v1/auth/verify-mfa", {
+      const { ok, data, error } = await safeFetchJson<{
+        success: boolean;
+        token?: string;
+        user?: UserProfile;
+        role?: UserRole;
+        message?: string;
+        error?: string;
+      }>("/api/v1/auth/verify-mfa", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
-      }).catch(() => null);
+      });
+
+      if (!ok || !data?.success || !data?.user) {
+        setErrorMsg(sanitizeAuthError(error || data?.error || data?.message, "Invalid MFA security code or verification expired. Please try again."));
+        return;
+      }
+
+      const ownerProfile: UserProfile = {
+        ...data.user,
+        hasAdminAccess: Boolean(data.user.hasAdminAccess),
+        isPro: Boolean(data.user.isPro),
+      };
+      const roleToSet: UserRole = ownerProfile.role || data.role || "owner";
+
+      saveLocalStoredUser(ownerProfile, data.token);
 
       setSuccessMsg("Multi-Factor Authentication verified! Access granted to Owner & Administrator Suite.");
       setTimeout(() => {
-        onSelectRole("owner", ownerProfile);
+        onSelectRole(roleToSet, ownerProfile);
         handlePostLoginRedirectAndCleanup();
         onClose();
-        if (onSuccessOpenAdmin) {
+        if (roleToSet === "owner" && onSuccessOpenAdmin) {
           onSuccessOpenAdmin();
         }
       }, 350);
@@ -540,6 +566,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLogout = async () => {
     fetch("/api/v1/auth/logout", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
     }).catch(() => null);
 
@@ -631,7 +658,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
                   <span className="truncate max-w-[130px]">{userProfile.name}</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                    {currentRole === "owner" ? "OWNER" : "PRO"}
+                    {currentRole === "owner" ? "OWNER" : userProfile.isPro ? "PRO" : "FREE"}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-400 truncate">
@@ -1202,8 +1229,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               setErrorMsg("");
               setSuccessMsg("");
             }}
-            onSuccess={(profile) => {
+            onSuccess={(profile, token) => {
               if (profile) {
+                saveLocalStoredUser(profile, token);
                 onSelectRole(profile.role, profile);
               }
               onClose();

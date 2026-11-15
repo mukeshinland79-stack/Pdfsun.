@@ -1,0 +1,182 @@
+import React from "react";
+import { Sparkles, Bot, Globe, ShieldCheck, Zap, ArrowRight, Cpu, Lock, FileText, CheckCircle2 } from "lucide-react";
+import { ToolItem } from "../types";
+import { ALL_TOOLS } from "../data/toolsData";
+import { useLanguage } from "../lib/i18n";
+
+interface DualAiFeatureBannerProps {
+  onSelectTool: (tool: ToolItem) => void;
+  onOpenContactModal?: () => void;
+}
+
+export const PDFSunAiCopilotCard: React.FC<{ onLaunch: () => void }> = ({ onLaunch }) => {
+  const { t, dir } = useLanguage();
+
+  return (
+    <div
+      dir={dir}
+      className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-blue-200 dark:border-blue-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(59,130,246,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
+    >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
+      {/* Subtle Background Glow Accent */}
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/25 transition-all" />
+
+      <div>
+        {/* Badges with Strict WCAG AAA Contrast */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#DBEAFE] text-[#1E40AF] border border-[#93C5FD] dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 shadow-2xs">
+            <Sparkles className="w-3 h-3 mr-1 text-[#1E40AF] dark:text-blue-400" /> {t("copilot.badgePro", "PRO FEATURE")}
+          </span>
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#CFFAFE] text-[#0E7490] border border-[#67E8F9] dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-2xs">
+            <Bot className="w-3 h-3 mr-1 text-[#0E7490] dark:text-cyan-300" /> {t("copilot.badgeAi", "AI POWERED")}
+          </span>
+        </div>
+
+        {/* Title & Subheading */}
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
+          <span>{t("copilot.headline", "PDFSun AI Document Copilot")}</span>
+        </h3>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-medium">
+          {t("copilot.description", "Summarize, analyze, and chat with PDF documents in real time powered by Gemini AI with fast client-side text extraction.")}
+        </p>
+
+        {/* Key Tags */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {[
+            { label: t("copilot.instantChat", "Instant AI Chat"), icon: Zap },
+            { label: t("copilot.multiLang", "Multi-Language Translation"), icon: Globe },
+            { label: "Powered by Gemini AI", icon: Sparkles },
+          ].map((tag, idx) => {
+            const TagIcon = tag.icon;
+            return (
+              <span
+                key={idx}
+                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs"
+              >
+                <TagIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>{tag.label}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* CTA Button */}
+      <div>
+        <button
+          onClick={onLaunch}
+          className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg hover:shadow-blue-500/40 hover:scale-102 active:scale-98 transition duration-200 group-hover:from-blue-500 group-hover:to-cyan-400 cursor-pointer"
+        >
+          <span>{t("copilot.cta", "Launch AI Assistant")}</span>
+          <ArrowRight className="w-4 h-4 ml-1 stroke-[3] group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const PDFSunEnterpriseSuiteCard: React.FC<{ onContact: () => void }> = ({ onContact }) => {
+  const { t, dir } = useLanguage();
+
+  return (
+    <div
+      dir={dir}
+      className="relative group rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0f172a]/90 backdrop-blur-xl border border-purple-200 dark:border-purple-500/40 shadow-xl dark:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:shadow-2xl dark:hover:shadow-[0_0_35px_rgba(168,85,247,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden theme-glow-border"
+    >
+      {/* Top 2px Gradient Accent Line */}
+      <div className="gradient-accent-line absolute top-0 left-0 right-0 z-20" />
+
+      {/* Subtle Background Glow Accent */}
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/25 transition-all" />
+
+      <div>
+        {/* Badges with Strict WCAG AAA Contrast */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#F3E8FF] text-[#6B21A8] border border-[#D8B4FE] dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40 shadow-2xs">
+            <Globe className="w-3 h-3 mr-1 text-[#6B21A8] dark:text-purple-400" /> {t("enterpriseSuite.badgeGlobal", "GLOBAL ENTERPRISE")}
+          </span>
+          <span className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-2xs">
+            <Cpu className="w-3 h-3 mr-1 text-[#92400E] dark:text-amber-400" /> {t("enterpriseSuite.badgeWasm", "WORLDWIDE SCALE")}
+          </span>
+        </div>
+
+        {/* Title & Subheading */}
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
+          <span>{t("enterpriseSuite.title", "PDFSun Global Enterprise Suite")}</span>
+        </h3>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-medium">
+          {t("enterpriseSuite.description", "Empower global teams with automated document processing, enterprise encryption, and multi-region deployment.")}
+        </p>
+
+        {/* Key Tags */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {[
+            { label: t("enterpriseSuite.edgeSpeed", "Global Edge Speed"), icon: Zap },
+            { label: t("enterpriseSuite.zeroLeakage", "256-bit Encryption"), icon: ShieldCheck },
+            { label: t("enterpriseSuite.uptimeSla", "99.9% Uptime SLA"), icon: CheckCircle2 },
+          ].map((tag, idx) => {
+            const TagIcon = tag.icon;
+            return (
+              <span
+                key={idx}
+                className="inline-flex items-center space-x-1 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs"
+              >
+                <TagIcon className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span>{tag.label}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* CTA Button */}
+      <div>
+        <button
+          onClick={onContact}
+          className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-amber-500 to-orange-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg hover:shadow-purple-500/40 hover:scale-102 active:scale-98 transition duration-200 group-hover:from-purple-500 group-hover:to-amber-400 cursor-pointer"
+        >
+          <span>{t("enterpriseSuite.cta", "Expand Global Reach")}</span>
+          <ArrowRight className="w-4 h-4 ml-1 stroke-[3] group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const DualAiFeatureBanner: React.FC<DualAiFeatureBannerProps> = ({
+  onSelectTool,
+  onOpenContactModal,
+}) => {
+  const handleLaunchAi = () => {
+    const aiTool = ALL_TOOLS.find((t) => t.slug === "ai-summary" || t.id === "ai-summary" || t.slug === "ai-chat") ||
+      ALL_TOOLS[0];
+    if (aiTool) {
+      onSelectTool(aiTool);
+    }
+  };
+
+  const handleGlobalReach = () => {
+    if (onOpenContactModal) {
+      onOpenContactModal();
+    } else {
+      handleLaunchAi();
+    }
+  };
+
+  return (
+    <section
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-8"
+      aria-label="PDFSun AI Pro Features and Global Reach"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Card 1: PDFSun AI Copilot (Left) */}
+        <PDFSunAiCopilotCard onLaunch={handleLaunchAi} />
+
+        {/* Card 2: Global Enterprise Engine (Right) */}
+        <PDFSunEnterpriseSuiteCard onContact={handleGlobalReach} />
+      </div>
+    </section>
+  );
+};

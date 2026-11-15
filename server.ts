@@ -13,7 +13,12 @@ import { ALL_TOOLS } from "./src/data/toolsData";
 import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
 import { BLOG_POSTS } from "./src/data/blogData";
 import { injectSeoTagsIntoHtml } from "./src/server/seoRenderer";
-import { analyticsRouter, setupAnalyticsWebSocket } from "./src/server/analytics";
+import {
+  analyticsRouter,
+  setupAnalyticsWebSocket,
+  recordConversionMetric,
+  calculateLiveMetrics,
+} from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
 import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken, isValidAdminSecret, isVerifiedOwnerIdentity } from "./src/server/middleware/adminAuth";
 import {
@@ -54,6 +59,7 @@ import {
   verifyRecoveryOtpAndIssueToken,
   updatePasswordWithResetToken,
   getAccountLockoutStatus,
+  maskEmailAddress,
 } from "./src/server/authService";
 import { authRouter, handleVerifySession, handleLogout } from "./src/server/authRoutes";
 import {
@@ -1229,12 +1235,15 @@ ${rawText.slice(0, 30000)}`,
 
     return res.status(200).json({ success: true, result: callResult.text || "Summary generated.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Summarize Error:", error);
     const msg = error?.message || "Failed to generate AI summary.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
     return res.status(isRateLimit ? 429 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : "Failed to generate AI summary.",
     });
   }
 });
@@ -1292,7 +1301,10 @@ app.post(["/api/translate", "/api/ai/translate"], async (req, res) => {
       modelUsed,
     });
   } catch (error: any) {
-    console.error("[Translation Route Error]:", error);
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
+    console.error("[Translation Route Error]:", error?.message || "Translation failure");
     const rawMsg = error?.message || "Failed to process translation request with Gemini AI.";
     const isRateLimit =
       rawMsg.includes("429") ||
@@ -1321,14 +1333,13 @@ app.post(["/api/translate", "/api/ai/translate"], async (req, res) => {
       : isHighDemand
       ? `Gemini AI is experiencing temporary high demand. Please retry in ${waitSeconds} seconds.`
       : isApiKeyError
-      ? "Invalid or unauthenticated Gemini API key. Please check your API key in Settings > Secrets."
-      : `Gemini AI Translation Error: ${rawMsg}`;
+      ? "Translation service authentication is currently unavailable."
+      : "Failed to process document translation request. Please try again.";
 
     return res.status(statusCode).json({
       success: false,
       error: userFriendlyError,
       message: userFriendlyError,
-      rawError: rawMsg,
       retryAfterSeconds: waitSeconds,
       statusCode,
     });
@@ -1378,12 +1389,15 @@ ${rawText.slice(0, 20000)}`,
 
     return res.status(200).json({ success: true, flashcards, modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Flashcards Error:", error);
     const msg = error?.message || "Failed to generate flashcards.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
     return res.status(isRateLimit ? 429 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : "Failed to generate flashcards.",
     });
   }
 });
@@ -1406,12 +1420,15 @@ app.post("/api/ai/notes", async (req, res) => {
 
     return res.status(200).json({ success: true, result: callResult.text || "Study notes created.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Notes Error:", error);
     const msg = error?.message || "Failed to generate study notes.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
     return res.status(isRateLimit ? 429 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : "Failed to generate study notes.",
     });
   }
 });
@@ -1434,12 +1451,15 @@ app.post("/api/ai/grammar", async (req, res) => {
 
     return res.status(200).json({ success: true, result: callResult.text || "Grammar check completed.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Grammar Error:", error);
     const msg = error?.message || "Failed to process grammar check.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
     return res.status(isRateLimit ? 429 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : "Failed to process grammar check.",
     });
   }
 });
@@ -1462,12 +1482,15 @@ app.post("/api/ai/explain", async (req, res) => {
 
     return res.status(200).json({ success: true, result: callResult.text || "Explanation ready.", modelUsed: callResult.modelUsed });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Explain Error:", error);
     const msg = error?.message || "Failed to generate explanation.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
     return res.status(isRateLimit ? 429 : 500).json({
       success: false,
-      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : msg,
+      error: isRateLimit ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying." : "Failed to generate explanation.",
     });
   }
 });
@@ -1554,6 +1577,9 @@ app.post("/api/ai/ocr", async (req, res) => {
       modelUsed,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI OCR Route Error:", error);
     const msg = error?.message || "Failed to process document with AI OCR.";
     const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("503");
@@ -1564,7 +1590,7 @@ app.post("/api/ai/ocr", async (req, res) => {
         ? "Gemini AI is temporarily busy. Please wait a few seconds before retrying."
         : isTimeout
         ? "OCR analysis timed out. Please try with a smaller document or fewer pages."
-        : msg,
+        : "Failed to process document with AI OCR.",
     });
   }
 });
@@ -1725,10 +1751,13 @@ ${documentText ? `Document Text Context:\n${documentText.slice(0, 15000)}` : "An
       modelUsed,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Table Extract Error:", error);
     return res.status(500).json({
       success: false,
-      error: error?.message || "Internal server error during table extraction.",
+      error: "Failed to extract table structure from document.",
     });
   }
 });
@@ -1854,8 +1883,11 @@ You MUST return ONLY valid JSON matching this exact schema:
       data: resumeData,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Resume Parse Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to process resume extraction." });
+    res.status(500).json({ error: "Failed to process resume extraction." });
   }
 });
 
@@ -1919,8 +1951,11 @@ app.post("/api/ai/resume-improve", async (req, res) => {
       data: updatedData,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Resume Improve Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to improve resume." });
+    res.status(500).json({ error: "Failed to improve resume." });
   }
 });
 
@@ -1998,8 +2033,11 @@ You MUST return valid JSON adhering to:
       audit: auditResult,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI ATS Audit Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to perform ATS audit." });
+    res.status(500).json({ error: "Failed to perform ATS audit." });
   }
 });
 
@@ -2061,8 +2099,11 @@ You MUST return valid JSON adhering to:
       match: matchResult,
     });
   } catch (error: any) {
+    if ((req as any).quotaContext) {
+      rollbackAiQuota((req as any).quotaContext).catch(() => {});
+    }
     console.error("AI Job Match Error:", error);
-    res.status(500).json({ error: error?.message || "Failed to match resume with job description." });
+    res.status(500).json({ error: "Failed to match resume with job description." });
   }
 });
 
@@ -2220,7 +2261,7 @@ const getSystemStatsPayload = () => {
     network: {
       totalRequests: totalNetworkRequests,
       totalBytesTransferred,
-      latencyMs: Math.floor(10 + Math.random() * 12),
+      latencyMs: calculateLiveMetrics().serverLoadMs,
     },
     server: {
       uptimeSec: Math.floor(process.uptime()),
@@ -2326,31 +2367,45 @@ export function pushSystemErrorLog(log: Omit<SystemErrorLogItem, "id" | "timesta
   return item;
 }
 
-// Telemetry error intake endpoint
-app.post(["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"], (req, res) => {
-  if (req.body && (req.body.message || req.body.error)) {
-    const rawMsg = req.body.message || req.body.error || "Client error captured";
-    const level = (req.body.level || (req.body.type === "critical" ? "CRITICAL" : "ERROR")).toUpperCase();
-    const validLevel = ["CRITICAL", "ERROR", "WARNING", "INFO"].includes(level) ? (level as SystemErrorLogItem["level"]) : "ERROR";
-    const source = (req.body.source || "CLIENT_RUNTIME") as SystemErrorLogItem["source"];
+// Telemetry error intake endpoint (rate-limited, schema-validated, bounded payload)
+app.post(
+  ["/api/telemetry", "/api/telemetry/errors", "/api/telemetry/metrics"],
+  createSlidingRateLimiter(
+    { windowMs: 60 * 1000, maxRequests: 60, message: "Too many telemetry requests" },
+    "telemetry"
+  ),
+  (req, res) => {
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid telemetry payload." });
+    }
+    const rawMsg = req.body.message || req.body.error;
+    if (rawMsg !== undefined && typeof rawMsg !== "string") {
+      return res.status(400).json({ success: false, error: "Invalid telemetry message format." });
+    }
+    if (rawMsg && rawMsg.trim()) {
+      const level = String(req.body.level || (req.body.type === "critical" ? "CRITICAL" : "ERROR")).toUpperCase();
+      const validLevel = ["CRITICAL", "ERROR", "WARNING", "INFO"].includes(level) ? (level as SystemErrorLogItem["level"]) : "ERROR";
+      const source = String(req.body.source || "CLIENT_RUNTIME") as SystemErrorLogItem["source"];
+      const safeStack = typeof req.body.stack === "string" ? req.body.stack.slice(0, 1500) : undefined;
+      const safeUrl = typeof req.body.url === "string" ? req.body.url.split("?")[0].slice(0, 256) : undefined;
 
-    pushSystemErrorLog({
-      level: validLevel,
-      source: ["SERVER_API", "WASM_WORKER", "PDF_ENGINE", "CLIENT_RUNTIME", "MEMORY_MONITOR"].includes(source) ? source : "CLIENT_RUNTIME",
-      message: typeof rawMsg === "string" ? rawMsg : JSON.stringify(rawMsg),
-      stack: req.body.stack,
-      metadata: req.body.metadata || { url: req.body.url, userAgent: req.headers["user-agent"] },
-    });
+      pushSystemErrorLog({
+        level: validLevel,
+        source: ["SERVER_API", "WASM_WORKER", "PDF_ENGINE", "CLIENT_RUNTIME", "MEMORY_MONITOR"].includes(source) ? source : "CLIENT_RUNTIME",
+        message: rawMsg.trim().slice(0, 1000),
+        stack: safeStack,
+        metadata: {
+          url: safeUrl,
+          userAgent: String(req.headers["user-agent"] || "").slice(0, 200),
+        },
+      });
+    }
+    return res.json({ success: true, timestamp: new Date().toISOString() });
   }
-  res.json({ success: true, timestamp: new Date().toISOString() });
-});
+);
 
-// Phase 11: Real Analytics & Conversion Metrics Tracking (Zero Synthetic Figures)
+// Phase 11 & Phase 2: Persistent Real Analytics & Conversion Metrics Tracking (Zero Synthetic Figures)
 let analyticsWss: any = null;
-let totalConversionsToday = 0;
-let successfulConversionsCount = 0;
-let failedConversionsCount = 0;
-const conversionLatencyHistory: number[] = [];
 
 // Sliding window deduplication map for engagement events (max 10,000 entries)
 const recentEngagementEvents = new Map<string, number>();
@@ -2363,6 +2418,16 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+
+// Mount unified persistent analytics router (/live, /stats, /tools, /event, /record-conversion)
+app.use(
+  "/api/analytics",
+  createSlidingRateLimiter(
+    { windowMs: 60 * 1000, maxRequests: 180, message: "Too many analytics requests" },
+    "analytics-api"
+  ),
+  analyticsRouter
+);
 
 // POST /api/analytics/record-conversion (Payload Validation & Rate Limiting)
 app.post(
@@ -2377,14 +2442,14 @@ app.post(
       return res.status(400).json({ success: false, error: "Invalid payload: body must be a JSON object" });
     }
 
-    const allowedKeys = new Set(["latencyMs", "success"]);
+    const allowedKeys = new Set(["latencyMs", "success", "toolId", "eventId"]);
     for (const key of Object.keys(req.body)) {
       if (!allowedKeys.has(key)) {
         return res.status(400).json({ success: false, error: `Invalid payload: unexpected key '${key}'` });
       }
     }
 
-    const { latencyMs, success } = req.body;
+    const { latencyMs, success, toolId, eventId } = req.body;
     if (typeof latencyMs !== "number" || !Number.isFinite(latencyMs) || latencyMs < 1 || latencyMs > 300000) {
       return res.status(400).json({
         success: false,
@@ -2395,17 +2460,12 @@ app.post(
       return res.status(400).json({ success: false, error: "Invalid payload: success must be a boolean" });
     }
 
-    totalConversionsToday++;
-    if (success) {
-      successfulConversionsCount++;
-    } else {
-      failedConversionsCount++;
-    }
-
-    conversionLatencyHistory.push(Math.round(latencyMs));
-    if (conversionLatencyHistory.length > 50) {
-      conversionLatencyHistory.shift();
-    }
+    recordConversionMetric({
+      latencyMs,
+      success,
+      toolId: typeof toolId === "string" ? toolId : undefined,
+      eventId: typeof eventId === "string" ? eventId : undefined,
+    });
 
     return res.status(200).json({
       success: true,
@@ -2414,7 +2474,7 @@ app.post(
   }
 );
 
-// GET /api/analytics/stats (Zero Artificial Counts: activeUsers derived directly from activeWebSocketClients.size)
+// GET /api/analytics/stats (Zero Artificial Counts: activeUsers derived strictly from live connected clients)
 app.get(
   "/api/analytics/stats",
   createSlidingRateLimiter(
@@ -2423,22 +2483,20 @@ app.get(
   ),
   (_req, res) => {
     res.setHeader("Content-Type", "application/json");
-    const activeUsers = analyticsWss && analyticsWss.clients ? analyticsWss.clients.size : 0;
-    const total = successfulConversionsCount + failedConversionsCount;
-    const successRate = total > 0 ? Math.round((successfulConversionsCount / total) * 1000) / 10 : 100;
-    const avgLatency =
-      conversionLatencyHistory.length > 0
-        ? Math.round(conversionLatencyHistory.reduce((a, b) => a + b, 0) / conversionLatencyHistory.length)
-        : 15;
+    const wsCount = analyticsWss && analyticsWss.clients ? analyticsWss.clients.size : 0;
+    const live = calculateLiveMetrics(wsCount);
 
     return res.status(200).json({
       success: true,
       data: {
-        activeUsers,
-        processingSpeed: avgLatency,
-        successRate,
-        totalConversionsToday,
-        timestamp: new Date().toISOString(),
+        activeUsers: live.activeUsers,
+        processingSpeed: live.processingSpeed,
+        successRate: live.successRate,
+        totalConversionsToday: live.totalConversionsToday,
+        successfulConversions: live.successfulConversions,
+        failedConversions: live.failedConversions,
+        cancelledProcesses: live.cancelledProcesses,
+        timestamp: live.timestamp,
       },
     });
   }
@@ -2870,7 +2928,7 @@ app.post("/api/create-razorpay-order", async (req, res) => {
       status: "created",
     });
 
-    console.log(`[Razorpay Order Engine] Created & persisted internal order ${orderId} for ${userEmail} (₹${subResult.amount / 100})`);
+    console.log(`[Razorpay Order Engine] Created & persisted internal order ${orderId} for ${maskEmailAddress(userEmail)} (₹${subResult.amount / 100})`);
 
     res.json({
       success: true,
@@ -2957,7 +3015,7 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
       currency = "INR",
     } = req.body;
 
-    console.log(`[Razorpay Verification] Verifying payment ${razorpay_payment_id} for plan ${planId} (${userEmail})`);
+    console.log(`[Razorpay Verification] Verifying payment ${razorpay_payment_id} for plan ${planId} (${maskEmailAddress(userEmail)})`);
 
     // Strict Fail-Closed Check: Secret must be configured and valid
     if (!isRazorpaySecretConfigured()) {
@@ -3433,7 +3491,7 @@ app.post("/api/enterprise/inquiry", (req, res) => {
     } = req.body || {};
 
     const ticketId = `ENT-SSO-${Math.floor(100000 + Math.random() * 900000)}`;
-    console.log(`[Enterprise SSO Inquiry] Received ticket ${ticketId} from ${companyName} (${workEmail}, ${estimatedSeats} seats, IdP: ${preferredIdp})`);
+    console.log(`[Enterprise SSO Inquiry] Received ticket ${ticketId} from ${companyName} (${maskEmailAddress(String(workEmail || ""))}, ${estimatedSeats} seats, IdP: ${preferredIdp})`);
 
     res.json({
       success: true,
@@ -3478,7 +3536,7 @@ app.post("/api/user/sync-payment-status", (req, res) => {
     const { totalINR } = getUserTotalPaidAmount(targetEmail);
     const { subscription: sub, isActive: isPro } = getUserSubscription(targetEmail);
 
-    console.log(`[Sync Payment Engine] Synced payment status for user '${targetEmail}': Total Paid ₹${totalINR} INR, Plan: ${isPro ? "PRO CUSTOMER" : "FREE CUSTOMER"}`);
+    console.log(`[Sync Payment Engine] Synced payment status for '${maskEmailAddress(targetEmail)}': Total Paid ₹${totalINR} INR, Plan: ${isPro ? "PRO CUSTOMER" : "FREE CUSTOMER"}`);
 
     res.json({
       success: true,
@@ -4089,11 +4147,15 @@ const handleResendOtp = async (req: express.Request, res: express.Response) => {
 app.post("/api/v1/auth/resend-otp", handleResendOtp);
 app.post("/api/auth/resend-otp", handleResendOtp);
 
-// Legacy / Direct Admin Login endpoint
+// Legacy / Direct Admin Login endpoint (Fail-Closed: requires valid credentials & verified owner/admin role)
 app.post("/api/admin/auth/login", async (req, res) => {
   const { email, secretKey, password, otp } = req.body || {};
   const normalizedEmail = normalizeLoginIdentifier(String(email || ""));
   const targetEmail = normalizedEmail || String(email || "").toLowerCase().trim();
+
+  if (!targetEmail) {
+    return res.status(400).json({ success: false, error: "Email address is required." });
+  }
 
   // If OTP provided, verify via Banking MFA
   if (otp) {
@@ -4104,6 +4166,10 @@ app.post("/api/admin/auth/login", async (req, res) => {
     if (!mfaRes.success) {
       return res.status(401).json(mfaRes);
     }
+    const isAdminOrOwner = mfaRes.role === "owner" || mfaRes.hasAdminAccess;
+    if (!isAdminOrOwner) {
+      return res.status(403).json({ success: false, error: "Owner or Administrator privileges required." });
+    }
     res.setHeader("Set-Cookie", [
       `pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
       `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
@@ -4112,21 +4178,26 @@ app.post("/api/admin/auth/login", async (req, res) => {
       status: "ok",
       success: true,
       token: mfaRes.token,
-      role: "owner",
+      role: mfaRes.role || "owner",
       email: mfaRes.user?.email || targetEmail,
       user: mfaRes.user,
     });
   }
 
+  const credential = String(secretKey || password || "").trim();
+  if (!credential) {
+    return res.status(400).json({ success: false, error: "Password or Admin Secret Key is required." });
+  }
+
   const result = authenticateUser({
     email: targetEmail,
-    ownerSecretKey: secretKey || password,
-    password: password || secretKey,
+    ownerSecretKey: credential,
+    password: credential,
     isOwnerLogin: true,
   });
 
-  if (!result.success) {
-    return res.status(401).json(result);
+  if (!result.success || !(result.user?.role === "owner" || result.user?.hasAdminAccess)) {
+    return res.status(401).json({ success: false, error: result.error || "Invalid administrator credentials." });
   }
 
   res.setHeader("Set-Cookie", [
@@ -4138,7 +4209,7 @@ app.post("/api/admin/auth/login", async (req, res) => {
     status: "ok",
     success: true,
     token: result.token,
-    role: "owner",
+    role: result.user.role,
     email: result.user?.email || targetEmail,
     user: result.user,
   });
@@ -4367,17 +4438,24 @@ app.get(
 );
 
 app.post("/api/auth/refresh-session", (req, res) => {
+  const identity = resolveAuthenticatedUserIdentity(req);
+  if (!identity) {
+    return res.status(401).json({
+      success: false,
+      error: "Authentication required to refresh session.",
+    });
+  }
   res.json({
     success: true,
     status: "refreshed",
-    message: "Session token refreshed and extended.",
+    message: "Session token verified and extended.",
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     timestamp: new Date().toISOString(),
   });
 });
 
-// Database & RBAC Role Recovery & Audit Endpoint
-app.all("/api/admin/repair-auth", (req, res) => {
+// Database & RBAC Role Recovery & Audit Endpoint (Protected by Dual-Owner RBAC)
+app.post("/api/admin/repair-auth", verifyDualOwnerAccess, (req, res) => {
   try {
     const result = repairAndRestoreDatabase();
     res.json({
@@ -4408,63 +4486,13 @@ interface ServerAuditLog {
   metadata?: Record<string, any>;
 }
 
-let serverAuditLogs: ServerAuditLog[] = [
-  {
-    id: "aud-001",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    category: "sponsorship",
-    eventType: "SPONSORSHIP_ACTIVATION",
-    action: "Verified Sponsorship Campaign Activated",
-    target: "Sponsor: National EdTech Initiative 2026",
-    adminOperator: "mukeshinland79@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Enabled verified educational campaign with explicit sponsorship disclosure and strict ad isolation.",
-    metadata: {
-      campaignId: "camp-edu-2026",
-      sponsorName: "National EdTech Initiative",
-      disclosureEnabled: true,
-      validUntil: "2026-12-31",
-    },
-  },
-  {
-    id: "aud-002",
-    timestamp: new Date(Date.now() - 1000 * 60 * 12).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    category: "user_status",
-    eventType: "USER_STATUS_CHANGE",
-    action: "User Status Updated to Active",
-    target: "User: Sarah Jenkins (sarah.j@lawfirm.com)",
-    adminOperator: "mukeshkalonia241@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "103.21.124.9",
-    details: "Admin permission verified and role set to Team Enterprise.",
-    metadata: {
-      userId: "usr-03",
-      email: "sarah.j@lawfirm.com",
-      status: "Active",
-      hasAdminAccess: true,
-    },
-  },
-  {
-    id: "aud-003",
-    timestamp: new Date(Date.now() - 1000 * 60 * 25).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    isoTimestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    category: "settings_update",
-    eventType: "SETTINGS_UPDATE",
-    action: "Runtime Config & Rate Limit Modified",
-    target: "SystemConfig: GLOBAL_RATE_LIMIT",
-    adminOperator: "mukeshinland79@gmail.com",
-    status: "SUCCESS",
-    ipAddress: "152.58.16.42",
-    details: "Updated GLOBAL_RATE_LIMIT to 10,000 req/hr with Zero Downtime.",
-    metadata: {
-      GLOBAL_RATE_LIMIT: 10000,
-      TEMP_STORAGE_RETENTION_MINUTES: 60,
-    },
-  },
-];
+let serverAuditLogs: ServerAuditLog[] = [];
+
+function resolveVerifiedAuditOperator(req: express.Request): string {
+  const identity = resolveAuthenticatedUserIdentity(req);
+  if (identity?.email) return identity.email;
+  return "owner@pdfsun.in";
+}
 
 function recordServerAuditLog(entry: {
   id?: string;
@@ -4538,7 +4566,7 @@ app.post("/api/admin/users", verifyDualOwnerAccess, (req, res) => {
       isPro: plan.toLowerCase().includes("pro") || plan.toLowerCase().includes("enterprise") || Boolean(hasAdminAccess),
     });
 
-    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    const adminOperator = resolveVerifiedAuditOperator(req);
     recordServerAuditLog({
       category: "user_status",
       eventType: "USER_ACCOUNT_CREATED",
@@ -4576,7 +4604,7 @@ app.post("/api/admin/users/update", verifyDualOwnerAccess, (req, res) => {
     }
 
     const { passwordHash: _ph2, salt: _salt2, ...safeUpdatedUser } = (result.user || {}) as Record<string, any>;
-    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    const adminOperator = resolveVerifiedAuditOperator(req);
     recordServerAuditLog({
       category: "user_status",
       eventType: "USER_STATUS_CHANGE",
@@ -4613,7 +4641,7 @@ app.post("/api/admin/users/delete", verifyDualOwnerAccess, (req, res) => {
       return res.status(400).json({ success: false, error: result.error });
     }
 
-    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    const adminOperator = resolveVerifiedAuditOperator(req);
     recordServerAuditLog({
       category: "user_status",
       eventType: "USER_ACCOUNT_DELETED",
@@ -4645,7 +4673,7 @@ app.post("/api/admin/users/restore", verifyDualOwnerAccess, (req, res) => {
       eventType: "DATABASE_USERS_RESTORE",
       action: "Database Users and RBAC Restored",
       target: "System Database",
-      adminOperator: String(req.headers["x-user-email"] || "mukeshinland79@gmail.com"),
+      adminOperator: resolveVerifiedAuditOperator(req),
       status: "SUCCESS",
       details: "Repaired database user accounts and baseline owner profiles.",
     });
@@ -4704,7 +4732,7 @@ app.post("/api/admin/audit-logs", verifyDualOwnerAccess, (req, res) => {
       return res.status(400).json({ success: false, error: "Action and target are required." });
     }
 
-    const adminOperator = String(req.headers["x-user-email"] || req.body.adminOperator || "mukeshinland79@gmail.com");
+    const adminOperator = resolveVerifiedAuditOperator(req);
     const ipAddress = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
 
     const newLog = recordServerAuditLog({
@@ -4732,7 +4760,7 @@ app.post("/api/admin/audit-logs", verifyDualOwnerAccess, (req, res) => {
 // POST /api/admin/audit-logs/clear (Protected)
 app.post("/api/admin/audit-logs/clear", verifyDualOwnerAccess, (req, res) => {
   try {
-    const adminOperator = String(req.headers["x-user-email"] || "mukeshinland79@gmail.com");
+    const adminOperator = resolveVerifiedAuditOperator(req);
     const ipAddress = req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket?.remoteAddress || "127.0.0.1";
     const { mode = "all" } = req.body || {};
 
@@ -4764,52 +4792,94 @@ app.post("/api/admin/audit-logs/clear", verifyDualOwnerAccess, (req, res) => {
   }
 });
 
-// Protected Financial Metrics Endpoint (Enforces JWT role validation, stealth 404 for unauthorized)
-app.get("/api/admin/financials", adminAuth, (req, res) => {
+// Protected Financial Metrics Endpoint (Enforces Dual-Owner RBAC & computes real metrics from verified ledger)
+app.get("/api/admin/financials", verifyDualOwnerAccess, (_req, res) => {
+  const metrics = getFinanceMetrics();
+  const transactions = getAllVerifiedTransactions();
+  const todayStr = new Date().toISOString().split("T")[0];
+  const refundsToday = transactions.filter((t) => t.status === "REFUNDED" && t.date === todayStr).length;
+  const averageOrderValueInr =
+    metrics.totalTransactions > 0 ? Math.round((metrics.totalRevenue / metrics.totalTransactions) * 100) / 100 : 0;
+
   res.json({
     status: "ok",
     financials: {
-      mrrUsd: 18450,
-      mrrInr: 1520000,
-      totalRefundsProcessedToday: 2,
-      grossRevenueMonthUsd: 42300,
-      activePaidSubscriptions: 890,
-      averageOrderValueUsd: 20.75,
+      totalRevenueInr: metrics.totalRevenue,
+      totalTransactions: metrics.totalTransactions,
+      totalRefundsProcessed: metrics.refundCount,
+      totalRefundsProcessedToday: refundsToday,
+      activePaidSubscriptions: metrics.activeSubCount,
+      averageOrderValueInr,
     },
-    admin: req.adminUser,
   });
 });
 
-// Protected Admin Refund Authorization Route (Enforces JWT role validation)
-app.post("/api/admin/process-refund", adminAuth, (req, res) => {
-  const { transactionId, amount, currency = "USD", userEmail, reason } = req.body;
-  const refundId = "rfnd_admin_" + Math.random().toString(36).substring(2, 10);
+// Protected Admin Refund Authorization Route (Enforces Dual-Owner RBAC & input validation)
+app.post("/api/admin/process-refund", verifyDualOwnerAccess, (req, res) => {
+  const { transactionId, amount, currency = "INR", reason } = req.body || {};
+  if (!transactionId || typeof transactionId !== "string" || !transactionId.trim()) {
+    return res.status(400).json({ success: false, error: "Valid transactionId is required." });
+  }
+  const numericAmount = Number(amount);
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ success: false, error: "Refund amount must be a positive number." });
+  }
+  const tx = getAllVerifiedTransactions().find((t) => t.id === transactionId.trim());
+  if (!tx) {
+    return res.status(404).json({ success: false, error: "Verified transaction not found." });
+  }
+  tx.status = "REFUNDED";
+  saveTransactions();
+  const refundId = "rfnd_admin_" + crypto.randomBytes(6).toString("hex");
+  const authorizedBy = resolveVerifiedAuditOperator(req);
 
   res.json({
     success: true,
     refundId,
-    amount,
-    currency,
-    authorizedBy: req.adminUser?.email || "admin@pdfsun.in",
-    status: "Processed",
+    transactionId: tx.id,
+    amount: numericAmount,
+    currency: String(currency || "INR"),
+    reason: typeof reason === "string" ? reason.slice(0, 200) : "Admin refund",
+    authorizedBy,
+    status: "REFUNDED",
     message: "Admin authorized refund processed successfully.",
   });
 });
 
 // ==========================================
-// Finance Hub Controller State & Endpoints
+// Finance Hub Controller State & Endpoints (Environment-driven settlement config, zero hardcoded PII)
 // ==========================================
+function maskAccountNumberValue(acct: string): string {
+  const clean = (acct || "").trim();
+  if (!clean) return "Not Configured";
+  if (clean.length <= 8) return "****" + clean.slice(-4);
+  return `${clean.slice(0, 4)}********${clean.slice(-4)}`;
+}
+
+function getConfiguredOwnerBankDetails() {
+  const accountHolder = (process.env.OWNER_PAYOUT_ACCOUNT_HOLDER || process.env.BANK_ACCOUNT_HOLDER || "").trim();
+  const bankName = (process.env.OWNER_PAYOUT_BANK_NAME || process.env.BANK_NAME || "").trim();
+  const accountNumberFull = (process.env.OWNER_PAYOUT_ACCOUNT_NUMBER || process.env.BANK_ACCOUNT_NO || "").trim();
+  const ifscCode = (process.env.OWNER_PAYOUT_IFSC || process.env.BANK_IFSC || "").trim();
+  const branch = (process.env.OWNER_PAYOUT_BRANCH || process.env.BANK_BRANCH || "").trim();
+  const upiId = (process.env.OWNER_PAYOUT_UPI_ID || process.env.BANK_UPI_ID || "").trim();
+  const configured = Boolean(accountNumberFull && ifscCode);
+
+  return {
+    configured,
+    accountHolder: accountHolder || "Not Configured",
+    bankName: bankName || "Configured Settlement Bank",
+    accountNumberMasked: maskAccountNumberValue(accountNumberFull),
+    accountNumberFull,
+    ifscCode: ifscCode || "Not Configured",
+    branch: branch || "Not Configured",
+    upiId: upiId || "Not Configured",
+    autoPayout: configured,
+  };
+}
+
 let financeHubSettings = {
   activeGateway: "RAZORPAY" as "RAZORPAY" | "STRIPE",
-  bankDetails: {
-    accountHolder: "Mukesh",
-    accountNumberMasked: "1215********3493",
-    accountNumberFull: "1215882900113493",
-    ifscCode: "PUNB0121500",
-    branch: "Behal-Haryana Branch",
-    upiId: "9991659655@axl",
-    autoPayout: true,
-  },
   payoutHistory: [] as Array<{
     id: string;
     date: string;
@@ -4822,12 +4892,14 @@ let financeHubSettings = {
   pendingPayout: 0,
 };
 
-app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (req, res) => {
+app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (_req, res) => {
   const metrics = getFinanceMetrics();
   const allVerifiedTxs = getAllVerifiedTransactions();
-  const { accountNumberFull, ...safeBankDetails } = financeHubSettings.bankDetails;
+  const { accountNumberFull: _secretAcct, ...safeBankDetails } = getConfiguredOwnerBankDetails();
 
   const withdrawableBalance = Math.max(0, metrics.totalRevenue - financeHubSettings.withdrawableDeductions);
+  const razorpayConfigured = Boolean(process.env.RAZORPAY_KEY_ID && isRazorpaySecretConfigured());
+  const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith("sk_"));
 
   res.json({
     totalRevenue: metrics.totalRevenue,
@@ -4837,13 +4909,25 @@ app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (req, res) => {
     bankDetails: safeBankDetails,
     transactions: allVerifiedTxs,
     subscriptionChart: {
-      freeTier: Math.max(0, 100 - metrics.activeSubCount),
+      freeTier: 0,
       activePaid: metrics.activeSubCount,
       refunds: metrics.refundCount,
     },
     gatewayHealth: [
-      { name: "Razorpay", status: "OPERATIONAL", pingMs: 110, lastWebhook: "Active", successRate: "100%" },
-      { name: "Stripe", status: "STANDBY", pingMs: 88, lastWebhook: "Standby", successRate: "100%" },
+      {
+        name: "Razorpay",
+        status: razorpayConfigured ? "OPERATIONAL" : "UNCONFIGURED",
+        pingMs: null,
+        lastWebhook: razorpayConfigured ? "Configured" : "Not Configured",
+        successRate: null,
+      },
+      {
+        name: "Stripe",
+        status: stripeConfigured ? "OPERATIONAL" : "UNCONFIGURED",
+        pingMs: null,
+        lastWebhook: stripeConfigured ? "Configured" : "Not Configured",
+        successRate: null,
+      },
     ],
     payoutHistory: financeHubSettings.payoutHistory,
   });
@@ -4851,16 +4935,27 @@ app.get("/api/admin/finance-hub", verifyDualOwnerAccess, (req, res) => {
 
 app.post("/api/admin/reveal-account", verifyDualOwnerAccess, (req, res) => {
   const { password } = req.body || {};
-  if (isValidAdminSecret(password, currentSystemConfig.ADMIN_SECRET_KEY)) {
-    return res.json({
-      success: true,
-      accountNumber: financeHubSettings.bankDetails.accountNumberFull,
+  if (!isValidAdminSecret(password, currentSystemConfig.ADMIN_SECRET_KEY)) {
+    return res.status(401).json({ error: "Unauthorized: Invalid secret key" });
+  }
+  const { accountNumberFull } = getConfiguredOwnerBankDetails();
+  if (!accountNumberFull) {
+    return res.status(503).json({
+      success: false,
+      error: "Settlement bank account is not configured in server environment variables.",
     });
   }
-  res.status(401).json({ error: "Unauthorized: Invalid secret key" });
+  return res.json({
+    success: true,
+    accountNumber: accountNumberFull,
+  });
 });
 
 app.post("/api/admin/withdraw", verifyDualOwnerAccess, (req, res) => {
+  const bankDetails = getConfiguredOwnerBankDetails();
+  if (!bankDetails.configured) {
+    return res.status(503).json({ error: "Settlement bank account is not configured in server environment variables." });
+  }
   const metrics = getFinanceMetrics();
   const currentWithdrawable = Math.max(0, metrics.totalRevenue - financeHubSettings.withdrawableDeductions);
   const { amount = currentWithdrawable } = req.body || {};
@@ -4877,16 +4972,16 @@ app.post("/api/admin/withdraw", verifyDualOwnerAccess, (req, res) => {
     id: `po_${Date.now()}`,
     date: new Date().toISOString().split("T")[0],
     amount: withdrawAmount,
-    bank: "Punjab National Bank",
+    bank: bankDetails.bankName,
     status: "PROCESSING",
-    reference: `PNB_TXN_${Math.floor(100000 + Math.random() * 900000)}`,
+    reference: `SETTLE_${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
   };
 
   financeHubSettings.payoutHistory.unshift(newPayout);
 
   res.json({
     success: true,
-    message: "Payout initiated to PNB Account",
+    message: `Payout initiated to ${bankDetails.bankName}`,
     withdrawableBalance: Math.max(0, metrics.totalRevenue - financeHubSettings.withdrawableDeductions),
     pendingPayout: financeHubSettings.pendingPayout,
     payout: newPayout,
@@ -5003,14 +5098,15 @@ app.get("/api/admin/export-statement", verifyDualOwnerAccess, (req, res) => {
   const format = req.query.format || "csv";
   const metrics = getFinanceMetrics();
   const transactions = getAllVerifiedTransactions();
+  const bankDetails = getConfiguredOwnerBankDetails();
 
   if (format === "csv") {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename=PDFSun_Statement_${Date.now()}.csv`);
     const csvContent = [
       "PDFSun.in Financial & GST Report",
-      `Owner,Mukesh`,
-      `Bank,Punjab National Bank`,
+      `Owner,${bankDetails.configured ? bankDetails.accountHolder : "PDFSun Owner"}`,
+      `Bank,${bankDetails.bankName}`,
       "",
       "Tx ID,Email,Amount (INR),Gateway,Date,Status,Plan",
       ...transactions.map((t) => `${t.id},${t.email},${t.amountINR},${t.gateway},${t.date},${t.status},${t.planName}`),
@@ -5020,8 +5116,8 @@ app.get("/api/admin/export-statement", verifyDualOwnerAccess, (req, res) => {
     res.setHeader("Content-Type", "application/json");
     res.json({
       title: "PDFSun.in GST & Financial Statement Snapshot",
-      owner: "Mukesh",
-      bank: "Punjab National Bank",
+      owner: bankDetails.configured ? bankDetails.accountHolder : "PDFSun Owner",
+      bank: bankDetails.bankName,
       generatedAt: new Date().toISOString(),
       transactions,
       totals: {
@@ -5044,83 +5140,132 @@ app.get("/api/admin/comments", verifyDualOwnerAccess, adminGetCommentsHandler);
 app.post("/api/admin/comments/action", express.json(), verifyDualOwnerAccess, adminCommentActionHandler);
 app.post("/api/admin/comments/bulk-action", express.json(), verifyDualOwnerAccess, adminBulkCommentActionHandler);
 
-// Admin Email Notification Action Links Handler (Approve / Delete from Email)
-app.all("/api/admin/feedback/action", async (req, res) => {
+function escapeFeedbackHtml(value: string): string {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[ch] || ch));
+}
+
+function renderFeedbackActionPage(opts: { title: string; heading: string; messageHtml: string; accent: string; formHtml?: string }): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeFeedbackHtml(opts.title)} - PDFSun</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .card { max-width: 440px; width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.45); }
+    .title { font-size: 20px; font-weight: 700; margin: 0 0 10px 0; color: #ffffff; }
+    .body { font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-bottom: 18px; }
+    .code { font-family: monospace; background: #0f172a; color: #fb923c; padding: 2px 6px; border-radius: 6px; }
+    .btn { display: inline-block; padding: 10px 18px; border-radius: 10px; border: 0; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; color: #ffffff; background: ${opts.accent}; }
+    .btn-muted { background: #334155; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="title">${escapeFeedbackHtml(opts.heading)}</h1>
+    <div class="body">${opts.messageHtml}</div>
+    ${opts.formHtml || '<a href="/?admin=true" class="btn">Open PDFSun Admin Dashboard</a>'}
+  </div>
+</body>
+</html>`;
+}
+
+// Admin Email Notification Action Links Handler (Protected by Dual-Owner RBAC, GET-safe confirmation, CSRF check, HTML escaped, zero external scripts)
+app.all("/api/admin/feedback/action", verifyDualOwnerAccess, async (req, res) => {
   try {
     const feedbackId = (req.query.id || req.body?.id || "").toString().trim();
     const action = (req.query.action || req.body?.action || "").toString().toLowerCase().trim();
+    const safeFeedbackId = escapeFeedbackHtml(feedbackId);
 
-    if (!feedbackId) {
-      return res.status(400).send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <title>Invalid Request - PDFSun</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
-          <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 text-center space-y-4 shadow-2xl">
-            <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">!</div>
-            <h1 class="text-lg font-bold text-white">Missing Feedback Document ID</h1>
-            <p class="text-xs text-slate-400">Please verify the link from your notification email and try again.</p>
-            <a href="/" class="inline-block px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition">Go to PDFSun Home</a>
-          </div>
-        </body>
-        </html>
-      `);
+    if (!feedbackId || !/^[a-zA-Z0-9_-]{3,128}$/.test(feedbackId)) {
+      return res
+        .status(400)
+        .type("text/html")
+        .send(
+          renderFeedbackActionPage({
+            title: "Invalid Request",
+            heading: "Invalid Feedback Document ID",
+            messageHtml: "Please verify the feedback document identifier and try again.",
+            accent: "#ea580c",
+          })
+        );
+    }
+
+    if (action !== "approve" && action !== "delete") {
+      return res.status(400).json({ error: "Invalid action parameter. Expected 'approve' or 'delete'." });
+    }
+
+    // Never mutate Firestore state on GET: render an explicit POST confirmation form
+    if (req.method === "GET") {
+      const actionLabel = action === "approve" ? "Approve Feedback" : "Delete Feedback";
+      const accent = action === "approve" ? "#059669" : "#e11d48";
+      return res
+        .status(200)
+        .type("text/html")
+        .send(
+          renderFeedbackActionPage({
+            title: `Confirm ${actionLabel}`,
+            heading: `Confirm ${actionLabel}`,
+            messageHtml: `Review action <strong class="code">${escapeFeedbackHtml(action)}</strong> for feedback ID <code class="code">${safeFeedbackId}</code> before applying changes.`,
+            accent,
+            formHtml: `<form method="POST" action="/api/admin/feedback/action" style="display:inline;">
+              <input type="hidden" name="id" value="${safeFeedbackId}" />
+              <input type="hidden" name="action" value="${escapeFeedbackHtml(action)}" />
+              <input type="hidden" name="confirmAction" value="true" />
+              <button type="submit" class="btn">${actionLabel}</button>
+              <a href="/?admin=true" class="btn btn-muted">Cancel</a>
+            </form>`,
+          })
+        );
+    }
+
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method Not Allowed. Use POST to mutate feedback state." });
+    }
+
+    // CSRF Origin/Referer check for state-changing POST requests
+    const originHeader = String(req.headers.origin || "");
+    const refererHeader = String(req.headers.referer || "");
+    const hostHeader = String(req.headers.host || "");
+    const sourceOrigin = originHeader || (refererHeader ? new URL(refererHeader).origin : "");
+    if (sourceOrigin) {
+      const expectedLocal = hostHeader ? [`http://${hostHeader}`, `https://${hostHeader}`] : [];
+      if (!VERIFIED_CORS_ORIGINS.has(sourceOrigin) && !expectedLocal.includes(sourceOrigin)) {
+        return res.status(403).json({ error: "Forbidden: CSRF origin validation failed." });
+      }
     }
 
     if (action === "approve") {
-      const success = await approveToolFeedbackInFirestore(feedbackId);
-      return res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <title>Feedback Approved - PDFSun</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
-          <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 text-center space-y-4 shadow-2xl">
-            <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
-            <h1 class="text-xl font-bold text-white">Feedback Approved</h1>
-            <p class="text-xs text-slate-300">Tool feedback document <code class="text-orange-400 font-mono bg-slate-900 px-2 py-0.5 rounded">${feedbackId}</code> was successfully marked as <strong class="text-emerald-400">Approved</strong> in Firestore collection <code class="text-slate-300">tool_feedback</code>.</p>
-            <div class="pt-2">
-              <a href="/?admin=true" class="inline-block px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-orange-600/20">Open PDFSun Admin Dashboard</a>
-            </div>
-          </div>
-        </body>
-        </html>
-      `);
-    } else if (action === "delete") {
-      const success = await deleteToolFeedbackFromFirestore(feedbackId);
-      return res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <title>Feedback Deleted - PDFSun</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
-          <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 text-center space-y-4 shadow-2xl">
-            <div class="w-16 h-16 bg-rose-500/20 border border-rose-500/40 text-rose-400 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✕</div>
-            <h1 class="text-xl font-bold text-white">Feedback Deleted</h1>
-            <p class="text-xs text-slate-300">Tool feedback document <code class="text-orange-400 font-mono bg-slate-900 px-2 py-0.5 rounded">${feedbackId}</code> has been permanently removed from Firestore collection <code class="text-slate-300">tool_feedback</code>.</p>
-            <div class="pt-2">
-              <a href="/?admin=true" class="inline-block px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-orange-600/20">Open PDFSun Admin Dashboard</a>
-            </div>
-          </div>
-        </body>
-        </html>
-      `);
-    } else {
-      return res.status(400).json({ error: "Invalid action parameter. Expected 'approve' or 'delete'." });
+      await approveToolFeedbackInFirestore(feedbackId);
+      return res
+        .status(200)
+        .type("text/html")
+        .send(
+          renderFeedbackActionPage({
+            title: "Feedback Approved",
+            heading: "Feedback Approved",
+            messageHtml: `Tool feedback document <code class="code">${safeFeedbackId}</code> was marked as Approved.`,
+            accent: "#059669",
+          })
+        );
     }
+
+    await deleteToolFeedbackFromFirestore(feedbackId);
+    return res
+      .status(200)
+      .type("text/html")
+      .send(
+        renderFeedbackActionPage({
+          title: "Feedback Deleted",
+          heading: "Feedback Deleted",
+          messageHtml: `Tool feedback document <code class="code">${safeFeedbackId}</code> has been permanently removed.`,
+          accent: "#e11d48",
+        })
+      );
   } catch (err: any) {
     console.error("Error processing feedback action link:", err);
-    return res.status(500).json({ error: err?.message || "Failed to process action request." });
+    return res.status(500).json({ error: "Failed to process action request." });
   }
 });
 
@@ -5424,7 +5569,7 @@ async function startServer() {
     });
   });
 
-  // Strict Security Guard: Block public access to backend bundles, server source maps, and server artifacts
+  // Strict Security Guard: Block public access to backend bundles, server source maps, backups, data stores, and environment files
   app.use((req, res, next) => {
     let rawPath = req.path || "";
     try {
@@ -5435,14 +5580,47 @@ async function startServer() {
     const normalized = path.normalize(rawPath).toLowerCase().replace(/\\/g, "/");
     const base = path.basename(normalized);
 
+    const isDevViteJsonImport =
+      process.env.NODE_ENV !== "production" &&
+      req.query &&
+      Object.prototype.hasOwnProperty.call(req.query, "import");
+
     if (
       base === "server.cjs" ||
       base === "server.cjs.map" ||
       base.startsWith("server.cjs") ||
       normalized.includes("server.cjs") ||
+      base === "server.ts" ||
+      base === "package.json" ||
+      base === "package-lock.json" ||
+      base === "tsconfig.json" ||
+      base === "vite.config.ts" ||
+      base === "firebase-blueprint.json" ||
+      (base === "firebase-applet-config.json" && !isDevViteJsonImport) ||
+      base === "firestore.rules" ||
+      base === "agents.md" ||
+      base === "metadata.json" ||
       base.endsWith(".cjs") ||
       base.endsWith(".cjs.map") ||
-      (base.endsWith(".map") && normalized.includes("server"))
+      (base.endsWith(".map") && normalized.includes("server")) ||
+      normalized === "/backups" ||
+      normalized.startsWith("/backups/") ||
+      normalized.includes("/backups/") ||
+      normalized === "/data" ||
+      normalized.startsWith("/data/") ||
+      base === "users_store.json" ||
+      base === "comments_store.json" ||
+      base === "banned_ips.json" ||
+      base === "rate_limits_store.json" ||
+      base === "vercel.json" ||
+      base === "system_config.json" ||
+      base === "payment_store.json" ||
+      base === "verified_transactions.json" ||
+      base === "user_subscriptions.json" ||
+      base === "analytics_events.json" ||
+      base === ".env" ||
+      base.startsWith(".env.") ||
+      normalized.includes("/.git")
     ) {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("X-Content-Type-Options", "nosniff");

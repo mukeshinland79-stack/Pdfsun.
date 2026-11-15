@@ -6,18 +6,26 @@ export interface LiveAnalyticsData {
   activeUsersOnline: number;
   activeUsers: number;
   totalConversionsToday: number;
-  serverLoadMs: number;
-  processingSpeed: number;
-  successRatePercent: number;
-  successRate: number;
+  serverLoadMs: number | null;
+  processingSpeed: number | null;
+  successRatePercent: number | null;
+  successRate: number | null;
   timestamp: string;
 }
 
+function toFiniteNumberOrNull(val: unknown): number | null {
+  if (val === null || val === undefined || val === "") return null;
+  const num = Number(val);
+  return Number.isFinite(num) ? num : null;
+}
+
 export function normalizeAnalyticsData(raw: Partial<LiveAnalyticsData> | Record<string, unknown>): LiveAnalyticsData {
-  const active = Number(raw.activeUsers ?? raw.activeUsersOnline ?? 1);
-  const speed = Number(raw.processingSpeed ?? raw.serverLoadMs ?? 15);
-  const rate = Number(raw.successRate ?? raw.successRatePercent ?? 99.8);
-  const conversions = Number(raw.totalConversionsToday ?? 0);
+  const activeRaw = toFiniteNumberOrNull(raw.activeUsers ?? raw.activeUsersOnline);
+  const active = activeRaw !== null && activeRaw >= 0 ? activeRaw : 0;
+  const speed = toFiniteNumberOrNull(raw.processingSpeed ?? raw.serverLoadMs);
+  const rate = toFiniteNumberOrNull(raw.successRate ?? raw.successRatePercent);
+  const conversionsRaw = toFiniteNumberOrNull(raw.totalConversionsToday);
+  const conversions = conversionsRaw !== null && conversionsRaw >= 0 ? conversionsRaw : 0;
   const ts = typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString();
 
   return {
@@ -38,55 +46,59 @@ export interface AnalyticsStreamOptions {
   onStatusChange?: (status: "connecting" | "live" | "reconnecting" | "offline") => void;
 }
 
-// Helper to access env vars safely
-const getEnvVar = (key: string, fallback: string): string => {
+// Helper to access env vars safely without fabricated demo fallbacks
+const getEnvVar = (key: string): string => {
   try {
     const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
     if (metaEnv && metaEnv[key]) return metaEnv[key];
     if (typeof process !== "undefined" && process.env && process.env[key]) return process.env[key];
-  } catch (e) {
+  } catch {
     // ignore
   }
-  return fallback;
+  return "";
 };
 
-// Firebase Project Configuration
-const firebaseConfig = {
-  apiKey: getEnvVar("VITE_FIREBASE_API_KEY", "AIzaSyDemoKeyForPDFSunAnalytics2026"),
-  authDomain: getEnvVar("VITE_FIREBASE_AUTH_DOMAIN", "pdfsun-analytics.firebaseapp.com"),
-  databaseURL: getEnvVar("VITE_FIREBASE_DATABASE_URL", "https://pdfsun-analytics-default-rtdb.firebaseio.com"),
-  projectId: getEnvVar("VITE_FIREBASE_PROJECT_ID", "pdfsun-analytics"),
-  storageBucket: getEnvVar("VITE_FIREBASE_STORAGE_BUCKET", "pdfsun-analytics.appspot.com"),
-  messagingSenderId: getEnvVar("VITE_FIREBASE_MESSAGING_SENDER_ID", "123456789012"),
-  appId: getEnvVar("VITE_FIREBASE_APP_ID", "1:123456789012:web:abcdef1234567890"),
-};
+const firebaseApiKey = getEnvVar("VITE_FIREBASE_API_KEY");
+const firebaseDbUrl = getEnvVar("VITE_FIREBASE_DATABASE_URL");
+const hasRealFirebaseConfig = Boolean(
+  firebaseApiKey &&
+    firebaseDbUrl &&
+    !firebaseApiKey.includes("DemoKey") &&
+    !firebaseDbUrl.includes("pdfsun-analytics-default-rtdb")
+);
 
-// Safe Firebase Initialization
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
 
-try {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  db = getDatabase(app);
-} catch (err) {
-  console.warn("Firebase Realtime Database initialization notice:", err);
+if (hasRealFirebaseConfig) {
+  try {
+    const firebaseConfig = {
+      apiKey: firebaseApiKey,
+      authDomain: getEnvVar("VITE_FIREBASE_AUTH_DOMAIN"),
+      databaseURL: firebaseDbUrl,
+      projectId: getEnvVar("VITE_FIREBASE_PROJECT_ID"),
+      storageBucket: getEnvVar("VITE_FIREBASE_STORAGE_BUCKET"),
+      messagingSenderId: getEnvVar("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+      appId: getEnvVar("VITE_FIREBASE_APP_ID"),
+    };
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    db = getDatabase(app);
+  } catch (err) {
+    console.warn("Firebase Realtime Database initialization notice:", err);
+  }
 }
 
 class AnalyticsService {
   private baseUrl = "/api/analytics";
 
-  /**
-   * Get Firebase Realtime Database instance
-   */
   getDatabaseInstance(): Database | null {
     return db;
   }
 
   /**
-   * Fetch a snapshot of current live analytics metrics from Firebase or REST fallback
+   * Fetch a snapshot of current live analytics metrics from REST API (or configured Firebase RTDB)
    */
   async getSnapshot(): Promise<LiveAnalyticsData | null> {
-    // 1. Try Firebase Realtime Database snapshot first
     if (db) {
       try {
         const metricsRef = ref(db, "analytics/live");
@@ -102,7 +114,6 @@ class AnalyticsService {
       }
     }
 
-    // 2. Fallback to API REST endpoint
     try {
       const res = await fetch(`${this.baseUrl}/stats`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -115,8 +126,7 @@ class AnalyticsService {
   }
 
   /**
-   * Subscribe to real-time live metrics streaming using persistent WebSocket connection,
-   * with automatic reconnects, heartbeats, and SSE/Firebase/REST fallbacks.
+   * Subscribe to real-time live metrics streaming via WebSocket -> SSE -> REST fallback
    */
   subscribeToLiveMetrics(options: AnalyticsStreamOptions): () => void {
     let isDisposed = false;
@@ -148,7 +158,6 @@ class AnalyticsService {
           retryCount = 0;
           options.onStatusChange?.("live");
 
-          // Start heartbeat interval (ping every 10s)
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
             if (resilientSocket && resilientSocket.readyState === WebSocket.OPEN) {
@@ -179,7 +188,6 @@ class AnalyticsService {
 
         resilientSocket.on("error", () => {
           if (isDisposed) return;
-          // Silent handling without crashing
         });
 
         resilientSocket.on("close", () => {
@@ -198,7 +206,6 @@ class AnalyticsService {
 
       options.onStatusChange?.("reconnecting");
 
-      // Try SSE first as secondary stream
       try {
         eventSource = new EventSource("/api/analytics/live");
 
@@ -251,7 +258,7 @@ class AnalyticsService {
               if (snapshot.exists()) {
                 const val = snapshot.val();
                 if (val && typeof val.activeUsersOnline === "number") {
-                  options.onData(val as LiveAnalyticsData);
+                  options.onData(normalizeAnalyticsData(val));
                   options.onStatusChange?.("live");
                 }
               }
@@ -271,7 +278,6 @@ class AnalyticsService {
 
       options.onStatusChange?.("reconnecting");
 
-      // Safely fetch snapshot as bridge without unhandled promise rejection
       this.getSnapshot()
         .then((snapshot) => {
           if (snapshot && !isDisposed) {
@@ -282,7 +288,6 @@ class AnalyticsService {
           // ignore snapshot bridge errors during offline/disconnect state
         });
 
-      // Exponential backoff with jitter up to 30 seconds
       const backoffMs = Math.min(30000, 1000 * Math.pow(1.8, Math.min(retryCount, 6)) + Math.random() * 500);
       retryCount++;
 
@@ -293,10 +298,8 @@ class AnalyticsService {
       }, backoffMs);
     };
 
-    // Initiate primary WebSocket connection
     connectWebSocket();
 
-    // Cleanup function
     return () => {
       isDisposed = true;
       if (pingInterval) clearInterval(pingInterval);
@@ -320,28 +323,27 @@ class AnalyticsService {
   }
 
   /**
-   * Record a conversion event in backend and Firebase Realtime Database
+   * Record a real conversion event in backend analytics
    */
-  async recordConversion(latencyMs = 15, success = true): Promise<LiveAnalyticsData | null> {
+  async recordConversion(latencyMs: number, success = true, toolId?: string, eventId?: string): Promise<LiveAnalyticsData | null> {
+    if (!Number.isFinite(latencyMs) || latencyMs < 1) return null;
     let currentStats: LiveAnalyticsData | null = null;
 
-    // 1. Send event to backend API endpoint
     try {
       const res = await fetch(`${this.baseUrl}/record-conversion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latencyMs, success }),
+        body: JSON.stringify({ latencyMs: Math.round(latencyMs), success, toolId, eventId }),
       });
 
       if (res.ok) {
         const json = await res.json();
-        currentStats = json?.currentStats || null;
+        currentStats = json?.currentStats ? normalizeAnalyticsData(json.currentStats) : null;
       }
     } catch (err) {
       console.warn("AnalyticsService recordConversion backend post failed:", err);
     }
 
-    // 2. Sync updated metrics to Firebase Realtime Database
     if (db && currentStats) {
       try {
         const liveRef = ref(db, "analytics/live");
@@ -357,4 +359,3 @@ class AnalyticsService {
 
 export const analyticsService = new AnalyticsService();
 export { useLiveAnalytics } from "../hooks/useLiveAnalytics";
-

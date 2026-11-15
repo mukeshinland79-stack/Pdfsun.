@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, interactive-widget=resizes-content" />
+    <title>PDFSun — Everything You Need to Work With PDF Files</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4189458265489554"
+     crossorigin="anonymous"></script>
+
+    <!-- Google Analytics 4 (GA4) with Bot Hygiene & Internal Traffic Isolation -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKEKHR7SK8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      // Auto-detect internal owner/developer traffic without hard-coding temporary IPs
+      var isInternal = false;
+      try {
+        if (localStorage.getItem("pdfsun_internal_traffic") === "true") {
+          isInternal = true;
+        } else {
+          var userProfile = localStorage.getItem("pdfsun_user_profile");
+          if (userProfile && (userProfile.indexOf("mukeshinland79@gmail.com") !== -1 || userProfile.indexOf('"role":"owner"') !== -1)) {
+            isInternal = true;
+          }
+        }
+      } catch (e) {}
+
+      if (isInternal) {
+        gtag('set', 'user_properties', { traffic_type: 'internal' });
+      }
+
+      gtag('config', 'G-VKEKHR7SK8', {
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+        traffic_type: isInternal ? 'internal' : 'regular'
+      });
+    </script>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="PDFSun — Your Smart Document Companion. Fast, private, browser-based PDF tools to convert, merge, split, compress, edit, OCR, and manage documents safely at pdfsun.in." />
+    <meta name="keywords" content="PDFSun, Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun, split PDF, convert PDF to Word, online PDF editor, WebAssembly PDF, pdfsun.in" />
+    <meta name="author" content="PDFSun" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Google Fonts Typography (Inter async; regional Noto scripts loaded on demand by i18n) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" /></noscript>
+
+    <!-- Standardized Blue Brand Favicon Architecture (Google Search Favicon Standards & Blue Suite) -->
+    <link rel="icon" type="image/x-icon" href="https://www.pdfsun.in/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.pdfsun.in/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="https://www.pdfsun.in/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="https://www.pdfsun.in/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="https://www.pdfsun.in/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="144x144" href="https://www.pdfsun.in/favicon-144x144.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://www.pdfsun.in/favicon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://www.pdfsun.in/favicon-512x512.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="https://www.pdfsun.in/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="https://www.pdfsun.in/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://www.pdfsun.in/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://www.pdfsun.in/android-chrome-512x512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://www.pdfsun.in/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://www.pdfsun.in/apple-touch-icon-180x180.png" />
+
+    <!-- Agentic Resource Discovery (ARD) & PWA Manifest -->
+    <link rel="agent-discovery" type="application/json" href="https://www.pdfsun.in/.well-known/ard.json" />
+    <link rel="manifest" href="https://www.pdfsun.in/site.webmanifest" />
+    <meta name="theme-color" content="#0052FF" />
+    <meta name="msapplication-TileColor" content="#0052FF" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PDFSun" />
+    <meta name="application-name" content="PDFSun" />
+
+    <!-- Canonical & Global Multi-Language Hreflang Localization -->
+    <link rel="canonical" href="https://www.pdfsun.in/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.pdfsun.in/" />
+    <link rel="alternate" hreflang="en" href="https://www.pdfsun.in/" />
+    <link rel="alternate" hreflang="en-us" href="https://www.pdfsun.in/" />
+    <link rel="alternate" hreflang="en-gb" href="https://www.pdfsun.in/?gl=gb" />
+    <link rel="alternate" hreflang="en-ca" href="https://www.pdfsun.in/?gl=ca" />
+    <link rel="alternate" hreflang="en-au" href="https://www.pdfsun.in/?gl=au" />
+    <link rel="alternate" hreflang="es" href="https://www.pdfsun.in/?lang=es" />
+    <link rel="alternate" hreflang="es-es" href="https://www.pdfsun.in/?lang=es" />
+    <link rel="alternate" hreflang="es-mx" href="https://www.pdfsun.in/?lang=es" />
+    <link rel="alternate" hreflang="fr" href="https://www.pdfsun.in/?lang=fr" />
+    <link rel="alternate" hreflang="fr-fr" href="https://www.pdfsun.in/?lang=fr" />
+    <link rel="alternate" hreflang="de" href="https://www.pdfsun.in/?lang=de" />
+    <link rel="alternate" hreflang="de-de" href="https://www.pdfsun.in/?lang=de" />
+    <link rel="alternate" hreflang="hi" href="https://www.pdfsun.in/?lang=hi" />
+    <link rel="alternate" hreflang="hi-in" href="https://www.pdfsun.in/?lang=hi" />
+    <link rel="alternate" hreflang="it-it" href="https://www.pdfsun.in/?lang=it" />
+    <link rel="alternate" hreflang="nl-nl" href="https://www.pdfsun.in/?lang=nl" />
+    <link rel="alternate" hreflang="pt-br" href="https://www.pdfsun.in/?lang=pt" />
+    <link rel="alternate" hreflang="ar-sa" href="https://www.pdfsun.in/?lang=ar" />
+    <link rel="alternate" hreflang="ar-ae" href="https://www.pdfsun.in/?lang=ar" />
+    <link rel="alternate" hreflang="id-id" href="https://www.pdfsun.in/?lang=id" />
+    <link rel="alternate" hreflang="vi-vn" href="https://www.pdfsun.in/?lang=vi" />
+    <link rel="alternate" hreflang="th-th" href="https://www.pdfsun.in/?lang=th" />
+    <link rel="alternate" hreflang="ja-jp" href="https://www.pdfsun.in/?lang=ja" />
+    <link rel="alternate" hreflang="ko-kr" href="https://www.pdfsun.in/?lang=ko" />
+    <link rel="alternate" hreflang="ru-ru" href="https://www.pdfsun.in/?lang=ru" />
+
+    <!-- OpenGraph Social Meta (Facebook/LinkedIn/Slack) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PDFSun" />
+    <meta property="og:title" content="PDFSun — Everything You Need to Work With PDF Files" />
+    <meta property="og:description" content="PDFSun — Your Smart Document Companion. Fast, private, browser-based PDF tools to convert, merge, split, compress, edit, OCR, and manage documents safely at pdfsun.in." />
+    <meta property="og:url" content="https://www.pdfsun.in/" />
+    <meta property="og:image" content="https://www.pdfsun.in/og-image.png" />
+    <meta property="og:image:secure_url" content="https://www.pdfsun.in/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PDFSun — Fast, Private In-Browser PDF Tools" />
+
+    <!-- Twitter Card Meta -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@pdfsun" />
+    <meta name="twitter:creator" content="@pdfsun" />
+    <meta name="twitter:title" content="PDFSun — Everything You Need to Work With PDF Files" />
+    <meta name="twitter:description" content="PDFSun — Your Smart Document Companion. Fast, private, browser-based PDF tools to convert, merge, split, compress, edit, OCR, and manage documents safely at pdfsun.in." />
+    <meta name="twitter:image" content="https://www.pdfsun.in/og-image.png" />
+
+    <!-- Real User Monitoring (RUM) - Core Web Vitals & WASM Processing Speed -->
+    <script>
+      (function() {
+        if ('PerformanceObserver' in window) {
+          try {
+            // 1. Largest Contentful Paint (LCP < 0.8s target)
+            var lcpObserver = new PerformanceObserver(function(entryList) {
+              var entries = entryList.getEntries();
+              var lastEntry = entries[entries.length - 1];
+              if (lastEntry) {
+                window.__pdfsun_lcp = lastEntry.renderTime || lastEntry.loadTime;
+              }
+            });
+            lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+
+            // 2. Cumulative Layout Shift (CLS = 0 target)
+            var clsValue = 0;
+            var clsObserver = new PerformanceObserver(function(entryList) {
+              entryList.getEntries().forEach(function(entry) {
+                if (!entry.hadRecentInput) {
+                  clsValue += entry.value;
+                  window.__pdfsun_cls = clsValue;
+                }
+              });
+            });
+            clsObserver.observe({ type: 'layout-shift', buffered: true });
+
+            // 3. Interaction to Next Paint (INP & FID tracking)
+            var inpObserver = new PerformanceObserver(function(entryList) {
+              entryList.getEntries().forEach(function(entry) {
+                if (entry.duration) {
+                  window.__pdfsun_inp = Math.max(window.__pdfsun_inp || 0, entry.duration);
+                }
+              });
+            });
+            try {
+              inpObserver.observe({ type: 'event', durationThreshold: 16, buffered: true });
+            } catch(e) {
+              inpObserver.observe({ type: 'first-input', buffered: true });
+            }
+          } catch(e) {}
+        }
+      })();
+    </script>
+
+    <!-- Zero Flash of Unstyled Content (FOUC) Theme Restoration Script -->
+    <script>
+      (function() {
+        try {
+          var savedEye = localStorage.getItem("pdfsun_eye_protection");
+          var savedTheme = localStorage.getItem("pdfsun_theme");
+          var docEl = document.documentElement;
+
+          var targetTheme = "dark";
+          if (savedEye === "true" || savedTheme === "eye-protection") {
+            targetTheme = "eye-protection";
+            docEl.classList.remove("dark", "light", "aurora-theme");
+            docEl.classList.add("eye-protection");
+          } else if (savedTheme === "aurora") {
+            targetTheme = "aurora";
+            docEl.classList.remove("eye-protection", "light");
+            docEl.classList.add("dark", "aurora-theme");
+          } else if (savedTheme === "light") {
+            targetTheme = "light";
+            docEl.classList.remove("dark", "eye-protection", "aurora-theme");
+            docEl.classList.add("light");
+          } else if (savedTheme === "dark") {
+            targetTheme = "dark";
+            docEl.classList.remove("light", "eye-protection", "aurora-theme");
+            docEl.classList.add("dark");
+          } else if (savedTheme === "system" || !savedTheme) {
+            var isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            targetTheme = isDark ? "dark" : "light";
+            docEl.classList.remove("dark", "light", "eye-protection", "aurora-theme");
+            docEl.classList.add(isDark ? "dark" : "light");
+          }
+          docEl.setAttribute("data-theme", targetTheme);
+        } catch(e) {}
+      })();
+    </script>
+
+    <!-- Structured Data JSON-LD Schemas -->
+    <!-- 1. WebSite Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "PDFSun",
+      "alternateName": ["PDFSun.in", "PDF Sun", "PDF Sun Online", "Pdfsun"],
+      "url": "https://www.pdfsun.in",
+      "description": "Free PDF converter, merge PDF online, compress PDF size, edit PDF documents safely with PDFSun. 100% Client-Side WebAssembly Processing with Zero Server Uploads.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "PDFSun",
+        "url": "https://www.pdfsun.in",
+        "logo": "https://www.pdfsun.in/logo.png"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://www.pdfsun.in/?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- 2. Organization Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "PDFSun",
+      "alternateName": ["PDFSun.in", "PDF Sun", "PDF Sun Technologies", "Pdfsun"],
+      "url": "https://www.pdfsun.in",
+      "logo": "https://www.pdfsun.in/logo.png",
+      "image": "https://www.pdfsun.in/og-image.png",
+      "email": "mukeshinland79@gmail.com",
+      "sameAs": [
+        "https://twitter.com/pdfsun",
+        "https://github.com/mukeshinland79-stack/Pdfsun"
+      ]
+    }
+    </script>
+
+    <!-- 3. WebApplication & SoftwareApplication Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["WebApplication", "SoftwareApplication"],
+      "name": "PDFSun - Online PDF Tools",
+      "alternateName": ["PDFSun PDF Editor", "PDFSun Converter", "PDFSun Tools"],
+      "url": "https://www.pdfsun.in",
+      "description": "PDFSun — Enterprise-grade client-side WebAssembly document engine. Merge, compress, convert, sign, OCR, and edit PDFs with zero server upload.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "All (Web-based, Windows, macOS, Linux, iOS, Android)",
+      "browserRequirements": "Requires HTML5 and WebAssembly compatible browser.",
+      "softwareVersion": "3.2.0",
+      "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
+      "featureList": [
+        "Merge multiple PDF files into one with extreme speed",
+        "Split and extract PDF pages instantly",
+        "Compress PDF to 100KB, 200KB, 300KB, 500KB with sub-second speeds",
+        "Convert PDF to Word, Excel, PowerPoint, JPG, PNG",
+        "OCR Text Recognition directly in browser",
+        "AI PDF Chat, Summarization, and Translation",
+        "Password Protect and Unlock PDF files",
+        "Add and Remove Watermarks",
+        "Edit PDF Text and Annotate documents",
+        "100% Client-Side WebAssembly Processing for zero data leaks"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "PDFSun",
+        "url": "https://www.pdfsun.in",
+        "logo": "https://www.pdfsun.in/logo.png"
+      }
+    }
+    </script>
+
+    <!-- 4. Primary BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.pdfsun.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "PDF Tools",
+          "item": "https://www.pdfsun.in/#tools"
+        }
+      ]
+    }
+    </script>
+
+    <!-- 3. WebApplication & HowTo Rich Snippets Schema (@graph Schema for PDF Merger & Tools) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://www.pdfsun.in/merge-pdf#webapp",
+          "url": "https://www.pdfsun.in/merge-pdf",
+          "name": "Free Online PDF Merger & Combiner",
+          "alternateName": ["PDF Joiner", "Combine PDF Online", "Merge PDF Files"],
+          "description": "Merge multiple PDF files into a single document instantly in your browser. Fast, 100% free, secure, and requires no registration.",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "All (Web-based)",
+          "browserRequirements": "Requires HTML5, WebAssembly, and JavaScript enabled.",
+          "softwareVersion": "2.1.0",
+          "inLanguage": ["en", "es", "de", "hi", "fr", "pt", "ar", "ja", "ru"],
+          "featureList": [
+            "Combine unlimited PDF files into one",
+            "Drag-and-drop page reordering",
+            "Client-side processing for 100% privacy",
+            "No email or registration required",
+            "Works on Mobile, Windows, Mac, and Linux"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "18420",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "author": {
+            "@type": "Organization",
+            "@id": "https://www.pdfsun.in/#organization",
+            "name": "PDFSun",
+            "url": "https://www.pdfsun.in",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://www.pdfsun.in/og-image.png"
+            }
+          }
+        },
+        {
+          "@type": "HowTo",
+          "name": "How to Merge PDF Files Online",
+          "description": "Simple 3-step guide to merging multiple PDF documents into one single file.",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "name": "Upload PDF Files",
+              "text": "Drag and drop your PDF documents into the file selection box, or click 'Choose Files'.",
+              "position": 1
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Reorder Pages",
+              "text": "Rearrange individual pages or whole documents by dragging them into your preferred sequence.",
+              "position": 2
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Merge & Save",
+              "text": "Click 'Merge PDF' and instantly download your merged PDF document to your device.",
+              "position": 3
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Are my files safe on PDF Sun?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! All PDF processing occurs 100% locally on your computer using browser WebAssembly. Your files are never uploaded to any remote server."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is PDF Sun completely free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, PDF Sun provides unlimited free client-side PDF utility tools including Merge, Compress, Split, Rotate, and AI document chat."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does PDF Sun compress PDFs so fast?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PDF Sun utilizes multithreaded off-main-thread Web Workers and WebAssembly binaries directly inside your browser for zero latency."
+          }
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <!-- Crawlable High-Value Semantic Content for Search Crawlers and AdSense Verification Bots -->
+    <noscript>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; color: #1e293b;">
+        <header style="border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+          <nav aria-label="Breadcrumb" style="margin-bottom: 12px; font-size: 13px;">
+            <ol itemscope itemtype="https://schema.org/BreadcrumbList" style="list-style: none; padding: 0; margin: 0; display: flex; gap: 8px;">
+              <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <a itemprop="item" href="https://www.pdfsun.in/" style="color: #ea580c; text-decoration: none;">
+                  <span itemprop="name">Home</span>
+                </a>
+                <meta itemprop="position" content="1" />
+              </li>
+              <li aria-hidden="true" style="color: #94a3b8;">/</li>
+              <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <a itemprop="item" href="https://www.pdfsun.in/#tools" style="color: #2563eb; text-decoration: none;">
+                  <span itemprop="name">PDF Tools</span>
+                </a>
+                <meta itemprop="position" content="2" />
+              </li>
+            </ol>
+          </nav>
+          <h1 style="font-size: 28px; color: #0f172a; margin-bottom: 8px;">PDFSun (pdfsun.in) - 100% Private In-Browser PDF Tools &amp; AI Document Workspace</h1>
+          <p style="font-size: 16px; color: #475569;">Fast, secure, client-side WebAssembly utilities to merge, split, compress, edit, convert, and analyze PDF documents with zero server uploads.</p>
+        </header>
+
+        <section style="margin-bottom: 30px;">
+          <h2 style="font-size: 22px; color: #0f172a; border-left: 4px solid #f97316; padding-left: 10px;">Why PDFSun Is Engineered for Privacy &amp; Speed</h2>
+          <p>Traditional PDF utilities upload your private tax documents, legal contracts, and financial spreadsheets to external cloud servers for processing. PDFSun is built on a modern <strong>Client-Side First Architecture</strong>. By leveraging high-performance WebAssembly (WASM) and isolated Web Workers, all file processing happens directly within your web browser's sandboxed memory. Your files never leave your computer or mobile phone.</p>
+        </section>
+
+        <section style="margin-bottom: 30px;">
+          <h2 style="font-size: 22px; color: #0f172a; border-left: 4px solid #f97316; padding-left: 10px;">Popular Free Tools &amp; How-To Guides</h2>
+          
+          <article style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <h3 style="font-size: 18px; color: #1e293b;">1. How to Merge PDF Files Online</h3>
+            <p>Combine multiple reports, academic essays, or presentations into a single cohesive PDF document. Simply drag and drop your files into PDFSun, arrange the page sequence, and click 'Merge PDF'. The engine compiles your document in less than 2 seconds with zero compression loss.</p>
+          </article>
+
+          <article style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <h3 style="font-size: 18px; color: #1e293b;">2. How to Compress PDF Size Without Losing Quality</h3>
+            <p>Reduce oversized PDF files by up to 90% while keeping text sharp and images crisp. PDFSun offers Extreme, Recommended, and High-Quality compression levels tailored for email limits and government portal uploads (e.g. 100KB or 200KB limits).</p>
+          </article>
+
+          <article style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <h3 style="font-size: 18px; color: #1e293b;">3. AI Document Summarizer &amp; Research Assistant</h3>
+            <p>Powered by next-gen Gemini 3.6 AI, PDFSun lets you interrogate dense academic research, extract executive summaries, generate study flashcards, and translate entire documents into 30+ global languages securely.</p>
+          </article>
+
+          <article style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <h3 style="font-size: 18px; color: #1e293b;">4. Convert PDF to Word, Excel &amp; Images</h3>
+            <p>Accurately convert PDF documents into editable Microsoft Word (.docx), structured Excel spreadsheets (.xlsx), PowerPoint decks (.pptx), and high-resolution JPG or PNG images with pristine layout fidelity.</p>
+          </article>
+        </section>
+
+        <section style="margin-bottom: 30px;">
+          <h2 style="font-size: 22px; color: #0f172a; border-left: 4px solid #f97316; padding-left: 10px;">Frequently Asked Questions (FAQ)</h2>
+          <div style="margin-bottom: 15px;">
+            <h4 style="font-size: 16px; font-weight: bold;">Are my documents safe on PDFSun?</h4>
+            <p>Yes. All conversions, compressions, and page reorganizations are executed 100% locally on your device via client-side WebAssembly. No files are stored or logged on remote servers.</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <h4 style="font-size: 16px; font-weight: bold;">Is PDFSun free to use?</h4>
+            <p>PDFSun provides free, unlimited access to core PDF utilities for all users worldwide. No credit card or software installation is required.</p>
+          </div>
+        </section>
+
+        <footer style="border-top: 2px solid #e2e8f0; padding-top: 20px; font-size: 13px; color: #64748b;">
+          <p><strong>About PDFSun:</strong> Founded and operated by Mukesh Kalonia. Engineered with WebAssembly, Vite, React, and Gemini AI. Contact: mukeshkalonia241@gmail.com | Rajasthan, India.</p>
+          <p>Links: Privacy Policy | Terms of Service | Cookie Policy | Refund Policy | About Us | Contact Support | Disclaimer</p>
+        </footer>
+      </div>
+    </noscript>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

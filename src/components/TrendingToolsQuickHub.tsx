@@ -148,7 +148,7 @@ export const TrendingToolsQuickHub: React.FC<TrendingToolsQuickHubProps> = ({
               <span>Trending Utilities</span>
             </span>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
-              • 66+ Free Tools • No Sign-up Required
+              • 68+ Free Tools • No Sign-up Required
             </span>
           </div>
 
@@ -156,7 +156,7 @@ export const TrendingToolsQuickHub: React.FC<TrendingToolsQuickHubProps> = ({
             Trending PDF & AI Tools Quick-Hub
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Select a popular tool below or search any of our 66+ client-side document utilities.
+            Select a popular tool below or search any of our 68+ client-side document utilities.
           </p>
         </div>
 
@@ -169,9 +169,9 @@ export const TrendingToolsQuickHub: React.FC<TrendingToolsQuickHubProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search 66+ Free PDF & Knowledge Tools..."
+              placeholder="Search 68+ Free PDF & Knowledge Tools..."
               className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition shadow-inner"
-              aria-label="Search 66+ Free PDF & Knowledge Tools"
+              aria-label="Search 68+ Free PDF & Knowledge Tools"
             />
             {searchQuery && (
               <button

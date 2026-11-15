@@ -90,41 +90,29 @@ export const FinanceHub: React.FC = () => {
   const [processingRefundId, setProcessingRefundId] = useState<string | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Fallback initial state so page works seamlessly even if offline
-  const fallbackData: FinancialData = {
-    totalRevenue: 125000,
-    withdrawableBalance: 45000,
-    pendingPayout: 15000,
+  const EMPTY_FINANCE_DATA: FinancialData = {
+    totalRevenue: 0,
+    withdrawableBalance: 0,
+    pendingPayout: 0,
     activeGateway: 'RAZORPAY',
     bankDetails: {
-      accountHolder: 'Mukesh',
-      accountNumberMasked: '1215********3493',
-      ifscCode: 'PUNB0121500',
-      branch: 'Behal-Haryana Branch',
-      upiId: 'pdfsun@axl',
-      autoPayout: true,
+      accountHolder: 'Configured via Server Environment',
+      accountNumberMasked: 'Not configured',
+      ifscCode: 'Not configured',
+      branch: 'Not configured',
+      upiId: 'Not configured',
+      autoPayout: false,
     },
-    transactions: [
-      { id: 'tx_101', email: 'sarah@example.com', amount: 4999, gateway: 'Razorpay', date: '2026-08-01', status: 'COMPLETED', plan: 'Pro Monthly', chargebackRisk: 'Low' },
-      { id: 'tx_102', email: 'john@work.com', amount: 14999, gateway: 'Stripe', date: '2026-08-02', status: 'COMPLETED', plan: 'Pro Annual', chargebackRisk: 'Low' },
-      { id: 'tx_103', email: 'alex@demo.com', amount: 4999, gateway: 'Razorpay', date: '2026-08-03', status: 'REFUNDED', plan: 'Pro Monthly', chargebackRisk: 'None' },
-      { id: 'tx_104', email: 'rajesh.k@pdf.in', amount: 4999, gateway: 'Razorpay', date: '2026-08-05', status: 'COMPLETED', plan: 'Pro Monthly', chargebackRisk: 'Low' },
-      { id: 'tx_105', email: 'priya.m@company.com', amount: 14999, gateway: 'Stripe', date: '2026-08-07', status: 'COMPLETED', plan: 'Pro Annual', chargebackRisk: 'Low' },
-    ],
+    transactions: [],
     subscriptionChart: {
-      freeTier: 320,
-      proMonthly: 145,
-      proAnnual: 68,
+      freeTier: 0,
+      proMonthly: 0,
+      proAnnual: 0,
     },
-    gatewayHealth: [
-      { name: 'Razorpay', status: 'OPERATIONAL', pingMs: 118, lastWebhook: 'Just now', successRate: '99.8%' },
-      { name: 'Stripe', status: 'OPERATIONAL', pingMs: 92, lastWebhook: '2 mins ago', successRate: '99.9%' },
-    ],
-    payoutHistory: [
-      { id: 'po_901', date: '2026-08-01', amount: 50000, bank: 'Punjab National Bank', status: 'SETTLED', reference: 'PNB_TXN_881923' },
-      { id: 'po_900', date: '2026-07-25', amount: 30000, bank: 'Punjab National Bank', status: 'SETTLED', reference: 'PNB_TXN_772019' },
-    ],
+    gatewayHealth: [],
+    payoutHistory: [],
   };
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFinanceData();
@@ -136,64 +124,58 @@ export const FinanceHub: React.FC = () => {
     setTimeout(() => setNotificationMsg(null), 4000);
   };
 
+  const getAdminHeaders = (extra?: Record<string, string>): Record<string, string> => {
+    const storedToken =
+      (typeof window !== "undefined" && (
+        localStorage.getItem("pdfsun_admin_token") ||
+        sessionStorage.getItem("pdfsun_admin_token") ||
+        localStorage.getItem("pdfsun_auth_token")
+      )) || "";
+    const headers: Record<string, string> = { ...(extra || {}) };
+    if (storedToken) {
+      headers['Authorization'] = `Bearer ${storedToken}`;
+      headers['x-admin-token'] = storedToken;
+    }
+    return headers;
+  };
+
   const fetchOwnerAuditLogs = async () => {
     setLoadingAuditLogs(true);
     try {
-      const storedToken =
-        (typeof window !== "undefined" && (
-          localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("pdfsun_auth_token")
-        )) || "";
-
-      const headers: Record<string, string> = {
-        'x-user-email': 'mukeshinland79@gmail.com',
-      };
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-        headers['x-admin-token'] = storedToken;
-      }
-
-      const res = await fetch('/api/admin/owner-payment-audit-logs', { headers });
+      const res = await fetch('/api/admin/owner-payment-audit-logs', {
+        credentials: 'include',
+        headers: getAdminHeaders(),
+      });
       if (res.ok) {
         const payload = await res.json();
         if (payload.success && Array.isArray(payload.logs)) {
           setOwnerAuditLogs(payload.logs);
         }
       }
-    } catch (err) {
-      console.warn("Could not fetch remote owner audit logs, using verified transactions.");
+    } catch {
+      setOwnerAuditLogs([]);
     } finally {
       setLoadingAuditLogs(false);
     }
   };
 
   const fetchFinanceData = async () => {
+    setLoadError(null);
     try {
-      const storedToken =
-        (typeof window !== "undefined" && (
-          localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("pdfsun_auth_token") ||
-          localStorage.getItem("token")
-        )) || "";
-      const headers: Record<string, string> = {
-        'x-user-email': 'mukeshinland79@gmail.com',
-      };
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-        headers['x-admin-token'] = storedToken;
-      }
-
-      const response = await fetch('/api/admin/finance-hub', { headers });
+      const response = await fetch('/api/admin/finance-hub', {
+        credentials: 'include',
+        headers: getAdminHeaders(),
+      });
       if (response.ok) {
         const result = await response.json();
         setData(result);
       } else {
-        setData(fallbackData);
+        setLoadError(`Unable to load live finance ledger (HTTP ${response.status}).`);
+        setData(EMPTY_FINANCE_DATA);
       }
-    } catch (err) {
-      setData(fallbackData);
+    } catch {
+      setLoadError('Network error loading live finance ledger.');
+      setData(EMPTY_FINANCE_DATA);
     } finally {
       setLoading(false);
     }
@@ -201,99 +183,69 @@ export const FinanceHub: React.FC = () => {
 
   const handleRevealAccount = async () => {
     if (!showAccountNo) {
-      const pass = prompt("सुरक्षा सत्यापन: अपना एडमिन पासवर्ड या सीक्रेट कुंजी दर्ज करें:");
+      const pass = prompt("Security verification: Enter your admin secret key:");
       if (!pass) return;
-      
+
       try {
         const res = await fetch('/api/admin/reveal-account', {
           method: 'POST',
-          headers: { 
+          credentials: 'include',
+          headers: getAdminHeaders({
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-            'x-admin-token': pass
-          },
+            'x-admin-token': pass,
+          }),
           body: JSON.stringify({ password: pass })
         });
-        
+
         if (res.ok) {
-          const { accountNumber } = await res.json();
-          setRealAccountNo(accountNumber || "1215882900113493");
-          setShowAccountNo(true);
-          showToast("खाता संख्या सफलतापूर्वक अनलॉक की गई!", "success");
+          const payload = await res.json();
+          if (payload?.accountNumber) {
+            setRealAccountNo(payload.accountNumber);
+            setShowAccountNo(true);
+            showToast("Settlement account number unlocked.", "success");
+          } else {
+            showToast("Settlement account is not configured on the server.", "error");
+          }
         } else {
-          showToast("गलत पासवर्ड! एक्सेस अस्वीकृत।", "error");
+          const errPayload = await res.json().catch(() => ({}));
+          showToast(errPayload?.error || "Access denied or payout account unavailable.", "error");
         }
-      } catch (e) {
-        showToast("नेटवर्क त्रुटि: खाता संख्या अनलॉक करने में असमर्थ।", "error");
+      } catch {
+        showToast("Network error while unlocking account number.", "error");
       }
     } else {
+      setRealAccountNo('');
       setShowAccountNo(false);
     }
   };
 
   const handleInstantPayout = async () => {
-    const withdrawAmount = data?.withdrawableBalance || 45000;
+    const withdrawAmount = data?.withdrawableBalance || 0;
     if (withdrawAmount <= 0) {
-      showToast("कोई राशि निकालने योग्य नहीं है।", "error");
+      showToast("No withdrawable balance available.", "error");
       return;
     }
 
-    if (!window.confirm(`क्या आप ₹${withdrawAmount.toLocaleString()} का Instant Withdrawal PNB बैंक खाते में ट्रिगर करना चाहते हैं?`)) return;
-    
+    if (!window.confirm(`Initiate withdrawal of ₹${withdrawAmount.toLocaleString()} to configured settlement bank?`)) return;
+
     setProcessingPayout(true);
     try {
-      const storedToken =
-        (typeof window !== "undefined" && (
-          localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("token")
-        )) || "";
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-        headers['x-admin-token'] = storedToken;
-      }
       const res = await fetch('/api/admin/withdraw', {
         method: 'POST',
-        headers,
+        credentials: 'include',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ amount: withdrawAmount })
       });
 
-      if (res.ok) {
-        const result = await res.json();
-        showToast("Withdrawal Request successful! PNB Account में T+0 transfer initiate हो गया है।", "success");
-        if (data) {
-          setData({
-            ...data,
-            withdrawableBalance: 0,
-            pendingPayout: data.pendingPayout + withdrawAmount,
-            payoutHistory: [
-              {
-                id: `po_${Date.now()}`,
-                date: new Date().toISOString().split('T')[0],
-                amount: withdrawAmount,
-                bank: 'Punjab National Bank',
-                status: 'PROCESSING',
-                reference: `PNB_TXN_${Math.floor(100000 + Math.random() * 900000)}`
-              },
-              ...(data.payoutHistory || [])
-            ]
-          });
-        }
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result?.success !== false) {
+        showToast(result?.message || "Withdrawal request submitted to settlement bank.", "success");
+        await fetchFinanceData();
       } else {
-        // Fallback update
-        showToast("Withdrawal Request successful! PNB Account में T+0 transfer initiate हो गया है।", "success");
-        if (data) {
-          setData({ ...data, withdrawableBalance: 0 });
-        }
+        showToast(result?.error || "Withdrawal failed or settlement bank not configured.", "error");
       }
-    } catch (e) {
-      showToast("Payout initiated locally to PNB Account.", "info");
-      if (data) {
-        setData({ ...data, withdrawableBalance: 0 });
-      }
+    } catch {
+      showToast("Network error initiating payout.", "error");
     } finally {
       setProcessingPayout(false);
     }
@@ -304,84 +256,55 @@ export const FinanceHub: React.FC = () => {
 
     setSwitchingGateway(true);
     try {
-      const storedToken =
-        (typeof window !== "undefined" && (
-          localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("token")
-        )) || "";
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-        headers['x-admin-token'] = storedToken;
-      }
       const res = await fetch('/api/admin/toggle-gateway', {
         method: 'POST',
-        headers,
+        credentials: 'include',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ gateway: targetGateway })
       });
 
       if (res.ok) {
-        showToast(`Payment Gateway switched to ${targetGateway}!`, "success");
+        setData({ ...data, activeGateway: targetGateway });
+        showToast(`Payment Gateway switched to ${targetGateway}.`, "success");
       } else {
-        showToast(`Gateway switched to ${targetGateway}`, "success");
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.error || `Failed to switch gateway to ${targetGateway}.`, "error");
       }
-      setData({ ...data, activeGateway: targetGateway });
-    } catch (e) {
-      setData({ ...data, activeGateway: targetGateway });
-      showToast(`Switched active gateway to ${targetGateway}`, "success");
+    } catch {
+      showToast("Network error while toggling payment gateway.", "error");
     } finally {
       setSwitchingGateway(false);
     }
   };
 
   const handleProcessRefund = async (txId: string) => {
-    if (!window.confirm(`क्या आप ट्रांजैक्शन ${txId} का पूर्ण रिफंड प्रोसेस करना चाहते हैं?`)) return;
+    if (!window.confirm(`Process full refund for transaction ${txId}?`)) return;
 
     setProcessingRefundId(txId);
     try {
-      const storedToken =
-        (typeof window !== "undefined" && (
-          localStorage.getItem("pdfsun_admin_token") ||
-          sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("token")
-        )) || "";
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-        headers['x-admin-token'] = storedToken;
-      }
       const res = await fetch('/api/admin/refund', {
         method: 'POST',
-        headers,
+        credentials: 'include',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ transactionId: txId, reason: 'Customer requested refund via Finance Hub' })
       });
 
-      if (res.ok || true) {
-        showToast(`Refund processed successfully for ${txId}!`, "success");
+      if (res.ok) {
+        showToast(`Refund processed successfully for ${txId}.`, "success");
         if (data) {
           setData({
             ...data,
-            transactions: data.transactions.map(t => 
+            transactions: data.transactions.map(t =>
               t.id === txId ? { ...t, status: 'REFUNDED' } : t
             )
           });
         }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.error || `Refund failed for ${txId}.`, "error");
       }
-    } catch (e) {
-      showToast(`Refund processed for ${txId}`, "info");
-      if (data) {
-        setData({
-          ...data,
-          transactions: data.transactions.map(t => 
-            t.id === txId ? { ...t, status: 'REFUNDED' } : t
-          )
-        });
-      }
+    } catch {
+      showToast("Network error while processing refund.", "error");
     } finally {
       setProcessingRefundId(null);
     }
@@ -389,13 +312,13 @@ export const FinanceHub: React.FC = () => {
 
   const exportFinancialStatement = (type: 'CSV' | 'PDF') => {
     showToast(`Generating ${type} Statement for PDFSun.in... Download starting.`, "info");
-    
+
     if (type === 'CSV') {
       const csvLines = [
         "PDFSun.in Financial & Settlement Report",
         `Generated Date,${new Date().toLocaleDateString()}`,
-        `Account Holder,Mukesh`,
-        `Bank,Punjab National Bank (PNB)`,
+        `Account Holder,${currentData.bankDetails.accountHolder || 'Configured Owner'}`,
+        `IFSC Code,${currentData.bankDetails.ifscCode || 'Not configured'}`,
         "",
         "Transaction ID,User Email,Amount (INR),Gateway,Date,Status",
         ...(data?.transactions || []).map(t => `${t.id},${t.email},${t.amount},${t.gateway},${t.date},${t.status}`)
@@ -410,12 +333,27 @@ export const FinanceHub: React.FC = () => {
       link.click();
       document.body.removeChild(link);
     } else {
-      window.open(`/api/admin/export-statement?format=pdf`, '_blank');
+      fetch('/api/admin/export-statement?format=pdf', {
+        credentials: 'include',
+        headers: getAdminHeaders(),
+      })
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `PDFSun_Finance_Statement_${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        })
+        .catch(() => showToast("Failed to export server PDF statement.", "error"));
     }
   };
 
   const filteredTransactions = (data?.transactions || []).filter(tx => {
-    const matchesSearch = (tx.email || "").toLowerCase().includes((searchQuery || "").toLowerCase()) || 
+    const matchesSearch = (tx.email || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
                           (tx.id || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
                           (tx.gateway || "").toLowerCase().includes((searchQuery || "").toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || tx.status === statusFilter;
@@ -431,7 +369,7 @@ export const FinanceHub: React.FC = () => {
     );
   }
 
-  const currentData = data || fallbackData;
+  const currentData = data || EMPTY_FINANCE_DATA;
 
   return (
     <div className="bg-neutral-950 text-neutral-100 font-sans p-4 sm:p-6 rounded-2xl border border-neutral-800/80 shadow-2xl">
@@ -570,7 +508,7 @@ export const FinanceHub: React.FC = () => {
                   currentData.withdrawableBalance <= 0 ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {processingPayout ? <RefreshCw className="w-5 h-5 animate-spin" /> : <>Withdraw Funds to PNB <ArrowUpRight className="w-5 h-5 ml-1.5" /></>}
+                {processingPayout ? <RefreshCw className="w-5 h-5 animate-spin" /> : <>Withdraw Funds to Settlement Bank <ArrowUpRight className="w-5 h-5 ml-1.5" /></>}
               </button>
             </div>
           </div>
@@ -620,7 +558,7 @@ export const FinanceHub: React.FC = () => {
               <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-neutral-400">Settlement Bank</span>
-                  <span className="text-xs text-amber-400 font-bold">Punjab National Bank</span>
+                  <span className="text-xs text-amber-400 font-bold">{currentData.bankDetails.branch || 'Configured via Server Env'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-neutral-400">Account Holder</span>
@@ -637,7 +575,7 @@ export const FinanceHub: React.FC = () => {
               onClick={() => setActiveTab('payouts')}
               className="w-full mt-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-amber-400 font-semibold text-xs rounded-lg border border-amber-900/40 transition flex items-center justify-center"
             >
-              <Building2 className="w-4 h-4 mr-2" /> View Full PNB Settlement Details
+              <Building2 className="w-4 h-4 mr-2" /> View Full Bank Settlement Details
             </button>
           </div>
 
@@ -739,7 +677,7 @@ export const FinanceHub: React.FC = () => {
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-100">Punjab National Bank</h2>
+                  <h2 className="text-base font-bold text-neutral-100">Verified Settlement Bank</h2>
                   <p className="text-xs text-amber-500/80 font-medium">Auto-Settlement Account Details</p>
                 </div>
               </div>
@@ -816,7 +754,7 @@ export const FinanceHub: React.FC = () => {
               <div className="flex items-center justify-between pt-3 border-t border-neutral-800/60">
                 <div>
                   <p className="text-xs text-neutral-200 font-bold">Automatic T+1 Daily Payout</p>
-                  <p className="text-[11px] text-neutral-400">Direct credit to PNB account every night at 00:00 IST</p>
+                  <p className="text-[11px] text-neutral-400">Direct credit to verified settlement bank account at 00:00 IST</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" defaultChecked={currentData.bankDetails.autoPayout} className="sr-only peer" />
@@ -839,7 +777,7 @@ export const FinanceHub: React.FC = () => {
           {/* COLUMN 3: PAYOUT HISTORY */}
           <div className="bg-neutral-900 border border-amber-900/30 rounded-2xl p-6 shadow-xl">
             <h2 className="text-base font-bold text-neutral-100 mb-4 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-amber-500" /> PNB Settlement History
+              <TrendingUp className="w-5 h-5 mr-2 text-amber-500" /> Bank Settlement History
             </h2>
 
             <div className="space-y-3">
@@ -983,35 +921,29 @@ export const FinanceHub: React.FC = () => {
       {activeTab === 'gateways' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Razorpay Health */}
             <div className="bg-neutral-900 border border-blue-900/30 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                   <h2 className="text-base font-bold text-blue-400">Razorpay Live Gateway</h2>
                 </div>
                 <span className="text-xs bg-emerald-950 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-800/50">
-                  HEALTHY (118ms)
+                  {currentData.gatewayHealth?.[0]?.status || 'CONFIGURED'}
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">API Endpoint Status</span>
-                  <span className="text-emerald-400 font-bold">200 OK (Ping Active)</span>
-                </div>
-                <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">Webhook Listener</span>
+                  <span className="text-neutral-400">Webhook Endpoint</span>
                   <span className="text-blue-400 font-mono">https://www.pdfsun.in/api/webhooks/razorpay</span>
                 </div>
                 <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">24h Success Rate</span>
-                  <span className="text-neutral-200 font-bold">99.8%</span>
+                  <span className="text-neutral-400">Recorded Transactions</span>
+                  <span className="text-neutral-200 font-bold">{currentData.transactions.length}</span>
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => handleGatewayToggle('RAZORPAY')}
                 className={`w-full py-2.5 rounded-xl font-bold text-xs transition border ${
                   currentData.activeGateway === 'RAZORPAY'
@@ -1023,7 +955,6 @@ export const FinanceHub: React.FC = () => {
               </button>
             </div>
 
-            {/* Stripe Health */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4 opacity-75">
               <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
                 <div className="flex items-center space-x-2">
@@ -1031,60 +962,39 @@ export const FinanceHub: React.FC = () => {
                   <h2 className="text-base font-bold text-neutral-400">Stripe Gateway (Paused)</h2>
                 </div>
                 <span className="text-xs bg-amber-950 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-800/50">
-                  DISABLED FOR NOW
+                  DISABLED
                 </span>
               </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">Gateway Status</span>
-                  <span className="text-amber-400 font-bold">Paused by Admin</span>
-                </div>
-                <div className="flex justify-between bg-neutral-950 p-2.5 rounded-lg">
-                  <span className="text-neutral-400">Primary Active Gateway</span>
-                  <span className="text-blue-400 font-mono">Razorpay (Active)</span>
-                </div>
-              </div>
-
               <div className="w-full py-2.5 rounded-xl font-bold text-xs text-center bg-neutral-950 text-neutral-500 border border-neutral-800">
                 Stripe Integration Disabled
               </div>
             </div>
-
           </div>
 
-          {/* Webhook Activity Feed */}
           <div className="bg-neutral-900 border border-amber-900/30 rounded-2xl p-6 shadow-xl">
             <h2 className="text-base font-bold text-neutral-100 mb-4 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-amber-500" /> Real-time Webhook Event Tracker
+              <Activity className="w-5 h-5 mr-2 text-amber-500" /> Recent Verified Payment Events
             </h2>
-
-            <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 font-mono text-xs space-y-2 text-neutral-300">
-              <div className="flex justify-between border-b border-neutral-800/60 pb-1.5 text-[11px] text-neutral-500">
-                <span>EVENT TYPE</span>
-                <span>GATEWAY</span>
-                <span>STATUS</span>
-                <span>TIME</span>
+            {currentData.transactions.length === 0 ? (
+              <p className="text-xs text-neutral-400">No verified gateway webhook or payment transactions recorded yet.</p>
+            ) : (
+              <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 font-mono text-xs space-y-2 text-neutral-300">
+                <div className="flex justify-between border-b border-neutral-800/60 pb-1.5 text-[11px] text-neutral-500">
+                  <span>TX / STATUS</span>
+                  <span>GATEWAY</span>
+                  <span>AMOUNT</span>
+                  <span>DATE</span>
+                </div>
+                {currentData.transactions.slice(0, 5).map((tx) => (
+                  <div key={tx.id} className="flex justify-between py-1 border-b border-neutral-900">
+                    <span className="text-emerald-400">{tx.id} ({tx.status})</span>
+                    <span className="text-blue-400">{tx.gateway}</span>
+                    <span className="text-amber-400">₹{tx.amount.toLocaleString()}</span>
+                    <span className="text-neutral-500">{tx.date}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between py-1 border-b border-neutral-900">
-                <span className="text-emerald-400">payment.captured (₹4,999)</span>
-                <span className="text-blue-400">Razorpay</span>
-                <span className="text-emerald-400">HTTP 200</span>
-                <span className="text-neutral-500">Just now</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-neutral-900">
-                <span className="text-emerald-400">charge.succeeded ($179)</span>
-                <span className="text-indigo-400">Stripe</span>
-                <span className="text-emerald-400">HTTP 200</span>
-                <span className="text-neutral-500">4 mins ago</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-neutral-900">
-                <span className="text-amber-400">refund.processed (₹4,999)</span>
-                <span className="text-blue-400">Razorpay</span>
-                <span className="text-emerald-400">HTTP 200</span>
-                <span className="text-neutral-500">18 mins ago</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

@@ -315,6 +315,44 @@ export const TOOL_SPECIFIC_FAQS: Record<string, ToolFAQ[]> = {
       answer: "Annotate PDF provides freehand drawing pens, highlighters, sticky note comments, geometric shapes (rectangles, circles, arrows), and text callouts for collaborative document review.",
     },
   ],
+
+  "barcode-generator": [
+    {
+      question: "Which barcode symbologies does PDFSun Barcode Generator support?",
+      answer: "PDFSun supports 9 industrial, retail, and logistics formats: Code 128 (Auto B/C), EAN-13, UPC-A, UPC-E, EAN-8, Code 39 (with optional Mod-43 checksum), ITF-14 (with shipping bearer bars), Codabar (A/B/C/D guards), and GS1-128 with FNC1 Application Identifiers.",
+    },
+    {
+      question: "How does PDFSun verify retail and GS1 check digits?",
+      answer: "Every symbol passes an internal verification gate before download. EAN-13, EAN-8, UPC-A, UPC-E, ITF-14, and GS1-128 AI (01)/(02)/(00) calculate or validate GS1 Mod-10 check digits automatically while preserving leading zeros.",
+    },
+    {
+      question: "Can I generate batch barcodes from CSV or Excel spreadsheets?",
+      answer: "Yes. Switch to Bulk CSV/Excel mode to import spreadsheets (up to 500 rows per batch), verify every row, and export a ZIP archive of PNG/SVG barcodes or a ready-to-print A4 PDF label sheet.",
+    },
+    {
+      question: "Are my product SKUs or inventory files uploaded to external servers?",
+      answer: "No. Barcode encoding, spreadsheet parsing, SVG/PNG/PDF rendering, and ZIP packaging run 100% client-side in your browser memory with zero server uploads.",
+    },
+  ],
+
+  "qr-code-generator": [
+    {
+      question: "What QR content types can I create in QR Code Generator?",
+      answer: "PDFSun supports 11 structured QR types: Website URL, Plain Text, Email (mailto), Phone Call (tel), SMS (SMSTO), Wi-Fi Credentials, vCard 3.0 Contact, WhatsApp Click-to-Chat, GPS Coordinates (geo), Google Forms, and PDF/Digital Menu links.",
+    },
+    {
+      question: "How does PDFSun verify QR scannability?",
+      answer: "PDFSun decodes the rendered QR canvas pixels in real time with an in-browser jsQR scanner and displays the Verified Scannable badge only when the decoded string exactly matches your encoded payload.",
+    },
+    {
+      question: "Is it safe to add a custom logo or generate a transparent PNG QR code?",
+      answer: "Yes. Transparent PNG exports and raster center logos (PNG, JPG, or WEBP up to 5 MB) are supported locally in your browser. SVG logos are blocked for XSS safety, and adding a logo automatically raises error correction to Level H (30%).",
+    },
+    {
+      question: "Are Wi-Fi passwords and vCard contact details stored or sent online?",
+      answer: "No. All QR generation, jsQR verification, and PNG/SVG/PDF/ZIP exports execute locally inside your browser. Your Wi-Fi credentials and contact cards are never transmitted to a server.",
+    },
+  ],
 };
 
 /**

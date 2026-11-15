@@ -49,7 +49,11 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
             setIsOpenPopover(!isOpenPopover);
           }
         }}
-        aria-label={`Rate ${toolName || "this tool"}, average ${avgRating.toFixed(1)} out of 5 from ${totalRatings} ratings`}
+        aria-label={
+          totalRatings > 0
+            ? `Rate ${toolName || "this tool"}, average ${avgRating.toFixed(1)} out of 5 from ${totalRatings} ratings`
+            : `Rate ${toolName || "this tool"}`
+        }
         aria-expanded={showPopoverOnClick ? isOpenPopover : undefined}
         className={`inline-flex items-center space-x-1 min-h-[24px] rounded-full font-bold transition-all shadow-2xs ${
           userRating
@@ -64,9 +68,15 @@ export const ToolRating: React.FC<ToolRatingProps> = ({
         }`}
         title="Click to rate this tool"
       >
-        <Star className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" aria-hidden="true" />
-        <span>{avgRating.toFixed(1)}</span>
-        <span className="text-slate-600 dark:text-slate-300 font-normal">({totalRatings})</span>
+        <Star className={`w-3 h-3 shrink-0 ${totalRatings > 0 ? "text-amber-500 fill-amber-400" : "text-slate-400"}`} aria-hidden="true" />
+        {totalRatings > 0 ? (
+          <>
+            <span>{avgRating.toFixed(1)}</span>
+            <span className="text-slate-600 dark:text-slate-300 font-normal">({totalRatings})</span>
+          </>
+        ) : (
+          <span>Rate</span>
+        )}
       </button>
 
       {/* Interactive Rating Popover */}

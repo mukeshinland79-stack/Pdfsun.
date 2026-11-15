@@ -166,7 +166,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
         </div>
 
         <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:inline">
-          {t("badges.tools50", "66+ Tools")} • {t("badges.privacyTitle", "100% In-Browser Privacy")}
+          {t("badges.tools50", "68+ Tools")} • {t("badges.privacyTitle", "100% In-Browser Privacy")}
         </span>
       </div>
     </div>

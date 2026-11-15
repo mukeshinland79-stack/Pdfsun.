@@ -29,10 +29,9 @@ import { ToolItem, CategoryId, PolicyType, ToolHistoryItem, UserProfile, AdminSe
 import { ALL_TOOLS } from "./data/toolsData";
 import { matchPSEORoute, PSEOLandingPage, generateCompressSizePseoPage } from "./data/pSEOData";
 import { useAuth } from "./hooks/useAuth";
-import { useUsageAnalytics } from "./hooks/useUsageAnalytics";
 import { useKeyboardShortcutsManager } from "./hooks/useKeyboardShortcutsManager";
 import { calculateAdPlacements } from "./utils/adSenseHelper";
-import { trackGAPricingView } from "./utils/analytics";
+import { trackGAPricingView, trackToolOpened } from "./utils/analytics";
 import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 
 // Route-based & Modal Code Splitting (prevents heavy workspaces, engines, and charts from loading on homepage)
@@ -44,6 +43,8 @@ const EditPdfMetadataTool = lazy(() => import("./components/EditPdfMetadataTool"
 const ViewPdfMetadataTool = lazy(() => import("./components/ViewPdfMetadataTool").then((m) => ({ default: m.ViewPdfMetadataTool })));
 const ProtectPdfTool = lazy(() => import("./components/ProtectPdfTool").then((m) => ({ default: m.ProtectPdfTool })));
 const AservusPdfCompressor = lazy(() => import("./components/AservusPdfCompressor").then((m) => ({ default: m.AservusPdfCompressor })));
+const BarcodeGeneratorTool = lazy(() => import("./components/BarcodeGeneratorTool").then((m) => ({ default: m.BarcodeGeneratorTool })));
+const QrCodeGeneratorTool = lazy(() => import("./components/QrCodeGeneratorTool").then((m) => ({ default: m.QrCodeGeneratorTool })));
 const SharePdfSunModal = lazy(() => import("./components/SharePdfSunModal").then((m) => ({ default: m.SharePdfSunModal })));
 const PricingSection = lazy(() => import("./components/PricingSection").then((m) => ({ default: m.PricingSection })));
 const PolicyModals = lazy(() => import("./components/PolicyModals").then((m) => ({ default: m.PolicyModals })));
@@ -235,52 +236,16 @@ function MainApp() {
     syncSubscription,
   } = useAuth();
 
-  const handleInstantProUnlock = useCallback((planName?: string) => {
-    const plan = planName || (typeof window !== "undefined" ? localStorage.getItem("pdfsun_user_plan_v1") : null) || "Pro Sun Monthly";
-    try {
-      localStorage.setItem("pdfsun_user_plan_v1", plan);
-      localStorage.setItem("pdfsun_pro_plan", "pro");
-      localStorage.setItem("pdfsun_user_is_pro", "true");
-    } catch (e) {}
-
-    if (userProfile) {
-      const updatedProfile: UserProfile = { ...userProfile, plan, isPro: true };
-      handleSelectRole(currentRole === "public" ? "user" : currentRole, updatedProfile);
-      if (userProfile.email) syncSubscription(userProfile.email);
-    } else {
-      const guestPro: UserProfile = {
-        id: `usr_${Date.now()}`,
-        name: "Pdfsun.in Pro Member",
-        email: "user@pdfsun.in",
-        plan,
-        isPro: true,
-        role: "user",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-        joinedDate: new Date().toISOString(),
-      };
-      handleSelectRole("user", guestPro);
+  const handleInstantProUnlock = useCallback(async () => {
+    if (userProfile?.email) {
+      await syncSubscription(userProfile.email);
     }
-  }, [userProfile, currentRole, handleSelectRole, syncSubscription]);
+  }, [userProfile?.email, syncSubscription]);
 
-  const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>(() => {
-    try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("pdfsun_user_accounts") : null;
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [
-      { id: "usr-01", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
-      { id: "usr-02", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
-      { id: "usr-03", name: "David Kim", email: "dkim@tech.co", plan: "Free Sun", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
-      { id: "usr-04", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
-      { id: "usr-05", name: "Mukesh Inland", email: "mukeshinland79@gmail.com", plan: "Admin Owner", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
-    ];
-  });
+  const [userAccounts, setUserAccounts] = useState<AdminUserAccount[]>([]);
 
   const saveUserAccounts = (updated: AdminUserAccount[]) => {
     setUserAccounts(updated);
-    try {
-      localStorage.setItem("pdfsun_user_accounts", JSON.stringify(updated));
-    } catch (e) {}
   };
 
   const handleToggleAdminPermission = (userId: string) => {
@@ -739,8 +704,6 @@ function MainApp() {
     },
   });
 
-  const { trackToolUsage } = useUsageAnalytics();
-
   const handleCloseTool = useCallback(() => {
     setActiveTool(null);
     setActivePseoPage(null);
@@ -752,7 +715,8 @@ function MainApp() {
 
   const handleSelectTool = (tool: ToolItem, initialFiles?: File[], customPseoPage?: PSEOLandingPage | null) => {
     const canonicalTool = tool.id === "ocr-pdf" || tool.slug === "ocr-pdf" ? ALL_TOOLS.find((t) => t.id === "ai-ocr") || tool : tool;
-    trackToolUsage(canonicalTool.id);
+    // Note: clicking a tool only opens the workspace; actual conversions are tracked on completion.
+    trackToolOpened(canonicalTool.id);
 
     const langQuery = currentLanguage !== "en" ? `?lang=${currentLanguage}` : "";
 
@@ -1056,6 +1020,10 @@ function MainApp() {
                   <ProtectPdfTool initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
                 ) : activeTool.id === "compress-pdf" ? (
                   <AservusPdfCompressor initialFile={activeToolFiles[0] || null} onClose={handleCloseTool} onAddHistory={addHistory} />
+                ) : activeTool.id === "barcode-generator" ? (
+                  <BarcodeGeneratorTool onClose={handleCloseTool} onAddHistory={addHistory} onOpenArticle={handleNavigateArticle} />
+                ) : activeTool.id === "qr-code-generator" ? (
+                  <QrCodeGeneratorTool onClose={handleCloseTool} onAddHistory={addHistory} onOpenArticle={handleNavigateArticle} />
                 ) : activeTool.isAi ? (
                   <AIChatWorkspace tool={activeTool} initialFiles={activeToolFiles} onClose={handleCloseTool} onAddHistory={addHistory} />
                 ) : (

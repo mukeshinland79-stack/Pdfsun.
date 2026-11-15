@@ -900,30 +900,25 @@ export async function handleSSOLoginFlow(params: {
       },
     });
 
-    // 5. Store authentication token
+    if (!data.user) {
+      return {
+        success: false,
+        error: "SSO verification did not return a valid authenticated user profile.",
+      };
+    }
+
+    // 5. Store verified authentication token
     if (data.token) {
       localStorage.setItem("pdfsun_auth_token", data.token);
     }
 
-    // 6. Build authenticated user profile
-    const isOwnerEmail =
-      validation.email === "mukeshkalonia241@gmail.com" ||
-      validation.email === "mukeshinland79@gmail.com" ||
-      validation.email.includes("mukeshinland");
-
-    const roleToSet: UserRole = isOwnerEmail ? "owner" : (data.user?.role || "user");
-    const userProfile: UserProfile = data.user || {
-      id: isOwnerEmail ? "owner-001" : `usr-sso-${Date.now()}`,
-      name: isOwnerEmail ? "Mukesh Kalonia" : derivedName,
-      email: validation.email,
-      role: roleToSet,
-      avatar: defaultAvatar,
-      plan: isOwnerEmail ? "Founder & Owner" : orgPlan.planType,
-      joinedDate: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-      hasAdminAccess: isOwnerEmail,
-      isPro: true,
-      phone: "+91 9991659655",
+    // 6. Use server-verified user profile & entitlements strictly (never client-asserted isPro)
+    const userProfile: UserProfile = {
+      ...data.user,
+      isPro: Boolean(data.user.isPro),
+      hasAdminAccess: Boolean(data.user.hasAdminAccess),
     };
+    const roleToSet: UserRole = userProfile.role || "user";
 
     return {
       success: true,
@@ -931,7 +926,7 @@ export async function handleSSOLoginFlow(params: {
       user: userProfile,
       role: roleToSet,
       organizationName: orgPlan.organizationName,
-      message: `Authenticated successfully via ${providerId.toUpperCase()} with ${orgPlan.organizationName} (${orgPlan.planType})!`,
+      message: `Authenticated successfully via ${providerId.toUpperCase()} (${orgPlan.organizationName})!`,
     };
   } catch (err: any) {
     return {

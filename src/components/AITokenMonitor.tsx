@@ -43,81 +43,98 @@ const initialModelUsage: ModelUsageData[] = [
   {
     modelName: "gemini-2.5-flash",
     alias: "Gemini 2.5 Flash",
-    promptTokens: 1420000,
-    outputTokens: 680000,
-    totalTokens: 2100000,
-    estimatedCostUsd: 0.28,
-    requestCount: 8420,
-    avgLatencyMs: 320,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    requestCount: 0,
+    avgLatencyMs: 0,
   },
   {
     modelName: "gemini-2.5-pro",
     alias: "Gemini 2.5 Pro",
-    promptTokens: 480000,
-    outputTokens: 290000,
-    totalTokens: 770000,
-    estimatedCostUsd: 1.85,
-    requestCount: 1240,
-    avgLatencyMs: 840,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    requestCount: 0,
+    avgLatencyMs: 0,
   },
   {
     modelName: "gemini-1.5-flash",
     alias: "Gemini 1.5 Flash",
-    promptTokens: 920000,
-    outputTokens: 410000,
-    totalTokens: 1330000,
-    estimatedCostUsd: 0.16,
-    requestCount: 5120,
-    avgLatencyMs: 290,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    requestCount: 0,
+    avgLatencyMs: 0,
   },
   {
     modelName: "gemini-flash-lite",
     alias: "Gemini Flash Lite",
-    promptTokens: 1850000,
-    outputTokens: 790000,
-    totalTokens: 2640000,
-    estimatedCostUsd: 0.19,
-    requestCount: 12100,
-    avgLatencyMs: 180,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    requestCount: 0,
+    avgLatencyMs: 0,
   },
 ];
 
 export const AITokenMonitor: React.FC<AITokenMonitorProps> = ({
   className = "",
 }) => {
-  const [timeframe, setTimeframe] = useState<"24h" | "7d" | "30d">("24h");
   const [data, setData] = useState<ModelUsageData[]>(initialModelUsage);
   const [isLiveStream, setIsLiveStream] = useState<boolean>(true);
+  const [aiCallsRecorded, setAiCallsRecorded] = useState<number>(0);
 
-  // Live ticker updating token counts slightly
+  // Poll real /api/analytics/tools counts for AI tools without fabricating tokens or costs
   useEffect(() => {
     if (!isLiveStream) return;
+    let active = true;
 
-    const interval = setInterval(() => {
-      setData((prev) =>
-        prev.map((m) => {
-          const addedPrompt = Math.floor(Math.random() * 450) + 50;
-          const addedOutput = Math.floor(Math.random() * 200) + 20;
-          const newPrompt = m.promptTokens + addedPrompt;
-          const newOutput = m.outputTokens + addedOutput;
-          const newTotal = newPrompt + newOutput;
-          // Rough cost multiplier
-          const costFactor = m.modelName.includes("pro") ? 0.0000025 : 0.00000012;
-          const newCost = +(m.estimatedCostUsd + (addedPrompt + addedOutput) * costFactor).toFixed(4);
+    const syncAiStats = async () => {
+      try {
+        const res = await fetch("/api/analytics/tools", { credentials: "include" });
+        if (!res.ok || !active) return;
+        const json = await res.json();
+        const breakdown = json?.breakdown || {};
+        const aiTools = [
+          "ai-chat-pdf",
+          "ai-pdf-summarizer",
+          "ai-translate-pdf",
+          "ai-ocr",
+          "ai-contract-analyzer",
+          "ai-study-guide",
+          "ai-quiz-generator",
+          "ai-invoice-extractor",
+          "ai-rewrite-pdf",
+        ];
+        let totalCalls = 0;
+        for (const id of aiTools) {
+          totalCalls += Number(breakdown[id]?.completed || breakdown[id]?.started || 0);
+        }
+        if (active) {
+          setAiCallsRecorded(totalCalls);
+          setData((prev) =>
+            prev.map((m, idx) =>
+              idx === 0 ? { ...m, requestCount: totalCalls } : m
+            )
+          );
+        }
+      } catch {
+        // Non-blocking telemetry read
+      }
+    };
 
-          return {
-            ...m,
-            promptTokens: newPrompt,
-            outputTokens: newOutput,
-            totalTokens: newTotal,
-            estimatedCostUsd: newCost,
-            requestCount: m.requestCount + 1,
-          };
-        })
-      );
-    }, 3500);
+    syncAiStats();
+    const interval = setInterval(syncAiStats, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [isLiveStream]);
 
   const totalTokensCombined = data.reduce((acc, m) => acc + m.totalTokens, 0);
@@ -232,14 +249,14 @@ export const AITokenMonitor: React.FC<AITokenMonitorProps> = ({
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {totalRequestsCombined.toLocaleString()}
+              {(totalRequestsCombined || aiCallsRecorded).toLocaleString()}
             </span>
             <span className="text-xs font-bold text-emerald-500 font-mono">
-              Calls
+              Recorded Calls
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            OCR, summaries, translation, and chat requests
+            OCR, summaries, translation, and chat requests recorded on server
           </p>
         </div>
       </div>

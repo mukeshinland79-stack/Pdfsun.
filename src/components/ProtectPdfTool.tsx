@@ -33,6 +33,14 @@ import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 
 // Configure PDF.js worker
 ensurePdfJsWorkerConfigured(pdfjsLib);
@@ -83,6 +91,10 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
   // Preview canvas ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    trackToolOpened("protect-pdf");
+  }, []);
 
   // Render Page 1 Preview
   const renderPagePreview = useCallback(async (pdfFile: File) => {
@@ -185,6 +197,8 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
       return;
     }
 
+    const startTime = performance.now();
+    trackProcessStarted("protect-pdf", "pdf", file.size);
     try {
       setIsProcessing(true);
       setProgress(10);
@@ -208,6 +222,9 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
       const originalBaseName = file.name.replace(/\.[^/.]+$/, "");
       const outputFileName = `${originalBaseName}_protected.pdf`;
+      const latencyMs = performance.now() - startTime;
+      trackProcessCompleted("protect-pdf", latencyMs, "pdf", protectedBytes.byteLength);
+      trackOutputValidated("protect-pdf", "pdf", protectedBytes.byteLength);
 
       setDownloadReady({
         data: protectedBytes,
@@ -235,6 +252,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
       });
     } catch (err: any) {
       console.error("Encryption error:", err);
+      trackProcessFailed("protect-pdf", performance.now() - startTime);
       triggerErrorToast(
         "Encryption Failed",
         err?.message || "An error occurred while encrypting the PDF document."
@@ -247,6 +265,7 @@ export const ProtectPdfTool: React.FC<ProtectPdfToolProps> = ({
 
   const handleDownload = () => {
     if (!downloadReady) return;
+    trackDownloadInitiated("protect-pdf", "pdf", downloadReady.data.byteLength);
     downloadFile(downloadReady.data, downloadReady.fileName, "application/pdf");
   };
 

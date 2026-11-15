@@ -54,12 +54,10 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       (typeof window !== "undefined" && (
         localStorage.getItem("pdfsun_admin_token") ||
         sessionStorage.getItem("pdfsun_admin_token") ||
-        localStorage.getItem("token")
+        localStorage.getItem("pdfsun_auth_token")
       )) || "";
     const tokenToUse = config.ADMIN_SECRET_KEY || storedToken;
-    const headers: Record<string, string> = {
-      "x-user-email": currentUserEmail || "mukeshkalonia241@gmail.com",
-    };
+    const headers: Record<string, string> = {};
     if (tokenToUse) {
       headers["Authorization"] = `Bearer ${tokenToUse}`;
       headers["x-admin-token"] = tokenToUse;
@@ -73,6 +71,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
     setErrorMessage(null);
     try {
       const res = await fetch("/api/admin/system-config", {
+        credentials: "include",
         headers: getAuthHeaders(),
       });
 
@@ -89,7 +88,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         }
       }
     } catch (err: any) {
-      console.warn("Could not load remote config, using local baseline defaults:", err);
+      setErrorMessage(err?.message || "Failed to load system configuration.");
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +111,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       };
       const res = await fetch("/api/admin/system-config", {
         method: "POST",
+        credentials: "include",
         headers,
         body: JSON.stringify(config),
       });
@@ -153,6 +153,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       };
       const res = await fetch("/api/admin/system-config/reset", {
         method: "POST",
+        credentials: "include",
         headers,
       });
 
@@ -166,14 +167,10 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         setSaveSuccess("Configuration reset to baseline defaults!");
         setTimeout(() => setSaveSuccess(null), 3500);
       } else {
-        setConfig(DEFAULT_CONFIG);
-        setSaveSuccess("Local config reset to baseline defaults!");
-        setTimeout(() => setSaveSuccess(null), 3500);
+        setErrorMessage(`Failed to reset server configuration (HTTP ${res.status}).`);
       }
-    } catch (err) {
-      setConfig(DEFAULT_CONFIG);
-      setSaveSuccess("Reset to default parameters completed locally.");
-      setTimeout(() => setSaveSuccess(null), 3500);
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to reset server configuration.");
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +182,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         appName: "PDFSun System Configuration",
         backupType: "System Configuration Backup with Secret Keys & Rate Limits",
         timestamp: new Date().toISOString(),
-        exportedBy: currentUserEmail || "mukeshkalonia241@gmail.com",
+        exportedBy: currentUserEmail || "Authenticated Owner",
       },
       systemConfig: {
         ADMIN_SECRET_KEY: config.ADMIN_SECRET_KEY,
@@ -216,43 +213,12 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         classification: "CONFIDENTIAL / DUAL-OWNER CLEARANCE ONLY",
         reportId: `audit-sys-${Date.now()}`,
         generatedAt: timestamp,
-        generatedBy: currentUserEmail || "mukeshinland79@gmail.com",
+        generatedBy: currentUserEmail || "Authenticated Owner",
         dualOwnerAuthorized: isDualOwner,
         authorizedOwners: DUAL_OWNER_EMAILS,
       },
-      digitalSignatureEnvelope: {
-        algorithm: "AES-256-GCM + RSA-4096-SIGNATURE",
-        signatureHash: `SIG-${Math.random().toString(36).substring(2, 10).toUpperCase()}-${Date.now()}-DUAL-OWNER-VALIDATED`,
-        verificationStatus: "VERIFIED_AUTHENTIC",
-      },
       currentConfigurationSnapshot: config,
-      configurationHistory: [
-        {
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          changedBy: "mukeshinland79@gmail.com",
-          field: "GLOBAL_RATE_LIMIT",
-          oldValue: 5000,
-          newValue: config.GLOBAL_RATE_LIMIT,
-          reason: "Scale capacity bump for peak traffic.",
-        },
-        {
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          changedBy: "mukeshkalonia241@gmail.com",
-          field: "OWNER_ONLY_STEALTH_MODE",
-          oldValue: false,
-          newValue: config.OWNER_ONLY_STEALTH_MODE,
-          reason: "Enforced 404 stealth cloaking on administrative routes.",
-        },
-        {
-          timestamp: new Date(Date.now() - 14400000).toISOString(),
-          changedBy: "mukeshinland79@gmail.com",
-          field: "TEMP_STORAGE_RETENTION_MINUTES",
-          oldValue: 30,
-          newValue: config.TEMP_STORAGE_RETENTION_MINUTES,
-          reason: "Optimized worker node storage garbage collection cycle.",
-        },
-      ],
-      complianceAttestation: "This signed report confirms compliance with PDFSun Dual-Owner governance security standards.",
+      complianceAttestation: "Exported from active PDFSun Dual-Owner console.",
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditReport, null, 2));
@@ -308,7 +274,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
               Authenticated Dual-Owner Privileges Active
             </span>
             <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-              Verified session: <strong className="font-mono text-blue-600 dark:text-blue-400">{currentUserProfile?.email || "mukeshkalonia241@gmail.com"}</strong>
+              Verified session: <strong className="font-mono text-blue-600 dark:text-blue-400">{currentUserProfile?.email || "Authenticated Owner"}</strong>
             </p>
           </div>
         </div>

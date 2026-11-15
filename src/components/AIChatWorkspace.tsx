@@ -40,6 +40,15 @@ import { ResumeReadyWorkspace } from "./ResumeReadyWorkspace";
 import { FormattedMarkdown } from "./FormattedMarkdown";
 import { useToolRatings } from "../hooks/useToolRatings";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { PrivacyBadge } from "./PrivacyBadge";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 import {
   AiSummarySaaSIcon,
   AiTranslateSaaSIcon,
@@ -194,9 +203,17 @@ function getInitialTab(toolItem: ToolItem): AiTabId {
   return "chat";
 }
 
-const SESSION_CACHE_KEY_TEXT = "pdfsun_ai_document_text";
-const SESSION_CACHE_KEY_CHAT = "pdfsun_ai_chat_history";
-const SESSION_CACHE_KEY_OUTPUTS = "pdfsun_ai_outputs";
+function purgeLegacyAiStorage(): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem("pdfsun_ai_document_text");
+      localStorage.removeItem("pdfsun_ai_chat_history");
+      localStorage.removeItem("pdfsun_ai_outputs");
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+}
 
 export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   tool,
@@ -205,13 +222,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   onAddHistory,
 }) => {
   const [file, setFile] = useState<File | null>(initialFiles[0] || null);
-  const [documentText, setDocumentText] = useState<string>(() => {
-    try {
-      return localStorage.getItem(SESSION_CACHE_KEY_TEXT) || "";
-    } catch {
-      return "";
-    }
-  });
+  // Ephemeral in-memory only: never persist user document text, chat history, or AI outputs to localStorage
+  const [documentText, setDocumentText] = useState<string>("");
   const [isExtractingText, setIsExtractingText] = useState<boolean>(false);
 
   // Active Tab state (synced with tool prop)
@@ -222,32 +234,26 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     setActiveTab(getInitialTab(tool));
   }, [tool.id, tool.slug]);
 
+  useEffect(() => {
+    purgeLegacyAiStorage();
+    trackToolOpened(tool.id);
+    return () => {
+      purgeLegacyAiStorage();
+    };
+  }, [tool.id]);
+
   // Standardized 5-Stage Execution Pipeline State
   const [pipelineStage, setPipelineStage] = useState<PipelineStage>("idle");
 
-  // Per-tool cached outputs (switching tabs retains generated output, flashcards, metadata)
-  const [toolOutputs, setToolOutputs] = useState<Record<string, ToolOutputState>>(() => {
-    try {
-      const saved = localStorage.getItem(SESSION_CACHE_KEY_OUTPUTS);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  // Per-tool in-memory session outputs only (cleared on workspace close/unmount)
+  const [toolOutputs, setToolOutputs] = useState<Record<string, ToolOutputState>>({});
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [activeFlashcardIdx, setActiveFlashcardIdx] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
 
-  // Chat state (multi-turn conversation memory)
+  // Ephemeral multi-turn conversation memory
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const saved = localStorage.getItem(SESSION_CACHE_KEY_CHAT);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Execution states
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -255,41 +261,6 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [targetLanguage, setTargetLanguage] = useState("Hindi");
   const [targetAudience, setTargetAudience] = useState("beginner");
   const [copied, setCopied] = useState(false);
-
-  // Auto-save session state to localStorage
-  useEffect(() => {
-    try {
-      if (documentText) {
-        localStorage.setItem(SESSION_CACHE_KEY_TEXT, documentText);
-      } else {
-        localStorage.removeItem(SESSION_CACHE_KEY_TEXT);
-      }
-    } catch (e) {
-      console.warn("Could not cache document text:", e);
-    }
-  }, [documentText]);
-
-  useEffect(() => {
-    try {
-      if (chatMessages.length > 0) {
-        localStorage.setItem(SESSION_CACHE_KEY_CHAT, JSON.stringify(chatMessages.slice(-50)));
-      } else {
-        localStorage.removeItem(SESSION_CACHE_KEY_CHAT);
-      }
-    } catch (e) {
-      console.warn("Could not cache chat messages:", e);
-    }
-  }, [chatMessages]);
-
-  useEffect(() => {
-    try {
-      if (Object.keys(toolOutputs).length > 0) {
-        localStorage.setItem(SESSION_CACHE_KEY_OUTPUTS, JSON.stringify(toolOutputs));
-      }
-    } catch (e) {
-      console.warn("Could not cache tool outputs:", e);
-    }
-  }, [toolOutputs]);
 
   // Restore cached tool state when activeTab changes
   useEffect(() => {
@@ -311,7 +282,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(128);
+  const [likeCount, setLikeCount] = useState(0);
 
   const {
     isPro,
@@ -428,6 +399,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       return;
     }
 
+    const runStartMs = performance.now();
+    trackProcessStarted(tool.id, file?.name, file?.size);
     setPipelineStage("invocation");
     setIsAiLoading(true);
     setAiError(null);
@@ -622,6 +595,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       }
 
       recordAiQuery();
+      const elapsedMs = Math.max(1, performance.now() - runStartMs);
+      trackProcessCompleted(tool.id, elapsedMs, file?.name, file?.size);
+      trackOutputValidated(tool.id, file?.name, file?.size);
 
       onAddHistory({
         id: Date.now().toString(),
@@ -634,6 +610,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       });
     } catch (err: any) {
       console.error("AI Pipeline Error:", err);
+      trackProcessFailed(tool.id, Math.max(1, performance.now() - runStartMs));
       setAiError(err?.message || "An unexpected error occurred while communicating with Gemini AI. Please try again.");
       setPipelineStage("idle");
     } finally {
@@ -665,6 +642,8 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     };
 
     const updatedWithUser = [...chatMessages, newMsg];
+    const chatStartMs = performance.now();
+    trackProcessStarted(tool.id, file?.name, file?.size);
     setChatMessages(updatedWithUser);
     setChatInput("");
     setPipelineStage("invocation");
@@ -716,6 +695,9 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       setPipelineStage("completed");
 
       recordAiQuery();
+      const chatElapsedMs = Math.max(1, performance.now() - chatStartMs);
+      trackProcessCompleted(tool.id, chatElapsedMs, file?.name, file?.size);
+      trackOutputValidated(tool.id, file?.name, file?.size);
 
       onAddHistory({
         id: Date.now().toString(),
@@ -728,6 +710,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       });
     } catch (err: any) {
       console.error("AI Chat Error:", err);
+      trackProcessFailed(tool.id, Math.max(1, performance.now() - chatStartMs));
       setChatMessages((prev) => [
         ...prev,
         {
@@ -782,6 +765,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
     if (!textToExport) return;
     const pdfBytes = textToPdf(textToExport, title);
     const cleanFileName = `PDFSun_${activeTabConfig.canonicalName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+    trackDownloadInitiated(tool.id, "pdf", pdfBytes.byteLength);
     downloadFile(pdfBytes, cleanFileName, "application/pdf");
   };
 
@@ -799,17 +783,21 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
   const handleClearDocument = useCallback(() => {
     setFile(null);
     setDocumentText("");
-    try {
-      localStorage.removeItem(SESSION_CACHE_KEY_TEXT);
-    } catch {}
+    purgeLegacyAiStorage();
   }, []);
 
   const handleClearChat = useCallback(() => {
     setChatMessages([]);
-    try {
-      localStorage.removeItem(SESSION_CACHE_KEY_CHAT);
-    } catch {}
+    purgeLegacyAiStorage();
   }, []);
+
+  const handleCloseWorkspace = useCallback(() => {
+    setDocumentText("");
+    setChatMessages([]);
+    setToolOutputs({});
+    purgeLegacyAiStorage();
+    onClose();
+  }, [onClose]);
 
   const handleToggleLike = () => {
     if (hasLiked) {
@@ -841,6 +829,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold uppercase">
                   {activeTabConfig.badge}
                 </span>
+                <PrivacyBadge toolId={tool.id} mode="ai_cloud" variant="compact" />
                 {/* Dynamic Header-Embedded Rating Badge */}
                 <button
                   type="button"
@@ -848,11 +837,17 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                   className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold transition ml-1"
                   title="View user reviews and ratings"
                 >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                  <span>{currentToolRating.avgRating.toFixed(1)}</span>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    ({currentToolRating.totalRatings.toLocaleString()})
-                  </span>
+                  <Star className={`w-3.5 h-3.5 shrink-0 ${currentToolRating.totalRatings > 0 ? "fill-amber-400 text-amber-500" : "text-slate-400"}`} />
+                  {currentToolRating.totalRatings > 0 ? (
+                    <>
+                      <span>{currentToolRating.avgRating.toFixed(1)}</span>
+                      <span className="text-[10px] text-slate-500 font-normal">
+                        ({currentToolRating.totalRatings.toLocaleString()})
+                      </span>
+                    </>
+                  ) : (
+                    <span>Rate</span>
+                  )}
                 </button>
               </div>
               <p className="text-xs text-slate-500">PDFSun Unified AI Document Suite</p>
@@ -924,7 +919,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
 
             {/* Close Modal */}
             <button
-              onClick={onClose}
+              onClick={handleCloseWorkspace}
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition ml-1"
               title="Close Workspace"
             >
@@ -1125,12 +1120,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
               <div className="flex-1 flex flex-col min-h-[200px]">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <span>Extracted Document Text</span>
-                    {documentText.trim().length > 0 && (
-                      <span className="text-[9px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 lowercase">
-                        auto-saved
-                      </span>
-                    )}
+                    <span>Extracted Document Text (In-Memory Only)</span>
                   </span>
                   <div className="flex items-center space-x-2">
                     {isExtractingText && <RefreshCw className="w-3 h-3 animate-spin text-orange-500" />}

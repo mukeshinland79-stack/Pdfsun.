@@ -61,7 +61,7 @@ async function runStage0BaselineVerification() {
   console.log("==========================================================================");
 
   // 1. Tool Catalog Baseline
-  assert(ALL_TOOLS.length === 66, "Registered Tool Catalog Count", `Expected 66, got ${ALL_TOOLS.length}`);
+  assert(ALL_TOOLS.length === 68, "Registered Tool Catalog Count", `Expected 68, got ${ALL_TOOLS.length}`);
 
   const toolCategories = ALL_TOOLS.reduce((acc, t) => {
     acc[t.category] = (acc[t.category] || 0) + 1;
@@ -71,7 +71,7 @@ async function runStage0BaselineVerification() {
   assert(toolCategories["convert"] === 24, "Conversion Tools Catalog Count", `Expected 24 convert tools, got ${toolCategories["convert"]}`);
   assert(toolCategories["edit"] === 15, "Edit Tools Catalog Count", `Expected 15 edit tools, got ${toolCategories["edit"]}`);
   assert(toolCategories["ai"] === 11, "AI Productivity Tools Catalog Count", `Expected 11 AI tools, got ${toolCategories["ai"]}`);
-  assert(toolCategories["advanced"] === 10, "Advanced Tools Catalog Count", `Expected 10 advanced tools, got ${toolCategories["advanced"]}`);
+  assert(toolCategories["advanced"] === 12, "Advanced Tools Catalog Count", `Expected 12 advanced tools, got ${toolCategories["advanced"]}`);
   assert(toolCategories["security"] === 6, "Security Tools Catalog Count", `Expected 6 security tools, got ${toolCategories["security"]}`);
 
   // 2. Production Safety & Boundary Verification
@@ -82,7 +82,7 @@ async function runStage0BaselineVerification() {
   // 3. Sitemap Coverage Verification
   const sitemapXml = fs.readFileSync("./public/sitemap.xml", "utf-8");
   const sitemapUrlsCount = (sitemapXml.match(/<loc>/g) || []).length;
-  assert(sitemapUrlsCount >= 66, "Sitemap Contains All Registered Tools", `Found ${sitemapUrlsCount} URLs`);
+  assert(sitemapUrlsCount >= 68, "Sitemap Contains All Registered Tools", `Found ${sitemapUrlsCount} URLs`);
 }
 
 async function runStage1QualityHardeningVerification() {

@@ -1,0 +1,118 @@
+export interface HistoryEventItem {
+  id: string;
+  year: number | string;
+  originalYear?: number | string;
+  headline: string;
+  title?: string;
+  subtitle?: string; // Profession, title or secondary summary
+  description: string;
+  category: "milestone" | "birth" | "invention" | "culture" | "country-spotlight";
+  tag: string;
+  significance: string;
+  countryCode?: string;
+  countryName?: string;
+  wikipediaUrl?: string; // internal reference
+  sourceName?: string;
+  sourceDomain?: string;
+  sourceUrl?: string; // internal backend provenance
+  retrievedAt?: string;
+  verificationStatus?: "VERIFIED" | "ARCHIVED" | "CROSS_REFERENCED" | string;
+  confidence?: "high" | "medium" | "standard";
+  people?: string[];
+  imageUrl?: string;
+}
+
+export interface DailyTriviaQuiz {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  historicalContext: string;
+  relatedYear: string | number;
+  sourceName?: string;
+  sourceDomain?: string;
+  verificationStatus?: string;
+}
+
+export interface TriviaQuizState {
+  selectedOption: number | null;
+  isSubmitted: boolean;
+  isCorrect: boolean | null;
+  score: number;
+  streak: number;
+  totalAnswered: number;
+  showExplanationModal: boolean;
+}
+
+export interface HistoryQuote {
+  quote: string;
+  author: string;
+  context: string;
+  tag?: string;
+  sourceName?: string;
+  sourceDomain?: string;
+  verificationStatus?: string;
+}
+
+export interface HistorySourceInfo {
+  name: string;
+  url: string;
+  domain?: string;
+  type: string;
+  status: string;
+  retrievedAt: string;
+}
+
+export interface DayInHistoryData {
+  dateString: string; // e.g. "August 17" or "17 August"
+  month: number; // 1-12
+  day: number; // 1-31
+  formattedDate: string;
+  dayOfYear: number;
+  featuredHeadline: string;
+  countryCode: string;
+  countryName: string;
+  languageCode: string;
+  languageName: string;
+  timezone?: string;
+  generatedAt?: string;
+  expiresAt?: string;
+  sources?: HistorySourceInfo[];
+  version?: string;
+  isAiEnhanced?: boolean;
+  isCountrySpecific?: boolean;
+  isGlobalFallback?: boolean;
+  isFallbackTranslation?: boolean;
+  events: HistoryEventItem[];
+  births: HistoryEventItem[];
+  discoveries: HistoryEventItem[];
+  countrySpotlight?: HistoryEventItem[];
+  dailyTrivia: DailyTriviaQuiz;
+  quoteOfTheDay: HistoryQuote;
+}
+
+export interface SupportedLanguage {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+  direction?: "ltr" | "rtl";
+  hreflang: string;
+  popularCountries: string[];
+}
+
+export interface HistoryLanguageConfig extends SupportedLanguage {
+  wikiSubdomain?: string;
+  fontFamilyFallback?: string;
+}
+
+export interface GeoDetectionResult {
+  detectedLanguage: SupportedLanguage;
+  detectedCountryCode: string;
+  detectedCountryName: string;
+  detectedCity?: string;
+  timeZone: string;
+  isAutoDetected: boolean;
+  accuracy: "browser-locale" | "ip-geolocation" | "timezone-inferred" | "user-selected";
+}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ShieldCheck, Sparkles, Info, X, Check, Lock } from "lucide-react";
+import { ShieldCheck, Sparkles, Info, X, Check, Lock, Cpu } from "lucide-react";
 import { getToolPrivacyDetails, ToolPrivacyMode } from "../data/privacyModes";
 
 interface PrivacyBadgeProps {
@@ -16,9 +16,44 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
   className = "",
 }) => {
   const [showModal, setShowModal] = useState(false);
-  const details = getToolPrivacyDetails(explicitMode ? (explicitMode === "ai_cloud" ? "ai-chat-pdf" : "merge-pdf") : toolId);
+  const resolvedToolId = explicitMode
+    ? explicitMode === "ai_cloud"
+      ? "ai-chat-pdf"
+      : explicitMode === "hybrid_cloud"
+      ? "ai-ocr"
+      : "merge-pdf"
+    : toolId;
+  const details = getToolPrivacyDetails(resolvedToolId);
 
   const isAi = details.mode === "ai_cloud";
+  const isHybrid = details.mode === "hybrid_cloud";
+
+  const colorClasses = isAi
+    ? {
+        compact: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20",
+        banner: "bg-amber-500/5 border-amber-500/20 text-neutral-800 dark:text-neutral-200",
+        iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        pill: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+      }
+    : isHybrid
+    ? {
+        compact: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20 hover:bg-sky-500/20",
+        banner: "bg-sky-500/5 border-sky-500/20 text-neutral-800 dark:text-neutral-200",
+        iconBg: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+        pill: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+      }
+    : {
+        compact: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20",
+        banner: "bg-emerald-500/5 border-emerald-500/20 text-neutral-800 dark:text-neutral-200",
+        iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+      };
+
+  const renderIcon = (sizeClass = "w-3.5 h-3.5") => {
+    if (isAi) return <Sparkles className={sizeClass} />;
+    if (isHybrid) return <Cpu className={sizeClass} />;
+    return <ShieldCheck className={sizeClass} />;
+  };
 
   if (variant === "compact") {
     return (
@@ -26,21 +61,15 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-            isAi
-              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
-              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-          } ${className}`}
-          title="Click to view privacy & data security guarantee"
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${colorClasses.compact} ${className}`}
+          title="Click to view processing & data privacy details"
         >
-          {isAi ? <Sparkles className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-          <span>{isAi ? "AI Cloud (Zero Storage)" : "100% In-Browser"}</span>
+          {renderIcon("w-3.5 h-3.5")}
+          <span>{details.compactLabel}</span>
           <Info className="w-3 h-3 opacity-60 ml-0.5" />
         </button>
 
-        {showModal && (
-          <PrivacyModal details={details} onClose={() => setShowModal(false)} />
-        )}
+        {showModal && <PrivacyModal details={details} onClose={() => setShowModal(false)} />}
       </>
     );
   }
@@ -48,37 +77,17 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
   if (variant === "banner") {
     return (
       <>
-        <div
-          className={`w-full rounded-2xl p-4 sm:p-5 border transition-all ${
-            isAi
-              ? "bg-amber-500/5 border-amber-500/20 text-neutral-800 dark:text-neutral-200"
-              : "bg-emerald-500/5 border-emerald-500/20 text-neutral-800 dark:text-neutral-200"
-          } ${className}`}
-        >
+        <div className={`w-full rounded-2xl p-4 sm:p-5 border transition-all ${colorClasses.banner} ${className}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div
-                className={`p-2 rounded-xl shrink-0 ${
-                  isAi
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                }`}
-              >
-                {isAi ? <Sparkles className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              <div className={`p-2 rounded-xl shrink-0 ${colorClasses.iconBg}`}>
+                {isAi ? <Sparkles className="w-5 h-5" /> : isHybrid ? <Cpu className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h5 className="font-semibold text-sm sm:text-base">
-                    {details.badgeLabel}
-                  </h5>
-                  <span
-                    className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
-                      isAi
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                        : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                    }`}
-                  >
-                    Privacy First
+                  <h5 className="font-semibold text-sm sm:text-base">{details.badgeLabel}</h5>
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${colorClasses.pill}`}>
+                    {isAi ? "Cloud AI" : isHybrid ? "Hybrid" : "Local"}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl">
@@ -97,9 +106,7 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
           </div>
         </div>
 
-        {showModal && (
-          <PrivacyModal details={details} onClose={() => setShowModal(false)} />
-        )}
+        {showModal && <PrivacyModal details={details} onClose={() => setShowModal(false)} />}
       </>
     );
   }
@@ -107,22 +114,10 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
   // Card variant
   return (
     <>
-      <div
-        className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
-          isAi
-            ? "bg-amber-500/5 border-amber-500/20"
-            : "bg-emerald-500/5 border-emerald-500/20"
-        } ${className}`}
-      >
+      <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${colorClasses.banner} ${className}`}>
         <div className="flex items-center gap-2.5">
-          {isAi ? (
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          ) : (
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          )}
-          <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-            {details.badgeLabel}
-          </span>
+          {renderIcon("w-4 h-4")}
+          <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{details.badgeLabel}</span>
         </div>
         <button
           type="button"
@@ -133,9 +128,7 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({
         </button>
       </div>
 
-      {showModal && (
-        <PrivacyModal details={details} onClose={() => setShowModal(false)} />
-      )}
+      {showModal && <PrivacyModal details={details} onClose={() => setShowModal(false)} />}
     </>
   );
 };
@@ -144,6 +137,8 @@ const PrivacyModal: React.FC<{ details: ReturnType<typeof getToolPrivacyDetails>
   details,
   onClose,
 }) => {
+  const isAi = details.mode === "ai_cloud";
+  const isHybrid = details.mode === "hybrid_cloud";
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -157,13 +152,17 @@ const PrivacyModal: React.FC<{ details: ReturnType<typeof getToolPrivacyDetails>
           <div className="flex items-center gap-2.5">
             <div
               className={`p-2 rounded-xl ${
-                details.mode === "ai_cloud"
+                isAi
                   ? "bg-amber-500/10 text-amber-500"
+                  : isHybrid
+                  ? "bg-sky-500/10 text-sky-500"
                   : "bg-emerald-500/10 text-emerald-500"
               }`}
             >
-              {details.mode === "ai_cloud" ? (
+              {isAi ? (
                 <Sparkles className="w-5 h-5" />
+              ) : isHybrid ? (
+                <Cpu className="w-5 h-5" />
               ) : (
                 <ShieldCheck className="w-5 h-5" />
               )}
@@ -179,14 +178,10 @@ const PrivacyModal: React.FC<{ details: ReturnType<typeof getToolPrivacyDetails>
           </button>
         </div>
 
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
-          {details.fullStatement}
-        </p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">{details.fullStatement}</p>
 
         <div className="space-y-2 pt-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-            Security Guarantee
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Processing Guarantees</p>
           <ul className="space-y-1.5 text-xs text-neutral-700 dark:text-neutral-300">
             {details.certifications.map((cert) => (
               <li key={cert} className="flex items-center gap-2">

@@ -48,19 +48,8 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
   const [isMonitoring, setIsMonitoring] = useState<boolean>(true);
   const [lastAnalyzedTime, setLastAnalyzedTime] = useState<string>("");
 
-  // Baseline metric history (last 15 intervals)
-  const [history, setHistory] = useState<MetricTimeSeriesPoint[]>([
-    { time: "10:00", trafficReqMin: 120, conversionRatePct: 98.4, latencyMs: 14 },
-    { time: "10:01", trafficReqMin: 124, conversionRatePct: 98.6, latencyMs: 12 },
-    { time: "10:02", trafficReqMin: 118, conversionRatePct: 98.2, latencyMs: 15 },
-    { time: "10:03", trafficReqMin: 122, conversionRatePct: 98.5, latencyMs: 13 },
-    { time: "10:04", trafficReqMin: 125, conversionRatePct: 98.7, latencyMs: 12 },
-    { time: "10:05", trafficReqMin: 119, conversionRatePct: 98.3, latencyMs: 14 },
-    { time: "10:06", trafficReqMin: 121, conversionRatePct: 98.6, latencyMs: 13 },
-    { time: "10:07", trafficReqMin: 123, conversionRatePct: 98.4, latencyMs: 12 },
-    { time: "10:08", trafficReqMin: 120, conversionRatePct: 98.5, latencyMs: 14 },
-    { time: "10:09", trafficReqMin: 122, conversionRatePct: 98.6, latencyMs: 13 },
-  ]);
+  // Baseline metric history (populated from real /api/analytics/stats polling)
+  const [history, setHistory] = useState<MetricTimeSeriesPoint[]>([]);
 
   const [anomalies, setAnomalies] = useState<DetectedAnomaly[]>([]);
 
@@ -89,13 +78,18 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
 
       const newAnomalies: DetectedAnomaly[] = [];
 
+      const makeAlertId = (prefix: string) =>
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? `${prefix}-${crypto.randomUUID()}`
+          : `${prefix}-${Date.now()}`;
+
       // 1. Evaluate Traffic Requests
       const trafficZ = (latestPoint.trafficReqMin - trafficStats.mean) / trafficStats.stdDev;
       if (Math.abs(trafficZ) >= sensitivityZ) {
         newAnomalies.push({
-          id: `anom-trf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          id: makeAlertId("anom-trf"),
           time: latestPoint.time,
-          metricName: "Traffic Volume (Req/min)",
+          metricName: "Traffic Volume (Events)",
           currentVal: latestPoint.trafficReqMin,
           baselineMean: Math.round(trafficStats.mean),
           stdDev: Math.round(trafficStats.stdDev * 10) / 10,
@@ -104,7 +98,7 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
           severity: Math.abs(trafficZ) >= 3.0 ? "critical" : "warning",
           explanation: `Traffic ${trafficZ > 0 ? "surged" : "dropped"} by ${Math.abs(
             Math.round(trafficZ)
-          )} standard deviations from baseline mean (${Math.round(trafficStats.mean)} req/min).`,
+          )} standard deviations from baseline mean (${Math.round(trafficStats.mean)}).`,
         });
       }
 
@@ -113,7 +107,7 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
         (latestPoint.conversionRatePct - conversionStats.mean) / conversionStats.stdDev;
       if (Math.abs(conversionZ) >= sensitivityZ) {
         newAnomalies.push({
-          id: `anom-cnv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          id: makeAlertId("anom-cnv"),
           time: latestPoint.time,
           metricName: "Conversion Success Rate",
           currentVal: latestPoint.conversionRatePct,
@@ -132,7 +126,7 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
       const latencyZ = (latestPoint.latencyMs - latencyStats.mean) / latencyStats.stdDev;
       if (Math.abs(latencyZ) >= sensitivityZ && latencyZ > 0) {
         newAnomalies.push({
-          id: `anom-lat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          id: makeAlertId("anom-lat"),
           time: latestPoint.time,
           metricName: "API Engine Latency",
           currentVal: latestPoint.latencyMs,
@@ -154,30 +148,46 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
     [sensitivityZ]
   );
 
-  // Periodic Telemetry Generation & Statistical Check
+  // Periodic Real Telemetry Polling & Statistical Check
   useEffect(() => {
     if (!isMonitoring) return;
+    let active = true;
 
-    const interval = setInterval(() => {
-      const nowStr = new Date().toLocaleTimeString();
-      setLastAnalyzedTime(nowStr);
+    const sampleServerStats = async () => {
+      const start = performance.now();
+      try {
+        const res = await fetch("/api/analytics/stats", { credentials: "include" });
+        const measuredPing = Math.max(1, Math.round(performance.now() - start));
+        if (!res.ok || !active) return;
+        const json = await res.json();
+        const metrics = json?.data || {};
+        const nowStr = new Date().toLocaleTimeString();
+        setLastAnalyzedTime(nowStr);
 
-      // Normal slight variation around mean
-      const normalPoint: MetricTimeSeriesPoint = {
-        time: nowStr,
-        trafficReqMin: Math.floor(118 + Math.random() * 8),
-        conversionRatePct: Math.round((98.2 + Math.random() * 0.6) * 10) / 10,
-        latencyMs: Math.floor(11 + Math.random() * 5),
-      };
+        const realPoint: MetricTimeSeriesPoint = {
+          time: nowStr,
+          trafficReqMin: Number(metrics.totalConversionsToday || 0),
+          conversionRatePct: typeof metrics.successRatePercent === "number" ? metrics.successRatePercent : 0,
+          latencyMs: typeof metrics.serverLoadMs === "number" ? metrics.serverLoadMs : measuredPing,
+        };
 
-      setHistory((prev) => {
-        const updated = [...prev.slice(-14), normalPoint];
-        evaluateDataPoint(normalPoint, prev);
-        return updated;
-      });
-    }, 4000);
+        setHistory((prev) => {
+          const updated = [...prev.slice(-14), realPoint];
+          evaluateDataPoint(realPoint, prev);
+          return updated;
+        });
+      } catch {
+        // Non-blocking telemetry check
+      }
+    };
 
-    return () => clearInterval(interval);
+    sampleServerStats();
+    const interval = setInterval(sampleServerStats, 6000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [isMonitoring, evaluateDataPoint]);
 
   // Inject a synthetic anomaly spike or drop for testing
@@ -276,14 +286,14 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {Math.round(currentTrafficStats.mean)} <span className="text-xs font-bold text-slate-400">req/m</span>
+              {history.length > 0 ? Math.round(currentTrafficStats.mean) : "—"} <span className="text-xs font-bold text-slate-400">events</span>
             </span>
             <span className="text-xs font-mono font-bold text-slate-500">
-              &sigma; = {currentTrafficStats.stdDev.toFixed(1)}
+              &sigma; = {history.length > 0 ? currentTrafficStats.stdDev.toFixed(1) : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Calculated moving baseline from 15-point window
+            Calculated moving baseline from {history.length}/15 real samples
           </p>
         </div>
 
@@ -297,10 +307,10 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {currentConversionStats.mean.toFixed(1)}%
+              {history.length > 0 ? `${currentConversionStats.mean.toFixed(1)}%` : "—"}
             </span>
             <span className="text-xs font-mono font-bold text-slate-500">
-              &sigma; = {currentConversionStats.stdDev.toFixed(2)}
+              &sigma; = {history.length > 0 ? currentConversionStats.stdDev.toFixed(2) : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -318,10 +328,10 @@ export const AdminAnomalyDetector: React.FC<AdminAnomalyDetectorProps> = ({
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {Math.round(currentLatencyStats.mean)} <span className="text-xs font-bold text-slate-400">ms</span>
+              {history.length > 0 ? Math.round(currentLatencyStats.mean) : "—"} <span className="text-xs font-bold text-slate-400">ms</span>
             </span>
             <span className="text-xs font-mono font-bold text-slate-500">
-              &sigma; = {currentLatencyStats.stdDev.toFixed(1)}
+              &sigma; = {history.length > 0 ? currentLatencyStats.stdDev.toFixed(1) : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">

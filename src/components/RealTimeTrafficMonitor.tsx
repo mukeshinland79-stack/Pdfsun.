@@ -48,15 +48,15 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
   className = "",
 }) => {
   // Connection and stream state
-  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isPolling, setIsPolling] = useState<boolean>(true);
-  const [pollingIntervalMs, setPollingIntervalMs] = useState<number>(2000); // 2 second interval
+  const [pollingIntervalMs, setPollingIntervalMs] = useState<number>(5000);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
-  const [pingMs, setPingMs] = useState<number>(18);
+  const [pingMs, setPingMs] = useState<number>(0);
 
   // Live real metrics
-  const [liveVisitors, setLiveVisitors] = useState<number>(42);
-  const [totalPageViews, setTotalPageViews] = useState<number>(1280);
+  const [liveVisitors, setLiveVisitors] = useState<number>(0);
+  const [totalPageViews, setTotalPageViews] = useState<number>(0);
   const [sessionStartTime] = useState<number>(() => {
     if (typeof window === "undefined") return Date.now();
     try {
@@ -76,38 +76,33 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
 
   // Event stream state
   const [eventStream, setEventStream] = useState<LiveStreamEvent[]>([]);
+  const prevToolCountsRef = useRef<Record<string, { opened: number; completed: number; downloaded: number }>>({});
 
-  // Page endpoint traffic breakdown
+  // Page endpoint traffic breakdown (real server data)
   const [activePages, setActivePages] = useState<
     { path: string; label: string; activeUsers: number; percent: number }[]
-  >([
-    { path: "/", label: "Home / Multi-Tool Hub", activeUsers: 14, percent: 33 },
-    { path: "/merge-pdf", label: "Merge PDF Tool", activeUsers: 9, percent: 21 },
-    { path: "/compress-pdf", label: "Compress PDF", activeUsers: 7, percent: 17 },
-    { path: "/ai-chat-pdf", label: "AI Chat Assistant", activeUsers: 5, percent: 12 },
-    { path: "/pdf-to-word", label: "PDF to Word Converter", activeUsers: 4, percent: 10 },
-    { path: "/annotate-pdf", label: "Annotate & Edit PDF", activeUsers: 3, percent: 7 },
-  ]);
-
-  // Device breakdown
-  const [deviceStats, setDeviceStats] = useState({
-    desktop: 62,
-    mobile: 31,
-    tablet: 7,
-  });
+  >([]);
 
   // Client device detection
   const currentDevice = useRef<"Desktop" | "Mobile" | "Tablet">("Desktop");
+  const [deviceStats, setDeviceStats] = useState({
+    desktop: 100,
+    mobile: 0,
+    tablet: 0,
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.navigator) {
       const ua = navigator.userAgent.toLowerCase();
       if (/tablet|ipad|playbook|silk/i.test(ua)) {
         currentDevice.current = "Tablet";
+        setDeviceStats({ desktop: 0, mobile: 0, tablet: 100 });
       } else if (/mobile|iphone|android|touch/i.test(ua)) {
         currentDevice.current = "Mobile";
+        setDeviceStats({ desktop: 0, mobile: 100, tablet: 0 });
       } else {
         currentDevice.current = "Desktop";
+        setDeviceStats({ desktop: 100, mobile: 0, tablet: 0 });
       }
     }
   }, []);
@@ -131,81 +126,123 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Locations for stream generator
-  const locationsList = [
-    "United States",
-    "India",
-    "Germany",
-    "United Kingdom",
-    "Japan",
-    "Brazil",
-    "Canada",
-    "Australia",
-    "France",
-    "Singapore",
-  ];
-
-  const toolsList = [
-    { name: "Merge PDF", path: "/merge-pdf" },
-    { name: "Compress PDF", path: "/compress-pdf" },
-    { name: "AI Chat with PDF", path: "/ai-chat-pdf" },
-    { name: "PDF to Word", path: "/pdf-to-word" },
-    { name: "Protect PDF", path: "/protect-pdf" },
-    { name: "Annotate PDF", path: "/annotate-pdf" },
-    { name: "OCR PDF", path: "/ocr-pdf" },
-  ];
-
-  // Helper to trigger a live polling pulse
-  const triggerPollPulse = useCallback(() => {
+  // Real polling pulse against /api/analytics/stats and /api/analytics/tools
+  const triggerPollPulse = useCallback(async () => {
     const startTime = performance.now();
-    
-    // Simulate real network response latency (12-35ms)
-    const simulatedPing = Math.floor(12 + Math.random() * 20);
-    setPingMs(simulatedPing);
-    setLastSyncTime(new Date().toLocaleTimeString());
+    try {
+      const [statsRes, toolsRes] = await Promise.all([
+        fetch("/api/analytics/stats", { credentials: "include" }),
+        fetch("/api/analytics/tools", { credentials: "include" }),
+      ]);
+      const measuredPing = Math.max(1, Math.round(performance.now() - startTime));
+      setPingMs(measuredPing);
+      setLastSyncTime(new Date().toLocaleTimeString());
 
-    // Fluctuating visitor counts realistically (+-1 or 2)
-    setLiveVisitors((prev) => {
-      const delta = Math.floor(Math.random() * 5) - 2; // -2, -1, 0, +1, +2
-      const updated = Math.max(12, prev + delta);
-      return updated;
-    });
+      if (!statsRes.ok || !toolsRes.ok) {
+        setIsConnected(false);
+        return;
+      }
 
-    setTotalPageViews((prev) => prev + (Math.random() > 0.4 ? 1 : 0));
+      setIsConnected(true);
+      const statsJson = await statsRes.json();
+      const toolsJson = await toolsRes.json();
 
-    // Generate stream event
-    const eventTypes: ("pageview" | "tool_exec" | "upload" | "download")[] = [
-      "pageview",
-      "tool_exec",
-      "upload",
-      "download",
-    ];
-    const chosenType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-    const chosenTool = toolsList[Math.floor(Math.random() * toolsList.length)];
-    const chosenLoc = locationsList[Math.floor(Math.random() * locationsList.length)];
+      const live = statsJson?.data || {};
+      setLiveVisitors(Number(live.activeUsers ?? live.activeUsersOnline ?? 0));
 
-    const newEvent: LiveStreamEvent = {
-      id: `stream-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      timestamp: new Date().toLocaleTimeString(),
-      eventType: chosenType,
-      toolName: chosenType !== "pageview" ? chosenTool.name : undefined,
-      path: chosenTool.path,
-      device: Math.random() > 0.3 ? "Desktop" : Math.random() > 0.5 ? "Mobile" : "Tablet",
-      location: chosenLoc,
-      latencyMs: simulatedPing,
-    };
+      const breakdown = (toolsJson?.breakdown || {}) as Record<
+        string,
+        { toolId: string; opened?: number; started?: number; completed?: number; downloaded?: number }
+      >;
+      const entries = Object.values(breakdown);
+      const totalOpened = entries.reduce((sum, item) => sum + Number(item.opened || 0), 0);
+      const totalConversions = Number(live.totalConversionsToday || 0);
+      setTotalPageViews(Math.max(totalOpened, totalConversions));
 
-    setEventStream((prev) => [newEvent, ...prev.slice(0, 19)]);
-    if (onEventTracked) {
-      onEventTracked(newEvent);
+      const sortedTools = entries
+        .map((item) => ({
+          id: item.toolId,
+          count: Number(item.opened || 0) + Number(item.completed || 0),
+        }))
+        .filter((item) => item.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+
+      const topSum = sortedTools.reduce((s, item) => s + item.count, 0);
+      setActivePages(
+        sortedTools.map((item) => ({
+          path: `/${item.id}`,
+          label: item.id,
+          activeUsers: item.count,
+          percent: topSum > 0 ? Math.round((item.count / topSum) * 100) : 0,
+        }))
+      );
+
+      // Append real delta events when backend tool counters advance
+      const newRealEvents: LiveStreamEvent[] = [];
+      for (const entry of entries) {
+        const prev = prevToolCountsRef.current[entry.toolId];
+        const opened = Number(entry.opened || 0);
+        const completed = Number(entry.completed || 0);
+        const downloaded = Number(entry.downloaded || 0);
+        if (prev) {
+          const eventIdBase =
+            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${entry.toolId}`;
+          if (downloaded > prev.downloaded) {
+            newRealEvents.push({
+              id: `dl-${eventIdBase}`,
+              timestamp: new Date().toLocaleTimeString(),
+              eventType: "download",
+              toolName: entry.toolId,
+              path: `/${entry.toolId}`,
+              device: currentDevice.current,
+              location: "Server Verified",
+              latencyMs: measuredPing,
+            });
+          } else if (completed > prev.completed) {
+            newRealEvents.push({
+              id: `exec-${eventIdBase}`,
+              timestamp: new Date().toLocaleTimeString(),
+              eventType: "tool_exec",
+              toolName: entry.toolId,
+              path: `/${entry.toolId}`,
+              device: currentDevice.current,
+              location: "Server Verified",
+              latencyMs: measuredPing,
+            });
+          } else if (opened > prev.opened) {
+            newRealEvents.push({
+              id: `view-${eventIdBase}`,
+              timestamp: new Date().toLocaleTimeString(),
+              eventType: "pageview",
+              toolName: entry.toolId,
+              path: `/${entry.toolId}`,
+              device: currentDevice.current,
+              location: "Server Verified",
+              latencyMs: measuredPing,
+            });
+          }
+        }
+        prevToolCountsRef.current[entry.toolId] = { opened, completed, downloaded };
+      }
+
+      if (newRealEvents.length > 0) {
+        setEventStream((prev) => [...newRealEvents, ...prev].slice(0, 20));
+        if (onEventTracked) {
+          newRealEvents.forEach((evt) => onEventTracked(evt));
+        }
+      }
+    } catch {
+      setIsConnected(false);
     }
   }, [onEventTracked]);
 
-  // Main WebSocket-style polling timer
+  // Main polling timer
   useEffect(() => {
-    if (!isPolling || !isConnected) return;
+    if (!isPolling) return;
 
-    // Initial immediate pulse
     triggerPollPulse();
 
     const interval = setInterval(() => {
@@ -213,7 +250,7 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
     }, pollingIntervalMs);
 
     return () => clearInterval(interval);
-  }, [isPolling, isConnected, pollingIntervalMs, triggerPollPulse]);
+  }, [isPolling, pollingIntervalMs, triggerPollPulse]);
 
   // Format seconds into HH:MM:SS or MM:SS
   const formatDuration = (totalSec: number) => {
@@ -333,14 +370,13 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
             <span className="text-3xl font-black text-slate-900 dark:text-white">
               {liveVisitors}
             </span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-              +14%
+            <span className="text-xs font-bold text-slate-400">
+              {isConnected ? "Connected" : "Idle"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-            <span>Active across all PDF tools right now</span>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-ping" : "bg-slate-400"} shrink-0`} />
+            <span>Open analytics stream connections</span>
           </div>
         </div>
 
@@ -421,29 +457,35 @@ export const RealTimeTrafficMonitor: React.FC<RealTimeTrafficMonitorProps> = ({
           </div>
 
           <div className="space-y-3">
-            {activePages.map((pg, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-700 dark:text-slate-200 truncate pr-2">
-                    {pg.label}
-                  </span>
-                  <div className="flex items-center space-x-2 shrink-0">
-                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                      {pg.activeUsers} users
+            {activePages.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                No recorded tool traffic yet today.
+              </div>
+            ) : (
+              activePages.map((pg, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-700 dark:text-slate-200 truncate pr-2">
+                      {pg.label}
                     </span>
-                    <span className="text-blue-600 dark:text-blue-400 font-black text-[11px]">
-                      {pg.percent}%
-                    </span>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                        {pg.activeUsers} events
+                      </span>
+                      <span className="text-blue-600 dark:text-blue-400 font-black text-[11px]">
+                        {pg.percent}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full transition-all duration-500"
+                      style={{ width: `${pg.percent}%` }}
+                    />
                   </div>
                 </div>
-                <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full transition-all duration-500"
-                    style={{ width: `${pg.percent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Device Distribution Progress */}

@@ -567,7 +567,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
 
   // -------------------------------------------------------------
   // Route 7: Core Individual Tool Pages (e.g. /merge-pdf, /hi/pdf-to-word, /es/compress-pdf, etc.)
-  // Full 66 Registered Tools Support with Multilingual Localized Intelligence
+  // Full 68 Registered Tools Support with Multilingual Localized Intelligence
   // -------------------------------------------------------------
   const toolSlug = subRoute.replace(/^\//, "").replace(/\/+$/, "");
   const matchedTool = ALL_TOOLS.find((t) => t.slug === toolSlug || t.id === toolSlug);

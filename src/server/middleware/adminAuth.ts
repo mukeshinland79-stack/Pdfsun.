@@ -144,20 +144,33 @@ export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
  */
 export function adminAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    // 1. Extract token from Authorization header, custom headers, cookies, or query parameters
+    // 1. Extract token from Authorization header, custom headers, or HttpOnly cookie (never query parameters)
     let token: string | null = null;
 
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7).trim();
     } else if (typeof req.headers["x-admin-token"] === "string") {
-      token = req.headers["x-admin-token"];
+      token = req.headers["x-admin-token"].trim();
     } else if (typeof req.headers["x-access-token"] === "string") {
-      token = req.headers["x-access-token"];
-    } else if (req.query?.token && typeof req.query.token === "string") {
-      token = req.query.token;
-    } else if (req.query?.jwt && typeof req.query.jwt === "string") {
-      token = req.query.jwt;
+      token = req.headers["x-access-token"].trim();
+    } else if (req.headers.cookie) {
+      for (const part of String(req.headers.cookie).split(";")) {
+        const eqIdx = part.indexOf("=");
+        if (eqIdx === -1) continue;
+        const key = part.slice(0, eqIdx).trim();
+        if (key === "pdfsun_admin_session") {
+          try {
+            const val = decodeURIComponent(part.slice(eqIdx + 1).trim());
+            if (val) {
+              token = val;
+              break;
+            }
+          } catch {
+            // ignore malformed cookie value
+          }
+        }
+      }
     }
 
     // Direct secret key override check (e.g., dual-owner emergency secret header)

@@ -45,6 +45,15 @@ import {
 import { ToolHistoryItem } from "../types";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
+import { useToolRatings } from "../hooks/useToolRatings";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 
 const FeedbackWidget = React.lazy(() => import("./FeedbackWidget"));
 
@@ -68,12 +77,18 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
   onClose,
   onAddHistory,
 }) => {
+  const { getToolRating } = useToolRatings();
+  const toolRating = getToolRating("view-pdf-metadata");
   const [file, setFile] = useState<File | null>(initialFile);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [metadata, setMetadata] = useState<DetailedPdfMetadata | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"fields" | "xmp" | "json">("fields");
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    trackToolOpened("view-pdf-metadata");
+  }, []);
 
   // PDF.js Document Preview state
   const [showPreview, setShowPreview] = useState<boolean>(true);
@@ -99,6 +114,8 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
 
       setIsLoading(true);
       setPreviewError(null);
+      const startTime = performance.now();
+      trackProcessStarted("view-pdf-metadata", "pdf", file.size);
 
       try {
         const basicMeta = await getPdfMetadata(file);
@@ -186,6 +203,10 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
           pdfVersion,
         });
 
+        const latencyMs = performance.now() - startTime;
+        trackProcessCompleted("view-pdf-metadata", latencyMs, "pdf", file.size);
+        trackOutputValidated("view-pdf-metadata", "json", bytes.byteLength);
+
         if (onAddHistory) {
           onAddHistory({
             id: Date.now().toString(),
@@ -199,6 +220,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
         }
       } catch (err: any) {
         console.error("Failed to inspect PDF metadata:", err);
+        trackProcessFailed("view-pdf-metadata", performance.now() - startTime);
         triggerErrorToast(
           "Metadata Extraction Error",
           "Could not parse PDF metadata structure. File may be encrypted or corrupted."
@@ -308,7 +330,6 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
         platform: "PDFSun (pdfsun.in)",
         status: "Client-Side Inspection Sandbox",
         security: "100% Client-Side Private Processing",
-        rating: "5.0 / 5.0",
         features: [
           "PDF Document Info Dictionary Parsing",
           "Embedded XMP XML Packet Extraction",
@@ -349,6 +370,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
     const jsonBytes = encoder.encode(content);
     const jsonFileName = `Metadata_${file.name.replace(/\.[^/.]+$/, "")}.json`;
 
+    trackDownloadInitiated("view-pdf-metadata", "json", jsonBytes.byteLength);
     downloadFile(jsonBytes, jsonFileName, "application/json");
 
     try {
@@ -412,7 +434,6 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
         `Platform:          PDFSun (pdfsun.in)`,
         `Generated On:      ${new Date().toLocaleString()}`,
         `Security Status:   100% Client-Side Sandbox`,
-        `User Rating:       5.0 / 5.0 (Client-side Verified)`,
         `--------------------------------------------------`,
         `SUMMARY & FEEDBACK NOTICE:`,
         `This tool provides local client-side metadata parsing`,
@@ -427,6 +448,7 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
     const encoder = new TextEncoder();
     const reportBytes = encoder.encode(content);
 
+    trackDownloadInitiated("view-pdf-metadata", "txt", reportBytes.byteLength);
     downloadFile(reportBytes, reportName, "text/plain");
 
     try {
@@ -670,8 +692,16 @@ export const ViewPdfMetadataTool: React.FC<ViewPdfMetadataToolProps> = ({
                 title="View user reviews and ratings"
               >
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                <span>5.0</span>
-                <span className="text-[10px] text-slate-500 font-normal">(96)</span>
+                {toolRating.totalRatings > 0 ? (
+                  <>
+                    <span>{toolRating.avgRating.toFixed(1)}</span>
+                    <span className="text-[10px] text-slate-500 font-normal">
+                      ({toolRating.totalRatings.toLocaleString()})
+                    </span>
+                  </>
+                ) : (
+                  <span>Rate</span>
+                )}
               </button>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">

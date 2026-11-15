@@ -36,12 +36,9 @@ import {
   ArrowUpDown,
   TrendingUp,
   PieChart,
-  Play,
-  Pause,
   RotateCcw,
   Lightbulb,
   Zap,
-  Plus,
   Layers,
   Wallet,
   MessageSquare,
@@ -138,56 +135,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Usage Analytics Hook for live usage monitoring
   const {
-    usageCounts,
     topToolIds,
     getFormattedUsage,
     getUsageCount,
     totalExecutions,
     getToolSharePercentage,
-    trackToolUsage,
     resetUsage,
-    simulateRandomUsage,
   } = useUsageAnalytics(50);
 
   // Analytics Dashboard local state
   const [analyticsCategory, setAnalyticsCategory] = useState<string>("all");
   const [analyticsSearch, setAnalyticsSearch] = useState<string>("");
   const [analyticsSort, setAnalyticsSort] = useState<"usage" | "name" | "share" | "category">("usage");
-  const [isSimulatingAnalytics, setIsSimulatingAnalytics] = useState<boolean>(false);
   const [realtimePulseEvents, setRealtimePulseEvents] = useState<
     { id: string; time: string; toolName: string; category: string; location: string }[]
-  >([
-    { id: "evt-1", time: "Just now", toolName: "Merge PDF", category: "edit", location: "United States" },
-    { id: "evt-2", time: "12s ago", toolName: "AI Chat with PDF", category: "ai", location: "India" },
-    { id: "evt-3", time: "34s ago", toolName: "Compress PDF", category: "convert", location: "Germany" },
-    { id: "evt-4", time: "1m ago", toolName: "Annotate PDF", category: "edit", location: "Brazil" },
-  ]);
+  >([]);
 
-  // Live auto-simulation ticker effect for real-time analytics monitoring
-  React.useEffect(() => {
-    if (!isSimulatingAnalytics) return;
-
-    const interval = setInterval(() => {
-      const toolId = simulateRandomUsage();
-      if (toolId) {
-        const toolObj = ALL_TOOLS.find((t) => t.id === toolId);
-        if (toolObj) {
-          const locations = ["United States", "India", "Germany", "United Kingdom", "Japan", "Brazil", "Canada", "Australia"];
-          const loc = locations[Math.floor(Math.random() * locations.length)];
-          const newEvt = {
-            id: `evt-${Date.now()}`,
-            time: new Date().toLocaleTimeString(),
-            toolName: toolObj.name,
-            category: toolObj.category || "general",
-            location: loc,
-          };
-          setRealtimePulseEvents((prev) => [newEvt, ...prev.slice(0, 9)]);
+  // Fetch genuine recent platform execution pulse events from server analytics
+  useEffect(() => {
+    if (!isOpen || activeTab !== "analytics") return;
+    let active = true;
+    const loadEvents = async () => {
+      try {
+        const res = await fetch("/api/analytics/stats", { credentials: "include" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (active && Array.isArray(json.recentEvents)) {
+          setRealtimePulseEvents(
+            json.recentEvents.slice(0, 10).map((evt: any) => ({
+              id: String(evt.eventId || evt.id || Math.random()),
+              time: evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString() : "Recent",
+              toolName: ALL_TOOLS.find((t) => t.id === evt.toolId)?.name || evt.toolId || "Tool",
+              category: ALL_TOOLS.find((t) => t.id === evt.toolId)?.category || "pdf",
+              location: evt.stage || "completed",
+            }))
+          );
         }
+      } catch {
+        // Non-blocking
       }
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [isSimulatingAnalytics, simulateRandomUsage]);
+    };
+    loadEvents();
+    return () => { active = false; };
+  }, [isOpen, activeTab]);
 
   // Handler for Exporting Analytics CSV
   const handleExportAnalyticsCsv = () => {
@@ -214,14 +204,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // User Management State (live backend sync + local fallback)
-  const [localUserList, setLocalUserList] = useState<AdminUserAccount[]>([
-    { id: "usr-01", name: "Mukesh Kalonia", email: "mukeshkalonia241@gmail.com", plan: "Dual Owner Master", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
-    { id: "usr-02", name: "Mukesh Inland", email: "mukeshinland79@gmail.com", plan: "Dual Owner Master", status: "Active", joined: "2026-01-01", hasAdminAccess: true },
-    { id: "usr-03", name: "Sarah Jenkins", email: "sarah.j@lawfirm.com", plan: "Team Enterprise", status: "Active", joined: "2026-02-04", hasAdminAccess: false },
-    { id: "usr-04", name: "Alex Rivera", email: "alex.rivera@edu.org", plan: "Student Pro", status: "Active", joined: "2026-01-12", hasAdminAccess: false },
-    { id: "usr-05", name: "David Kim", email: "dkim@tech.co", plan: "Free Customer", status: "Active", joined: "2026-03-19", hasAdminAccess: false },
-  ]);
+  // User Management State (loaded exclusively from authenticated backend API)
+  const [localUserList, setLocalUserList] = useState<AdminUserAccount[]>([]);
 
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userSearchQuery, setUserSearchQuery] = useState<string>("");
@@ -253,6 +237,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const res = await fetch("/api/history/refresh", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ country: "IN", lang: "en" }),
       });
@@ -288,7 +273,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         credentials: "include",
         headers: {
           "Accept": "application/json",
-          "x-user-email": currentUserProfile?.email || "mukeshinland79@gmail.com",
         },
         signal: controller.signal,
       });
@@ -317,7 +301,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setIsRestoringDatabase(true);
     setDbRestoreFeedback(null);
     try {
-      const res = await fetch("/api/admin/users/restore", { method: "POST" });
+      const res = await fetch("/api/admin/users/restore", { method: "POST", credentials: "include" });
       const data = await safeParseAdminJson(res);
       if (data.success) {
         setDbRestoreFeedback({
@@ -340,13 +324,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const activeUserList = userAccounts && userAccounts.length > 0 ? userAccounts : localUserList;
 
-  // System Logs State
-  const [logs, setLogs] = useState([
-    { id: 1, time: "15:42:10", type: "INFO", msg: "User Alex Rivera converted 3 PDF files via Merge tool." },
-    { id: 2, time: "15:40:02", type: "AI", msg: "Gemini 3.6 API stream completed (420ms response time)." },
-    { id: 3, time: "15:35:12", type: "SYSTEM", msg: "Local memory WebAssembly engine garbage collection executed." },
-    { id: 4, time: "15:22:40", type: "ADS", msg: "Google AdSense Publisher Slot pub-4820193821039120 served 120 impressions." },
-  ]);
+  // System Logs State (populated from real runtime operations)
+  const [logs, setLogs] = useState<{ id: number; time: string; type: string; msg: string }[]>([]);
 
   const handleToggleUserStatusInternal = async (userId: string) => {
     if (onToggleUserStatus) {
@@ -360,6 +339,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       try {
         await fetch("/api/admin/users/update", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: userId, updates: { status: newStatus } }),
         });
@@ -381,6 +361,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       try {
         await fetch("/api/admin/users/update", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: userId, updates: { hasAdminAccess: newAdminAccess } }),
         });
@@ -395,6 +376,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const res = await fetch("/api/admin/users/delete", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, email }),
       });
@@ -425,6 +407,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newUserName.trim(),
@@ -503,15 +486,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           sessionStorage.getItem("pdfsun_admin_token") ||
           localStorage.getItem("token")
         )) || "";
-      const headers: Record<string, string> = {
-        "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
-      };
+      const headers: Record<string, string> = {};
       if (storedToken) {
         headers["Authorization"] = `Bearer ${storedToken}`;
         headers["x-admin-token"] = storedToken;
       }
 
-      const res = await fetch("/api/admin/system-config", { headers });
+      const res = await fetch("/api/admin/system-config", { credentials: "include", headers });
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
@@ -527,7 +508,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         appName: "PDFSun Enterprise Platform",
         backupType: "Offline Emergency System Configuration Recovery Snapshot",
         exportTimestamp: new Date().toISOString(),
-        exportedBy: currentUserProfile?.email || "mukeshinland79@gmail.com",
+        exportedBy: currentUserProfile?.email || "verified-owner",
         version: "2.5.0-PROD",
         environment: "Cloud Run Production",
       },
@@ -582,7 +563,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             const tokenToUse = json.systemConfigSecretsAndLimits.ADMIN_SECRET_KEY || storedToken;
             const headers: Record<string, string> = {
               "Content-Type": "application/json",
-              "x-user-email": (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim(),
             };
             if (tokenToUse) {
               headers["Authorization"] = `Bearer ${tokenToUse}`;
@@ -590,6 +570,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }
             await fetch("/api/admin/system-config", {
               method: "POST",
+              credentials: "include",
               headers,
               body: JSON.stringify(json.systemConfigSecretsAndLimits),
             });
@@ -623,7 +604,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Authenticated Admin: <strong>{currentUserProfile?.name || (isPlatformOwner ? "Mukesh Kalonia" : "Customer Admin")}</strong> ({currentUserProfile?.email || (isPlatformOwner ? "mukeshkalonia241@gmail.com" : "admin@pdfsun.app")})
+                Authenticated Admin: <strong>{currentUserProfile?.name || "Authenticated Admin"}</strong> ({currentUserProfile?.email || "Verified Session"})
                 {!isPlatformOwner && (
                   <span className="ml-2 px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-[10px] uppercase border border-amber-500/30">
                     Restricted View (Analytics Only)
@@ -911,14 +892,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="text-center md:text-left space-y-1">
                   <div className="flex items-center justify-center md:justify-start space-x-2">
                     <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                      {currentUserProfile?.name || "Mukesh Kalonia"}
+                      {currentUserProfile?.name || "Platform Administrator"}
                     </h3>
                     <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase">
                       DUAL-OWNER PLATFORM ADMIN
                     </span>
                   </div>
                   <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                    {currentUserProfile?.email || "mukeshkalonia241@gmail.com"}
+                    {currentUserProfile?.email || "Verified Owner Session"}
                   </p>
                   <p className="text-xs text-slate-600 dark:text-slate-300 pt-1">
                     Super administrator access with exclusive RBAC authorization to manage global system configurations, security rate limits, and server storage parameters.
@@ -972,7 +953,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                   <div className="flex items-center space-x-2 bg-slate-950/90 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono font-bold text-emerald-400">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>100% Operational • 0.02s Latency</span>
+                    <span>Admin Diagnostics Ready</span>
                   </div>
                 </div>
 
@@ -1135,18 +1116,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   {/* Dashboard Quick Actions */}
                   <div className="flex items-center space-x-2 shrink-0">
                     <button
-                      onClick={() => setIsSimulatingAnalytics(!isSimulatingAnalytics)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md ${
-                        isSimulatingAnalytics
-                          ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
-                          : "bg-emerald-600 text-white hover:bg-emerald-500"
-                      }`}
-                    >
-                      {isSimulatingAnalytics ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      <span>{isSimulatingAnalytics ? "Pause Live Stream" : "Simulate Live Traffic"}</span>
-                    </button>
-
-                    <button
                       onClick={handleExportAnalyticsCsv}
                       className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition border border-white/20 flex items-center space-x-1.5"
                     >
@@ -1157,10 +1126,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <button
                       onClick={resetUsage}
                       className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center space-x-1"
-                      title="Reset tool counters to default seed values"
+                      title="Refresh usage metrics from server analytics"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset</span>
+                      <span>Refresh</span>
                     </button>
                   </div>
                 </div>
@@ -1171,7 +1140,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Total Tracked Executions</div>
                     <div className="text-xl font-black text-amber-300 mt-0.5 flex items-center space-x-1">
                       <span>{totalExecutions.toLocaleString()}</span>
-                      <Zap className="w-4 h-4 text-amber-400 animate-bounce" />
                     </div>
                   </div>
 
@@ -1185,14 +1153,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
                     <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Most Used Tool</div>
                     <div className="text-sm font-black text-sky-300 truncate mt-1">
-                      {ALL_TOOLS.find((t) => t.id === topToolIds[0])?.name || "Merge PDF"}
+                      {totalExecutions > 0 ? (ALL_TOOLS.find((t) => t.id === topToolIds[0])?.name || "—") : "No executions yet"}
                     </div>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
                     <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Top Category Share</div>
                     <div className="text-sm font-black text-indigo-300 uppercase mt-1">
-                      {ALL_TOOLS.find((t) => t.id === topToolIds[0])?.category || "Convert"}
+                      {totalExecutions > 0 ? (ALL_TOOLS.find((t) => t.id === topToolIds[0])?.category || "—") : "—"}
                     </div>
                   </div>
                 </div>
@@ -1397,7 +1365,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <th className="p-3">Executions</th>
                         <th className="p-3 w-48">Usage Share %</th>
                         <th className="p-3">Dev Roadmap Priority</th>
-                        <th className="p-3 text-right">Simulate</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
@@ -1500,16 +1467,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 >
                                   {pBadge.label}
                                 </span>
-                              </td>
-                              <td className="p-3 text-right">
-                                <button
-                                  onClick={() => trackToolUsage(toolObj.id)}
-                                  className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs flex items-center space-x-1 ml-auto"
-                                  title="Simulate +1 user execution"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>+1 Use</span>
-                                </button>
                               </td>
                             </tr>
                           );
@@ -2046,7 +2003,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="pt-2 text-xs text-slate-500 space-y-1">
                   <div className="font-bold text-slate-700 dark:text-slate-300">Zero Blank-Space &amp; AdSense Policy Guardrails:</div>
                   <p>• Pre-Approval State: All unapproved ad containers collapse to 0 height with zero static labels.</p>
-                  <p>• Upper slot displays Trending Tools Quick-Hub with real-time 66+ tools search.</p>
+                  <p>• Upper slot displays Trending Tools Quick-Hub with real-time 68+ tools search.</p>
                   <p>• Sticky bottom slot displays PWA Value Bar &amp; Privacy Guarantee.</p>
                   <p>• Prevents Thin Content &amp; Cumulative Layout Shift (CLS) rejection flags.</p>
                 </div>

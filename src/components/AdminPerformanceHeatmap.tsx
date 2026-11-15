@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Activity,
   Clock,
@@ -28,36 +28,20 @@ export interface AdminPerformanceHeatmapProps {
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-// Generate realistic 24-hour x 7-day heatmap mock matrix
-const generateHeatmapMatrix = (): HourlyHeatmapCell[] => {
+// Zeroed 24-hour x 7-day heatmap baseline (populated from real server samples)
+const createEmptyHeatmapMatrix = (): HourlyHeatmapCell[] => {
   const matrix: HourlyHeatmapCell[] = [];
-
-  DAYS.forEach((dayName, dayIndex) => {
+  DAYS.forEach((dayName) => {
     HOURS.forEach((hour) => {
-      // Peak hours typically around 13:00 - 18:00 UTC
-      const isPeakHour = hour >= 13 && hour <= 18;
-      const isWeekend = dayName === "Sat" || dayName === "Sun";
-
-      const baseLoad = isPeakHour ? 65 : 20;
-      const loadVar = Math.floor(Math.random() * 25);
-      const serverLoadPct = Math.min(98, Math.max(10, baseLoad + loadVar - (isWeekend ? 15 : 0)));
-
-      const baseLatency = isPeakHour ? 110 : 25;
-      const latencyVar = Math.floor(Math.random() * 60);
-      const apiLatencyMs = Math.min(320, Math.max(8, baseLatency + latencyVar));
-
-      const requestCount = Math.floor(serverLoadPct * 42 + Math.random() * 200);
-
       matrix.push({
         hour,
         dayName,
-        serverLoadPct,
-        apiLatencyMs,
-        requestCount,
+        serverLoadPct: 0,
+        apiLatencyMs: 0,
+        requestCount: 0,
       });
     });
   });
-
   return matrix;
 };
 
@@ -65,8 +49,47 @@ export const AdminPerformanceHeatmap: React.FC<AdminPerformanceHeatmapProps> = (
   className = "",
 }) => {
   const [metricMode, setMetricMode] = useState<"serverLoad" | "apiLatency">("serverLoad");
-  const [matrixData] = useState<HourlyHeatmapCell[]>(generateHeatmapMatrix());
+  const [matrixData, setMatrixData] = useState<HourlyHeatmapCell[]>(createEmptyHeatmapMatrix);
   const [hoveredCell, setHoveredCell] = useState<HourlyHeatmapCell | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const sampleCurrentHour = async () => {
+      try {
+        const res = await fetch("/api/system/public-stats", { credentials: "include" });
+        if (!res.ok || !active) return;
+        const stats = await res.json();
+        const now = new Date();
+        const dayIndex = (now.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+        const dayName = DAYS[dayIndex];
+        const hour = now.getUTCHours();
+        const cpuLoad = Math.round(Number(stats?.cpu?.usagePercent ?? 0));
+        const apiLat = Math.round(Number(stats?.network?.latencyMs ?? 0));
+        const reqCount = Math.round(Number(stats?.network?.totalRequests ?? 0));
+
+        setMatrixData((prev) =>
+          prev.map((cell) =>
+            cell.dayName === dayName && cell.hour === hour
+              ? {
+                  ...cell,
+                  serverLoadPct: Math.max(cell.serverLoadPct, cpuLoad),
+                  apiLatencyMs: Math.max(cell.apiLatencyMs, apiLat),
+                  requestCount: reqCount,
+                }
+              : cell
+          )
+        );
+      } catch {
+        // Non-blocking
+      }
+    };
+    sampleCurrentHour();
+    const timer = setInterval(sampleCurrentHour, 15000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   // Helper color interpolator for heatmap cells
   const getCellColorClass = (cell: HourlyHeatmapCell) => {
@@ -172,16 +195,29 @@ export const AdminPerformanceHeatmap: React.FC<AdminPerformanceHeatmapProps> = (
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <div className="font-extrabold text-slate-900 dark:text-white">
-              Identified Peak Hour Bottleneck: <span className="text-amber-500 font-mono">{peakCell.dayName} at {peakCell.hour}:00 UTC</span>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-              Highest registered value:{" "}
-              <strong className="text-slate-800 dark:text-slate-200 font-mono">
-                {metricMode === "serverLoad" ? `${peakCell.serverLoadPct}% CPU` : `${peakCell.apiLatencyMs} ms Response`}
-              </strong>{" "}
-              with {peakCell.requestCount.toLocaleString()} total API executions.
-            </p>
+            {peakCell.requestCount === 0 && peakCell.serverLoadPct === 0 ? (
+              <>
+                <div className="font-extrabold text-slate-900 dark:text-white">
+                  No historical load bottleneck recorded yet
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  Cells populate dynamically as live server telemetry samples arrive.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="font-extrabold text-slate-900 dark:text-white">
+                  Identified Peak Hour Bottleneck: <span className="text-amber-500 font-mono">{peakCell.dayName} at {peakCell.hour}:00 UTC</span>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  Highest registered value:{" "}
+                  <strong className="text-slate-800 dark:text-slate-200 font-mono">
+                    {metricMode === "serverLoad" ? `${peakCell.serverLoadPct}% CPU` : `${peakCell.apiLatencyMs} ms Response`}
+                  </strong>{" "}
+                  with {peakCell.requestCount.toLocaleString()} total API executions.
+                </p>
+              </>
+            )}
           </div>
         </div>
 

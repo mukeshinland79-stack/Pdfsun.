@@ -38,41 +38,71 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
   className = "",
 }) => {
   const [isLive, setIsLive] = useState<boolean>(true);
-  const [history, setHistory] = useState<SystemResourcePoint[]>([
-    { time: "10:00", cpuPct: 24, ramPct: 42, storagePct: 58 },
-    { time: "10:01", cpuPct: 28, ramPct: 44, storagePct: 58 },
-    { time: "10:02", cpuPct: 35, ramPct: 43, storagePct: 58 },
-    { time: "10:03", cpuPct: 22, ramPct: 45, storagePct: 59 },
-    { time: "10:04", cpuPct: 31, ramPct: 46, storagePct: 59 },
-    { time: "10:05", cpuPct: 29, ramPct: 45, storagePct: 59 },
-    { time: "10:06", cpuPct: 42, ramPct: 48, storagePct: 60 },
-    { time: "10:07", cpuPct: 26, ramPct: 47, storagePct: 60 },
-  ]);
+  const [history, setHistory] = useState<SystemResourcePoint[]>([]);
+  const [systemMeta, setSystemMeta] = useState<{
+    cores: number;
+    systemUsedGb: string;
+    systemTotalGb: string;
+    heapUsedMb: number;
+    heapTotalMb: number;
+  }>({
+    cores: 0,
+    systemUsedGb: "0",
+    systemTotalGb: "0",
+    heapUsedMb: 0,
+    heapTotalMb: 0,
+  });
 
-  // Live simulation ticker for system resource utilization
+  // Poll real /api/system/public-stats endpoint
   useEffect(() => {
     if (!isLive) return;
+    let active = true;
 
-    const interval = setInterval(() => {
-      const nowStr = new Date().toLocaleTimeString();
+    const sampleSystemStats = async () => {
+      try {
+        const res = await fetch("/api/system/public-stats", { credentials: "include" });
+        if (!res.ok || !active) return;
+        const stats = await res.json();
+        const nowStr = new Date().toLocaleTimeString();
 
-      const newCpu = Math.floor(18 + Math.random() * 28);
-      const newRam = Math.floor(44 + Math.random() * 8);
-      const newStorage = 60; // Stable storage
+        const cpuPct = Math.round(Number(stats?.cpu?.usagePercent ?? 0));
+        const ramPct = Math.round(Number(stats?.memory?.usagePercent ?? 0));
+        const heapUsedMb = Math.round(Number(stats?.memory?.heapUsedMb ?? 0));
+        const heapTotalMb = Math.max(1, Math.round(Number(stats?.memory?.heapTotalMb ?? 0)));
+        const heapPct = Math.min(100, Math.round((heapUsedMb / heapTotalMb) * 100));
+        const totalMb = Number(stats?.memory?.systemTotalMb ?? 0);
+        const freeMb = Number(stats?.memory?.systemFreeMb ?? 0);
 
-      setHistory((prev) => [
-        ...prev.slice(-11),
-        { time: nowStr, cpuPct: newCpu, ramPct: newRam, storagePct: newStorage },
-      ]);
-    }, 3000);
+        setSystemMeta({
+          cores: Number(stats?.cpu?.cores ?? 0),
+          systemUsedGb: ((totalMb - freeMb) / 1024).toFixed(1),
+          systemTotalGb: (totalMb / 1024).toFixed(1),
+          heapUsedMb,
+          heapTotalMb,
+        });
 
-    return () => clearInterval(interval);
+        setHistory((prev) => [
+          ...prev.slice(-11),
+          { time: nowStr, cpuPct, ramPct, storagePct: heapPct },
+        ]);
+      } catch {
+        // Non-blocking telemetry read
+      }
+    };
+
+    sampleSystemStats();
+    const interval = setInterval(sampleSystemStats, 4000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [isLive]);
 
   const latest = history[history.length - 1] || {
-    cpuPct: 25,
-    ramPct: 46,
-    storagePct: 60,
+    cpuPct: 0,
+    ramPct: 0,
+    storagePct: 0,
   };
 
   return (
@@ -140,7 +170,9 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
             <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">
               {latest.cpuPct}%
             </span>
-            <span className="text-xs text-slate-400 font-mono">8 vCPU Cores</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {systemMeta.cores > 0 ? `${systemMeta.cores} vCPU Cores` : "Polling..."}
+            </span>
           </div>
 
           {/* Recharts CPU Sparkline */}
@@ -195,7 +227,11 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
             <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">
               {latest.ramPct}%
             </span>
-            <span className="text-xs text-slate-400 font-mono">7.3 GB / 16 GB</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {systemMeta.systemTotalGb !== "0"
+                ? `${systemMeta.systemUsedGb} GB / ${systemMeta.systemTotalGb} GB`
+                : "Polling..."}
+            </span>
           </div>
 
           {/* Recharts RAM Sparkline */}
@@ -238,11 +274,11 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
                 <HardDrive className="w-4 h-4" />
               </div>
               <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase">
-                SSD Disk Storage
+                Node Heap Utilization
               </span>
             </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-cyan-500/10 text-cyan-500">
-              SSD NVMe
+              V8 Heap
             </span>
           </div>
 
@@ -250,7 +286,11 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
             <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">
               {latest.storagePct}%
             </span>
-            <span className="text-xs text-slate-400 font-mono">300 GB / 500 GB</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {systemMeta.heapTotalMb > 0
+                ? `${systemMeta.heapUsedMb} MB / ${systemMeta.heapTotalMb} MB`
+                : "Polling..."}
+            </span>
           </div>
 
           {/* Recharts Storage Sparkline */}

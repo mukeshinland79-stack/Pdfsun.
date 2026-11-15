@@ -42,6 +42,14 @@ import { QuickShareModal } from "./QuickShareModal";
 import { DownloadQrCodeGenerator } from "./DownloadQrCodeGenerator";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 
 ensurePdfJsWorkerConfigured(pdfjsLib);
 
@@ -138,6 +146,10 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   const cleanedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+
+  useEffect(() => {
+    trackToolOpened("remove-watermark");
+  }, []);
 
   // Drag & Drop File Loader
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -408,6 +420,8 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
       return;
     }
 
+    const startTime = performance.now();
+    trackProcessStarted("remove-watermark", "pdf", file.size);
     try {
       setIsProcessing(true);
       setProgress(10);
@@ -437,6 +451,9 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
       setProgress(95);
 
       const outputFileName = `PDFSun_Clean_${file.name.replace(/\.[^/.]+$/, "")}.pdf`;
+      const latencyMs = performance.now() - startTime;
+      trackProcessCompleted("remove-watermark", latencyMs, "pdf", cleanedBytes.byteLength);
+      trackOutputValidated("remove-watermark", "pdf", cleanedBytes.byteLength);
 
       setDownloadReady({
         data: cleanedBytes,
@@ -466,6 +483,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
       }
     } catch (err: any) {
       console.error("Remove watermark error:", err);
+      trackProcessFailed("remove-watermark", performance.now() - startTime);
       setIsProcessing(false);
       triggerErrorToast("Watermark Removal Failed", err?.message || "An unexpected error occurred during processing.");
     }
@@ -474,6 +492,7 @@ export const RemoveWatermarkTool: React.FC<RemoveWatermarkToolProps> = ({
   // Trigger Local Direct Download
   const handleDownload = () => {
     if (!downloadReady) return;
+    trackDownloadInitiated("remove-watermark", "pdf", downloadReady.data.byteLength);
     downloadFile(downloadReady.data, downloadReady.fileName, "application/pdf");
   };
 

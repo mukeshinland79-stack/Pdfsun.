@@ -58,7 +58,8 @@ export const useLiveAnalytics = (pollFallbackMs = 5000): LiveAnalyticsHook => {
     };
   }, [connect, pollFallbackMs]);
 
-  const recordConversion = useCallback(async (latencyMs = 15, success = true): Promise<boolean> => {
+  const recordConversion = useCallback(async (latencyMs: number, success = true): Promise<boolean> => {
+    if (!Number.isFinite(latencyMs) || latencyMs < 1) return false;
     setIsSimulating(true);
     setSimulateMsg("");
 
@@ -66,7 +67,7 @@ export const useLiveAnalytics = (pollFallbackMs = 5000): LiveAnalyticsHook => {
       const updatedStats = await analyticsService.recordConversion(latencyMs, success);
       if (updatedStats) {
         setData(updatedStats);
-        setSimulateMsg(`✓ Real-time conversion recorded! (${latencyMs}ms)`);
+        setSimulateMsg(`✓ Conversion recorded (${Math.round(latencyMs)}ms)`);
         setTimeout(() => setSimulateMsg(""), 3000);
         return true;
       }

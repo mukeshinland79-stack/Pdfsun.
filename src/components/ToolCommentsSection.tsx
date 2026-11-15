@@ -37,7 +37,7 @@ export const ToolCommentsSection: React.FC<ToolCommentsSectionProps> = ({ toolId
     totalReviews: number;
     starCounts: { [star: number]: number };
   }>({
-    avgRating: 4.9,
+    avgRating: 0,
     totalReviews: 0,
     starCounts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
   });
@@ -74,7 +74,7 @@ export const ToolCommentsSection: React.FC<ToolCommentsSectionProps> = ({ toolId
           setComments(data.comments || []);
           if (data.stats) {
             setStats({
-              avgRating: data.stats.avgRating || 4.9,
+              avgRating: typeof data.stats.avgRating === "number" ? data.stats.avgRating : 0,
               totalReviews: data.stats.totalReviews || 0,
               starCounts: data.stats.starCounts || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
             });
@@ -309,15 +309,22 @@ export const ToolCommentsSection: React.FC<ToolCommentsSectionProps> = ({ toolId
           <div className="flex items-center space-x-5">
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center min-w-[100px]">
               <div className="text-3xl font-black text-amber-400">
-                {stats.avgRating.toFixed(1)}
+                {stats.totalReviews > 0 ? stats.avgRating.toFixed(1) : "—"}
               </div>
               <div className="flex items-center justify-center my-1 text-amber-400">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star
+                    key={star}
+                    className={`w-3.5 h-3.5 ${
+                      stats.totalReviews > 0 && star <= Math.round(stats.avgRating)
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-slate-500"
+                    }`}
+                  />
                 ))}
               </div>
               <div className="text-[10px] text-[var(--text-muted,#64748b)] font-medium">
-                {stats.totalReviews} verified reviews
+                {stats.totalReviews > 0 ? `${stats.totalReviews} verified reviews` : "No reviews yet"}
               </div>
             </div>
 

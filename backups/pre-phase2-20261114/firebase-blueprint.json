@@ -1,0 +1,229 @@
+{
+  "entities": {
+    "feedback_comments": {
+      "title": "Feedback & Reviews",
+      "description": "User ratings, 5-star reviews, and tool feedback comments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique comment ID" },
+        "toolId": { "type": "string", "description": "Associated tool identifier" },
+        "toolName": { "type": "string", "description": "Human readable name of the tool" },
+        "userName": { "type": "string", "description": "User display name" },
+        "userEmail": { "type": "string", "description": "Optional contact email" },
+        "rating": { "type": "number", "description": "5-star rating value (1-5)" },
+        "comment": { "type": "string", "description": "User review text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of creation" },
+        "helpfulCount": { "type": "number", "description": "Number of upvotes" },
+        "status": { "type": "string", "description": "Review moderation status: approved, pending, or spam" },
+        "verifiedUser": { "type": "boolean", "description": "Whether user is verified" }
+      },
+      "required": ["toolId", "rating", "comment", "createdAt"]
+    },
+    "quick_feedback": {
+      "title": "Quick Tool Ratings",
+      "description": "Aggregated 1-click Likes and Dislikes per tool ID.",
+      "type": "object",
+      "properties": {
+        "toolId": { "type": "string", "description": "Tool ID" },
+        "likes": { "type": "number", "description": "Total like count" },
+        "dislikes": { "type": "number", "description": "Total dislike count" }
+      },
+      "required": ["toolId", "likes", "dislikes"]
+    },
+    "tool_feedback": {
+      "title": "Tool Feedback Ratings",
+      "description": "User ratings and feedback comments for tools.",
+      "type": "object",
+      "properties": {
+        "toolId": { "type": "string", "description": "Tool ID" },
+        "rating": { "type": "number", "description": "1-5 Star Rating" },
+        "comment": { "type": "string", "description": "User feedback text" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "userEmail": { "type": "string", "description": "User email address" }
+      },
+      "required": ["toolId", "rating", "comment", "timestamp"]
+    },
+    "payments": {
+      "title": "Verified Razorpay Payments",
+      "description": "Verified payments reconciled from Razorpay webhooks and checkout instances.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "description": "Razorpay Payment ID" },
+        "orderId": { "type": "string", "description": "Razorpay Order ID" },
+        "subscriptionId": { "type": "string", "description": "Razorpay Subscription ID" },
+        "userEmail": { "type": "string", "description": "User account email" },
+        "amountPaise": { "type": "number", "description": "Amount in Paise" },
+        "amountINR": { "type": "number", "description": "Amount in INR" },
+        "currency": { "type": "string", "description": "Payment currency (INR)" },
+        "status": { "type": "string", "description": "Payment status (COMPLETED, REFUNDED)" },
+        "planId": { "type": "string", "description": "Purchased Plan Identifier" },
+        "planName": { "type": "string", "description": "Plan Name" },
+        "signatureVerified": { "type": "boolean", "description": "Whether webhook HMAC signature was verified" },
+        "reconciledAt": { "type": "string", "format": "date-time", "description": "Reconciliation timestamp" }
+      },
+      "required": ["paymentId", "userEmail", "amountPaise", "currency", "status", "planId", "reconciledAt"]
+    },
+    "user_subscriptions": {
+      "title": "User Subscriptions",
+      "description": "Active subscriptions and entitlements.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User email or UID" },
+        "planId": { "type": "string", "description": "Active plan ID" },
+        "planName": { "type": "string", "description": "Active plan name" },
+        "status": { "type": "string", "description": "Subscription status: active, expired, cancelled" },
+        "activatedAt": { "type": "string", "format": "date-time", "description": "Activation timestamp" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Expiry timestamp" },
+        "paymentId": { "type": "string", "description": "Last verified payment ID" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["userId", "planId", "status", "activatedAt", "expiresAt"]
+    },
+    "user_credits": {
+      "title": "User Credits",
+      "description": "Credit balance for one-time flexi packs and tool usage.",
+      "type": "object",
+      "properties": {
+        "userEmail": { "type": "string", "description": "User email address" },
+        "balance": { "type": "number", "description": "Available credits" },
+        "lifetimeGranted": { "type": "number", "description": "Total credits ever purchased" },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["userEmail", "balance", "lastUpdated"]
+    },
+    "payment_reconciliations": {
+      "title": "Payment Reconciliation Audit Logs",
+      "description": "Audit trail of verified payment reconciliation events.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Reconciliation audit ID" },
+        "paymentId": { "type": "string", "description": "Payment ID" },
+        "userEmail": { "type": "string", "description": "User email" },
+        "eventType": { "type": "string", "description": "Razorpay event type" },
+        "verifiedAmountINR": { "type": "number", "description": "Verified amount in INR" },
+        "entitlementGranted": { "type": "string", "description": "Granted entitlement (SUBSCRIPTION / CREDITS)" },
+        "reconciledAt": { "type": "string", "format": "date-time", "description": "Reconciliation timestamp" }
+      },
+      "required": ["id", "paymentId", "userEmail", "verifiedAmountINR", "reconciledAt"]
+    },
+    "orders": {
+      "title": "Internal Payment Orders",
+      "description": "Internal order records created before payment checkout.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique Order ID" },
+        "userEmail": { "type": "string", "description": "User email address" },
+        "planId": { "type": "string", "description": "Product plan ID" },
+        "amountPaise": { "type": "number", "description": "Expected amount in paise" },
+        "amountINR": { "type": "number", "description": "Expected amount in INR" },
+        "currency": { "type": "string", "description": "Order currency" },
+        "status": { "type": "string", "description": "Order status (created, paid, failed)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Order creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Order update timestamp" }
+      },
+      "required": ["orderId", "userEmail", "planId", "amountPaise", "currency", "status", "createdAt"]
+    },
+    "transactions": {
+      "title": "Payment Transactions",
+      "description": "Idempotent financial transactions record keyed by payment ID.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "description": "Razorpay Payment ID" },
+        "orderId": { "type": "string", "description": "Razorpay Order ID" },
+        "userEmail": { "type": "string", "description": "User email" },
+        "amount": { "type": "number", "description": "Amount in INR" },
+        "amountPaise": { "type": "number", "description": "Amount in Paise" },
+        "currency": { "type": "string", "description": "Currency code" },
+        "status": { "type": "string", "description": "Transaction status: captured, completed, refunded" },
+        "planId": { "type": "string", "description": "Plan identifier" },
+        "planName": { "type": "string", "description": "Plan name" },
+        "entitlementGranted": { "type": "string", "description": "Entitlement status description" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["paymentId", "userEmail", "amountPaise", "status", "planId", "createdAt"]
+    },
+    "history_engagement": {
+      "title": "History Engagement & Popular Content",
+      "description": "Aggregated user engagement metrics (views, reads, likes, shares, downloads) for historical content to compute domain authority and popularity rankings.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "description": "Unique historical event identifier" },
+        "headline": { "type": "string", "description": "Event headline" },
+        "year": { "type": "string", "description": "Historical year" },
+        "category": { "type": "string", "description": "Category: milestone, birth, invention, culture" },
+        "views": { "type": "number", "description": "Total views" },
+        "reads": { "type": "number", "description": "Total detail reads" },
+        "likes": { "type": "number", "description": "Total likes" },
+        "shares": { "type": "number", "description": "Total shares" },
+        "downloads": { "type": "number", "description": "Worksheet downloads count" },
+        "engagementScore": { "type": "number", "description": "Weighted engagement score" },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "Last engagement update timestamp" }
+      },
+      "required": ["eventId", "views", "engagementScore"]
+    },
+    "owner_payment_audit_logs": {
+      "title": "Owner Payment Audit Logs",
+      "description": "Immutable audit log of all received payment notifications and payloads for owner admin portal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique audit log ID" },
+        "userId": { "type": "string", "description": "User ID / email" },
+        "email": { "type": "string", "description": "User email address" },
+        "paymentGatewayRefId": { "type": "string", "description": "Payment Gateway Reference ID" },
+        "dateTime": { "type": "string", "format": "date-time", "description": "Date & Time received" },
+        "exactPlanPurchased": { "type": "string", "description": "Exact plan purchased" },
+        "actualAmountReceived": { "type": "number", "description": "Actual amount received in INR" },
+        "currency": { "type": "string", "description": "Payment currency (INR)" },
+        "status": { "type": "string", "description": "Payment status (SUCCESS, PENDING, FAILED)" },
+        "ownerEmail": { "type": "string", "description": "Target owner email" }
+      },
+      "required": ["id", "userId", "email", "paymentGatewayRefId", "dateTime", "exactPlanPurchased", "actualAmountReceived"]
+    }
+  },
+  "firestore": {
+    "/history_engagement/{eventId}": {
+      "schema": "history_engagement",
+      "description": "User engagement metrics and popular content ranking for Today in History"
+    },
+    "/feedback_comments/{commentId}": {
+      "schema": "feedback_comments",
+      "description": "User reviews and ratings"
+    },
+    "/quick_feedback/{toolId}": {
+      "schema": "quick_feedback",
+      "description": "Aggregated tool votes"
+    },
+    "/tool_feedback/{feedbackId}": {
+      "schema": "tool_feedback",
+      "description": "Tool feedback logs"
+    },
+    "/payments/{paymentId}": {
+      "schema": "payments",
+      "description": "Verified payments store"
+    },
+    "/transactions/{paymentId}": {
+      "schema": "transactions",
+      "description": "Idempotent payment transactions store"
+    },
+    "/user_subscriptions/{userId}": {
+      "schema": "user_subscriptions",
+      "description": "Active user subscription records"
+    },
+    "/user_credits/{userEmail}": {
+      "schema": "user_credits",
+      "description": "User credit balances"
+    },
+    "/payment_reconciliations/{reconciliationId}": {
+      "schema": "payment_reconciliations",
+      "description": "Reconciliation audit records"
+    },
+    "/orders/{orderId}": {
+      "schema": "orders",
+      "description": "Internal payment order records"
+    },
+    "/owner_payment_audit_logs/{logId}": {
+      "schema": "owner_payment_audit_logs",
+      "description": "Immutable owner payment audit log records for mukeshinland79@gmail.com"
+    }
+  }
+}

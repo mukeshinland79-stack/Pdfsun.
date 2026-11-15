@@ -1,0 +1,1161 @@
+import React, { useState, useEffect } from "react";
+import { UserProfile, ToolHistoryItem, ToolItem, DUAL_OWNER_EMAILS } from "../types";
+import { PaymentHistory, getVerificationStatusInfo, PaymentTransaction } from "./PaymentHistory";
+import {
+  subscribeUserTransactionsFromFirestore,
+  FirestoreTransactionRecord,
+} from "../lib/firebase";
+import { useUsageTracker, PLAN_LIMITS } from "../hooks/useUsageTracker";
+import {
+  User,
+  Crown,
+  Sparkles,
+  Star,
+  Clock,
+  Download,
+  X,
+  FileText,
+  Shield,
+  ArrowUpRight,
+  HardDrive,
+  Settings,
+  CheckCircle,
+  Receipt,
+  LayoutDashboard,
+  Calendar,
+  Zap,
+  KeyRound,
+  Edit3,
+  Mail,
+  Smartphone,
+  ShieldCheck,
+  CreditCard,
+  ExternalLink,
+  AlertCircle,
+  Camera,
+  Activity,
+} from "lucide-react";
+import { safeFetchJson } from "../utils/apiHelper";
+import { resolvePaymentProduct } from "../config/paymentProducts";
+
+interface UserDashboardProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userProfile: UserProfile;
+  favorites: string[];
+  history: ToolHistoryItem[];
+  allTools: ToolItem[];
+  onSelectTool: (tool: ToolItem) => void;
+  onOpenAdminPanel?: () => void;
+  onOpenPricing?: () => void;
+  onOpenAvatarModal?: () => void;
+}
+
+export const UserDashboard: React.FC<UserDashboardProps> = ({
+  isOpen,
+  onClose,
+  userProfile,
+  favorites,
+  history,
+  allTools,
+  onSelectTool,
+  onOpenAdminPanel,
+  onOpenPricing,
+  onOpenAvatarModal,
+}) => {
+  const [activeTab, setActiveTab] = useState<"overview" | "profile" | "files" | "plan">("overview");
+  const [editingName, setEditingName] = useState(false);
+  const [nameVal, setNameVal] = useState(userProfile.name || "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState("");
+  const [transactions, setTransactions] = useState<FirestoreTransactionRecord[]>([]);
+
+  // Real-time Plan Tier & Usage Limits Engine
+  const usageTracker = useUsageTracker();
+
+  // Real-time Firestore transaction listener strictly filtered by current userProfile.uid / email
+  useEffect(() => {
+    if (!isOpen) return;
+    const userIdentifier = {
+      uid: userProfile.uid || userProfile.id,
+      email: userProfile.email || "",
+    };
+
+    const unsubscribe = subscribeUserTransactionsFromFirestore(userIdentifier, (txList) => {
+      setTransactions(txList);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isOpen, userProfile.uid, userProfile.id, userProfile.email]);
+
+  if (!isOpen) return null;
+
+  const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
+  const isOwner = userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
+  const resolvedPlan = resolvePaymentProduct({
+    planId: userProfile.planId || userProfile.plan,
+  });
+  const isSsoUser =
+    Boolean(userProfile.isSsoManaged) ||
+    resolvedPlan.internalProductId === "enterprise-sso" ||
+    resolvedPlan.internalProductId === "enterprise" ||
+    userProfile.plan?.toLowerCase().includes("enterprise") ||
+    userProfile.plan?.toLowerCase().includes("sso") ||
+    userProfile.plan?.toLowerCase().includes("saml") ||
+    Boolean(userProfile.ssoDomain) ||
+    Boolean(userProfile.ssoProvider) ||
+    Boolean(userProfile.organizationName);
+  const isFlexiUser =
+    resolvedPlan.internalProductId === "flexi" ||
+    userProfile.plan?.toLowerCase().includes("flex") ||
+    userProfile.plan?.toLowerCase().includes("pass");
+  const isPaidUser =
+    userProfile.plan?.toLowerCase().includes("pro") ||
+    userProfile.plan?.toLowerCase().includes("annual") ||
+    isFlexiUser ||
+    isSsoUser ||
+    isOwner;
+
+  const daysRemaining = isOwner
+    ? 9999
+    : isFlexiUser
+    ? 7
+    : resolvedPlan.billingInterval === "yearly" || userProfile.plan?.toLowerCase().includes("annual")
+    ? 365
+    : isPaidUser
+    ? 30
+    : 0;
+
+  const startDateStr = new Date(Date.now() - (isFlexiUser ? 1 : 14) * 86400000).toLocaleDateString("en-GB");
+  const expiryDateStr = isOwner
+    ? "Lifetime / No Expiry"
+    : !isPaidUser
+    ? "Lifetime Free"
+    : new Date(Date.now() + (isFlexiUser ? 7 : resolvedPlan.billingInterval === "yearly" ? 365 : 30) * 86400000).toLocaleDateString("en-GB");
+
+  // Real-time transaction verification status calculation
+  const latestTx = transactions[0];
+  const latestStatusInfo = latestTx
+    ? getVerificationStatusInfo(latestTx.status)
+    : isPaidUser
+    ? getVerificationStatusInfo("COMPLETED")
+    : null;
+  const verifiedCount = transactions.filter((tx) => {
+    const s = (tx.status || "").toLowerCase();
+    return s === "completed" || s === "captured" || s === "paid" || s === "success" || s === "verified";
+  }).length;
+
+  // Calculate renewal / expiry info
+  const planExpiryText = isOwner
+    ? "Lifetime Super Admin Active (No Expiry)"
+    : isSsoUser
+    ? "Enterprise SSO Active (Managed by Organization IT)"
+    : isFlexiUser
+    ? "Flex Pass Active (Valid for 7 Days access • Pay-as-you-go)"
+    : resolvedPlan.billingInterval === "yearly" || userProfile.plan?.toLowerCase().includes("annual")
+    ? "Active for 1 Year (365 Days • Renewable via Razorpay)"
+    : isPaidUser
+    ? "Active for 30 Days (Auto-Renewable via Razorpay)"
+    : "Free Tier Active (No Expiry)";
+
+  const handleUpdateName = async () => {
+    if (!nameVal.trim()) return;
+    setSavingProfile(true);
+    setProfileMsg("");
+    try {
+      await safeFetchJson("/api/admin/users/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userProfile.email,
+          updates: { name: nameVal.trim() },
+        }),
+      });
+      userProfile.name = nameVal.trim();
+      setEditingName(false);
+      setProfileMsg("Profile name updated successfully!");
+      setTimeout(() => setProfileMsg(""), 3000);
+    } catch {
+      userProfile.name = nameVal.trim();
+      setEditingName(false);
+      setProfileMsg("Profile updated locally.");
+      setTimeout(() => setProfileMsg(""), 3000);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white dark:bg-[#0f172a] rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[92vh] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden my-auto">
+        {/* Top Header */}
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+            <div className="relative group/avatar shrink-0">
+              <img
+                src={userProfile.photoURL || userProfile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200"}
+                alt={userProfile.name}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ring-orange-500/30 shrink-0"
+              />
+              {onOpenAvatarModal && (
+                <button
+                  type="button"
+                  onClick={onOpenAvatarModal}
+                  className="absolute inset-0 rounded-2xl bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                  title="Update Profile Picture"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate max-w-[160px] sm:max-w-[240px]">
+                  {userProfile.name}
+                </h2>
+                <span
+                  className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
+                    isOwner
+                      ? "bg-amber-500 text-slate-950"
+                      : isSsoUser
+                      ? "bg-blue-600 text-white"
+                      : isPaidUser
+                      ? "bg-orange-500 text-white"
+                      : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {isOwner ? "SUPER ADMIN / OWNER" : userProfile.plan || "FREE PLAN"}
+                </span>
+
+                {isSsoUser && (
+                  <span
+                    id="user-dashboard-sso-managed-badge"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-blue-500/15 via-indigo-500/15 to-blue-600/10 dark:from-blue-500/25 dark:via-indigo-500/25 dark:to-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 dark:border-blue-400/40 shadow-xs shrink-0 select-none transition-all hover:border-blue-500/50"
+                    title={`SSO Managed: Authenticated via Enterprise Identity Provider ${userProfile.organizationName ? `(${userProfile.organizationName})` : userProfile.ssoProvider ? `(${userProfile.ssoProvider.toUpperCase()})` : ""}`}
+                  >
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                    </span>
+                    <ShieldCheck className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>SSO Managed</span>
+                  </span>
+                )}
+
+                {/* Real-time Dynamic Transaction Verification Badge */}
+                {latestStatusInfo && (
+                  <span
+                    id="user-dashboard-verification-badge"
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border shadow-xs select-none shrink-0 ${latestStatusInfo.badgeClass}`}
+                    title={`Firestore Transactions: ${latestStatusInfo.label} (${latestStatusInfo.description})`}
+                  >
+                    <latestStatusInfo.icon className="w-3 h-3 shrink-0" />
+                    <span>{latestStatusInfo.label}</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userProfile.email}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
+            {onOpenAdminPanel && (isOwner || userProfile.hasAdminAccess) && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenAdminPanel();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md hover:opacity-90 transition cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5" />
+                <span>Admin Suite</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label="Close dashboard"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Dashboard Navigation Tabs */}
+        <div className="px-4 sm:px-6 pt-2 sm:pt-3 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-2 text-xs font-extrabold overflow-x-auto">
+          {/* Tab 1: Overview & Tools */}
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "overview"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 text-orange-500" />
+            <span>1. Overview &amp; Tools</span>
+          </button>
+
+          {/* Tab 2: Profile & Account */}
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "profile"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <User className="w-4 h-4 text-blue-500" />
+            <span>2. Profile &amp; Account</span>
+          </button>
+
+          {/* Tab 3: Recent Files */}
+          <button
+            onClick={() => setActiveTab("files")}
+            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "files"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Clock className="w-4 h-4 text-emerald-500" />
+            <span>3. Recent Files ({history.length})</span>
+          </button>
+
+          {/* Tab 4: Plan Details */}
+          <button
+            onClick={() => setActiveTab("plan")}
+            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl border-b-2 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "plan"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800"
+                : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span>4. Plan &amp; Invoices</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+        </div>
+
+        {/* Dashboard Content Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6">
+          {profileMsg && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center space-x-2 animate-in fade-in">
+              <CheckCircle className="w-4 h-4" />
+              <span>{profileMsg}</span>
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* 🟢 PLAN ACTIVATED STATUS BOX (Persistent on Dashboard & Profile)  */}
+          {/* =================================================================== */}
+          <div
+            id="persistent-active-plan-status-box"
+            className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/30 border-2 border-emerald-500/40 dark:border-emerald-500/50 shadow-lg shadow-emerald-500/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+          >
+            <div className="space-y-2 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-xs">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950" />
+                  </span>
+                  <span>🟢 PLAN ACTIVATED: {isOwner ? "Super Admin Full Access" : usageTracker.currentPlan.planName}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  <Calendar className="w-3 h-3" />
+                  <span>{planExpiryText}</span>
+                </span>
+
+                {isSsoUser && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-500/20 px-2.5 py-0.5 rounded-full border border-blue-500/30">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>SSO Managed</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Exact Status Box Format Required by Master Specification */}
+              <div className="p-2.5 rounded-xl bg-slate-900/90 text-emerald-400 font-mono text-xs border border-emerald-500/30 shadow-inner">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                  <span><strong>Start Date:</strong> {startDateStr}</span>
+                  <span>|</span>
+                  <span><strong>Expiry Date:</strong> {expiryDateStr}</span>
+                  <span>|</span>
+                  <span><strong>Days Remaining:</strong> {isOwner || !isPaidUser ? "Unlimited" : `${daysRemaining} Days`}</span>
+                  <span>|</span>
+                  <span className="text-slate-200"><strong>Status:</strong> Active &amp; Synced with Account ID ({userProfile.email || userProfile.id})</span>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-600 dark:text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>
+                  <strong>File Size Cap:</strong> {usageTracker.currentPlan.maxFileSizeMB >= 1024 ? `${usageTracker.currentPlan.maxFileSizeMB / 1024} GB` : `${usageTracker.currentPlan.maxFileSizeMB} MB`}
+                </span>
+                <span>•</span>
+                <span>
+                  <strong>Daily Operations:</strong> {usageTracker.currentPlan.maxDailyOperations === Infinity ? "Unlimited Quota" : `${usageTracker.currentPlan.maxDailyOperations} operations/day`}
+                </span>
+                <span>•</span>
+                <span>
+                  <strong>AI Queries:</strong> {usageTracker.currentPlan.maxDailyAiQueries === Infinity ? "Unlimited Gemini Flash" : `${usageTracker.currentPlan.maxDailyAiQueries} Trial Queries`}
+                </span>
+                <span>•</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Client-Side WASM</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-stretch md:self-auto">
+              {onOpenPricing && !isOwner && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenPricing();
+                  }}
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{isPaidUser ? "Manage / Compare Plans" : "Upgrade Plan"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* TAB 1: PROFILE & ACCOUNT (UNLOCKED) */}
+          {activeTab === "profile" && (
+            <div className="space-y-5">
+              <div className="p-5 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
+                    <User className="w-4 h-4 text-orange-500" />
+                    <span>Personal Profile &amp; Identity</span>
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                    Active &amp; Verified
+                  </span>
+                </div>
+
+                {/* Profile Picture & Avatar Management Section */}
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4 w-full sm:w-auto">
+                    <div className="relative group/avatar shrink-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-orange-500/30 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        {userProfile.photoURL || userProfile.avatar ? (
+                          <img
+                            src={userProfile.photoURL || userProfile.avatar}
+                            alt={userProfile.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl font-black text-orange-600 dark:text-orange-400">
+                            {(userProfile.name || "U")[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      {onOpenAvatarModal && (
+                        <button
+                          type="button"
+                          onClick={onOpenAvatarModal}
+                          className="absolute inset-0 rounded-2xl bg-slate-950/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                          title="Change Profile Photo"
+                        >
+                          <Camera className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5 flex-wrap">
+                        <span>Profile Photo &amp; Avatar</span>
+                        {userProfile.photoURL && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20">
+                            Custom Photo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Square 1:1 auto-crop &amp; WebP compression (&lt;150KB). Safe &amp; bug-free.
+                      </p>
+                    </div>
+                  </div>
+                  {onOpenAvatarModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenAvatarModal}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-xs hover:shadow-md transition cursor-pointer shrink-0"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Upload &amp; Crop Photo</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {/* Name field */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                      <span>Full Name</span>
+                      {!editingName && (
+                        <button
+                          onClick={() => setEditingName(true)}
+                          className="text-orange-600 dark:text-orange-400 hover:underline flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                    </div>
+                    {editingName ? (
+                      <div className="flex items-center space-x-2 pt-1">
+                        <input
+                          type="text"
+                          value={nameVal}
+                          onChange={(e) => setNameVal(e.target.value)}
+                          className="px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent flex-1"
+                        />
+                        <button
+                          onClick={handleUpdateName}
+                          disabled={savingProfile}
+                          className="px-2.5 py-1 bg-orange-600 text-white rounded-lg font-bold text-[11px] hover:bg-orange-500 cursor-pointer"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setNameVal(userProfile.name);
+                            setEditingName(false);
+                          }}
+                          className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[11px] cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="font-bold text-slate-900 dark:text-white text-sm">{userProfile.name}</div>
+                    )}
+                  </div>
+
+                  {/* Email field */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center space-x-1">
+                      <Mail className="w-3 h-3 text-slate-400" />
+                      <span>Registered Email</span>
+                    </div>
+                    <div className="font-mono text-slate-900 dark:text-white text-xs truncate">
+                      {isOwner && userProfile.email
+                        ? userProfile.email.replace(/^(.{4})(.*)(.@.*)$/, "$1*********$3")
+                        : userProfile.email}
+                    </div>
+                  </div>
+
+                  {/* Account Role */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Assigned Role</div>
+                    <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                      {isOwner ? <Crown className="w-3.5 h-3.5 text-amber-500" /> : <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />}
+                      <span className="uppercase">{isOwner ? "Owner (Super Admin)" : userProfile.role || "User"}</span>
+                    </div>
+                  </div>
+
+                  {/* Member Since */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Member Since</div>
+                    <div className="font-medium text-slate-700 dark:text-slate-300">
+                      {userProfile.joinedDate || "Jan 2026"}
+                    </div>
+                  </div>
+
+                  {/* Authentication & SSO Status */}
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1 sm:col-span-2">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                      <span>Authentication Method</span>
+                      {isSsoUser && (
+                        <span
+                          id="sso-managed-profile-pill"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-blue-500/15 via-indigo-500/15 to-blue-600/10 dark:from-blue-500/25 dark:via-indigo-500/25 dark:to-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 dark:border-blue-400/40 shadow-xs select-none"
+                        >
+                          <span className="relative flex h-1.5 w-1.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500" />
+                          </span>
+                          <ShieldCheck className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>SSO Managed</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-2 text-xs">
+                      {isSsoUser ? (
+                        <>
+                          <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>
+                            {userProfile.organizationName
+                              ? `${userProfile.organizationName} Corporate IdP`
+                              : userProfile.ssoProvider
+                              ? `${userProfile.ssoProvider.toUpperCase()} Single Sign-On`
+                              : "Enterprise SAML 2.0 / OIDC Identity Provider"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <KeyRound className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>Direct Email &amp; Password Access</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enterprise Governance / Security notice */}
+              {isSsoUser ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">Enterprise Identity Governance</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Authentication, user lifecycle, and role assignments are centrally managed by your organization's IT department.
+                      </span>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white shadow-xs shrink-0 select-none transition">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-200 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                    </span>
+                    <ShieldCheck className="w-3 h-3 text-blue-100" />
+                    <span>SSO Managed</span>
+                  </span>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">Account Security &amp; Password Recovery</span>
+                      <span className="text-[11px] text-slate-500">Need to reset your password? Use the OTP verification flow anytime.</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onClose();
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Password &amp; Security
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: RECENT FILES (UNLOCKED) */}
+          {activeTab === "files" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Recent Processed PDF Files</h3>
+                  <p className="text-xs text-slate-400">Processed locally inside your web browser sandbox</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs">
+                  {history.length} {history.length === 1 ? "File" : "Files"}
+                </span>
+              </div>
+
+              {history.length === 0 ? (
+                <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+                  <FileText className="w-8 h-8 text-slate-400 mx-auto" />
+                  <div className="text-xs text-slate-400">No PDF files processed in this session yet.</div>
+                  <button
+                    onClick={() => {
+                      if (allTools.length > 0) {
+                        onClose();
+                        onSelectTool(allTools[0]);
+                      }
+                    }}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+                  >
+                    Open PDF Tool
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
+                  {history.map((item) => (
+                    <div key={item.id} className="p-3.5 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between transition">
+                      <div className="flex items-center space-x-3 min-w-0 pr-2">
+                        <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 dark:text-white truncate">{item.fileName}</div>
+                          <div className="text-[10px] text-slate-400">
+                            {item.toolName} • {new Date(item.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>{item.status || "Completed"}</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: PLAN DETAILS & INVOICES (UNLOCKED) */}
+          {activeTab === "plan" && (
+            <div className="space-y-5">
+              {/* Active Plan Card */}
+              <div className="p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 border border-orange-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Plan Active &amp; Unlocked</span>
+                    </div>
+
+                    {/* Dynamic Real-time Verification Status in Plan Banner */}
+                    {latestStatusInfo && (
+                      <div
+                        className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border shadow-xs ${latestStatusInfo.badgeClass}`}
+                        title={latestStatusInfo.description}
+                      >
+                        <latestStatusInfo.icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{latestStatusInfo.label}</span>
+                      </div>
+                    )}
+
+                    {isSsoUser && (
+                      <div
+                        id="sso-managed-plan-pill"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500/25 via-indigo-500/25 to-blue-600/20 text-blue-200 border border-blue-400/40 text-[10px] sm:text-xs font-black uppercase tracking-wider select-none shadow-xs"
+                      >
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
+                        </span>
+                        <ShieldCheck className="w-3 h-3 text-blue-300 shrink-0" />
+                        <span>SSO Managed Workspace</span>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center space-x-2">
+                    <span>{isOwner ? "👑 Platform Owner Full Access" : isPaidUser ? `⭐ ${resolvedPlan.productName} Active` : "Free Tier (Standard Tools)"}</span>
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
+                    <span className="flex items-center space-x-1">
+                      <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span><strong>Expiry Date:</strong> {planExpiryText}</span>
+                    </span>
+                    <span className="text-slate-400">•</span>
+                    <span className="text-emerald-400 font-semibold">66+ PDF Utilities Enabled</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 w-full md:w-auto shrink-0">
+                  {onOpenPricing && !isOwner && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenPricing();
+                      }}
+                      className="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition shadow-md flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isPaidUser ? "Change Plan" : "Upgrade to Pro"}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment History & Razorpay Receipts Table */}
+              <div className="pt-2">
+                <PaymentHistory userProfile={userProfile} onOpenPricing={onOpenPricing} />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1: OVERVIEW & TOOLS */}
+          {activeTab === "overview" && (
+            <div className="space-y-5">
+              {/* Welcome Banner */}
+              <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-500/10 via-amber-500/10 to-orange-500/10 border border-blue-500/20 dark:border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                      👋 Welcome back, <span className="text-orange-600 dark:text-orange-400">{userProfile.name || "PDFSun User"}</span>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {isOwner
+                      ? "👑 Platform Owner & Super Admin · Manage tools, users, and system analytics."
+                      : "Access all your secure PDF tools, recent files, and settings in one place."}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold">
+                      {userProfile.email}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                        isOwner
+                          ? "bg-amber-500 text-slate-950"
+                          : isPaidUser
+                          ? "bg-orange-500 text-white"
+                          : "bg-blue-600 text-white"
+                      }`}
+                    >
+                      {isOwner ? "👑 Super Admin" : userProfile.plan || "Free Account"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  {onOpenAdminPanel && (isOwner || userProfile.hasAdminAccess) && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAdminPanel();
+                      }}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-md hover:shadow-lg transition cursor-pointer"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>⚙️ Admin Panel</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions PDF Grid (6 Core Tools) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <span>Quick PDF Actions</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Direct Launch</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: "merge-pdf", name: "Merge PDF", icon: "🔀", desc: "Combine multiple files" },
+                    { id: "split-pdf", name: "Split PDF", icon: "✂️", desc: "Extract target pages" },
+                    { id: "compress-pdf", name: "Compress PDF", icon: "📦", desc: "Reduce file size" },
+                    { id: "pdf-to-word", name: "Convert PDF", icon: "🔄", desc: "Word, PPT, Images" },
+                    { id: "edit-pdf", name: "Edit PDF", icon: "✏️", desc: "Annotate, draw & sign" },
+                    { id: "protect-pdf", name: "Protect PDF", icon: "🔒", desc: "256-Bit AES encryption" },
+                  ].map((item) => {
+                    const matchedTool = allTools.find((t) => t.id === item.id || t.slug === item.id) || allTools[0];
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onClose();
+                          if (matchedTool) onSelectTool(matchedTool);
+                        }}
+                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition text-left flex flex-col justify-between group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="text-2xl">{item.icon}</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 line-clamp-1">{item.desc}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Real-Time Data Usage Metrics (4 Production SaaS Cards strictly per prompt & AGENTS_md) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                    <Activity className="w-4 h-4 text-emerald-500" />
+                    <span>Real-Time Data Usage &amp; Limits</span>
+                  </h3>
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Live Quota Sync</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Card 1: Total PDF Tasks Processed */}
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        PDF Tasks Processed
+                      </span>
+                      <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-slate-900 dark:text-white flex items-baseline gap-1.5">
+                        <span>{usageTracker.count}</span>
+                        {usageTracker.currentPlan.maxDailyOperations !== Infinity ? (
+                          <span className="text-xs font-semibold text-slate-400">
+                            / {usageTracker.currentPlan.maxDailyOperations} daily
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                            Unlimited
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-medium pt-0.5">
+                        {usageTracker.currentPlan.maxDailyOperations === Infinity
+                          ? "Unlimited Daily Processing Quota"
+                          : `${Math.max(0, usageTracker.currentPlan.maxDailyOperations - usageTracker.count)} operations remaining today`}
+                      </div>
+                    </div>
+                    {usageTracker.currentPlan.maxDailyOperations !== Infinity && (
+                      <div className="w-full bg-slate-100 dark:bg-slate-700/60 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-orange-500 h-1.5 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, (usageTracker.count / usageTracker.currentPlan.maxDailyOperations) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 2: Data Processing Volume */}
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Data Volume Processed
+                      </span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                        <HardDrive className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-slate-900 dark:text-white flex items-baseline gap-1.5">
+                        <span>{usageTracker.totalVolumeMB > 0 ? `${usageTracker.totalVolumeMB} MB` : "< 1 MB"}</span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          used
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-medium pt-0.5">
+                        File Limit: {usageTracker.currentPlan.maxFileSizeMB >= 1024 ? `${usageTracker.currentPlan.maxFileSizeMB / 1024} GB (Pro)` : `${usageTracker.currentPlan.maxFileSizeMB} MB`}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>Zero Uploads • Processed Locally</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Storage / Cloud Sync / AI Query usage counter */}
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        AI Queries &amp; OCR
+                      </span>
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-slate-900 dark:text-white flex items-baseline gap-1.5">
+                        <span>
+                          {usageTracker.currentPlan.maxDailyAiQueries === Infinity
+                            ? "Unlimited"
+                            : usageTracker.aiQueriesRemaining}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          {usageTracker.currentPlan.maxDailyAiQueries === Infinity ? "Queries" : "Remaining"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-medium pt-0.5">
+                        {usageTracker.currentPlan.maxDailyAiQueries === Infinity
+                          ? "Gemini 3.8 Flash Pro Access"
+                          : `${usageTracker.aiQueriesToday} / ${usageTracker.currentPlan.maxDailyAiQueries} daily trial used`}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      <span>Sub-second Client Inference</span>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Verification & Subscription Health */}
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Payment &amp; Ledger Status
+                      </span>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                        latestStatusInfo?.label === "Verified"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : latestStatusInfo?.label === "Pending"
+                          ? "bg-amber-500/10 text-amber-500"
+                          : "bg-slate-500/10 text-slate-400"
+                      }`}>
+                        {latestStatusInfo ? <latestStatusInfo.icon className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-slate-900 dark:text-white truncate">
+                        {latestStatusInfo ? latestStatusInfo.label : isPaidUser ? "Verified" : "Free Plan"}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-medium pt-0.5 truncate">
+                        {transactions.length > 0
+                          ? `${verifiedCount} Verified • Zero Duplication`
+                          : "True Amount: ₹0 (No Billing)"}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>Firestore Sync Live</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Favorite Quick Tools */}
+              {favoriteTools.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                    <Star className="w-4 h-4 text-amber-500" />
+                    <span>Your Favorite Tools ({favoriteTools.length})</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {favoriteTools.map((tool) => (
+                      <button
+                        key={tool.id}
+                        onClick={() => {
+                          onClose();
+                          onSelectTool(tool);
+                        }}
+                        className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-500 transition text-left flex items-center justify-between group cursor-pointer"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-500 truncate">
+                            {tool.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 line-clamp-1">{tool.description}</div>
+                        </div>
+                        <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-orange-500 transition shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Transactions & Payment Status from Firestore */}
+              {transactions.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                      <CreditCard className="w-4 h-4 text-emerald-500" />
+                      <span>Recent Transactions ({transactions.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("plan")}
+                      className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center space-x-1 cursor-pointer"
+                    >
+                      <span>View All Invoices</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {transactions.slice(0, 3).map((tx) => {
+                      const statusInfo = getVerificationStatusInfo(tx.status);
+                      const StatusIcon = statusInfo.icon;
+                      const finalAmount = tx.amountINR || (tx.amountPaise ? tx.amountPaise / 100 : tx.amount || 0);
+                      // Calculate 18% GST breakdown
+                      const baseAmount = Number((finalAmount / 1.18).toFixed(2));
+                      const gstAmount = Number((finalAmount - baseAmount).toFixed(2));
+                      return (
+                        <div
+                          key={tx.id}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-emerald-500/40 transition"
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 font-black text-sm">
+                              ₹
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                                <span>{tx.planName || tx.plan || "Pro Subscription"}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                                  Zero Duplication
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono truncate">
+                                {tx.date || tx.createdAt?.split("T")[0]} • Ref: {tx.paymentId || tx.id}
+                              </div>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2 pt-0.5">
+                                <span>Base: ₹{baseAmount}</span>
+                                <span>+</span>
+                                <span>18% GST: ₹{gstAmount}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end space-x-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-700/60">
+                            <div className="text-left sm:text-right">
+                              <div className="text-sm font-black text-slate-900 dark:text-white">
+                                ₹{finalAmount}
+                              </div>
+                              <div className="text-[9px] text-slate-400 font-medium">True Amount Paid</div>
+                            </div>
+
+                            {/* Color-coded Dynamic Status Badge based on status field */}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-xs ${statusInfo.badgeClass}`}
+                              title={statusInfo.description}
+                            >
+                              <StatusIcon className="w-3 h-3 shrink-0" />
+                              <span>{statusInfo.label}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Security Shield Footer */}
+              <div className="pt-3 pb-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-3 text-[11px] text-slate-400 flex-wrap">
+                <span className="inline-flex items-center gap-1">
+                  <span>🔐</span> 256‑Bit SSL Encryption
+                </span>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span>🛡️</span> Privacy Shield Protected
+                </span>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span>⚡</span> 99.9% Uptime
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

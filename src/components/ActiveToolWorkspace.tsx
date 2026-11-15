@@ -198,6 +198,14 @@ import {
   trackGAFileSelected,
   trackGAToolSwitch,
   trackGAAiToolUsed,
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+  trackProcessCancelled,
+  extractSafeFileExt,
 } from "../utils/analytics";
 import {
   evaluateMemorySafety,
@@ -207,6 +215,7 @@ import {
 import { useToolPreFlight } from "../hooks/useToolPreFlight";
 import { ToolMemoryWarning } from "./ToolMemoryWarning";
 import { PrivacyBadge } from "./PrivacyBadge";
+import { getToolPrivacyDetails } from "../data/privacyModes";
 import type { PdfToExcelAuditReport } from "../lib/enterprisePdfToExcelEngine";
 import type { DocumentProfileKey, FinancialDocumentClassification } from "../lib/financialDocumentIntelligence";
 import { DOCUMENT_PROFILES } from "../lib/financialDocumentIntelligence";
@@ -322,6 +331,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const { t } = useLanguage();
   const { getToolRating } = useToolRatings();
   const toolRating = getToolRating(tool.id);
+  const privacyDetails = getToolPrivacyDetails(tool.id);
+  const cancelTrackedRef = React.useRef(false);
   const translatedToolName = t(`tools.${tool.id}.name`, tool.name);
   const translatedToolDesc = t(`tools.${tool.id}.desc`, tool.description);
   const effectiveInitialFiles = activeToolFiles && activeToolFiles.length > 0 ? activeToolFiles : initialFiles;
@@ -400,6 +411,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           : (dataToDownload as any)?.size || 0;
 
       trackGADownloadStart(tool.id, nameToDownload, fileSizeBytes);
+      trackDownloadInitiated(tool.id, extractSafeFileExt(nameToDownload), fileSizeBytes);
       try {
         downloadFile(dataToDownload, nameToDownload, mimeToDownload);
         trackGADownloadSuccess(tool.id, nameToDownload, fileSizeBytes);
@@ -470,9 +482,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     }
   }, [downloadReady, files, onClose, onSelectTool, tool.id]);
 
-  // Track Tool View in GA4 on mount & tool change
+  // Track Tool View in GA4 & platform analytics on mount & tool change
   useEffect(() => {
     trackGAToolView(tool.id, tool.name, tool.category);
+    trackToolOpened(tool.id);
   }, [tool.id, tool.name, tool.category]);
 
   // Tool specific options
@@ -500,7 +513,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [redactionStrategy, setRedactionStrategy] = useState<"auto" | "deep_raster" | "vector_stream">("auto");
   const [redactionPassword, setRedactionPassword] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
-  const [metaAuthor, setMetaAuthor] = useState("Mukesh Kalonia");
+  const [metaAuthor, setMetaAuthor] = useState("");
   const [ocrResultText, setOcrResultText] = useState("");
   const [copyTextSuccess, setCopyTextSuccess] = useState(false);
   const [extractedMetadata, setExtractedMetadata] = useState<PdfMetadataResult | null>(null);
@@ -510,7 +523,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(48);
+  const [likeCount, setLikeCount] = useState(0);
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
 
   // Compute rich tool FAQs for schema markup and user help
@@ -750,8 +763,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         : `Zero confusable OCR character anomalies detected. All numeric strings verified.`,
       ``,
       `========================================================================`,
-      `PRIVACY VERIFICATION: 100% Client-Side In-Browser WebAssembly Engine`,
-      `Zero Server Uploads • Zero Data Retention • PDFSun.in Smart Document Companion`,
+      `PRIVACY VERIFICATION: Client-Side First Reconstruction Engine`,
+      `Optional Cloud AI Fallback only if triggered • No Persistent Archive • PDFSun.in`,
       `========================================================================`,
     ].filter((line) => line !== null).join("\n");
 
@@ -975,6 +988,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
   };
 
   const handleCancelProcess = () => {
+    if (!cancelTrackedRef.current) {
+      cancelTrackedRef.current = true;
+      trackProcessCancelled(tool.id);
+    }
     cancelExecution();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -1060,8 +1077,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     abortControllerRef.current = abortController;
     const signal = abortController.signal;
     const startTime = performance.now();
+    cancelTrackedRef.current = false;
 
+    const totalInputBytes = files.reduce((sum, f) => sum + f.size, 0);
     trackGAProcessingStart(tool.id, files.length);
+    trackProcessStarted(tool.id, extractSafeFileExt(files[0]?.name), totalInputBytes);
     setIsProcessing(true);
     setProgress(5);
     setErrorMessage("");
@@ -1903,19 +1923,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
         // Validate output blob integrity and sanitize filename without auto-triggering download
         const { bytesCount } = validateOutputBlob(outputBytes, mimeType);
         const finalFileName = ensureValidFilename(outputName, mimeType);
+        const safeExt = extractSafeFileExt(finalFileName);
+
+        trackProcessCompleted(tool.id, latencyMs, safeExt, bytesCount);
+        trackOutputValidated(tool.id, safeExt, bytesCount);
 
         setDownloadReady({
           data: outputBytes,
           fileName: finalFileName,
           mimeType,
         });
-
-        // Record real conversion event in analytics engine
-        fetch("/api/analytics/record-conversion", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latencyMs: Math.round(latencyMs), success: true }),
-        }).catch(() => {});
 
         try {
           confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
@@ -1940,6 +1957,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
     } catch (err: any) {
       setIsProcessing(false);
       if (err.name === "AbortError" || err.message?.toLowerCase().includes("abort") || err.message?.toLowerCase().includes("cancel")) {
+        if (!cancelTrackedRef.current) {
+          cancelTrackedRef.current = true;
+          trackProcessCancelled(tool.id);
+        }
         setStatusMessage("Operation cancelled by user.");
         setErrorMessage("Upload and streaming operation was cancelled.");
         return;
@@ -1950,6 +1971,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       setErrorOverlay(errInfo);
       setErrorMessage(errInfo.message);
       trackGAProcessingFailed(tool.id, errInfo.message || err?.message || "Processing failed", latencyMs);
+      trackProcessFailed(tool.id, latencyMs);
       triggerErrorToast(
         errInfo.title || "Tool Processing Error",
         errInfo.message || "An unexpected error occurred while processing the file.",
@@ -1961,6 +1983,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
       );
     } finally {
       abortControllerRef.current = null;
+      cancelTrackedRef.current = false;
     }
       },
       {
@@ -1991,12 +2014,27 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               priceCurrency: "INR",
               availability: "https://schema.org/InStock",
             },
-            featureList: [
-              "100% In-Browser Privacy",
-              "Enterprise-Grade Speed",
-              "Zero File Retention",
-              "No Installation Required",
-            ],
+            featureList:
+              privacyDetails.mode === "ai_cloud"
+                ? [
+                    "Google Gemini AI Proxy",
+                    "Encrypted HTTPS Transit",
+                    "No Browser localStorage Document Caching",
+                    "No Installation Required",
+                  ]
+                : privacyDetails.mode === "hybrid_cloud"
+                ? [
+                    "Client-Side First Processing",
+                    "Optional Cloud AI OCR Fallback",
+                    "Enterprise-Grade Speed",
+                    "No Installation Required",
+                  ]
+                : [
+                    "100% In-Browser Privacy",
+                    "Enterprise-Grade Speed",
+                    "No Server Uploads",
+                    "No Installation Required",
+                  ],
           }),
         }}
       />
@@ -2080,11 +2118,18 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     title="View user reviews and ratings"
                   >
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                    <span>{toolRating.avgRating.toFixed(1)}</span>
-                    <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
-                      ({toolRating.totalRatings.toLocaleString()})
-                    </span>
+                    {toolRating.totalRatings > 0 ? (
+                      <>
+                        <span>{toolRating.avgRating.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
+                          ({toolRating.totalRatings.toLocaleString()})
+                        </span>
+                      </>
+                    ) : (
+                      <span>Rate</span>
+                    )}
                   </button>
+                  <PrivacyBadge toolId={tool.id} variant="compact" className="ml-1" />
                 </h1>
               ) : (
                 <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center space-x-2 flex-wrap gap-1">
@@ -2101,10 +2146,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     title="View user reviews and ratings"
                   >
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                    <span>{toolRating.avgRating.toFixed(1)}</span>
-                    <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
-                      ({toolRating.totalRatings.toLocaleString()})
-                    </span>
+                    {toolRating.totalRatings > 0 ? (
+                      <>
+                        <span>{toolRating.avgRating.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 font-normal">
+                          ({toolRating.totalRatings.toLocaleString()})
+                        </span>
+                      </>
+                    ) : (
+                      <span>Rate</span>
+                    )}
                   </button>
                   <PrivacyBadge toolId={tool.id} variant="compact" className="ml-1" />
                 </h2>
@@ -2169,10 +2220,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             <QuickTipTooltip toolId={tool.id} variant="inline" />
           </div>
 
-          {/* Explicit UI Trust Badge */}
-          <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-sm text-center">
-            <span>🔒 100% Local Processing: Your files never leave your device. Zero Server Uploads.</span>
-          </div>
+          {/* Truthful Processing & Privacy Banner */}
+          <PrivacyBadge toolId={tool.id} variant="banner" />
 
           {/* Pre-flight Memory Protection Warning */}
           {memoryReport && memoryReport.status !== "safe" && (
@@ -2214,15 +2263,23 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
             </p>
           </div>
 
-          {/* Prominent Security & Trust Badges (Client-Side WASM Zero-Knowledge Security) */}
+          {/* Truthful Security & Processing Guarantees Strip */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
             <div className="flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-950 shadow-2xs">
               <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
                 <Lock className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-bold leading-tight">100% Encrypted</div>
-                <div className="text-[10px] text-blue-700 leading-tight mt-0.5">End-to-end memory isolation</div>
+                <div className="text-xs font-bold leading-tight">
+                  {privacyDetails.mode === "local_wasm" ? "100% Encrypted" : "TLS / HTTPS Transit"}
+                </div>
+                <div className="text-[10px] text-blue-700 leading-tight mt-0.5">
+                  {privacyDetails.mode === "local_wasm"
+                    ? "End-to-end memory isolation"
+                    : privacyDetails.mode === "hybrid_cloud"
+                    ? "Encrypted when Cloud AI OCR used"
+                    : "Encrypted transport to AI proxy"}
+                </div>
               </div>
             </div>
 
@@ -2231,8 +2288,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <HardDrive className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-bold leading-tight">No Server Uploads</div>
-                <div className="text-[10px] text-emerald-700 leading-tight mt-0.5">Files never leave your device</div>
+                <div className="text-xs font-bold leading-tight">
+                  {privacyDetails.mode === "local_wasm"
+                    ? "No Server Uploads"
+                    : privacyDetails.mode === "hybrid_cloud"
+                    ? "Client-Side First"
+                    : "No Local Doc Caching"}
+                </div>
+                <div className="text-[10px] text-emerald-700 leading-tight mt-0.5">
+                  {privacyDetails.mode === "local_wasm"
+                    ? "Files never leave your device"
+                    : privacyDetails.mode === "hybrid_cloud"
+                    ? "Local parsers run before AI OCR"
+                    : "Browser localStorage caching off"}
+                </div>
               </div>
             </div>
 
@@ -2241,8 +2310,20 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-bold leading-tight">Private & Secure</div>
-                <div className="text-[10px] text-indigo-700 leading-tight mt-0.5">Sub-second local WASM engine</div>
+                <div className="text-xs font-bold leading-tight">
+                  {privacyDetails.mode === "local_wasm"
+                    ? "Private & Secure"
+                    : privacyDetails.mode === "hybrid_cloud"
+                    ? "Ephemeral AI Fallback"
+                    : "Gemini AI Powered"}
+                </div>
+                <div className="text-[10px] text-indigo-700 leading-tight mt-0.5">
+                  {privacyDetails.mode === "local_wasm"
+                    ? "Sub-second local WASM engine"
+                    : privacyDetails.mode === "hybrid_cloud"
+                    ? "Optional Google Gemini OCR"
+                    : "Server-side Google Gemini API"}
+                </div>
               </div>
             </div>
           </div>
@@ -6531,6 +6612,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                             : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                         const size = res.bytes.byteLength;
                         trackGADownloadStart(tool.id, res.fileName, size);
+                        trackDownloadInitiated(tool.id, extractSafeFileExt(res.fileName), size);
                         downloadFile(res.bytes, res.fileName, mime);
                         trackGADownloadSuccess(tool.id, res.fileName, size);
                       }}
@@ -6705,10 +6787,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                 <div className="p-3.5 rounded-xl bg-[var(--bg-surface,#111114)] border border-[var(--border-color,rgba(255,255,255,0.08))] space-y-1.5 shadow-2xs">
                   <h3 className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Client-Side Privacy & Ultra-Fast Processing</span>
+                    <span>Client-Side Pre-Processing & Ephemeral Privacy</span>
                   </h3>
                   <p className="text-[11px] text-[var(--text-secondary,#94a3b8)] leading-relaxed">
-                    Zero permanent cloud retention. Invoices, balance sheets, and personal documents remain strictly confidential and are purged automatically from memory.
+                    Browser canvas enhancement runs locally first; if Cloud AI OCR is invoked, page captures transmit over HTTPS with no persistent archive on PDFSun.
                   </p>
                 </div>
 
@@ -6779,7 +6861,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Configure & Process</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Fine-tune options or click "{tool.name}" to process locally via WASM in milliseconds.
+                    {privacyDetails.mode === "ai_cloud"
+                      ? `Fine-tune options or click "${tool.name}" to process extracted text via our HTTPS Google Gemini API proxy.`
+                      : privacyDetails.mode === "hybrid_cloud"
+                      ? `Fine-tune options or click "${tool.name}" to run client-side processing with optional Cloud AI OCR fallback.`
+                      : `Fine-tune options or click "${tool.name}" to process locally via WASM in milliseconds.`}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
@@ -6788,7 +6874,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
                     <span>Instant Safe Download</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Download your optimized {tool.outputFormat} file directly. Ephemeral processing guarantees total privacy.
+                    {privacyDetails.mode === "ai_cloud"
+                      ? `Download your ${tool.outputFormat} result directly. Browser localStorage document caching is disabled.`
+                      : `Download your optimized ${tool.outputFormat} file directly. No persistent archive is kept by PDFSun.`}
                   </p>
                 </div>
               </div>
@@ -6899,16 +6987,25 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           )}
         </div>
 
-        {/* Zero-Retention Privacy Assurance Notice */}
+        {/* Processing Transparency Notice */}
         <div className="mx-auto max-w-4xl px-4 py-2 my-2 text-center">
           <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 font-medium">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>100% Client-Side Privacy: Documents processed locally in your browser via WebAssembly. Files never upload to any server.</span>
+            <span
+              className={`inline-block w-2 h-2 rounded-full animate-pulse ${
+                privacyDetails.mode === "ai_cloud"
+                  ? "bg-amber-500"
+                  : privacyDetails.mode === "hybrid_cloud"
+                  ? "bg-sky-500"
+                  : "bg-emerald-500"
+              }`}
+            />
+            <span>{privacyDetails.shortDescription}</span>
           </p>
         </div>
 
         {/* Universal SaaS-Grade Dynamic Action Bar */}
         <UniversalToolActionBar
+          toolId={tool.id}
           toolName={translatedToolName}
           outputFileName={downloadReady?.fileName}
           onProcess={executeProcess}
@@ -6929,8 +7026,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
           isReady={Boolean(downloadReady)}
           isDownloaded={downloadSuccessBadge}
           disabled={isProcessing || isLocked || isValidating || isMemoryBlocked || (files.length === 0 && !["txt-to-pdf", "scan-to-pdf"].includes(tool.id))}
-          rating={4.9}
-          reviewsCount={128}
+          rating={toolRating.avgRating}
+          reviewsCount={toolRating.totalRatings}
           likeCount={likeCount}
           hasLiked={hasLiked}
           onToggleLike={handleToggleLike}

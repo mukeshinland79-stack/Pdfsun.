@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TrendingUp,
   Users,
@@ -45,34 +45,88 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
   className = "",
 }) => {
   const [timeframe, setTimeframe] = useState<"4w" | "8w" | "quarter">("4w");
-  const [activeMetric, setActiveMetric] = useState<"retention" | "conversions" | "tools">("retention");
+  const [activeMetric, setActiveMetric] = useState<"retention" | "conversions" | "tools">("tools");
+  const [liveStats, setLiveStats] = useState<{
+    totalConversionsToday: number;
+    successfulConversions: number;
+    failedConversions: number;
+    cancelledProcesses: number;
+    successRatePercent: number | null;
+    serverLoadMs: number | null;
+    activeUsers: number;
+  }>({
+    totalConversionsToday: 0,
+    successfulConversions: 0,
+    failedConversions: 0,
+    cancelledProcesses: 0,
+    successRatePercent: null,
+    serverLoadMs: null,
+    activeUsers: 0,
+  });
+  const [toolTrends, setToolTrends] = useState<ToolTrendData[]>([]);
 
-  // Retention cohorts
-  const cohorts: RetentionCohort[] = [
-    { weekLabel: "Jul 21 - Jul 27", users: 1240, day1: 78.4, day7: 52.1, day14: 41.2, day30: 34.8 },
-    { weekLabel: "Jul 14 - Jul 20", users: 1180, day1: 76.2, day7: 49.8, day14: 39.5, day30: 32.1 },
-    { weekLabel: "Jul 07 - Jul 13", users: 1050, day1: 74.5, day7: 47.3, day14: 37.0, day30: 30.5 },
-    { weekLabel: "Jun 30 - Jul 06", users: 980, day1: 72.8, day7: 45.6, day14: 35.2, day30: 29.0 },
-  ];
+  useEffect(() => {
+    let active = true;
+    const loadAnalytics = async () => {
+      try {
+        const [statsRes, toolsRes] = await Promise.all([
+          fetch("/api/analytics/stats", { credentials: "include" }),
+          fetch("/api/analytics/tools", { credentials: "include" }),
+        ]);
+        if (statsRes.ok && active) {
+          const sJson = await statsRes.json();
+          if (sJson?.data) {
+            setLiveStats({
+              totalConversionsToday: Number(sJson.data.totalConversionsToday || 0),
+              successfulConversions: Number(sJson.data.successfulConversions || 0),
+              failedConversions: Number(sJson.data.failedConversions || 0),
+              cancelledProcesses: Number(sJson.data.cancelledProcesses || 0),
+              successRatePercent:
+                typeof sJson.data.successRatePercent === "number" ? sJson.data.successRatePercent : null,
+              serverLoadMs: typeof sJson.data.serverLoadMs === "number" ? sJson.data.serverLoadMs : null,
+              activeUsers: Number(sJson.data.activeUsers || 0),
+            });
+          }
+        }
+        if (toolsRes.ok && active) {
+          const tJson = await toolsRes.json();
+          const breakdown = (tJson?.breakdown || {}) as Record<
+            string,
+            { toolId: string; completed?: number; downloaded?: number }
+          >;
+          const entries = Object.values(breakdown)
+            .map((e) => ({
+              toolId: e.toolId,
+              count: Number(e.completed || 0),
+            }))
+            .filter((e) => e.count > 0)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+          const sum = entries.reduce((acc, e) => acc + e.count, 0);
+          setToolTrends(
+            entries.map((e) => ({
+              toolName: e.toolId,
+              category: "Recorded Tool",
+              weeklyGrowthPct: 0,
+              totalConversions: e.count,
+              sharePct: sum > 0 ? Math.round((e.count / sum) * 100) : 0,
+              status: "steady" as const,
+            }))
+          );
+        }
+      } catch {
+        // Non-blocking
+      }
+    };
+    loadAnalytics();
+    return () => {
+      active = false;
+    };
+  }, [timeframe]);
 
-  // Tool popularity trend dataset
-  const toolTrends: ToolTrendData[] = [
-    { toolName: "Merge PDF", category: "Core Organizer", weeklyGrowthPct: 18.5, totalConversions: 4210, sharePct: 32, status: "surging" },
-    { toolName: "Compress PDF", category: "Optimization", weeklyGrowthPct: 14.2, totalConversions: 3120, sharePct: 24, status: "surging" },
-    { toolName: "AI Chat with PDF", category: "AI Intelligence", weeklyGrowthPct: 38.6, totalConversions: 2450, sharePct: 19, status: "surging" },
-    { toolName: "PDF to Word", category: "Conversion", weeklyGrowthPct: 8.1, totalConversions: 1890, sharePct: 15, status: "steady" },
-    { toolName: "Annotate & Edit", category: "Editor", weeklyGrowthPct: 5.4, totalConversions: 1280, sharePct: 10, status: "steady" },
-  ];
-
-  // Weekly conversion dataset for area chart
-  const conversionWeekly = [
-    { week: "W1", uploads: 2800, conversions: 2740, downloads: 2680 },
-    { week: "W2", uploads: 3200, conversions: 3140, downloads: 3090 },
-    { week: "W3", uploads: 3850, conversions: 3790, downloads: 3720 },
-    { week: "W4", uploads: 4410, conversions: 4350, downloads: 4280 },
-  ];
-
-  const maxUploads = 5000;
+  const cohorts: RetentionCohort[] = [];
+  const conversionWeekly: { week: string; uploads: number; conversions: number; downloads: number }[] = [];
+  const maxUploads = 1;
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -123,25 +177,23 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
         </div>
       </div>
 
-      {/* KPI Cards Overview */}
+      {/* KPI Cards Overview (Live Server Telemetry) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Day 7 User Retention */}
+        {/* KPI 1: Active Users Online */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span>D7 User Retention Rate</span>
+            <span>Active Stream Connections</span>
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">52.1%</span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +4.8%
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {liveStats.activeUsers}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Returning active users after 7 calendar days
+            Currently open telemetry connections
           </p>
         </div>
 
@@ -154,54 +206,48 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">98.6%</span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +0.3%
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {liveStats.successRatePercent !== null ? `${liveStats.successRatePercent.toFixed(1)}%` : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Upload to output download completion ratio
+            Recorded completion vs failure ratio today
           </p>
         </div>
 
-        {/* KPI 3: AI Chat Adoption Surge */}
+        {/* KPI 3: Conversions Today */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span>AI Assistant Adoption Growth</span>
+            <span>Recorded Conversions Today</span>
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">+38.6%</span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-              Top Trend
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {liveStats.totalConversionsToday.toLocaleString()}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Fastest growing tool feature this month
+            Verified processing completions on server
           </p>
         </div>
 
-        {/* KPI 4: Organic Traffic Index */}
+        {/* KPI 4: Avg Latency */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span>Organic Traffic Share</span>
+            <span>Avg Processing Latency</span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <Target className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">68.4%</span>
-            <span className="text-xs font-bold text-emerald-500 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +2.1%
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {liveStats.serverLoadMs !== null ? `${liveStats.serverLoadMs}ms` : "—"}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Direct & Search Engine acquisition
+            Measured mean execution duration
           </p>
         </div>
       </div>
@@ -246,7 +292,7 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
                 </p>
               </div>
               <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                Avg D30 Retention: 31.6%
+                Avg D30 Retention: —
               </span>
             </div>
 
@@ -266,7 +312,10 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
                   const values = cohorts.map((c) =>
                     idx === 0 ? c.day1 : idx === 1 ? c.day7 : idx === 2 ? c.day14 : c.day30
                   );
-                  const avgVal = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+                  const avgVal =
+                    values.length > 0
+                      ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+                      : 0;
 
                   return (
                     <div key={dayLabel} className="flex-1 flex flex-col items-center z-10 space-y-2">
@@ -353,67 +402,49 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
                 </p>
               </div>
               <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                Job Error Rate: &lt; 0.4%
+                Recorded Success Rate:{" "}
+                {liveStats.successRatePercent !== null ? `${liveStats.successRatePercent.toFixed(1)}%` : "—"}
               </span>
             </div>
 
             {/* Funnel SVG Stacked Bars */}
             <div className="space-y-4 pt-2">
-              {conversionWeekly.map((item) => (
-                <div key={item.week} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-800 dark:text-slate-200 font-mono">
-                      Week {item.week}
-                    </span>
-                    <div className="flex items-center space-x-4 text-[11px] font-mono">
-                      <span className="text-slate-400">
-                        Uploads: <strong>{item.uploads}</strong>
+              {conversionWeekly.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  No historical weekly cohort snapshots recorded yet. Today&apos;s live server counts:{" "}
+                  <strong>{liveStats.successfulConversions}</strong> succeeded,{" "}
+                  <strong>{liveStats.failedConversions}</strong> failed,{" "}
+                  <strong>{liveStats.cancelledProcesses}</strong> cancelled.
+                </div>
+              ) : (
+                conversionWeekly.map((item) => (
+                  <div key={item.week} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800 dark:text-slate-200 font-mono">
+                        Week {item.week}
                       </span>
-                      <span className="text-blue-500">
-                        Converted: <strong>{item.conversions}</strong>
-                      </span>
-                      <span className="text-emerald-500">
-                        Downloaded: <strong>{item.downloads}</strong>
-                      </span>
+                      <div className="flex items-center space-x-4 text-[11px] font-mono">
+                        <span className="text-slate-400">
+                          Uploads: <strong>{item.uploads}</strong>
+                        </span>
+                        <span className="text-blue-500">
+                          Converted: <strong>{item.conversions}</strong>
+                        </span>
+                        <span className="text-emerald-500">
+                          Downloaded: <strong>{item.downloads}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-500"
+                        style={{ width: `${(item.downloads / maxUploads) * 100}%` }}
+                      />
                     </div>
                   </div>
-
-                  <div className="w-full h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
-                    <div
-                      className="h-full bg-blue-500 transition-all duration-500"
-                      style={{ width: `${(item.downloads / maxUploads) * 100}%` }}
-                    />
-                    <div
-                      className="h-full bg-amber-400 transition-all duration-500"
-                      style={{
-                        width: `${((item.conversions - item.downloads) / maxUploads) * 100}%`,
-                      }}
-                    />
-                    <div
-                      className="h-full bg-red-400 transition-all duration-500"
-                      style={{
-                        width: `${((item.uploads - item.conversions) / maxUploads) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Funnel Legend */}
-            <div className="flex items-center justify-center space-x-6 pt-3 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <span className="flex items-center space-x-1.5">
-                <span className="w-3 h-3 rounded-full bg-blue-500" />
-                <span>Successful Downloads (98.6%)</span>
-              </span>
-              <span className="flex items-center space-x-1.5">
-                <span className="w-3 h-3 rounded-full bg-amber-400" />
-                <span>Pending Client View (1.0%)</span>
-              </span>
-              <span className="flex items-center space-x-1.5">
-                <span className="w-3 h-3 rounded-full bg-red-400" />
-                <span>Cancelled / Error (0.4%)</span>
-              </span>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -429,45 +460,41 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
                   Top Performing PDF Tools
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Ranking PDFSun tools by adoption growth and total monthly conversions
+                  Ranking PDFSun tools by genuine recorded conversions on server
                 </p>
               </div>
             </div>
 
             <div className="space-y-3">
-              {toolTrends.map((t, idx) => (
-                <div
-                  key={t.toolName}
-                  className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                >
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <span className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0">
-                      #{idx + 1}
-                    </span>
-                    <div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center space-x-2">
-                        <span>{t.toolName}</span>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {t.category}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {t.totalConversions.toLocaleString()} conversions this month • {t.sharePct}% market share
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3 shrink-0 self-end sm:self-auto">
-                    <div className="text-right">
-                      <div className="text-xs font-black text-emerald-500 flex items-center justify-end">
-                        <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                        +{t.weeklyGrowthPct}%
-                      </div>
-                      <span className="text-[10px] text-slate-400">Weekly Growth</span>
-                    </div>
-                  </div>
+              {toolTrends.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  No tool conversion records stored yet. Run a PDF tool to record real metrics.
                 </div>
-              ))}
+              ) : (
+                toolTrends.map((t, idx) => (
+                  <div
+                    key={t.toolName}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <span className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0">
+                        #{idx + 1}
+                      </span>
+                      <div>
+                        <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center space-x-2">
+                          <span>{t.toolName}</span>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            {t.category}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {t.totalConversions.toLocaleString()} recorded conversions • {t.sharePct}% share
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -477,26 +504,30 @@ export const BusinessGrowthDashboard: React.FC<BusinessGrowthDashboardProps> = (
       <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 border border-amber-500/30 shadow-sm space-y-3">
         <div className="flex items-center space-x-2 text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider">
           <Sparkles className="w-4 h-4" />
-          <span>Automated Business Intelligence Insights</span>
+          <span>Live Platform Telemetry Summary</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-700 dark:text-slate-300">
           <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20">
             <strong className="text-slate-900 dark:text-white block mb-1">
-              🚀 Surge Alert: AI Assistant
+              Top Tool Today
             </strong>
-            AI Chat with PDF tool usage increased by <strong>+38.6%</strong> this week. High user engagement detected on technical PDFs.
+            {toolTrends[0]
+              ? `${toolTrends[0].toolName} leads with ${toolTrends[0].totalConversions} recorded completions.`
+              : "Awaiting first recorded tool conversion."}
           </div>
           <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20">
             <strong className="text-slate-900 dark:text-white block mb-1">
-              📈 Retention Milestone
+              Active Stream Connections
             </strong>
-            Day 7 user retention improved from 45.6% to <strong>52.1%</strong> following mobile layout optimization.
+            Currently tracking {liveStats.activeUsers} open telemetry stream(s).
           </div>
           <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20">
             <strong className="text-slate-900 dark:text-white block mb-1">
-              ⚡ Conversion Efficiency
+              Conversion Efficiency
             </strong>
-            Average processing latency remains optimal at <strong>12ms</strong> with a 98.6% job success rate.
+            Measured average latency:{" "}
+            <strong>{liveStats.serverLoadMs !== null ? `${liveStats.serverLoadMs}ms` : "—"}</strong>{" "}
+            ({liveStats.successRatePercent !== null ? `${liveStats.successRatePercent.toFixed(1)}% success` : "no outcomes yet"}).
           </div>
         </div>
       </div>

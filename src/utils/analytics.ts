@@ -195,11 +195,12 @@ export const trackGAPageView = (pagePath: string, pageTitle?: string) => {
         window.gtag("set", "user_properties", { traffic_type: "internal" });
       }
 
+      const safePageLocation = `${window.location.origin}${window.location.pathname}`;
       window.gtag("event", "page_view", {
         send_to: GA_MEASUREMENT_ID,
-        page_path: pagePath,
+        page_path: pagePath.split("?")[0].split("#")[0],
         page_title: pageTitle || document.title,
-        page_location: window.location.href,
+        page_location: safePageLocation,
         ...(isInternal ? { traffic_type: "internal" } : {}),
       });
     } catch (err) {
@@ -212,11 +213,13 @@ export const trackGAPageView = (pagePath: string, pageTitle?: string) => {
  * Funnel Event: Tool View
  */
 export const trackGAToolView = (toolId: string, toolName: string, category?: string) => {
+  const safePageLocation =
+    typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : undefined;
   trackGAEvent("tool_view", {
     tool_id: toolId,
     tool_name: toolName,
     category: category || "general",
-    page_location: window.location.href,
+    ...(safePageLocation ? { page_location: safePageLocation } : {}),
   });
 };
 
@@ -275,21 +278,29 @@ export const trackGAProcessingFailed = (toolId: string, errorMessage: string, la
   });
 };
 
+export function extractSafeFileExt(fileNameOrExt?: string): string {
+  if (!fileNameOrExt || typeof fileNameOrExt !== "string") return "bin";
+  const cleaned = fileNameOrExt.trim().toLowerCase();
+  if (/^[a-z0-9]{1,12}$/.test(cleaned)) return cleaned;
+  const match = cleaned.match(/\.([a-z0-9]{1,12})$/);
+  return match ? match[1] : "bin";
+}
+
 /**
- * Funnel Event: Download Start, Success & Failure
+ * Funnel Event: Download Start, Success & Failure (privacy-safe: extension + size only, never raw filenames)
  */
-export const trackGADownloadStart = (toolId: string, fileName?: string, fileSizeBytes?: number) => {
+export const trackGADownloadStart = (toolId: string, fileNameOrExt?: string, fileSizeBytes?: number) => {
   trackGAEvent("download_start", {
     tool_id: toolId,
-    file_name: fileName || "output.pdf",
+    file_ext: extractSafeFileExt(fileNameOrExt),
     file_size_bytes: fileSizeBytes || 0,
   });
 };
 
-export const trackGADownloadSuccess = (toolId: string, fileName?: string, fileSizeBytes?: number) => {
+export const trackGADownloadSuccess = (toolId: string, fileNameOrExt?: string, fileSizeBytes?: number) => {
   trackGAEvent("download_success", {
     tool_id: toolId,
-    file_name: fileName || "output.pdf",
+    file_ext: extractSafeFileExt(fileNameOrExt),
     file_size_bytes: fileSizeBytes || 0,
     is_key_event: true,
   });
@@ -438,3 +449,108 @@ export const trackGAAiToolUsed = (toolId: string, taskType: string, success: boo
   });
 };
 
+export type PlatformAnalyticsStage =
+  | "tool_opened"
+  | "process_started"
+  | "process_completed"
+  | "output_validated"
+  | "download_initiated"
+  | "process_failed"
+  | "process_cancelled";
+
+export interface PlatformAnalyticsEventPayload {
+  toolId: string;
+  stage: PlatformAnalyticsStage;
+  eventId?: string;
+  latencyMs?: number;
+  fileExt?: string;
+  fileSizeBytes?: number;
+  success?: boolean;
+}
+
+export function createAnalyticsEventId(toolId: string, stage: PlatformAnalyticsStage): string {
+  const rand =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID().slice(0, 12)
+      : Math.random().toString(36).slice(2, 10);
+  return `${toolId}:${stage}:${Date.now()}:${rand}`;
+}
+
+/**
+ * Non-blocking, idempotent backend analytics instrumentation.
+ * Never throws or blocks anonymous/offline client-side PDF workflows.
+ */
+export function trackPlatformEvent(payload: PlatformAnalyticsEventPayload): void {
+  if (typeof window === "undefined") return;
+  if (isAutomatedBotTraffic() || isReferralSpamVisit()) return;
+  if (!payload?.toolId || !payload?.stage) return;
+
+  const eventId = payload.eventId || createAnalyticsEventId(payload.toolId, payload.stage);
+  const safeBody = {
+    toolId: payload.toolId,
+    stage: payload.stage,
+    eventId,
+    ...(typeof payload.latencyMs === "number" && Number.isFinite(payload.latencyMs) && payload.latencyMs >= 1
+      ? { latencyMs: Math.min(300000, Math.round(payload.latencyMs)) }
+      : {}),
+    ...(payload.fileExt ? { fileExt: extractSafeFileExt(payload.fileExt) } : {}),
+    ...(typeof payload.fileSizeBytes === "number" && Number.isFinite(payload.fileSizeBytes) && payload.fileSizeBytes >= 0
+      ? { fileSizeBytes: Math.round(payload.fileSizeBytes) }
+      : {}),
+    ...(typeof payload.success === "boolean" ? { success: payload.success } : {}),
+  };
+
+  try {
+    void fetch("/api/analytics/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(safeBody),
+      keepalive: true,
+    }).catch(() => {
+      // Non-blocking when offline or endpoint unreachable
+    });
+  } catch {
+    // Never impact tool processing
+  }
+}
+
+export const trackToolOpened = (toolId: string, eventId?: string) =>
+  trackPlatformEvent({ toolId, stage: "tool_opened", eventId });
+
+export const trackProcessStarted = (toolId: string, fileExt?: string, fileSizeBytes?: number, eventId?: string) =>
+  trackPlatformEvent({ toolId, stage: "process_started", fileExt, fileSizeBytes, eventId });
+
+export const trackProcessCompleted = (
+  toolId: string,
+  latencyMs: number,
+  fileExt?: string,
+  fileSizeBytes?: number,
+  eventId?: string
+) =>
+  trackPlatformEvent({
+    toolId,
+    stage: "process_completed",
+    latencyMs: Math.max(1, latencyMs),
+    fileExt,
+    fileSizeBytes,
+    success: true,
+    eventId,
+  });
+
+export const trackOutputValidated = (toolId: string, fileExt?: string, fileSizeBytes?: number, eventId?: string) =>
+  trackPlatformEvent({ toolId, stage: "output_validated", fileExt, fileSizeBytes, success: true, eventId });
+
+export const trackDownloadInitiated = (toolId: string, fileExt?: string, fileSizeBytes?: number, eventId?: string) =>
+  trackPlatformEvent({ toolId, stage: "download_initiated", fileExt, fileSizeBytes, eventId });
+
+export const trackProcessFailed = (toolId: string, latencyMs?: number, eventId?: string) =>
+  trackPlatformEvent({
+    toolId,
+    stage: "process_failed",
+    ...(typeof latencyMs === "number" ? { latencyMs: Math.max(1, latencyMs) } : {}),
+    success: false,
+    eventId,
+  });
+
+export const trackProcessCancelled = (toolId: string, eventId?: string) =>
+  trackPlatformEvent({ toolId, stage: "process_cancelled", success: false, eventId });

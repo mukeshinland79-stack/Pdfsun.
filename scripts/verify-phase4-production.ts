@@ -60,15 +60,15 @@ async function main() {
     }
   }
 
-  // 1. Tool Registry Audit (66 tools)
-  console.log("\n[Section 1] 66-Tool Registry & Route Dispatch Verification");
-  record(ALL_TOOLS.length === 66, `Tool count matches exactly 66 (Count: ${ALL_TOOLS.length})`);
+  // 1. Tool Registry Audit (68 tools)
+  console.log("\n[Section 1] 68-Tool Registry & Route Dispatch Verification");
+  record(ALL_TOOLS.length === 68, `Tool count matches exactly 68 (Count: ${ALL_TOOLS.length})`);
   const uniqueSlugs = new Set(ALL_TOOLS.map((t) => t.slug));
-  record(uniqueSlugs.size === 66, `All 66 tool slugs are unique (Unique: ${uniqueSlugs.size})`);
+  record(uniqueSlugs.size === 68, `All 68 tool slugs are unique (Unique: ${uniqueSlugs.size})`);
   const missingMeta = ALL_TOOLS.filter((t) => !t.name || !t.description || !t.category || !t.icon);
-  record(missingMeta.length === 0, `All 66 tools have complete metadata (name, desc, category, icon)`);
+  record(missingMeta.length === 0, `All 68 tools have complete metadata (name, desc, category, icon)`);
 
-  // Verify App.tsx contains handler routing for all 66 tools
+  // Verify App.tsx contains handler routing for all 68 tools
   const appTsxContent = fs.readFileSync("src/App.tsx", "utf8");
   const activeWorkspaceContent = fs.readFileSync("src/components/ActiveToolWorkspace.tsx", "utf8");
   let unhandledTools = 0;
@@ -83,7 +83,7 @@ async function main() {
       console.warn(`  ⚠️ Unhandled tool routing: ${t.id}`);
     }
   }
-  record(unhandledTools === 0, `All 66 tools are wired to workspace/modal routing`);
+  record(unhandledTools === 0, `All 68 tools are wired to workspace/modal routing`);
 
   // 2. Real-File Document Conversions
   console.log("\n[Section 2] Real-File Document Conversion Correctness");

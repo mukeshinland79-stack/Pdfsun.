@@ -1198,6 +1198,127 @@ Rahul switched to **PDFSun Compress PDF**:
    - **High Quality**: Retains full print resolution for blueprints and formal contracts.
 4. Click **Compress PDF** and download your compliant, sharp document in less than a second.`,
   },
+
+  /* =========================================================================
+   * ARTICLE 13: Complete Guide to Barcode Generator — Code 128, EAN-13, UPC-A & GS1-128
+   * ========================================================================= */
+  {
+    id: "post-13",
+    title: "Complete Guide to Barcode Generation: Code 128, EAN-13, UPC-A & GS1-128",
+    slug: "complete-guide-barcode-generator-code128-ean13-gs1-128",
+    excerpt: "Learn how to choose the right 1D barcode format, compute GS1 Mod-10 and Code 128 Mod-103 check digits, enforce quiet zones, and batch-export print-ready labels from CSV or Excel in your browser.",
+    category: "Barcodes & Label Workflows",
+    readTime: "7 min read",
+    date: "November 14, 2026",
+    author: "Mukesh Kalonia",
+    image: "/og-image.png",
+    tags: ["Barcode Generator", "Code 128", "EAN-13", "GS1-128", "Bulk CSV Barcodes", "Inventory Labels"],
+    lastModified: "2026-11-14",
+    relatedTools: ["barcode-generator", "qr-code-generator", "pdf-to-excel"],
+    executiveSummary:
+      "Choosing the wrong barcode symbology or printing a code with a bad check digit causes point-of-sale scan failures and warehouse rejections. This guide breaks down all 9 major 1D standards supported by the PDFSun Barcode Generator — including Code 128, EAN-13, UPC-A, UPC-E, EAN-8, Code 39, ITF-14, Codabar, and GS1-128 — along with quiet-zone rules, leading-zero preservation in spreadsheets, and print-ready vector SVG/PDF export practices.",
+    comparisonTable: {
+      headers: ["Symbology", "Character Set & Length", "Check Digit Standard", "Primary Use Case"],
+      rows: [
+        ["Code 128 (Auto B/C)", "Full printable ASCII, variable length", "Mandatory Mod-103", "Warehouse SKUs, shipping labels, asset tags"],
+        ["EAN-13", "Numeric (12 base + 1 check)", "Mandatory GS1 Mod-10", "Global retail products & point-of-sale"],
+        ["UPC-A / UPC-E", "Numeric (11/12 or 6–8 compressed)", "Mandatory GS1 Mod-10", "North American retail & compact packages"],
+        ["ITF-14", "Numeric (13 base + 1 check)", "Mandatory GS1 Mod-10 + Bearer Bars", "Outer cartons and corrugated pallet cases"],
+        ["GS1-128 (EAN-128)", "Parenthesized (AI)Value pairs", "Leading/Separator FNC1 + Mod-103", "Pharma, cold-chain expiry dates, GTIN + Batch"],
+      ],
+    },
+    faqs: [
+      {
+        question: "How do I know whether to use EAN-13, UPC-A, or Code 128?",
+        answer: "Use EAN-13 (13 digits) or UPC-A (12 digits) for standardized retail consumer goods sold at checkout counters. Use Code 128 for internal warehouse SKUs, alphanumeric serial numbers, or shipping labels, and GS1-128 when encoding structured supply-chain Application Identifiers such as (01) GTIN, (17) Expiry Date, and (10) Batch Lot.",
+      },
+      {
+        question: "Why do spreadsheets break EAN-13 and UPC-A barcodes?",
+        answer: "Spreadsheet tools often convert numeric strings into floating-point numbers and strip leading zeros (turning 03600029145 into 3600029145). PDFSun parses imported CSV/XLSX cells as raw strings and prefixes exported template cells safely so leading zeros and formula cells remain intact.",
+      },
+      {
+        question: "Should I export barcodes as PNG or Vector SVG/PDF for commercial printing?",
+        answer: "For thermal label printers or offset packaging artwork, Vector SVG and PDF exports scale to any DPI without jagged edges. High-DPI PNG exports are ideal for quick digital mockups and office printers.",
+      },
+    ],
+    content: `## Choosing the Right 1D Barcode Symbology
+
+Every supply-chain, retail, and healthcare workflow depends on strict adherence to barcode specifications:
+
+1. **Retail Point-of-Sale (EAN-13, EAN-8, UPC-A, UPC-E)**: Standardized GS1 numeric identifiers checked by Mod-10 parity math. Entering 12 digits into EAN-13 (or 11 into UPC-A) lets [PDFSun Barcode Generator](https://www.pdfsun.in/barcode-generator) compute the check digit automatically, while entering the full length verifies your existing number.
+2. **Logistics & Internal Inventory (Code 128 & Code 39)**: Code 128 Auto dynamically switches between Code Set B (alphanumeric) and Code Set C (high-density numeric pairs) with a mandatory Mod-103 checksum.
+3. **Corrugated Shipping Cartons (ITF-14)**: Encodes 14-digit GTIN packaging levels surrounded by thick horizontal bearer bars to stabilize optical scans on cardboard.
+4. **Regulated Supply Chains (GS1-128)**: Prepends the FNC1 control codeword (value 102) immediately after Start B/C and inserts separator FNC1 tokens after variable-length Application Identifiers like \`(10)LOT42\`.
+
+---
+
+## Printing Checklist for 100% First-Pass Scans
+
+- **Preserve Quiet Zones**: Always keep at least 10x narrow bar width of clean blank margin on the left and right edges.
+- **High Contrast Ratio**: Pair dark bars (#0f172a or #000000) against a pure light background (#ffffff).
+- **Bulk CSV / Excel Workflow**: Download our formula-safe template in **Bulk CSV/Excel** mode to validate up to 500 SKU rows at once and download a ZIP or A4 PDF label sheet.`,
+  },
+
+  /* =========================================================================
+   * ARTICLE 14: Complete Guide to QR Code Generator — Wi-Fi, vCard, PDF Links & Scan Verification
+   * ========================================================================= */
+  {
+    id: "post-14",
+    title: "Complete Guide to QR Code Generation: Wi-Fi, vCard, PDF Links & Scan Verification",
+    slug: "complete-guide-qr-code-generator-wifi-vcard-pdf-links",
+    excerpt: "Create verified scannable QR codes for URLs, guest Wi-Fi, vCard contacts, WhatsApp chats, Google Forms, and PDF menus—with transparent PNG exports, safe center logos, and zero server uploads.",
+    category: "QR Codes & Digital Sharing",
+    readTime: "7 min read",
+    date: "November 14, 2026",
+    author: "Mukesh Kalonia",
+    image: "/og-image.png",
+    tags: ["QR Code Generator", "Wi-Fi QR", "vCard QR", "Transparent PNG QR", "jsQR Verification", "PDF Menu QR"],
+    lastModified: "2026-11-14",
+    relatedTools: ["qr-code-generator", "barcode-generator", "share-pdfsun"],
+    executiveSummary:
+      "Not all QR generators verify whether customized colors or center logos remain scannable—and many SaaS generators wrap links in tracking redirects or upload private Wi-Fi passwords to cloud servers. The PDFSun QR Code Generator supports 11 direct structured payload types, executes 100% inside your browser, elevates error correction to Level H (30%) when a center raster logo is applied, and runs an immediate jsQR pixel scan check before displaying the Verified Scannable badge.",
+    comparisonTable: {
+      headers: ["QR Feature", "Typical Cloud QR Sites", "PDFSun QR Code Studio"],
+      rows: [
+        ["Wi-Fi & vCard Privacy", "Sent to remote server / stored in DB", "100% local browser execution (zero upload)"],
+        ["Link Longevity", "Often expires behind paid shortener redirect", "Direct static payload — never expires"],
+        ["Scannability Check", "Assumed valid without decoding", "Live in-browser jsQR round-trip verification"],
+        ["Center Brand Logo", "Allows risky SVG uploads", "Strict raster PNG/JPG/WEBP (<=5 MB) + Auto ECC-H"],
+        ["Export Formats", "Often gated behind signup/paywall", "PNG, Transparent PNG, SVG, JPG, PDF, Bulk ZIP"],
+      ],
+    },
+    faqs: [
+      {
+        question: "Why does adding a center logo require ECC Level H?",
+        answer: "A center badge covers quiet data modules in the middle of the matrix. Level H (High) adds ~30% Reed-Solomon error-correction redundancy so smartphone cameras recover the full payload reliably—and our live jsQR verification confirms exact payload matching.",
+      },
+      {
+        question: "When should I download Transparent PNG or Vector SVG?",
+        answer: "Use Transparent PNG when placing a QR code over colored flyers or digital slides, and Vector SVG or PDF when handing artwork to print designers for posters, tabletop tents, and packaging.",
+      },
+      {
+        question: "Do QR codes created on PDFSun expire or require a subscription?",
+        answer: "No. Every QR code encodes your exact target URL, Wi-Fi string, or vCard directly into the matrix with no tracking middleman, so printed codes keep working permanently.",
+      },
+    ],
+    content: `## 11 Structured QR Formats Ready for Work & Events
+
+Open [PDFSun QR Code Generator](https://www.pdfsun.in/qr-code-generator) to encode structured payloads without manual syntax errors:
+
+- **Instant Access Links**: Website URL, Google Forms (\`forms.gle\` / \`docs.google.com/forms\`), and Digital PDF Menus.
+- **Zero-Typing Connectivity**: Guest **Wi-Fi** (\`WIFI:T:WPA;S:...;P:...;;\`) with automatic character escaping for semicolons and backslashes.
+- **Networking & Customer Support**: **vCard 3.0** business cards, **WhatsApp** click-to-chat (\`wa.me\`), pre-filled **Email**, **Phone Call**, **SMS**, and **GPS Location** coordinates.
+
+---
+
+## Real-Time Scan Verification & Logo Security
+
+Every design change automatically redraws the canvas and runs an in-browser \`jsQR\` decode pass:
+
+1. **Exact Payload Match**: The green **Verified Scannable** status appears only when the decoded text matches your input character-for-character.
+2. **XSS-Safe Center Logos**: SVG uploads are intentionally blocked for browser security; clean PNG, JPG, or WEBP logos up to 5 MB automatically lock ECC to **Level H** while capping overlay coverage to 22%.
+3. **Bulk CSV / Excel Print Sheets**: Upload up to 500 links or labels at once, verify every QR matrix, and export a ZIP bundle or ready-to-cut A4 PDF sheet.`,
+  },
 ];
 
 /**
@@ -1272,6 +1393,12 @@ export function getBlogPostBySlug(slug: string): BlogPost | undefined {
     "pdf-productivity-cheat-sheet": "ultimate-pdf-productivity-cheat-sheet",
     "convert-scanned-images-jpg-png-searchable-pdf-pwa": "convert-scanned-images-jpg-png-searchable-pdf-pwa",
     "convert-jpg-png-to-pdf-pwa": "convert-scanned-images-jpg-png-searchable-pdf-pwa",
+
+    // Barcode & QR Guides
+    "complete-guide-barcode-generator-code128-ean13-gs1-128": "complete-guide-barcode-generator-code128-ean13-gs1-128",
+    "barcode-generator-guide": "complete-guide-barcode-generator-code128-ean13-gs1-128",
+    "complete-guide-qr-code-generator-wifi-vcard-pdf-links": "complete-guide-qr-code-generator-wifi-vcard-pdf-links",
+    "qr-code-generator-guide": "complete-guide-qr-code-generator-wifi-vcard-pdf-links",
   };
 
   const targetSlug = aliasMap[cleanSlug];

@@ -1,0 +1,101 @@
+{
+  "defaultTheme": "light",
+  "themes": [
+    {
+      "id": "light",
+      "name": "Professional Light",
+      "mode": "light",
+      "variables": {
+        "--bg-color": "#ffffff",
+        "--text-color": "#0f172a",
+        "--accent-color": "#2563eb",
+        "--bg-primary": "#ffffff",
+        "--bg-secondary": "#f8fafc",
+        "--text-primary": "#0f172a",
+        "--text-secondary": "#475569",
+        "--border-color": "#e2e8f0",
+        "--accent-hover": "#1d4ed8"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Eye-Comfort Dark",
+      "mode": "dark",
+      "variables": {
+        "--bg-color": "#0f172a",
+        "--text-color": "#f8fafc",
+        "--accent-color": "#3b82f6",
+        "--bg-primary": "#0f172a",
+        "--bg-secondary": "#1e293b",
+        "--text-primary": "#f8fafc",
+        "--text-secondary": "#94a3b8",
+        "--border-color": "#334155",
+        "--accent-hover": "#60a5fa"
+      }
+    },
+    {
+      "id": "eye-protection",
+      "name": "Eye Protection Sepia",
+      "mode": "light",
+      "variables": {
+        "--bg-color": "#fcf9f2",
+        "--text-color": "#2b251e",
+        "--accent-color": "#0f766e",
+        "--bg-primary": "#fcf9f2",
+        "--bg-secondary": "#f7f3e9",
+        "--text-primary": "#2b251e",
+        "--text-secondary": "#5c5243",
+        "--border-color": "#e3d9c7",
+        "--accent-hover": "#0d9488"
+      }
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora Glass Premium",
+      "mode": "dark",
+      "variables": {
+        "--bg-color": "#0b1120",
+        "--text-color": "#f8fafc",
+        "--accent-color": "#6366f1",
+        "--bg-primary": "#0b1120",
+        "--bg-secondary": "#1e1b4b",
+        "--text-primary": "#f8fafc",
+        "--text-secondary": "#cbd5e1",
+        "--border-color": "rgba(255, 255, 255, 0.12)",
+        "--accent-hover": "#818cf8"
+      }
+    },
+    {
+      "id": "emerald-pro",
+      "name": "Emerald Academic Pro",
+      "mode": "light",
+      "variables": {
+        "--bg-color": "#f0fdf4",
+        "--text-color": "#064e3b",
+        "--accent-color": "#059669",
+        "--bg-primary": "#f0fdf4",
+        "--bg-secondary": "#dcfce7",
+        "--text-primary": "#064e3b",
+        "--text-secondary": "#047857",
+        "--border-color": "#a7f3d0",
+        "--accent-hover": "#047857"
+      }
+    },
+    {
+      "id": "sunset-gold",
+      "name": "Sunset Gold Warm",
+      "mode": "dark",
+      "variables": {
+        "--bg-color": "#18181b",
+        "--text-color": "#fafafa",
+        "--accent-color": "#f59e0b",
+        "--bg-primary": "#18181b",
+        "--bg-secondary": "#27272a",
+        "--text-primary": "#fafafa",
+        "--text-secondary": "#a1a1aa",
+        "--border-color": "#3f3f46",
+        "--accent-hover": "#d97706"
+      }
+    }
+  ]
+}

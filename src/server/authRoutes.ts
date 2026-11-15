@@ -18,6 +18,7 @@ import {
   revokeOAuthProviderToken,
 } from "./authService";
 import { DUAL_OWNER_EMAILS } from "../types";
+import { getUserSubscription } from "./paymentStore";
 
 export const authRouter = express.Router();
 
@@ -557,19 +558,25 @@ export const handleVerifySession = (req: Request, res: Response) => {
     if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7).trim();
     } else if (typeof req.headers["x-user-token"] === "string") {
-      token = req.headers["x-user-token"];
+      token = req.headers["x-user-token"].trim();
     } else if (typeof req.headers["x-admin-token"] === "string") {
-      token = req.headers["x-admin-token"];
-    } else if (req.body?.token) {
-      token = req.body.token;
-    } else if (req.query?.token) {
-      token = String(req.query.token);
+      token = req.headers["x-admin-token"].trim();
+    } else if (req.body?.token && typeof req.body.token === "string") {
+      token = req.body.token.trim();
     } else if (req.headers.cookie) {
-      const match = req.headers.cookie
-        .split("; ")
-        .find((row) => row.startsWith("pdfsun_user_session=") || row.startsWith("pdfsun_admin_session="));
-      if (match) {
-        token = match.split("=")[1];
+      for (const part of String(req.headers.cookie).split(";")) {
+        const eqIdx = part.indexOf("=");
+        if (eqIdx === -1) continue;
+        const k = part.slice(0, eqIdx).trim();
+        if (k === "pdfsun_user_session" || k === "pdfsun_admin_session") {
+          try {
+            const val = decodeURIComponent(part.slice(eqIdx + 1).trim());
+            if (val) {
+              token = val;
+              break;
+            }
+          } catch {}
+        }
       }
     }
 
@@ -594,14 +601,16 @@ export const handleVerifySession = (req: Request, res: Response) => {
       });
     }
 
+    const isOwner = payload.role === "owner" || DUAL_OWNER_EMAILS.includes(payload.email.toLowerCase());
+    const subCheck = getUserSubscription(payload.email);
     const profile = getUserProfileByEmail(payload.email) || {
       id: payload.id,
       name: payload.name,
       email: payload.email,
       role: payload.role,
-      plan: payload.plan,
-      hasAdminAccess: payload.hasAdminAccess,
-      isPro: payload.isPro || false,
+      plan: isOwner ? "Founder & Owner" : subCheck.isActive ? subCheck.subscription?.plan_name || "Pro Sun Plan" : "Free Plan",
+      hasAdminAccess: Boolean(payload.hasAdminAccess),
+      isPro: isOwner || subCheck.isActive,
     };
 
     return res.json({
@@ -610,7 +619,6 @@ export const handleVerifySession = (req: Request, res: Response) => {
       valid: true,
       user: profile,
       role: profile.role,
-      token,
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, valid: false, error: err.message });
@@ -674,10 +682,40 @@ export const handleLogout = async (req: Request, res: Response) => {
  * POST /api/auth/refresh-session
  */
 export const handleRefreshSession = (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  let token = "";
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7).trim();
+  } else if (typeof req.headers["x-user-token"] === "string") {
+    token = req.headers["x-user-token"].trim();
+  } else if (req.headers.cookie) {
+    for (const part of String(req.headers.cookie).split(";")) {
+      const eqIdx = part.indexOf("=");
+      if (eqIdx === -1) continue;
+      const k = part.slice(0, eqIdx).trim();
+      if (k === "pdfsun_user_session" || k === "pdfsun_admin_session") {
+        try {
+          const val = decodeURIComponent(part.slice(eqIdx + 1).trim());
+          if (val) {
+            token = val;
+            break;
+          }
+        } catch {}
+      }
+    }
+  }
+  const payload = token ? verifySessionToken(token) : null;
+  if (!payload) {
+    return res.status(401).json({
+      status: "error",
+      success: false,
+      error: "Authentication required to refresh session.",
+    });
+  }
   return res.json({
     status: "ok",
     success: true,
-    message: "Session token refreshed and extended.",
+    message: "Session token verified and active.",
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     timestamp: new Date().toISOString(),
   });

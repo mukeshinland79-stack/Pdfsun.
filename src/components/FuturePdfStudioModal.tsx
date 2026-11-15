@@ -58,6 +58,15 @@ import {
 } from "../utils/microphoneManager";
 import { MicrophonePermissionModal } from "./MicrophonePermissionModal";
 import { toStrictUint8Array } from "../utils/binaryUtils";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+  extractSafeFileExt,
+} from "../utils/analytics";
 
 export type FutureStudioTab = "voice-reader" | "voice-to-pdf" | "quantum-hud" | "macro-automator";
 
@@ -82,6 +91,7 @@ export const FuturePdfStudioModal: React.FC<FuturePdfStudioModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
+      trackToolOpened("ai-voice-reader");
     }
   }, [isOpen, initialTab]);
 
@@ -250,12 +260,17 @@ const VoiceReaderTab: React.FC<{ initialFile?: File | null }> = ({ initialFile }
     setFile(uploadedFile);
     setIsLoadingText(true);
     stopAudio();
+    const startTime = performance.now();
+    trackProcessStarted("ai-voice-reader", extractSafeFileExt(uploadedFile.name), uploadedFile.size);
     try {
       const text = await extractTextFromPdfFile(uploadedFile);
       setExtractedText(text);
       sentencesRef.current = splitIntoSentences(text);
       setCurrentSentenceIndex(0);
+      trackProcessCompleted("ai-voice-reader", performance.now() - startTime, "txt", text.length);
+      trackOutputValidated("ai-voice-reader", "txt", text.length);
     } catch (err: any) {
+      trackProcessFailed("ai-voice-reader", performance.now() - startTime);
       triggerErrorToast("Text Extraction Failed", err?.message || "Could not read text from document");
     } finally {
       setIsLoadingText(false);
@@ -538,6 +553,7 @@ Experience the future of document interaction today with PDFSun.`;
                 type="button"
                 onClick={() => {
                   const blob = new Blob([extractedText], { type: "text/plain" });
+                  trackDownloadInitiated("ai-voice-reader", "txt", blob.size);
                   downloadFile(blob, "PDFSun_Narration_Transcript.txt");
                 }}
                 className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
@@ -785,6 +801,8 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
       return;
     }
 
+    const startTime = performance.now();
+    trackProcessStarted("voice-to-pdf", "txt", transcript.length);
     setIsCompiling(true);
     try {
       const doc = new jsPDF({
@@ -857,6 +875,9 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
 
       const pdfBlob = doc.output("blob");
       const cleanFileName = `PDFSun_${docTitle.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      trackProcessCompleted("voice-to-pdf", performance.now() - startTime, "pdf", pdfBlob.size);
+      trackOutputValidated("voice-to-pdf", "pdf", pdfBlob.size);
+      trackDownloadInitiated("voice-to-pdf", "pdf", pdfBlob.size);
       downloadFile(pdfBlob, cleanFileName);
 
       onAddHistory?.({
@@ -870,6 +891,7 @@ const VoiceToPdfTab: React.FC<{ onAddHistory?: (item: ToolHistoryItem) => void }
         snippet: "Transcribed live voice audio into formatted PDF document",
       });
     } catch (err: any) {
+      trackProcessFailed("voice-to-pdf", performance.now() - startTime);
       triggerErrorToast("Compilation Failed", err?.message || "Error building PDF document");
     } finally {
       setIsCompiling(false);
@@ -1094,6 +1116,8 @@ const QuantumPreFlightTab: React.FC<{
 
   const sanitizeMetadata = async () => {
     if (!file) return;
+    const startTime = performance.now();
+    trackProcessStarted("quantum-preflight-hud", "pdf", file.size);
     setSanitizing(true);
     try {
       const buffer = await fileToArrayBuffer(file);
@@ -1110,6 +1134,9 @@ const QuantumPreFlightTab: React.FC<{
       const sanitizedBytes = await pdfDoc.save();
       const sanitizedBlob = new Blob([toStrictUint8Array(sanitizedBytes)], { type: "application/pdf" });
       const outName = `PDFSun_Sanitized_${file.name}`;
+      trackProcessCompleted("quantum-preflight-hud", performance.now() - startTime, "pdf", sanitizedBlob.size);
+      trackOutputValidated("quantum-preflight-hud", "pdf", sanitizedBlob.size);
+      trackDownloadInitiated("quantum-preflight-hud", "pdf", sanitizedBlob.size);
       downloadFile(sanitizedBlob, outName);
 
       onAddHistory?.({
@@ -1128,6 +1155,7 @@ const QuantumPreFlightTab: React.FC<{
       setFile(updatedFile);
       await runAudit(updatedFile);
     } catch (err: any) {
+      trackProcessFailed("quantum-preflight-hud", performance.now() - startTime);
       triggerErrorToast("Sanitization Error", err?.message || "Failed to strip metadata.");
     } finally {
       setSanitizing(false);
@@ -1354,6 +1382,8 @@ const MacroAutomatorTab: React.FC<{
       return;
     }
 
+    const startTime = performance.now();
+    trackProcessStarted("macro-automator", "pdf", file.size);
     setIsProcessing(true);
     setDownloadReady(null);
     setCurrentStepIndex(0);
@@ -1397,6 +1427,9 @@ const MacroAutomatorTab: React.FC<{
       setCurrentStepIndex(4);
       const finalBlob = new Blob([toStrictUint8Array(currentBytes)], { type: "application/pdf" });
       const finalName = `PDFSun_Macro_Processed_${file.name}`;
+      trackProcessCompleted("macro-automator", performance.now() - startTime, "pdf", finalBlob.size);
+      trackOutputValidated("macro-automator", "pdf", finalBlob.size);
+      trackDownloadInitiated("macro-automator", "pdf", finalBlob.size);
       setDownloadReady({ blob: finalBlob, name: finalName });
       downloadFile(finalBlob, finalName);
 
@@ -1411,6 +1444,7 @@ const MacroAutomatorTab: React.FC<{
         snippet: "Executed automated multi-step PDF pipeline",
       });
     } catch (err: any) {
+      trackProcessFailed("macro-automator", performance.now() - startTime);
       triggerErrorToast("Pipeline Error", err?.message || "Execution error during macro pipeline");
     } finally {
       setIsProcessing(false);

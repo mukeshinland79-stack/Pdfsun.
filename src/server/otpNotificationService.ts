@@ -24,16 +24,16 @@ export function maskEmailAddress(email: string): string {
 }
 
 /**
- * Mask sensitive phone numbers (e.g., 9050659655 -> 9050****55, 9991659655 -> 9991****55)
+ * Mask sensitive phone numbers (e.g., 5550123456 -> 5550****56)
  */
-export function maskPhoneNumber(phone: string = "9991659655"): string {
+export function maskPhoneNumber(phone: string = ""): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length >= 10) {
     const start = digits.slice(-10, -6);
     const end = digits.slice(-2);
     return `${start}****${end}`;
   }
-  return "9050****55";
+  return "••••••••";
 }
 
 /**
@@ -65,7 +65,7 @@ export async function dispatchMultiChannelOtp(params: {
   userName?: string;
   purpose?: "LOGIN_MFA" | "PASSWORD_RESET" | "ACCOUNT_SECURITY";
 }): Promise<OtpDispatchResult> {
-  const { otp, recipientEmail, recipientPhone = "9991659655", userName = "Valued User", purpose = "LOGIN_MFA" } = params;
+  const { otp, recipientEmail, recipientPhone = "", userName = "Valued User", purpose = "LOGIN_MFA" } = params;
 
   const maskedEmail = maskEmailAddress(recipientEmail);
   const maskedPhone = maskPhoneNumber(recipientPhone);
@@ -87,7 +87,7 @@ export async function dispatchMultiChannelOtp(params: {
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
 
-    if (smtpHost && smtpUser && smtpPass) {
+    if (smtpHost && smtpUser && smtpPass && recipientEmail.includes("@")) {
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: Number(process.env.SMTP_PORT) || 587,
@@ -127,30 +127,27 @@ export async function dispatchMultiChannelOtp(params: {
       await transporter.sendMail({
         from: process.env.SMTP_FROM || `"PDFSun Security" <security@pdfsun.in>`,
         to: recipientEmail,
-        subject: `[PDFSun Security] Your 6-Digit OTP: ${otp} (${purposeTitle})`,
+        subject: `[PDFSun Security] Your 6-Digit OTP (${purposeTitle})`,
         html: htmlBody,
       });
 
       emailDispatched = true;
       channelLog.push(`Email successfully delivered via SMTP to ${maskedEmail}`);
     } else {
-      // Development mode / Mock delivery log with masked parameters
-      emailDispatched = true;
-      channelLog.push(`[DEV/SMTP] Email OTP '${otp}' queued for recipient ${maskedEmail}`);
+      channelLog.push(`SMTP not configured or skipped for ${maskedEmail}`);
     }
   } catch (err: any) {
     console.warn(`[OTP Dispatch] SMTP Delivery warning for ${maskedEmail}:`, err?.message || err);
-    emailDispatched = true; // Fallback to simulated delivery
-    channelLog.push(`[Fallback] Email OTP '${otp}' processed for ${maskedEmail}`);
+    channelLog.push(`Email delivery warning for ${maskedEmail}`);
   }
 
-  // 2. SMS OTP Dispatch (Twilio / Fast2SMS or Simulated Gateway)
+  // 2. SMS OTP Dispatch (Twilio / Fast2SMS)
   try {
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
 
-    if (twilioSid && twilioToken && twilioFrom) {
+    if (twilioSid && twilioToken && twilioFrom && recipientPhone) {
       const authHeader = Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64");
       const cleanPhone = recipientPhone.startsWith("+") ? recipientPhone : `+91${recipientPhone.replace(/\D/g, "")}`;
 
@@ -175,17 +172,14 @@ export async function dispatchMultiChannelOtp(params: {
       } else {
         const twilioErr = await response.text();
         console.warn(`[Twilio SMS Warning]:`, twilioErr);
-        smsDispatched = true;
-        channelLog.push(`SMS queued for mobile ${maskedPhone}`);
+        channelLog.push(`SMS gateway warning for mobile ${maskedPhone}`);
       }
     } else {
-      smsDispatched = true;
-      channelLog.push(`[SMS Gateway] Dispatched SMS OTP '${otp}' to mobile ${maskedPhone}`);
+      channelLog.push(`SMS gateway not configured for mobile ${maskedPhone}`);
     }
   } catch (err: any) {
     console.warn(`[OTP Dispatch] SMS Gateway warning for ${maskedPhone}:`, err?.message || err);
-    smsDispatched = true;
-    channelLog.push(`[Fallback] SMS OTP '${otp}' processed for mobile ${maskedPhone}`);
+    channelLog.push(`SMS delivery warning for mobile ${maskedPhone}`);
   }
 
   console.log(`[Banking MFA Engine] Multi-Channel OTP dispatched to ${maskedEmail} and ${maskedPhone}. Status: Email=${emailDispatched}, SMS=${smsDispatched}`);

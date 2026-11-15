@@ -40,6 +40,12 @@ import {
   trackGAProcessingFailed,
   trackGADownloadStart,
   trackGADownloadSuccess,
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
 } from "../utils/analytics";
 import { triggerErrorToast } from "./GlobalErrorToast";
 
@@ -227,6 +233,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
   // Track initial tool view
   useEffect(() => {
     trackGAToolView("compress-pdf", "Aservus PDF Compressor", "optimization");
+    trackToolOpened("compress-pdf");
   }, []);
 
   // Sync initialFile
@@ -282,6 +289,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
       targetMaxKB,
       originalSize: currentFile.size,
     });
+    trackProcessStarted("compress-pdf", "pdf", currentFile.size);
 
     try {
       // Step 1: Read PDF into memory
@@ -344,6 +352,8 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
       const latencyMs = Math.round(performance.now() - startTime);
       trackGAProcessingSuccess("compress-pdf", latencyMs, rawResultBytes.byteLength);
+      trackProcessCompleted("compress-pdf", latencyMs, "pdf", rawResultBytes.byteLength);
+      trackOutputValidated("compress-pdf", "pdf", validation.bytesCount);
 
       setStepState("success");
 
@@ -375,6 +385,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
       console.error("Aservus compression error:", err);
       const latencyMs = Math.round(performance.now() - startTime);
       trackGAProcessingFailed("compress-pdf", err?.message || "Compression error", latencyMs);
+      trackProcessFailed("compress-pdf", latencyMs);
       triggerErrorToast(
         "Compression Error",
         err?.message || "Failed to compress PDF. Please check if file is password-protected."
@@ -421,6 +432,7 @@ export const AservusPdfCompressor: React.FC<AservusPdfCompressorProps> = ({
 
     const outName = `compressed_${currentFile.name.replace(/\.pdf$/i, "")}.pdf`;
     trackGADownloadStart("compress-pdf", outName, compressedBytes.byteLength);
+    trackDownloadInitiated("compress-pdf", "pdf", compressedBytes.byteLength);
 
     downloadFile(compressedBytes, outName, "application/pdf");
     trackGADownloadSuccess("compress-pdf", outName, compressedBytes.byteLength);

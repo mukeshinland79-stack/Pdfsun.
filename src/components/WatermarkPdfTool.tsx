@@ -34,6 +34,14 @@ import { ToolHistoryItem } from "../types";
 import { QuickShareModal } from "./QuickShareModal";
 import { triggerErrorToast } from "./GlobalErrorToast";
 import { ensurePdfJsWorkerConfigured } from "../lib/pdfjsWorkerSetup";
+import {
+  trackToolOpened,
+  trackProcessStarted,
+  trackProcessCompleted,
+  trackOutputValidated,
+  trackDownloadInitiated,
+  trackProcessFailed,
+} from "../utils/analytics";
 
 // Configure local PDF.js worker
 ensurePdfJsWorkerConfigured(pdfjsLib);
@@ -95,6 +103,10 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
   // Canvas refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+
+  useEffect(() => {
+    trackToolOpened("watermark-pdf");
+  }, []);
 
   // Dropzone for initial PDF
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -186,6 +198,8 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
   const handleApplyWatermark = async () => {
     if (!file || isProcessing) return;
 
+    const startTime = performance.now();
+    trackProcessStarted("watermark-pdf", "pdf", file.size);
     setIsProcessing(true);
     setProgress(10);
     setStatusMessage("Loading PDF document...");
@@ -216,6 +230,9 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
       );
 
       const outName = `PDFSun_Watermarked_${file.name}`;
+      const latencyMs = performance.now() - startTime;
+      trackProcessCompleted("watermark-pdf", latencyMs, "pdf", outputBytes.byteLength);
+      trackOutputValidated("watermark-pdf", "pdf", outputBytes.byteLength);
       setDownloadReady({ data: outputBytes, fileName: outName });
       setIsProcessing(false);
       setProgress(100);
@@ -237,6 +254,7 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
       }
     } catch (err: any) {
       console.error("Watermark generation error:", err);
+      trackProcessFailed("watermark-pdf", performance.now() - startTime);
       setIsProcessing(false);
       triggerErrorToast(
         "Watermarking Failed",
@@ -247,6 +265,7 @@ export const WatermarkPdfTool: React.FC<WatermarkPdfToolProps> = ({
 
   const handleDownload = () => {
     if (!downloadReady) return;
+    trackDownloadInitiated("watermark-pdf", "pdf", downloadReady.data.byteLength);
     downloadFile(downloadReady.data, downloadReady.fileName, "application/pdf");
   };
 

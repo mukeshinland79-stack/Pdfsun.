@@ -3,13 +3,9 @@ import { getAuth, signOut as firebaseSignOut } from "firebase/auth";
 import { getFirebaseApp } from "../lib/firebase";
 import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
 import {
-  getLocalStoredUser,
   saveLocalStoredUser,
   clearLocalStoredUser,
-  mockLoginHandler,
-  mockRegisterHandler,
   isOwnerAccount,
-  createMockUserProfile,
 } from "../utils/mockAuth";
 import {
   initGoogleIdentityServices,
@@ -162,26 +158,23 @@ export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boole
  * Provides multi-tab synchronization, session verification, and persistent auth state
  */
 export function useAuth() {
-  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
-    const { role } = getLocalStoredUser();
-    return role;
+  const [currentRole, setCurrentRole] = useState<UserRole>("public");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(localStorage.getItem("pdfsun_auth_token"));
   });
-
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    const { user } = getLocalStoredUser();
-    return user;
-  });
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus>(() => {
-    const { user } = getLocalStoredUser();
-    return user ? "authenticated" : "unauthenticated";
+    if (typeof window !== "undefined" && localStorage.getItem("pdfsun_auth_token")) {
+      return "loading";
+    }
+    return "unauthenticated";
   });
   const isMountedRef = useRef<boolean>(true);
   const userProfileRef = useRef<UserProfile | null>(userProfile);
   userProfileRef.current = userProfile;
 
-  // Admin / Edit Mode toggle state
+  // Admin / Edit Mode toggle state (display preference only; gated by canAccessAdmin)
   const [adminEditModeActive, setAdminEditModeActive] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("pdfsun_admin_edit_mode") === "true";
@@ -194,7 +187,6 @@ export function useAuth() {
   const isAdmin = checkAdminRole(userProfile, currentRole);
   const canAccessAdmin = isAuthenticated && (isAdmin || isOwner);
 
-  // Toggle Edit/Admin Mode with localStorage persistence
   const toggleAdminEditMode = useCallback(() => {
     setAdminEditModeActive((prev) => {
       const next = !prev;
@@ -212,30 +204,13 @@ export function useAuth() {
     }
   }, []);
 
-  // Verify and Restore Session on Mount from Local Storage & Server Token
+  // Always verify session against the backend API (supports HttpOnly cookie and Bearer token)
   const verifySession = useCallback(async (): Promise<boolean> => {
-    const { user, role } = getLocalStoredUser();
-    if (user) {
-      if (isMountedRef.current) {
-        setUserProfile(user);
-        setCurrentRole(role);
-        setAuthStatus("authenticated");
-        setIsLoading(false);
-      }
-      return true;
-    }
+    const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
-      if (!token) {
-        if (isMountedRef.current) {
-          setIsLoading(false);
-          setAuthStatus("unauthenticated");
-        }
-        return false;
-      }
-
-      const res = await fetch("/api/auth/verify-session", {
+      const res = await fetch("/api/v1/auth/verify-session", {
+        credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       }).catch(() => null);
 
@@ -243,37 +218,53 @@ export function useAuth() {
         const text = await res.text();
         const data = text && text.trim() ? JSON.parse(text) : {};
         if (data.valid && data.user) {
-          const isOwnerUser = isOwnerAccount(data.user.email);
-          const userRole: UserRole = isOwnerUser ? "owner" : (data.user.role || "user");
+          const serverRole: UserRole =
+            data.user.role === "owner" || isOwnerAccount(data.user.email)
+              ? data.user.role === "owner"
+                ? "owner"
+                : "user"
+              : data.user.role || "user";
           const enrichedUser: UserProfile = {
             ...data.user,
-            role: userRole,
-            hasAdminAccess: isOwnerUser || Boolean(data.user.hasAdminAccess),
-            isPro: isOwnerUser ? true : Boolean(data.user.isPro),
+            role: serverRole,
+            hasAdminAccess: Boolean(data.user.hasAdminAccess) || serverRole === "owner",
+            isPro: Boolean(data.user.isPro),
           };
 
           if (isMountedRef.current) {
-            setCurrentRole(userRole);
+            setCurrentRole(serverRole);
             setUserProfile(enrichedUser);
             setAuthStatus("authenticated");
           }
-          saveLocalStoredUser(enrichedUser, token);
+          saveLocalStoredUser(enrichedUser, token || undefined);
           return true;
         }
       }
+
+      // Fail closed whenever verification fails or returns invalid
+      clearLocalStoredUser();
+      if (isMountedRef.current) {
+        setCurrentRole("public");
+        setUserProfile(null);
+        setAuthStatus("unauthenticated");
+      }
+      return false;
     } catch {
-      // Retain existing local credentials on transient glitch
+      clearLocalStoredUser();
+      if (isMountedRef.current) {
+        setCurrentRole("public");
+        setUserProfile(null);
+        setAuthStatus("unauthenticated");
+      }
+      return false;
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
-        const { user } = getLocalStoredUser();
-        setAuthStatus(user ? "authenticated" : "unauthenticated");
       }
     }
-    return Boolean(getLocalStoredUser().user);
   }, []);
 
-  // Sync Subscription State with Payment Ledger
+  // Sync Subscription State with authoritative Payment Ledger
   const syncSubscription = useCallback(async (emailToSync?: string) => {
     const email = emailToSync || userProfileRef.current?.email;
     if (!email) return;
@@ -296,14 +287,17 @@ export function useAuth() {
         const data = text && text.trim() ? JSON.parse(text) : {};
         const currentProf = userProfileRef.current;
         if (data.success && currentProf) {
-          const isPro = Boolean(data.isPro || data.totalPaidINR > 0);
-          const badge = data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
+          const isOwnerUser = currentProf.role === "owner";
+          const isPro = isOwnerUser ? true : Boolean(data.isPro);
+          const badge = isOwnerUser
+            ? currentProf.plan || "Founder & Owner"
+            : data.badgeStatus || (isPro ? "PRO CUSTOMER" : "FREE CUSTOMER");
 
           if (currentProf.plan !== badge || currentProf.isPro !== isPro) {
             const updatedProfile: UserProfile = {
               ...currentProf,
               plan: badge,
-              isPro: isPro,
+              isPro,
             };
             if (isMountedRef.current) {
               setUserProfile(updatedProfile);
@@ -313,11 +307,10 @@ export function useAuth() {
         }
       }
     } catch {
-      // Silently catch background subscription sync failure
+      // Silently ignore transient subscription sync failure
     }
   }, []);
 
-  // Initialize and verify on mount + Auto-reconnect on network restoration
   useEffect(() => {
     isMountedRef.current = true;
     verifySession();
@@ -341,7 +334,6 @@ export function useAuth() {
     };
   }, [verifySession, syncSubscription]);
 
-  // Sync subscription when userProfile email changes
   const userProfileEmail = userProfile?.email;
   useEffect(() => {
     if (userProfileEmail) {
@@ -349,35 +341,30 @@ export function useAuth() {
     }
   }, [userProfileEmail, syncSubscription]);
 
-  // Multi-Tab & Multi-Window Synchronization Listener
+  // Multi-Tab Synchronization Listener (re-verifies with server instead of trusting raw localStorage writes)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (
+        e.key === null ||
         e.key === "pdfsun_user_profile" ||
         e.key === "pdfsun_user_role" ||
         e.key === "pdfsun_auth_token" ||
         e.key === "user"
       ) {
-        try {
-          const { user, role } = getLocalStoredUser();
-          if (user) {
-            setUserProfile(user);
-            setCurrentRole(role);
-            setAuthStatus("authenticated");
-          } else {
-            setUserProfile(null);
-            setCurrentRole("public");
-            setAuthStatus("unauthenticated");
-          }
-        } catch (err) {
-          console.warn("[useAuth] Cross-tab storage sync error:", err);
+        const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
+        if (!token) {
+          setUserProfile(null);
+          setCurrentRole("public");
+          setAuthStatus("unauthenticated");
+        } else {
+          verifySession();
         }
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [verifySession]);
 
   const login = useCallback(
     async (params: {
@@ -387,20 +374,28 @@ export function useAuth() {
       isOwnerLogin?: boolean;
     }) => {
       try {
-        // Fast local mock login with zero backend dependency
-        const result = await mockLoginHandler(params);
-        setCurrentRole(result.role);
-        setUserProfile(result.user);
+        const endpoint = params.isOwnerLogin ? "/api/admin/auth/login" : "/api/v1/auth/login";
+        const res = await fetch(endpoint, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(params),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success || !data?.user) {
+          return {
+            success: false,
+            error: sanitizeAuthError(data?.error || data?.message, "Login failed. Please verify your credentials and try again."),
+          };
+        }
+
+        const role: UserRole = data.user.role || data.role || "user";
+        saveLocalStoredUser(data.user, data.token);
+        setCurrentRole(role);
+        setUserProfile(data.user);
         setAuthStatus("authenticated");
 
-        // Fire background server notification non-blockingly
-        fetch(params.isOwnerLogin ? "/api/admin/auth/login" : "/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
-        }).catch(() => null);
-
-        return { success: true, user: result.user, role: result.role };
+        return { success: true, user: data.user, role };
       } catch (err: any) {
         return { success: false, error: sanitizeAuthError(err, "Login failed. Please verify your credentials and try again.") };
       }
@@ -411,20 +406,27 @@ export function useAuth() {
   const register = useCallback(
     async (params: { name?: string; email: string; password?: string }) => {
       try {
-        // Fast local mock registration with zero backend dependency
-        const result = await mockRegisterHandler(params);
-        setCurrentRole(result.role);
-        setUserProfile(result.user);
+        const res = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(params),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success || !data?.user) {
+          return {
+            success: false,
+            error: sanitizeAuthError(data?.error || data?.message, "Registration failed. Please check your details and try again."),
+          };
+        }
+
+        const role: UserRole = data.user.role || data.role || "user";
+        saveLocalStoredUser(data.user, data.token);
+        setCurrentRole(role);
+        setUserProfile(data.user);
         setAuthStatus("authenticated");
 
-        // Fire background server notification non-blockingly
-        fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
-        }).catch(() => null);
-
-        return { success: true, user: result.user, role: result.role };
+        return { success: true, user: data.user, role };
       } catch (err: any) {
         return { success: false, error: sanitizeAuthError(err, "Registration failed. Please check your details and try again.") };
       }
@@ -432,35 +434,16 @@ export function useAuth() {
     []
   );
 
-  // Google Social Sign In enforcing explicit Account Chooser prompt: "select_account"
+  // Google Social Sign In backed strictly by server session verification (never mints PRO client-side)
   const loginWithGoogle = useCallback(async () => {
     try {
       setIsLoading(true);
       const googleData = await triggerGoogleExplicitLogin();
-      const userProfile: UserProfile = createMockUserProfile({
-        name: googleData.name,
-        email: googleData.email,
-        avatar: googleData.avatar,
-        role: "user",
-        isPro: true,
-        plan: "Pro Sun (Google OAuth)",
-      });
-      const sessionToken = `jwt-google-${Date.now()}`;
-      saveLocalStoredUser(userProfile, sessionToken);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("pdfsun_provider", "google");
-        if (googleData.providerToken) {
-          localStorage.setItem("provider_access_token", googleData.providerToken);
-        }
-      }
-      setCurrentRole("user");
-      setUserProfile(userProfile);
-      setAuthStatus("authenticated");
 
-      // Notify backend server
-      fetch("/api/v1/auth/social-login", {
+      const res = await fetch("/api/v1/auth/social-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           provider: "google",
           email: googleData.email,
@@ -468,9 +451,28 @@ export function useAuth() {
           avatar: googleData.avatar,
           providerToken: googleData.providerToken,
         }),
-      }).catch(() => null);
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success || !data?.user) {
+        return {
+          success: false,
+          error: sanitizeAuthError(data?.error || data?.message, "Google sign-in verification failed."),
+        };
+      }
 
-      return { success: true, user: userProfile, role: "user" as UserRole };
+      const role: UserRole = data.user.role || data.role || "user";
+      saveLocalStoredUser(data.user, data.token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_provider", "google");
+        if (googleData.providerToken) {
+          localStorage.setItem("provider_access_token", googleData.providerToken);
+        }
+      }
+      setCurrentRole(role);
+      setUserProfile(data.user);
+      setAuthStatus("authenticated");
+
+      return { success: true, user: data.user, role };
     } catch (err: any) {
       return { success: false, error: sanitizeAuthError(err, "Google sign-in was cancelled or failed. Please try again.") };
     } finally {
@@ -478,35 +480,16 @@ export function useAuth() {
     }
   }, []);
 
-  // Facebook Social Sign In enforcing explicit re-authentication auth_type: "rerequest"
+  // Facebook Social Sign In backed strictly by server session verification (never mints PRO client-side)
   const loginWithFacebook = useCallback(async () => {
     try {
       setIsLoading(true);
       const fbData = await triggerFacebookExplicitLogin();
-      const userProfile: UserProfile = createMockUserProfile({
-        name: fbData.name,
-        email: fbData.email,
-        avatar: fbData.avatar,
-        role: "user",
-        isPro: true,
-        plan: "Pro Sun (Facebook OAuth)",
-      });
-      const sessionToken = `jwt-fb-${Date.now()}`;
-      saveLocalStoredUser(userProfile, sessionToken);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("pdfsun_provider", "facebook");
-        if (fbData.providerToken) {
-          localStorage.setItem("provider_access_token", fbData.providerToken);
-        }
-      }
-      setCurrentRole("user");
-      setUserProfile(userProfile);
-      setAuthStatus("authenticated");
 
-      // Notify backend server
-      fetch("/api/v1/auth/social-login", {
+      const res = await fetch("/api/v1/auth/social-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           provider: "facebook",
           email: fbData.email,
@@ -514,9 +497,28 @@ export function useAuth() {
           avatar: fbData.avatar,
           providerToken: fbData.providerToken,
         }),
-      }).catch(() => null);
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success || !data?.user) {
+        return {
+          success: false,
+          error: sanitizeAuthError(data?.error || data?.message, "Facebook sign-in verification failed."),
+        };
+      }
 
-      return { success: true, user: userProfile, role: "user" as UserRole };
+      const role: UserRole = data.user.role || data.role || "user";
+      saveLocalStoredUser(data.user, data.token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pdfsun_provider", "facebook");
+        if (fbData.providerToken) {
+          localStorage.setItem("provider_access_token", fbData.providerToken);
+        }
+      }
+      setCurrentRole(role);
+      setUserProfile(data.user);
+      setAuthStatus("authenticated");
+
+      return { success: true, user: data.user, role };
     } catch (err: any) {
       return { success: false, error: sanitizeAuthError(err, "Facebook sign-in was cancelled or failed. Please try again.") };
     } finally {

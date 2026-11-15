@@ -166,51 +166,43 @@ export const ServerStatusWidget: React.FC<ServerStatusWidgetProps> = ({
 
       setHistory((prev) => [...prev.slice(-(maxHistoryPoints - 1)), newPoint]);
     } catch (err: any) {
-      // Graceful fallback to client browser memory performance timing if API fails
+      setError(err?.message || "Server telemetry unavailable");
       const memoryObj = (performance as any).memory;
-      const heapUsedMb = memoryObj ? Math.round(memoryObj.usedJSHeapSize / 1024 / 1024) : 48;
-      const heapTotalMb = memoryObj ? Math.round(memoryObj.totalJSHeapSize / 1024 / 1024) : 96;
+      const heapUsedMb = memoryObj ? Math.round(memoryObj.usedJSHeapSize / 1024 / 1024) : 0;
+      const heapTotalMb = memoryObj ? Math.round(memoryObj.totalJSHeapSize / 1024 / 1024) : 0;
 
       const fallbackData: SystemStatsResponse = {
         timestamp: new Date().toISOString(),
         cpu: {
-          usagePercent: Math.floor(4 + Math.random() * 8),
-          cores: typeof navigator !== "undefined" ? navigator.hardwareConcurrency || 4 : 4,
-          model: "V8 JS Engine Worker Container",
-          loadAvg: [0.12, 0.25, 0.18],
+          usagePercent: 0,
+          cores: typeof navigator !== "undefined" ? navigator.hardwareConcurrency || 0 : 0,
+          model: "Unavailable (API Unreachable)",
+          loadAvg: [0, 0, 0],
         },
         memory: {
           heapUsedMb,
           heapTotalMb,
-          rssMb: Math.round(heapTotalMb * 1.4),
-          systemTotalMb: 4096,
-          systemFreeMb: 2048,
-          usagePercent: Math.round((heapUsedMb / heapTotalMb) * 100) || 45,
+          rssMb: 0,
+          systemTotalMb: 0,
+          systemFreeMb: 0,
+          usagePercent: heapTotalMb > 0 ? Math.round((heapUsedMb / heapTotalMb) * 100) : 0,
         },
         network: {
-          totalRequests: 1,
+          totalRequests: 0,
           totalBytesTransferred: 0,
-          latencyMs: Math.floor(12 + Math.random() * 10),
+          latencyMs: 0,
         },
         server: {
-          uptimeSec: Math.floor(performance.now() / 1000),
-          nodeVersion: "v20.x (Browser Fallback)",
-          platform: typeof navigator !== "undefined" ? navigator.platform : "linux",
-          arch: "x64",
-          env: "development",
+          uptimeSec: 0,
+          nodeVersion: "Unavailable",
+          platform: typeof navigator !== "undefined" ? navigator.platform : "unknown",
+          arch: "unknown",
+          env: "unknown",
         },
       };
 
       setStats(fallbackData);
       setLastSyncTime(new Date().toLocaleTimeString());
-
-      const newPoint: SparklineDataPoint = {
-        time: new Date().toLocaleTimeString(),
-        cpu: fallbackData.cpu.usagePercent,
-        memory: fallbackData.memory.heapUsedMb,
-        networkLatency: fallbackData.network.latencyMs,
-      };
-      setHistory((prev) => [...prev.slice(-(maxHistoryPoints - 1)), newPoint]);
     }
   }, []);
 
@@ -401,7 +393,7 @@ export const ServerStatusWidget: React.FC<ServerStatusWidgetProps> = ({
               </div>
             </div>
             <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {stats?.network.latencyMs || 12} ms
+              {stats?.network.latencyMs ?? 0} ms
             </span>
           </div>
 

@@ -70,7 +70,9 @@ export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; d
     "voice-to-pdf": { name: "वॉयस से पीडीएफ (Voice-to-PDF Dictation)", desc: "माइक में बोलकर नोट्स डिक्टेट करें और तुरंत संरचित पीडीएफ बनाएं।" },
     "quantum-preflight-hud": { name: "क्वांटम प्री-फ्लाइट एचयूडी (Pre-Flight HUD)", desc: "पीडीएफ अनुपालन, फॉन्ट, रंग प्रोफाइल और प्रिंट तैयारी का विश्लेषण करें।" },
     "macro-automator": { name: "मैक्रो ऑटोमेटर (Macro Automator 2026)", desc: "एक क्लिक में कई चरणों वाले बैच पीडीएफ वर्कफ़्लो स्वचालित करें।" },
-    "read-pdf-metadata": { name: "पीडीएफ मेटाडेटा पढ़ें (Read PDF Metadata)", desc: "पीडीएफ के आंतरिक मेटाडेटा, निर्माण तिथि और सॉफ्टवेयर विवरण देखें।" }
+    "read-pdf-metadata": { name: "पीडीएफ मेटाडेटा पढ़ें (Read PDF Metadata)", desc: "पीडीएफ के आंतरिक मेटाडेटा, निर्माण तिथि और सॉफ्टवेयर विवरण देखें।" },
+    "barcode-generator": { name: "बारकोड जनरेटर (Barcode Generator)", desc: "Code 128, EAN-13, UPC-A, ITF-14 और GS1-128 लेबल PNG, SVG, JPG या PDF में तुरंत बनाएं।" },
+    "qr-code-generator": { name: "क्यूआर कोड जनरेटर (QR Code Generator)", desc: "URL, Wi-Fi, vCard और WhatsApp के लिए कस्टम क्यूआर कोड लोगो और लाइव स्कैन जांच के साथ बनाएं।" }
   },
   es: {
     "merge-pdf": { name: "Unir PDF (Merge)", desc: "Combina varios archivos PDF en un único documento organizado." },
@@ -140,7 +142,9 @@ export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; d
     "voice-to-pdf": { name: "Voz a PDF (Dictado por Voz)", desc: "Habla a tu micrófono para dictar notas y generar un PDF estructurado al instante." },
     "quantum-preflight-hud": { name: "HUD Pre-Vuelo Cuántico", desc: "Inspecciona el cumplimiento de estándares PDF, fuentes, perfiles de color e impresión." },
     "macro-automator": { name: "Automatizador de Macros", desc: "Automatiza flujos de trabajo PDF por lotes en múltiples pasos con un solo clic." },
-    "read-pdf-metadata": { name: "Leer Metadatos PDF", desc: "Inspecciona los metadatos internos del PDF, autor, fechas de creación y seguridad." }
+    "read-pdf-metadata": { name: "Leer Metadatos PDF", desc: "Inspecciona los metadatos internos del PDF, autor, fechas de creación y seguridad." },
+    "barcode-generator": { name: "Generador de Códigos de Barras", desc: "Crea códigos de barras Code 128, EAN-13, UPC-A, ITF-14 y GS1-128 verificados en PNG, SVG, JPG o PDF." },
+    "qr-code-generator": { name: "Generador de Códigos QR", desc: "Crea códigos QR personalizados para URL, Wi-Fi, vCard y WhatsApp con logotipo y verificación en vivo." }
   },
   fr: {
     "merge-pdf": { name: "Fusionner PDF", desc: "Assemblez plusieurs documents PDF en un seul fichier ordonné." },
@@ -209,7 +213,9 @@ export const TOOL_TRANSLATIONS: Record<string, Record<string, { name?: string; d
     "rtf-to-pdf": { name: "RTF en PDF", desc: "Convertissez des documents Rich Text Format en PDF de qualité." },
     "txt-to-pdf": { name: "TXT en PDF", desc: "Transformez des notes texte simples en documents PDF soignés." },
     "xml-to-pdf": { name: "XML en PDF", desc: "Générez des documents PDF lisibles à partir de fichiers XML." },
-    "share-pdfsun": { name: "Partager PDFSun", desc: "Partagez la boîte à outils PDFSun via lien direct ou QR code." }
+    "share-pdfsun": { name: "Partager PDFSun", desc: "Partagez la boîte à outils PDFSun via lien direct ou QR code." },
+    "barcode-generator": { name: "Générateur de Code-Barres", desc: "Créez des codes-barres Code 128, EAN-13, UPC-A, ITF-14 et GS1-128 vérifiés en PNG, SVG, JPG ou PDF." },
+    "qr-code-generator": { name: "Générateur de Code QR", desc: "Créez des codes QR personnalisés pour URL, Wi-Fi, vCard et WhatsApp avec logo et vérification en direct." }
   },
   de: {
     "merge-pdf": { name: "PDF zusammenfügen", desc: "Kombinieren Sie mehrere PDF-Dateien zu einem einzigen Dokument." },

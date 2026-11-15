@@ -107,49 +107,53 @@ export function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function detectActivePlanTier(): keyof typeof PLAN_LIMITS {
-  if (typeof window === "undefined") return "free";
+export function detectActivePlanTier(
+  verifiedProfile?: {
+    role?: string;
+    email?: string;
+    plan?: string;
+    planId?: string;
+    isPro?: boolean;
+    isSsoManaged?: boolean;
+  } | null
+): keyof typeof PLAN_LIMITS {
+  if (!verifiedProfile) return "free";
   try {
-    const savedRole = localStorage.getItem("pdfsun_user_role");
-    if (savedRole === "owner") return "owner";
-
-    const savedProfile = localStorage.getItem("pdfsun_user_profile");
-    if (savedProfile) {
-      const p = JSON.parse(savedProfile);
-      const email = (p.email || "").toLowerCase().trim();
-      if (p.role === "owner" || email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") {
-        return "owner";
-      }
-      const planStr = (p.plan || p.planId || "").toLowerCase();
-      if (planStr.includes("enterprise sso") || planStr.includes("enterprise-sso") || p.isSsoManaged) {
-        return "enterprise-sso";
-      }
-      if (planStr.includes("enterprise")) {
-        return "enterprise";
-      }
-      if (planStr.includes("annual") || planStr.includes("yearly") || planStr.includes("pro-yearly")) {
-        return "pro-yearly";
-      }
-      if (planStr.includes("monthly") || planStr.includes("pro sun monthly") || planStr.includes("pro-monthly")) {
-        return "pro-monthly";
-      }
-      if (planStr.includes("flex") || planStr.includes("pass") || planStr.includes("flexi")) {
-        return "flexi";
-      }
-      if (p.isPro || planStr.includes("pro")) {
-        return "pro-monthly";
-      }
+    const email = (verifiedProfile.email || "").toLowerCase().trim();
+    if (
+      verifiedProfile.role === "owner" &&
+      (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com")
+    ) {
+      return "owner";
     }
-
+    if (!verifiedProfile.isPro) {
+      return "free";
+    }
+    const planStr = (verifiedProfile.plan || verifiedProfile.planId || "").toLowerCase();
+    if (planStr.includes("enterprise sso") || planStr.includes("enterprise-sso") || verifiedProfile.isSsoManaged) {
+      return "enterprise-sso";
+    }
+    if (planStr.includes("enterprise")) {
+      return "enterprise";
+    }
+    if (planStr.includes("annual") || planStr.includes("yearly") || planStr.includes("pro-yearly")) {
+      return "pro-yearly";
+    }
+    if (planStr.includes("monthly") || planStr.includes("pro sun monthly") || planStr.includes("pro-monthly")) {
+      return "pro-monthly";
+    }
+    if (planStr.includes("flex") || planStr.includes("pass") || planStr.includes("flexi")) {
+      return "flexi";
+    }
+    return "pro-monthly";
   } catch {}
   return "free";
 }
 
 export function useUsageTracker(isUserProOverride: boolean = false) {
-  const [activeTier, setActiveTier] = useState<keyof typeof PLAN_LIMITS>(() => {
-    if (isUserProOverride) return "pro-monthly";
-    return detectActivePlanTier();
-  });
+  const [activeTier, setActiveTier] = useState<keyof typeof PLAN_LIMITS>(() =>
+    isUserProOverride ? "pro-monthly" : "free"
+  );
 
   const currentPlan = PLAN_LIMITS[activeTier] || PLAN_LIMITS.free;
   const isPro = activeTier !== "free";
@@ -212,13 +216,44 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
   const [paywallReason, setPaywallReason] = useState<PaywallReason>(null);
   const [blockedFileSize, setBlockedFileSize] = useState<number | undefined>(undefined);
 
-  // Sync active tier from localStorage or override
+  // Sync active tier from backend session verification (never localStorage role/isPro flags)
   useEffect(() => {
     if (isUserProOverride) {
       setActiveTier("pro-monthly");
-    } else {
-      setActiveTier(detectActivePlanTier());
+      return;
     }
+    if (typeof window === "undefined") {
+      setActiveTier("free");
+      return;
+    }
+
+    let cancelled = false;
+    const token = localStorage.getItem("pdfsun_auth_token");
+    if (!token) {
+      setActiveTier("free");
+      return;
+    }
+
+    fetch("/api/v1/auth/verify-session", {
+      credentials: "include",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.valid && data?.user) {
+          setActiveTier(detectActivePlanTier(data.user));
+        } else {
+          setActiveTier("free");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setActiveTier("free");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [isUserProOverride]);
 
   const saveUsage = (newUsage: UsageData) => {
@@ -346,12 +381,6 @@ export function useUsageTracker(isUserProOverride: boolean = false) {
 
   const setProStatus = useCallback((active: boolean, tier: keyof typeof PLAN_LIMITS = "pro-monthly") => {
     setActiveTier(active ? tier : "free");
-    try {
-      localStorage.setItem(PRO_PLAN_KEY, active ? tier : "free");
-      localStorage.setItem("pdfsun_user_is_pro", active ? "true" : "false");
-    } catch (e) {
-      console.error(e);
-    }
   }, []);
 
   const resetCounter = useCallback(() => {
