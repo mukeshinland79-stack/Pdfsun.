@@ -394,6 +394,9 @@ export function parseGs1_128Input(rawInput: string): {
   if (!input) {
     throw new Error("GS1-128 requires at least one Application Identifier, e.g. (01)08901030895124(17)271231(10)B01.");
   }
+  if (input.length > 160) {
+    throw new Error("GS1-128 input exceeds maximum safe length of 160 characters.");
+  }
   if (!input.startsWith("(")) {
     throw new Error("Format GS1-128 with parenthesized Application Identifiers, e.g. (01)08901030895124(10)LOT42.");
   }
@@ -499,6 +502,9 @@ function encodeCode39(raw: string, includeChecksum: boolean): { modules: string;
   // Strip user-provided surrounding asterisks so we normalize consistently
   const core = upper.startsWith("*") && upper.endsWith("*") && upper.length >= 2 ? upper.slice(1, -1) : upper;
   if (!core.length) throw new Error("Code 39 payload cannot be empty.");
+  if (core.length > 80) {
+    throw new Error("Code 39 payload exceeds maximum safe length of 80 characters.");
+  }
 
   for (const ch of core) {
     if (!CODE39_ALPHABET.includes(ch)) {
@@ -768,6 +774,9 @@ function encodeCodabar(
     throw new Error("If specifying Codabar start/stop guards (A–D), provide both start and stop guards (e.g. A12345B).");
   }
 
+  if (clean.length > 80) {
+    throw new Error("Codabar payload exceeds maximum safe length of 80 characters.");
+  }
   if (!/^[0-9\-$:\/.+]+$/.test(clean)) {
     throw new Error("Codabar payload allows digits 0–9 and symbols - $ : / . +");
   }
@@ -943,6 +952,9 @@ export function generateBarcode(inputValue: string, options: BarcodeGenerationOp
           throw new Error("Code 128 input cannot be empty.");
         }
         const raw = inputValue;
+        if (raw.length > 128) {
+          throw new Error("Code 128 input exceeds maximum safe length of 128 characters.");
+        }
         const values = encodeCode128AutoValues([{ type: "text", value: raw }]);
         modules = buildCode128ModulesFromValues(values);
         normalizedValue = raw;

@@ -43,27 +43,30 @@ export function recordSSOAuditLogEntry(entry: {
     // client storage fallback
   }
 
-  // Also post to backend if available
+  // Also post to backend only when an authenticated admin session token exists
   try {
     const storedToken =
       (typeof window !== "undefined" && (
         localStorage.getItem("pdfsun_admin_token") ||
         sessionStorage.getItem("pdfsun_admin_token") ||
-        localStorage.getItem("token")
+        localStorage.getItem("pdfsun_auth_token")
       )) || "";
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "x-user-email": entry.adminOperator || "mukeshinland79@gmail.com",
-    };
     if (storedToken) {
-      headers["Authorization"] = `Bearer ${storedToken}`;
-      headers["x-admin-token"] = storedToken;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${storedToken}`,
+        "x-admin-token": storedToken,
+      };
+      if (entry.adminOperator && entry.adminOperator.includes("@")) {
+        headers["x-user-email"] = entry.adminOperator;
+      }
+      fetch("/api/admin/audit-logs", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify(newLog),
+      }).catch(() => {});
     }
-    fetch("/api/admin/audit-logs", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(newLog),
-    }).catch(() => {});
   } catch {
     // ignore
   }

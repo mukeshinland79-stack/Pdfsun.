@@ -132,7 +132,7 @@ export function checkAdminRole(user: UserProfile | null, role?: UserRole): boole
 
   const email = (user.email || "").toLowerCase().trim();
   if (DUAL_OWNER_EMAILS.includes(email)) return true;
-  if (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") return true;
+  if (email === "mukeshinland79@gmail.com") return true;
 
   if (user.role === "owner" || user.hasAdminAccess === true) return true;
   return false;
@@ -148,7 +148,7 @@ export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boole
 
   const email = (user.email || "").toLowerCase().trim();
   if (DUAL_OWNER_EMAILS.includes(email)) return true;
-  if (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com") return true;
+  if (email === "mukeshinland79@gmail.com") return true;
 
   return user.role === "owner" || role === "owner";
 }
@@ -204,9 +204,31 @@ export function useAuth() {
     }
   }, []);
 
-  // Always verify session against the backend API (supports HttpOnly cookie and Bearer token)
+  // Always verify session against the backend API (supports HttpOnly cookie, Bearer token, and verified Firebase Auth re-hydration)
   const verifySession = useCallback(async (): Promise<boolean> => {
     const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
+
+    const applyAuthenticatedUser = (userData: UserProfile, sessionToken?: string | null) => {
+      const serverRole: UserRole =
+        userData.role === "owner" || isOwnerAccount(userData.email)
+          ? userData.role === "owner"
+            ? "owner"
+            : "user"
+          : userData.role || "user";
+      const enrichedUser: UserProfile = {
+        ...userData,
+        role: serverRole,
+        hasAdminAccess: Boolean(userData.hasAdminAccess) || serverRole === "owner",
+        isPro: Boolean(userData.isPro),
+      };
+
+      if (isMountedRef.current) {
+        setCurrentRole(serverRole);
+        setUserProfile(enrichedUser);
+        setAuthStatus("authenticated");
+      }
+      saveLocalStoredUser(enrichedUser, sessionToken || undefined);
+    };
 
     try {
       const res = await fetch("/api/v1/auth/verify-session", {
@@ -218,27 +240,45 @@ export function useAuth() {
         const text = await res.text();
         const data = text && text.trim() ? JSON.parse(text) : {};
         if (data.valid && data.user) {
-          const serverRole: UserRole =
-            data.user.role === "owner" || isOwnerAccount(data.user.email)
-              ? data.user.role === "owner"
-                ? "owner"
-                : "user"
-              : data.user.role || "user";
-          const enrichedUser: UserProfile = {
-            ...data.user,
-            role: serverRole,
-            hasAdminAccess: Boolean(data.user.hasAdminAccess) || serverRole === "owner",
-            isPro: Boolean(data.user.isPro),
-          };
-
-          if (isMountedRef.current) {
-            setCurrentRole(serverRole);
-            setUserProfile(enrichedUser);
-            setAuthStatus("authenticated");
-          }
-          saveLocalStoredUser(enrichedUser, token || undefined);
+          applyAuthenticatedUser(data.user, token);
           return true;
         }
+      }
+
+      // If backend JWT expired or rotated (e.g. after server restart), check for an active
+      // cryptographically verified Firebase Auth session and exchange its ID token for a fresh JWT.
+      try {
+        const firebaseApp = getFirebaseApp();
+        const fbAuth = getAuth(firebaseApp);
+        if (typeof fbAuth.authStateReady === "function") {
+          await fbAuth.authStateReady();
+        }
+        const fbUser = fbAuth.currentUser;
+        if (fbUser && fbUser.email) {
+          const freshIdToken = await fbUser.getIdToken();
+          const rehydrateRes = await fetch("/api/v1/auth/social-login", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              provider: "google",
+              email: fbUser.email,
+              name: fbUser.displayName || undefined,
+              avatar: fbUser.photoURL || undefined,
+              providerToken: freshIdToken,
+            }),
+          }).catch(() => null);
+
+          if (rehydrateRes && rehydrateRes.ok) {
+            const rehydrateData = await rehydrateRes.json().catch(() => ({}));
+            if (rehydrateData?.success && rehydrateData?.user) {
+              applyAuthenticatedUser(rehydrateData.user, rehydrateData.token);
+              return true;
+            }
+          }
+        }
+      } catch {
+        // Ignore Firebase re-hydration errors and fall through to fail-closed unauthenticated state
       }
 
       // Fail closed whenever verification fails or returns invalid
@@ -639,6 +679,25 @@ export function useAuth() {
     });
   }, []);
 
+  const updateProfileName = useCallback((updatedName: string) => {
+    const trimmed = updatedName.trim();
+    if (!trimmed) return;
+    setUserProfile((prev) => {
+      if (!prev) return null;
+      const updated: UserProfile = {
+        ...prev,
+        name: trimmed,
+      };
+      saveLocalStoredUser(updated);
+      if (typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(new Event("storage"));
+        } catch {}
+      }
+      return updated;
+    });
+  }, []);
+
   return {
     currentRole,
     userProfile,
@@ -658,6 +717,7 @@ export function useAuth() {
     logout,
     updateRole,
     updateAvatar,
+    updateProfileName,
     verifySession,
     syncSubscription,
   };

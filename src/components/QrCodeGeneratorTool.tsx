@@ -38,6 +38,7 @@ import {
   QrStudioRenderOptions,
   QrVerificationResult,
   buildQrPayload,
+  validateBulkQrPayload,
   validateQrLogoFile,
   resolveEffectiveEcc,
   generateQrStudioSvg,
@@ -65,6 +66,7 @@ export interface QrCodeGeneratorToolProps {
 
 const GUIDE_SLUG = "complete-guide-qr-code-generator-wifi-vcard-pdf-links";
 const BULK_QR_LIMIT = 500;
+const MAX_BULK_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const CONTENT_TYPES: Array<{ id: QrContentType; label: string; icon: React.FC<{ className?: string }> }> = [
   { id: "url", label: "Website URL", icon: Link2 },
@@ -529,6 +531,17 @@ export const QrCodeGeneratorTool: React.FC<QrCodeGeneratorToolProps> = ({
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const ext = file.name.toLowerCase().split(".").pop() || "";
+    if (!["csv", "xls", "xlsx"].includes(ext)) {
+      triggerErrorToast("Unsupported File", "Upload a .csv, .xls, or .xlsx spreadsheet.");
+      if (bulkInputRef.current) bulkInputRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_BULK_FILE_BYTES) {
+      triggerErrorToast("File Too Large", "Bulk spreadsheet exceeds the 10 MB browser memory safety limit.");
+      if (bulkInputRef.current) bulkInputRef.current.value = "";
+      return;
+    }
     setBulkBusy(true);
     try {
       const buffer = await file.arrayBuffer();
@@ -558,19 +571,20 @@ export const QrCodeGeneratorTool: React.FC<QrCodeGeneratorToolProps> = ({
         const rawPayload = String(row[payloadKey] ?? "").trim();
         const rowCaption = captionKey ? String(row[captionKey] ?? "").trim() : "";
 
-        if (!rawPayload) {
+        const bulkCheck = validateBulkQrPayload(rawPayload);
+        if (!bulkCheck.valid) {
           return {
             rowIndex: idx + 1,
-            payload: "",
+            payload: rawPayload,
             caption: rowCaption,
             valid: false,
-            error: "Empty QR payload",
+            error: bulkCheck.error || "Invalid QR payload",
           };
         }
-        const scanCheck = verifyQrPayloadViaMatrixPixels(rawPayload, effectiveEcc);
+        const scanCheck = verifyQrPayloadViaMatrixPixels(bulkCheck.payload, effectiveEcc);
         return {
           rowIndex: idx + 1,
-          payload: rawPayload,
+          payload: bulkCheck.payload,
           caption: rowCaption,
           valid: scanCheck.verified && scanCheck.exactMatch,
           error: scanCheck.error,

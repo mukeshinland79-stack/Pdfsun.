@@ -25,7 +25,7 @@ export interface AdminCommentModerationProps {
 }
 
 export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
-  currentUserEmail = "mukeshinland79@gmail.com"
+  currentUserEmail = ""
 }) => {
   const [comments, setComments] = useState<UserComment[]>([]);
   const [metrics, setMetrics] = useState({
@@ -57,16 +57,18 @@ export const AdminCommentModeration: React.FC<AdminCommentModerationProps> = ({
         (typeof window !== "undefined" && (
           localStorage.getItem("pdfsun_admin_token") ||
           sessionStorage.getItem("pdfsun_admin_token") ||
-          localStorage.getItem("token")
+          localStorage.getItem("pdfsun_auth_token")
         )) || "";
-      const headers: Record<string, string> = {
-        "x-user-email": currentUserEmail.toLowerCase().trim(),
-      };
+      const headers: Record<string, string> = {};
+      if (currentUserEmail) {
+        headers["x-user-email"] = currentUserEmail.toLowerCase().trim();
+      }
       if (storedToken) {
         headers["Authorization"] = `Bearer ${storedToken}`;
         headers["x-admin-token"] = storedToken;
       }
       const res = await fetch(`/api/admin/comments?status=${statusTab === "banned_ips" ? "all" : statusTab}`, {
+        credentials: "include",
         headers
       });
       if (res.ok) {

@@ -56,7 +56,14 @@ export const AdminPerformanceHeatmap: React.FC<AdminPerformanceHeatmapProps> = (
     let active = true;
     const sampleCurrentHour = async () => {
       try {
-        const res = await fetch("/api/system/public-stats", { credentials: "include" });
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+            : "";
+        const res = await fetch("/api/admin/system-stats", {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!res.ok || !active) return;
         const stats = await res.json();
         const now = new Date();

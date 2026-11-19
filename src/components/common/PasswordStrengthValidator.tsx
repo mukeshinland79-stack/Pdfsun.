@@ -56,8 +56,8 @@ export function validatePasswordStrength(
     minLength = 8,
     requireNumber = true,
     requireSpecial = true,
-    requireUppercase = true,
-    requireLowercase = true,
+    requireUppercase = false,
+    requireLowercase = false,
   } = options;
 
   if (!password) {
@@ -221,8 +221,8 @@ export const PasswordStrengthValidator: React.FC<PasswordStrengthValidatorProps>
   minLength = 8,
   requireNumber = true,
   requireSpecial = true,
-  requireUppercase = true,
-  requireLowercase = true,
+  requireUppercase = false,
+  requireLowercase = false,
   showRulesList = true,
   showStrengthBar = true,
   showSummaryBadge = true,

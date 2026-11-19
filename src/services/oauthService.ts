@@ -193,6 +193,7 @@ export async function triggerGoogleExplicitLogin(): Promise<OAuthUserPayload> {
 export function initFacebookSdk(): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === "undefined") return resolve();
+    if (!FB_APP_ID || FB_APP_ID === "YOUR_FACEBOOK_APP_ID") return resolve();
     if (window.FB) return resolve();
 
     window.fbAsyncInit = () => {
@@ -269,6 +270,10 @@ export async function triggerFacebookExplicitLogin(): Promise<OAuthUserPayload> 
     }
 
     console.warn("[OAuth] Firebase Facebook login notice, trying FB JS SDK:", fbErr?.message);
+
+    if (!FB_APP_ID || FB_APP_ID === "YOUR_FACEBOOK_APP_ID") {
+      throw new Error("Facebook login is not configured for this environment. Please use email or Google sign-in.");
+    }
 
     // Attempt 2: Facebook JavaScript SDK
     if (window.FB) {

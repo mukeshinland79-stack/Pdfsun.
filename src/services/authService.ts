@@ -99,6 +99,7 @@ export async function requestPasswordReset(identifier: string): Promise<SafeApiR
 
   return safeFetchJson<AuthApiResponse>(url, {
     method: "POST",
+    retries: 0,
     headers: DEFAULT_HEADERS,
     body: JSON.stringify(payload),
   });

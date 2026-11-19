@@ -147,7 +147,15 @@ export const ServerStatusWidget: React.FC<ServerStatusWidgetProps> = ({
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch("/api/system/public-stats", { signal: controller.signal });
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+          : "";
+      const res = await fetch("/api/admin/system-stats", {
+        signal: controller.signal,
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       clearTimeout(timeoutId);
       if (!res.ok) {
         throw new Error(`Server returned ${res.status}`);

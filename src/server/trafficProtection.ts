@@ -73,7 +73,7 @@ function addAuditLog(
 /**
  * Periodically purge stale IP tracking records (every 10 minutes)
  */
-setInterval(() => {
+const ipCleanupTimer = setInterval(() => {
   const now = Date.now();
   const maxRetention = 30 * 60 * 1000; // 30 minutes
 
@@ -89,6 +89,7 @@ setInterval(() => {
     }
   }
 }, 10 * 60 * 1000);
+ipCleanupTimer.unref?.();
 
 /**
  * Extract real client IP behind reverse proxies/Cloudflare
@@ -275,14 +276,17 @@ export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: stri
   return (req: Request, res: Response, next: NextFunction) => {
     const userAgent = (req.headers["user-agent"] || "").toString();
 
-    // 1. Search Engine Crawlers are always exempt from rate limits on public pages
-    if (isVerifiedSearchCrawler(userAgent) && !req.path.startsWith("/api/auth")) {
+    // 1. Search Engine Crawlers are exempt from rate limits on public pages ONLY (never auth endpoints)
+    if (categoryName !== "auth" && isVerifiedSearchCrawler(userAgent) && !req.path.includes("/auth")) {
       return next();
     }
 
     const clientIp = getClientIp(req);
-    const userIdHeader = (req.headers["x-user-id"] || req.headers["x-user-email"] || "").toString().toLowerCase().trim();
-    // Unique key: composite of IP + endpoint category (+ user ID if authenticated)
+    const userIdHeader =
+      categoryName === "auth"
+        ? ""
+        : (req.headers["x-user-id"] || req.headers["x-user-email"] || "").toString().toLowerCase().trim();
+    // Unique key: auth endpoints strictly key by IP (prevents header-rotation bypass); general endpoints may scope by IP+category
     const clientKey = userIdHeader ? `${clientIp}:${userIdHeader}:${categoryName}` : `${clientIp}:${categoryName}`;
 
     const now = Date.now();

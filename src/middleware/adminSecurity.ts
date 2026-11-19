@@ -11,8 +11,6 @@ import { isValidAdminSecret, isVerifiedOwnerIdentity } from "../server/middlewar
  * 3. Enforce session hijacking protection via IP & User-Agent fingerprint consistency.
  */
 
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "";
-
 export const DUAL_OWNER_EMAILS = [
   "mukeshkalonia241@gmail.com",
   "mukeshinland79@gmail.com",

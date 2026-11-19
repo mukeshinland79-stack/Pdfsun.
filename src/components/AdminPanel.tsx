@@ -328,46 +328,72 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [logs, setLogs] = useState<{ id: number; time: string; type: string; msg: string }[]>([]);
 
   const handleToggleUserStatusInternal = async (userId: string) => {
-    if (onToggleUserStatus) {
-      onToggleUserStatus(userId);
-    } else {
-      const target = localUserList.find((u) => u.id === userId);
-      const newStatus = target?.status === "Active" ? "Suspended" : "Active";
-      setLocalUserList((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
-      );
-      try {
-        await fetch("/api/admin/users/update", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: userId, updates: { status: newStatus } }),
-        });
-      } catch (err) {
-        console.error("Failed to update status:", err);
+    const target = activeUserList.find((u) => u.id === userId) || localUserList.find((u) => u.id === userId);
+    const newStatus = target?.status === "Active" ? "Suspended" : "Active";
+    try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+          : "";
+      const res = await fetch("/api/admin/users/update", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id: userId, email: target?.email, updates: { status: newStatus } }),
+      });
+      const data = await safeParseAdminJson(res);
+      if (!res.ok || !data.success) {
+        console.error("Failed to update user status:", data?.error || res.status);
+        return;
       }
+      if (Array.isArray(data.users)) {
+        setLocalUserList(data.users);
+      } else {
+        setLocalUserList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+        );
+      }
+      onToggleUserStatus?.(userId);
+    } catch (err) {
+      console.error("Failed to update status:", err);
     }
   };
 
   const handleToggleAdminPermissionInternal = async (userId: string) => {
-    if (onToggleAdminPermission) {
-      onToggleAdminPermission(userId);
-    } else {
-      const target = localUserList.find((u) => u.id === userId);
-      const newAdminAccess = !target?.hasAdminAccess;
-      setLocalUserList((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, hasAdminAccess: newAdminAccess } : u))
-      );
-      try {
-        await fetch("/api/admin/users/update", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: userId, updates: { hasAdminAccess: newAdminAccess } }),
-        });
-      } catch (err) {
-        console.error("Failed to toggle admin access:", err);
+    const target = activeUserList.find((u) => u.id === userId) || localUserList.find((u) => u.id === userId);
+    const newAdminAccess = !target?.hasAdminAccess;
+    try {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+          : "";
+      const res = await fetch("/api/admin/users/update", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id: userId, email: target?.email, updates: { hasAdminAccess: newAdminAccess } }),
+      });
+      const data = await safeParseAdminJson(res);
+      if (!res.ok || !data.success) {
+        console.error("Failed to toggle admin access:", data?.error || res.status);
+        return;
       }
+      if (Array.isArray(data.users)) {
+        setLocalUserList(data.users);
+      } else {
+        setLocalUserList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, hasAdminAccess: newAdminAccess } : u))
+        );
+      }
+      onToggleAdminPermission?.(userId);
+    } catch (err) {
+      console.error("Failed to toggle admin access:", err);
     }
   };
 

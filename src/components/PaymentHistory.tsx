@@ -157,7 +157,11 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const fetchPaymentHistory = useCallback(async () => {
     try {
       setRefreshing(true);
-      const email = userProfile.email || "mukeshinland79@gmail.com";
+      const email = (userProfile.email || "").trim().toLowerCase();
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       const token =
         typeof window !== "undefined"
           ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
@@ -300,7 +304,11 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     try {
       setSyncing(true);
       setSyncMessage(null);
-      const email = userProfile.email || "mukeshinland79@gmail.com";
+      const email = (userProfile.email || "").trim().toLowerCase();
+      if (!email) {
+        setSyncMessage("⚠️ Please sign in to sync payment status.");
+        return;
+      }
       const token =
         typeof window !== "undefined"
           ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""

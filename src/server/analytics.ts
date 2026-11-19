@@ -101,9 +101,10 @@ function loadAnalyticsState(): void {
         successfulConversions: sameDay && Number.isFinite(parsed.successfulConversions) ? Number(parsed.successfulConversions) : 0,
         failedConversions: sameDay && Number.isFinite(parsed.failedConversions) ? Number(parsed.failedConversions) : 0,
         cancelledProcesses: sameDay && Number.isFinite(parsed.cancelledProcesses) ? Number(parsed.cancelledProcesses) : 0,
-        latencyHistory: Array.isArray(parsed.latencyHistory)
-          ? parsed.latencyHistory.filter((n) => typeof n === "number" && Number.isFinite(n) && n > 0).slice(-MAX_LATENCY_SAMPLES)
-          : [],
+        latencyHistory:
+          sameDay && Array.isArray(parsed.latencyHistory)
+            ? parsed.latencyHistory.filter((n) => typeof n === "number" && Number.isFinite(n) && n > 0).slice(-MAX_LATENCY_SAMPLES)
+            : [],
         toolCounters: parsed.toolCounters && typeof parsed.toolCounters === "object" ? parsed.toolCounters : {},
         recentEventIds: Array.isArray(parsed.recentEventIds)
           ? parsed.recentEventIds.filter((s) => typeof s === "string").slice(-MAX_DEDUPE_EVENT_IDS)
@@ -460,13 +461,22 @@ router.get("/live", (req: Request, res: Response) => {
       clearInterval(pinger);
     }
   }, 15000);
+  if (typeof pinger.unref === "function") {
+    pinger.unref();
+  }
 
-  req.on("close", () => {
+  let closed = false;
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
     clearInterval(pinger);
     activeSseClientsCount = Math.max(0, activeSseClientsCount - 1);
     sseClients.delete(res);
     broadcastLiveMetrics();
-  });
+  };
+
+  req.on("close", cleanup);
+  res.on("close", cleanup);
 });
 
 // GET /api/analytics/stats (REST Snapshot Endpoint)
@@ -492,6 +502,12 @@ router.post("/event", (req: Request, res: Response) => {
   if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
     return res.status(400).json({ success: false, error: "Invalid payload: expected JSON object" });
   }
+  const allowedEventKeys = new Set(["toolId", "stage", "eventId", "latencyMs", "fileExt", "fileSizeBytes", "success"]);
+  for (const key of Object.keys(req.body)) {
+    if (!allowedEventKeys.has(key)) {
+      return res.status(400).json({ success: false, error: `Invalid payload: unexpected key '${key}'` });
+    }
+  }
   const { toolId, stage, eventId, latencyMs, fileExt, fileSizeBytes, success } = req.body;
   if (typeof toolId !== "string" || !/^[a-z0-9_-]{2,80}$/i.test(toolId.trim())) {
     return res.status(400).json({ success: false, error: "Invalid toolId" });
@@ -510,6 +526,9 @@ router.post("/event", (req: Request, res: Response) => {
   }
   if (fileSizeBytes !== undefined && (typeof fileSizeBytes !== "number" || !Number.isFinite(fileSizeBytes) || fileSizeBytes < 0)) {
     return res.status(400).json({ success: false, error: "Invalid fileSizeBytes" });
+  }
+  if (success !== undefined && typeof success !== "boolean") {
+    return res.status(400).json({ success: false, error: "Invalid success flag" });
   }
 
   const outcome = recordPlatformAnalyticsEvent({
@@ -530,10 +549,16 @@ router.post("/event", (req: Request, res: Response) => {
   });
 });
 
-// POST /api/analytics/record-conversion (Record Event Endpoint)
+// POST /api/analytics/record-conversion (Strict Payload Validation & Record Event Endpoint)
 router.post("/record-conversion", (req: Request, res: Response) => {
   if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
     return res.status(400).json({ success: false, error: "Invalid payload: body must be a JSON object" });
+  }
+  const allowedKeys = new Set(["latencyMs", "success", "toolId", "eventId"]);
+  for (const key of Object.keys(req.body)) {
+    if (!allowedKeys.has(key)) {
+      return res.status(400).json({ success: false, error: `Invalid payload: unexpected key '${key}'` });
+    }
   }
   const { latencyMs, success, toolId, eventId } = req.body;
   if (typeof latencyMs !== "number" || !Number.isFinite(latencyMs) || latencyMs < 1 || latencyMs > 300000) {
@@ -545,20 +570,27 @@ router.post("/record-conversion", (req: Request, res: Response) => {
   if (typeof success !== "boolean") {
     return res.status(400).json({ success: false, error: "Invalid payload: success must be a boolean" });
   }
+  if (toolId !== undefined && (typeof toolId !== "string" || !/^[a-z0-9_-]{2,80}$/i.test(toolId.trim()))) {
+    return res.status(400).json({ success: false, error: "Invalid payload: toolId must be a valid tool identifier" });
+  }
+  if (eventId !== undefined && (typeof eventId !== "string" || eventId.trim().length < 1 || eventId.length > 128)) {
+    return res.status(400).json({ success: false, error: "Invalid payload: eventId must be a non-empty string (<= 128 chars)" });
+  }
 
   const outcome = recordConversionMetric({
     latencyMs,
     success,
-    toolId: typeof toolId === "string" ? toolId : undefined,
-    eventId: typeof eventId === "string" ? eventId : undefined,
+    toolId: typeof toolId === "string" ? toolId.trim() : undefined,
+    eventId: typeof eventId === "string" ? eventId.trim() : undefined,
   });
 
-  return res.json({
+  return res.status(200).json({
     status: "ok",
     success: true,
     recorded: outcome.recorded,
     deduplicated: outcome.deduplicated,
     currentStats: outcome.metrics,
+    timestamp: new Date().toISOString(),
   });
 });
 

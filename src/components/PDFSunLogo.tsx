@@ -269,14 +269,14 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
   onClick,
   className = "",
 }) => {
-  // Size metrics
+  // Size metrics tuned for crisp SaaS typography
   const sizeMap = {
-    xs: { icon: 24, text: "text-base", domain: "text-[9px]", badge: "text-[8px]" },
-    sm: { icon: 32, text: "text-lg", domain: "text-[10px]", badge: "text-[9px]" },
-    md: { icon: 40, text: "text-xl", domain: "text-[10px]", badge: "text-[9px]" },
-    lg: { icon: 52, text: "text-2xl", domain: "text-xs", badge: "text-[10px]" },
-    xl: { icon: 68, text: "text-4xl", domain: "text-sm", badge: "text-xs" },
-    hero: { icon: 96, text: "text-6xl", domain: "text-lg", badge: "text-sm" },
+    xs: { icon: 24, text: "text-base", domain: "text-[10px]", badge: "text-[9px] px-1.5 py-0.5" },
+    sm: { icon: 34, text: "text-[20px] sm:text-[22px]", domain: "text-[11px]", badge: "text-[10px] sm:text-[11px] px-2 py-0.5" },
+    md: { icon: 38, text: "text-[22px] sm:text-[23px]", domain: "text-[11px]", badge: "text-[11px] px-2 py-0.5" },
+    lg: { icon: 52, text: "text-2xl", domain: "text-xs", badge: "text-[11px] px-2 py-0.5" },
+    xl: { icon: 68, text: "text-4xl", domain: "text-sm", badge: "text-xs px-2.5 py-0.5" },
+    hero: { icon: 96, text: "text-6xl", domain: "text-lg", badge: "text-sm px-3 py-1" },
   };
 
   const currentSize = sizeMap[size] || sizeMap.md;
@@ -286,9 +286,9 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center justify-center ${onClick ? "cursor-pointer hover:scale-105 transition" : ""} ${className}`}
+        className={`inline-flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${onClick ? "cursor-pointer hover:scale-105 transition-transform duration-150" : ""} ${className}`}
         title="PDFSun Logo"
-        aria-label="PDFSun Logo"
+        aria-label="PDFSun Home"
       >
         <PDFSunLogoIcon
           size={currentSize.icon}
@@ -304,20 +304,13 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
     );
   }
 
-  const isDarkText = theme === "monochrome-light" || theme === "light";
   const isMonoDark = theme === "monochrome-dark";
   const isMonoLight = theme === "monochrome-light";
 
-  return (
-    <div
-      onClick={onClick}
-      className={`inline-flex items-center ${
-        layout === "vertical" ? "flex-col text-center space-y-2" : "space-x-3"
-      } ${onClick ? "cursor-pointer group" : ""} ${className}`}
-      title="PDFSun - Your Smart Document Companion"
-    >
+  const content = (
+    <>
       {/* Icon Mark */}
-      <div className={`${onClick ? "group-hover:scale-105 transition duration-200" : ""}`}>
+      <div className={`shrink-0 ${onClick ? "group-hover:scale-[1.03] transition-transform duration-150" : ""}`}>
         <PDFSunLogoIcon
           size={currentSize.icon}
           variant={
@@ -327,46 +320,45 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
               ? "monochrome-light"
               : "default"
           }
-          animated={onClick !== undefined}
+          animated={false}
         />
       </div>
 
       {/* Typography Stack */}
-      <div className={`flex flex-col ${layout === "vertical" ? "items-center" : "items-start"}`}>
-        <div className="flex items-center space-x-1.5 leading-none">
-          {/* PDF portion */}
-          <span
-            className={`font-black tracking-tight ${currentSize.text} ${
-              isMonoDark
-                ? "text-black"
-                : isMonoLight
-                ? "text-white"
-                : "text-slate-900 dark:text-white"
-            }`}
-          >
-            PDF
+      <div className={`flex flex-col ${layout === "vertical" ? "items-center" : "items-start"} min-w-0`}>
+        <div className="flex items-center gap-1.5 leading-none whitespace-nowrap">
+          <span className={`font-extrabold tracking-[-0.025em] ${currentSize.text} leading-none`}>
+            <span
+              className={
+                isMonoDark
+                  ? "text-black"
+                  : isMonoLight
+                  ? "text-white"
+                  : "text-slate-900 dark:text-white"
+              }
+            >
+              PDF
+            </span>
+            <span
+              className={
+                isMonoDark
+                  ? "text-slate-700"
+                  : isMonoLight
+                  ? "text-slate-200"
+                  : "text-blue-600 dark:text-blue-400"
+              }
+            >
+              Sun
+            </span>
           </span>
 
-          {/* Sun portion */}
-          <span
-            className={`font-black tracking-tight ${currentSize.text} ${
-              isMonoDark
-                ? "text-slate-700"
-                : isMonoLight
-                ? "text-slate-200"
-                : "text-blue-600 dark:text-blue-400"
-            }`}
-          >
-            Sun
-          </span>
-
-          {/* Pro / AI Badge */}
+          {/* Pro AI Badge */}
           {showProBadge && (
             <span
-              className={`font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${currentSize.badge} ${
+              className={`font-bold uppercase tracking-wider rounded-full leading-none shrink-0 ${currentSize.badge} ${
                 isMonoDark || isMonoLight
-                  ? "border-current opacity-70"
-                  : "bg-blue-600 text-white border-blue-500/40 shadow-xs"
+                  ? "border border-current opacity-75"
+                  : "bg-blue-600 text-white shadow-2xs"
               }`}
             >
               PRO AI
@@ -375,36 +367,65 @@ export const PDFSunLogo: React.FC<PDFSunLogoProps> = ({
         </div>
 
         {/* Sub-line: domain or tagline */}
-        <div className="flex items-center space-x-2 mt-0.5">
-          {showDomain && (
-            <span
-              className={`font-bold font-mono tracking-wider ${currentSize.domain} ${
-                isMonoDark
-                  ? "text-slate-600"
-                  : isMonoLight
-                  ? "text-slate-400"
-                  : "text-slate-500 dark:text-slate-400"
-              }`}
-            >
-              pdfsun.in
-            </span>
-          )}
+        {(showDomain || showTagline) && (
+          <div className="flex items-center gap-1.5 mt-1 leading-none whitespace-nowrap">
+            {showDomain && (
+              <span
+                className={`font-medium font-mono tracking-wide ${currentSize.domain} ${
+                  isMonoDark
+                    ? "text-slate-600"
+                    : isMonoLight
+                    ? "text-slate-400"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                pdfsun.in
+              </span>
+            )}
 
-          {showTagline && (
-            <span
-              className={`font-medium ${currentSize.domain} ${
-                isMonoDark
-                  ? "text-slate-500"
-                  : isMonoLight
-                  ? "text-slate-300"
-                  : "text-slate-400 dark:text-slate-400"
-              }`}
-            >
-              • Your Smart Document Companion
-            </span>
-          )}
-        </div>
+            {showTagline && (
+              <span
+                className={`font-medium ${currentSize.domain} ${
+                  isMonoDark
+                    ? "text-slate-500"
+                    : isMonoLight
+                    ? "text-slate-300"
+                    : "text-slate-400 dark:text-slate-400"
+                }`}
+              >
+                · Smart Document Suite
+              </span>
+            )}
+          </div>
+        )}
       </div>
+    </>
+  );
+
+  const sharedClasses = `inline-flex items-center ${
+    layout === "vertical" ? "flex-col text-center gap-2" : "gap-2.5"
+  } ${onClick ? "cursor-pointer group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950" : ""} ${className}`;
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${sharedClasses} text-left bg-transparent border-0 p-0`}
+        title="PDFSun — Home"
+        aria-label="PDFSun Home"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={sharedClasses}
+      title="PDFSun - Your Smart Document Companion"
+    >
+      {content}
     </div>
   );
 };

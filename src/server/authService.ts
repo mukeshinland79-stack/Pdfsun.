@@ -10,16 +10,166 @@ import {
   maskPhoneNumber,
   maskUserIdentifier,
 } from "./otpNotificationService";
-import { getJwtSecret, isValidAdminSecret } from "./middleware/adminAuth";
+import {
+  getJwtSecret,
+  isValidAdminSecret,
+  revokeAdminOrSessionToken,
+  isRevokedAdminOrSessionToken,
+} from "./middleware/adminAuth";
 import { getUserSubscription } from "./paymentStore";
+import firebaseConfigData from "../../firebase-applet-config.json";
 
 export { maskEmailAddress, maskPhoneNumber, maskUserIdentifier };
 
 const USERS_FILE_PATH = path.join(process.cwd(), "users_store.json");
 
-function isOwnerAccountEmail(email: string): boolean {
+export function isOwnerAccountEmail(email: string): boolean {
   const clean = (email || "").toLowerCase().trim();
-  return DUAL_OWNER_EMAILS.includes(clean) || clean === "mukeshkalonia241@gmail.com" || clean === "mukeshinland79@gmail.com";
+  return DUAL_OWNER_EMAILS.includes(clean) || clean === "mukeshinland79@gmail.com";
+}
+
+/**
+ * Cryptographically verifies a Google/Firebase ID token (or Google OAuth2 access token)
+ * against Google's official endpoints without requiring IAM service-account credentials.
+ */
+export async function verifyGoogleProviderToken(providerToken: string | undefined | null): Promise<{
+  valid: boolean;
+  email?: string;
+  emailVerified?: boolean;
+  name?: string;
+  avatar?: string;
+  error?: string;
+}> {
+  const token = (providerToken || "").trim();
+  if (!token) {
+    return { valid: false, error: "Missing Google authentication token." };
+  }
+
+  const firebaseApiKey = (process.env.VITE_FIREBASE_API_KEY || firebaseConfigData?.apiKey || "").trim();
+
+  // 1. Primary: Verify Firebase Auth ID token via Google Identity Toolkit accounts:lookup
+  if (firebaseApiKey && token.split(".").length === 3) {
+    try {
+      const lookupRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(firebaseApiKey)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: token }),
+        }
+      );
+
+      if (lookupRes.ok) {
+        const lookupData = (await lookupRes.json()) as {
+          users?: Array<{
+            email?: string;
+            emailVerified?: boolean;
+            displayName?: string;
+            photoUrl?: string;
+          }>;
+        };
+        const account = lookupData?.users?.[0];
+        if (account?.email && account.emailVerified !== false) {
+          return {
+            valid: true,
+            email: account.email.toLowerCase().trim(),
+            emailVerified: Boolean(account.emailVerified ?? true),
+            name: account.displayName,
+            avatar: account.photoUrl,
+          };
+        }
+        return { valid: false, error: "Google account email is not verified." };
+      }
+    } catch (err) {
+      console.warn("[AuthService] Firebase ID token lookup warning:", err);
+    }
+  }
+
+  // 2. Fallback: Verify Google OAuth2 access token via Google userinfo endpoint (GIS TokenClient flow)
+  try {
+    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (userInfoRes.ok) {
+      const info = (await userInfoRes.json()) as {
+        email?: string;
+        email_verified?: boolean;
+        name?: string;
+        picture?: string;
+      };
+      if (info?.email && info.email_verified !== false) {
+        return {
+          valid: true,
+          email: info.email.toLowerCase().trim(),
+          emailVerified: Boolean(info.email_verified ?? true),
+          name: info.name,
+          avatar: info.picture,
+        };
+      }
+      return { valid: false, error: "Google account email could not be verified." };
+    }
+  } catch (err) {
+    console.warn("[AuthService] Google OAuth userinfo verification warning:", err);
+  }
+
+  return { valid: false, error: "Invalid or expired Google authentication token. Please sign in again." };
+}
+
+/**
+ * Updates the salted PBKDF2-SHA512 password hash for an already-authenticated user.
+ */
+export function changeAuthenticatedUserPassword(
+  emailInput: string,
+  newPassword: string
+): { success: boolean; error?: string; message?: string } {
+  const email = (emailInput || "").toLowerCase().trim();
+  if (!email || !email.includes("@")) {
+    return { success: false, error: "Valid authenticated email is required." };
+  }
+  if (!newPassword || newPassword.length < 8) {
+    return { success: false, error: "New password must be at least 8 characters long." };
+  }
+
+  const salt = crypto.randomBytes(16).toString("hex");
+  const passwordHash = hashPassword(newPassword, salt);
+  const isOwnerEmail = isOwnerAccountEmail(email);
+
+  let user = usersStore[email];
+  if (!user) {
+    const ent = resolveAuthoritativeEntitlement({
+      email,
+      role: isOwnerEmail ? "owner" : "user",
+      plan: "Free Plan",
+      hasAdminAccess: isOwnerEmail,
+    });
+    user = {
+      id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
+      name: isOwnerEmail ? (email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia") : email.split("@")[0],
+      email,
+      phone: isOwnerEmail ? process.env.OWNER_MFA_PHONE || "" : "",
+      passwordHash,
+      salt,
+      role: isOwnerEmail ? "owner" : "user",
+      plan: ent.plan,
+      hasAdminAccess: isOwnerEmail,
+      isPro: ent.isPro,
+      joinedDate: isOwnerEmail ? "Founder & Owner" : "Jan 2026",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    usersStore[email] = user;
+  } else {
+    user.passwordHash = passwordHash;
+    user.salt = salt;
+    user.lastLoginAt = new Date().toISOString();
+  }
+
+  resetFailedAttempts(email);
+  saveUsersStore();
+  return {
+    success: true,
+    message: "Account password updated securely. You can now sign in with your new password or Google Sign-In.",
+  };
 }
 
 function resolveAuthoritativeEntitlement(user: Pick<StoredUser, "email" | "role" | "plan" | "hasAdminAccess">): {
@@ -61,6 +211,7 @@ export interface AuthSessionPayload {
   name: string;
   plan: string;
   hasAdminAccess: boolean;
+  mfaVerified?: boolean;
   isPro?: boolean;
   clientBinding?: string; // SHA-256 hash of (client IP + User-Agent)
   iat?: number;
@@ -203,18 +354,6 @@ function loadUsersStore(): void {
   const ownerPhone = (process.env.OWNER_MFA_PHONE || "").trim();
   const defaultAccounts = [
     {
-      id: "owner-001",
-      name: "Mukesh Kalonia",
-      email: "mukeshkalonia241@gmail.com",
-      phone: ownerPhone,
-      role: "owner" as UserRole,
-      plan: "Founder & Owner",
-      hasAdminAccess: true,
-      isPro: true,
-      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-    },
-    {
       id: "owner-002",
       name: "Mukesh Inland",
       email: "mukeshinland79@gmail.com",
@@ -326,6 +465,7 @@ export function generateUserJwtToken(payload: AuthSessionPayload): string {
       role: payload.role,
       plan: payload.plan,
       hasAdminAccess: payload.hasAdminAccess,
+      mfaVerified: Boolean(payload.mfaVerified),
       isPro: payload.isPro || false,
       clientBinding: payload.clientBinding,
     },
@@ -340,6 +480,7 @@ const REVOKED_SESSION_TOKENS = new Set<string>();
 export function revokeSessionToken(token: string): void {
   if (token) {
     REVOKED_SESSION_TOKENS.add(token);
+    revokeAdminOrSessionToken(token);
     if (REVOKED_SESSION_TOKENS.size > 10000) {
       const first = REVOKED_SESSION_TOKENS.values().next().value;
       if (first) REVOKED_SESSION_TOKENS.delete(first);
@@ -348,7 +489,7 @@ export function revokeSessionToken(token: string): void {
 }
 
 export function isSessionTokenRevoked(token: string): boolean {
-  return REVOKED_SESSION_TOKENS.has(token);
+  return REVOKED_SESSION_TOKENS.has(token) || isRevokedAdminOrSessionToken(token);
 }
 
 export async function revokeOAuthProviderToken(provider: string, token: string): Promise<boolean> {
@@ -374,7 +515,7 @@ export async function revokeOAuthProviderToken(provider: string, token: string):
 export function verifySessionToken(token: string, ip?: string, userAgent?: string): AuthSessionPayload | null {
   try {
     if (!token) return null;
-    if (REVOKED_SESSION_TOKENS.has(token)) return null;
+    if (isSessionTokenRevoked(token)) return null;
     const decoded = jwt.verify(token, getJwtSecret()) as AuthSessionPayload;
     if (decoded && decoded.email) {
       if (decoded.clientBinding && ip && userAgent) {
@@ -407,6 +548,10 @@ export async function initiateBankingStep1Login(params: {
 }): Promise<{
   success: boolean;
   mfaRequired?: boolean;
+  token?: string;
+  user?: UserProfile;
+  role?: string;
+  hasAdminAccess?: boolean;
   identifier?: string;
   maskedEmail?: string;
   maskedPhone?: string;
@@ -443,10 +588,7 @@ export async function initiateBankingStep1Login(params: {
   }
 
   // 2. Credential Verification
-  const isOwnerEmail =
-    DUAL_OWNER_EMAILS.includes(email) ||
-    email === "mukeshkalonia241@gmail.com" ||
-    email === "mukeshinland79@gmail.com";
+  const isOwnerEmail = isOwnerAccountEmail(email);
 
   const configuredSecret = process.env.ADMIN_SECRET_KEY;
   const validOwnerSecret = configuredSecret && configuredSecret !== "12345" ? [configuredSecret] : [];
@@ -513,6 +655,85 @@ export async function initiateBankingStep1Login(params: {
     userName: user?.name || (isOwnerEmail ? "Mukesh Owner" : "Valued User"),
     purpose: "LOGIN_MFA",
   });
+
+  // If neither SMTP nor SMS delivery is configured on the server, do not trap verified credentials
+  // on an undeliverable Step 2 OTP screen — complete verified login cleanly.
+  if (!dispatchResult.emailDispatched && !dispatchResult.smsDispatched) {
+    delete bankingOtpStore[email];
+    resetFailedAttempts(email);
+
+    if (!user) {
+      const salt = crypto.randomBytes(16).toString("hex");
+      user = {
+        id: isOwnerEmail ? "owner-" + Math.random().toString(36).substring(2, 7) : "usr-" + Date.now(),
+        name: isOwnerEmail ? (email.includes("inland") ? "Mukesh Inland" : "Mukesh Kalonia") : email.split("@")[0].replace(/[._]/g, " "),
+        email,
+        phone,
+        passwordHash: hashPassword(key, salt),
+        salt,
+        role: isOwnerEmail ? "owner" : "user",
+        plan: isOwnerEmail ? "Founder & Owner" : "Free Plan",
+        hasAdminAccess: isOwnerEmail,
+        isPro: isOwnerEmail,
+        avatar: isOwnerEmail ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : undefined,
+        joinedDate: isOwnerEmail ? "Founder & Owner" : "Jan 2026",
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      usersStore[email] = user;
+    } else {
+      if (isOwnerEmail) {
+        user.role = "owner";
+        user.hasAdminAccess = true;
+        user.isPro = true;
+        user.plan = "Founder & Owner";
+      } else {
+        const ent = resolveAuthoritativeEntitlement(user);
+        user.isPro = ent.isPro;
+        user.plan = ent.plan;
+      }
+      user.lastLoginAt = new Date().toISOString();
+    }
+
+    saveUsersStore();
+
+    const clientBinding = hashClientBinding(ip, params.userAgent || "browser");
+    const token = generateUserJwtToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      plan: user.plan,
+      hasAdminAccess: user.hasAdminAccess,
+      isPro: user.isPro,
+      clientBinding,
+    });
+
+    const profile: UserProfile = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      hasAdminAccess: user.hasAdminAccess,
+      isPro: user.isPro,
+      avatar: user.avatar,
+      joinedDate: user.joinedDate,
+    };
+
+    return {
+      success: true,
+      mfaRequired: false,
+      token,
+      user: profile,
+      role: user.role,
+      hasAdminAccess: user.hasAdminAccess,
+      identifier: email,
+      message: isOwnerEmail
+        ? "Credentials verified! Access granted to Owner & Administrator Suite."
+        : "Credentials verified! Signed in successfully.",
+    };
+  }
 
   return {
     success: true,
@@ -659,6 +880,7 @@ export async function verifyBankingStep2Otp(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
+    mfaVerified: true,
     isPro: user.isPro,
     clientBinding,
   });
@@ -820,6 +1042,16 @@ export async function requestPasswordResetOtp(params: {
     userName: user?.name || "Valued User",
     purpose: "PASSWORD_RESET",
   });
+
+  if (!dispatchResult.emailDispatched && !dispatchResult.smsDispatched) {
+    delete bankingOtpStore[email];
+    if (phone) delete bankingOtpStore[phone];
+    return {
+      success: false,
+      error:
+        "Email/SMS OTP delivery is not configured on this server. Please use 'Continue with Google' to sign in instantly, then update your password from Account Settings.",
+    };
+  }
 
   const maskedTarget = isPhone ? dispatchResult.maskedPhone : dispatchResult.maskedEmail;
 
@@ -1389,6 +1621,7 @@ export function authenticateSocialUser(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
+    mfaVerified: params.provider === "google",
     isPro: user.isPro,
   });
 
@@ -1538,17 +1771,6 @@ export function repairAndRestoreDatabase(): {
   const ownerPhone = (process.env.OWNER_MFA_PHONE || "").trim();
   const primaryOwners = [
     {
-      id: "owner-001",
-      name: "Mukesh Kalonia",
-      email: "mukeshkalonia241@gmail.com",
-      role: "owner" as UserRole,
-      plan: "Founder & Owner - Unlimited",
-      hasAdminAccess: true,
-      isPro: true,
-      defaultPass: ownerDefaultPass || crypto.randomBytes(24).toString("hex"),
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-    },
-    {
       id: "owner-002",
       name: "Mukesh Inland",
       email: "mukeshinland79@gmail.com",
@@ -1603,8 +1825,12 @@ export function repairAndRestoreDatabase(): {
       user.plan = "Founder & Owner - Unlimited";
       modified = true;
     } else {
-      if (!user.role) {
+      if (!user.role || user.role === "owner") {
         user.role = "user";
+        modified = true;
+      }
+      if (user.hasAdminAccess && user.role !== "admin") {
+        user.hasAdminAccess = false;
         modified = true;
       }
       const ent = resolveAuthoritativeEntitlement(user);

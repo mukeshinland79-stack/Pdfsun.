@@ -67,6 +67,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
   // React useRef for non-rendering state tracking and timer safety
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const cooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const stateTrackerRef = useRef({
     identifier,
@@ -88,6 +89,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (cooldownRef.current) clearInterval(cooldownRef.current);
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
   }, []);
 
@@ -147,25 +149,47 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       const { ok, data, error } = await safeFetchJson<{
         success: boolean;
         message?: string;
+        error?: string;
         maskedTarget?: string;
         maskedEmail?: string;
         maskedPhone?: string;
+        emailDispatched?: boolean;
+        smsDispatched?: boolean;
+        deliveryUnavailable?: boolean;
         cooldownSeconds?: number;
         expiresInSeconds?: number;
       }>("/api/auth/reset-initiation", {
         method: "POST",
+        retries: 0,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: cleanIdentifier }),
       });
 
-      if (!ok || !data?.success) {
-        setErrorMessage(getErrorMessage(error || data?.message || "Failed to dispatch recovery OTP. Please try again."));
+      const deliveryConfirmed =
+        ok &&
+        Boolean(data?.success) &&
+        (data?.emailDispatched === true || data?.smsDispatched === true);
+
+      if (!deliveryConfirmed) {
+        setSuccessMessage("");
+        if (typeof data?.cooldownSeconds === "number" && data.cooldownSeconds > 0) {
+          startResendCooldown(data.cooldownSeconds);
+        }
+        setErrorMessage(
+          getErrorMessage(
+            error ||
+              data?.error ||
+              data?.message ||
+              "Unable to send verification OTP email right now. Please try again later."
+          )
+        );
         return;
       }
 
       const target = data.maskedTarget || data.maskedEmail || data.maskedPhone || cleanIdentifier;
       setMaskedTarget(target);
       setIsProAccount(Boolean(data.maskedPhone && data.maskedEmail));
+      setOtpDigits(["", "", "", "", "", ""]);
       setSuccessMessage(data.message || `Secure OTP dispatched to ${target}`);
       
       // Move to Step 2 & Start 10-Minute Timer
@@ -247,6 +271,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
         success: boolean;
         resetToken?: string;
         message?: string;
+        error?: string;
         expiresInSeconds?: number;
       }>("/api/auth/verify-recovery-otp", {
         method: "POST",
@@ -258,7 +283,7 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       });
 
       if (!ok || !data?.success || !data.resetToken) {
-        setErrorMessage(getErrorMessage(error || data?.message || "Invalid or expired OTP code."));
+        setErrorMessage(getErrorMessage(error || data?.error || data?.message || "Invalid or expired OTP code."));
         return;
       }
 
@@ -275,8 +300,12 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
   // Step 4: Set New Password & Complete Recovery
   const handleSetNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long.");
+    const strength = validatePasswordStrength(newPassword);
+    if (!strength.isValid) {
+      setErrorMessage(
+        strength.errors[0] ||
+          "Password does not meet security requirements (minimum 8 characters, including a number and special character)."
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -293,8 +322,12 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
         token?: string;
         user?: UserProfile;
         message?: string;
+        error?: string;
+        requiresMfaLogin?: boolean;
+        requiresMfa?: boolean;
       }>("/api/auth/new-password", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resetToken: stateTrackerRef.current.resetToken,
@@ -304,14 +337,26 @@ export const PasswordResetWizard: React.FC<PasswordResetWizardProps> = ({
       });
 
       if (!ok || !data?.success) {
-        setErrorMessage(getErrorMessage(error || data?.message || "Failed to update password. Please restart recovery."));
+        setErrorMessage(getErrorMessage(error || data?.error || data?.message || "Failed to update password. Please restart recovery."));
+        return;
+      }
+
+      if (data.requiresMfaLogin || data.requiresMfa || !data.token || !data.user) {
+        setSuccessMessage(
+          data.message || "Password updated securely. Please complete Multi-Factor Authentication sign-in."
+        );
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = setTimeout(() => {
+          onBackToSignIn();
+        }, 1200);
         return;
       }
 
       setSuccessMessage(data.message || "Password Successfully Reset for PDFSun.in! Access is restored securely.");
       
-      // Notify parent & restore session
-      setTimeout(() => {
+      // Notify parent & restore session for standard customer accounts
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
         onSuccess(data.user || null, data.token);
       }, 1200);
     } catch (err: any) {

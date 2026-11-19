@@ -13,7 +13,6 @@ export function isOwnerAccount(email: string): boolean {
   const clean = email.toLowerCase().trim();
   return (
     DUAL_OWNER_EMAILS.includes(clean) ||
-    clean === "mukeshkalonia241@gmail.com" ||
     clean === "mukeshinland79@gmail.com"
   );
 }
@@ -33,13 +32,16 @@ export function createMockUserProfile(params: {
   const isOwner = isOwnerAccount(cleanEmail) && params.role === "owner";
   const role: UserRole = isOwner ? "owner" : params.role === "admin" ? "admin" : "user";
   const defaultName = isOwner
-    ? cleanEmail.includes("inland")
-      ? "Mukesh Inland"
-      : "Mukesh Kalonia"
+    ? "Mukesh Inland"
     : params.name?.trim() || cleanEmail.split("@")[0].replace(/[._]/g, " ") || "Customer";
 
+  const canonicalOwnerId =
+    cleanEmail === "mukeshinland79@gmail.com"
+      ? "owner-002"
+      : "owner-002";
+
   return {
-    id: isOwner ? "owner-001" : `usr-${Date.now()}`,
+    id: isOwner ? canonicalOwnerId : `usr-${Date.now()}`,
     name: defaultName,
     email: cleanEmail,
     role,

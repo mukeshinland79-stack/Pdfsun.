@@ -34,9 +34,20 @@ import {
   AlertCircle,
   Camera,
   Activity,
+  Fingerprint,
+  Trash2,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { safeFetchJson } from "../utils/apiHelper";
 import { resolvePaymentProduct } from "../config/paymentProducts";
+import {
+  fetchUserPasskeys,
+  registerPasskeyForCurrentUser,
+  revokeUserPasskey,
+  isPasskeySupportedInBrowser,
+  type PasskeyCredentialMetadata,
+} from "../services/passkeyService";
 
 interface UserDashboardProps {
   isOpen: boolean;
@@ -49,6 +60,7 @@ interface UserDashboardProps {
   onOpenAdminPanel?: () => void;
   onOpenPricing?: () => void;
   onOpenAvatarModal?: () => void;
+  onProfileUpdated?: (updatedName: string) => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -62,6 +74,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onOpenAdminPanel,
   onOpenPricing,
   onOpenAvatarModal,
+  onProfileUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "profile" | "files" | "plan">("overview");
   const [editingName, setEditingName] = useState(false);
@@ -69,6 +82,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
   const [transactions, setTransactions] = useState<FirestoreTransactionRecord[]>([]);
+  const [passkeys, setPasskeys] = useState<PasskeyCredentialMetadata[]>([]);
+  const [passkeyFeatureEnabled, setPasskeyFeatureEnabled] = useState(false);
+  const [loadingPasskeys, setLoadingPasskeys] = useState(false);
+  const [passkeyLabel, setPasskeyLabel] = useState("");
+  const [registeringPasskey, setRegisteringPasskey] = useState(false);
+  const [revokingPasskeyId, setRevokingPasskeyId] = useState<string | null>(null);
+  const [passkeyNotice, setPasskeyNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const passkeySupported = isPasskeySupportedInBrowser();
 
   // Real-time Plan Tier & Usage Limits Engine
   const usageTracker = useUsageTracker();
@@ -89,6 +110,81 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       unsubscribe();
     };
   }, [isOpen, userProfile.uid, userProfile.id, userProfile.email]);
+
+  const loadPasskeys = async () => {
+    setLoadingPasskeys(true);
+    try {
+      const statusRes = await safeFetchJson<{
+        success?: boolean;
+        passkey?: { enabled?: boolean };
+      }>("/api/v1/auth/providers/status");
+      const enabled = Boolean(statusRes.ok && statusRes.data?.passkey?.enabled === true);
+      setPasskeyFeatureEnabled(enabled);
+      if (!enabled) {
+        setPasskeys([]);
+        return;
+      }
+      const res = await fetchUserPasskeys();
+      if (res.success) {
+        setPasskeys(res.credentials);
+      }
+    } finally {
+      setLoadingPasskeys(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "profile") {
+      setPasskeyNotice(null);
+      loadPasskeys();
+    }
+  }, [isOpen, activeTab, userProfile.email]);
+
+  const handleRegisterPasskey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasskeyNotice(null);
+    setRegisteringPasskey(true);
+    try {
+      const res = await registerPasskeyForCurrentUser(passkeyLabel);
+      if (!res.success || !res.credential) {
+        setPasskeyNotice({
+          type: "error",
+          text: res.error || "Failed to register passkey.",
+        });
+        return;
+      }
+      setPasskeyLabel("");
+      setPasskeys((prev) => [res.credential!, ...prev.filter((item) => item.id !== res.credential!.id)]);
+      setPasskeyNotice({
+        type: "success",
+        text: `Passkey "${res.credential.label}" added to your account.`,
+      });
+    } finally {
+      setRegisteringPasskey(false);
+    }
+  };
+
+  const handleRevokePasskey = async (credentialId: string) => {
+    setPasskeyNotice(null);
+    setRevokingPasskeyId(credentialId);
+    try {
+      const res = await revokeUserPasskey(credentialId);
+      if (!res.success) {
+        setPasskeyNotice({
+          type: "error",
+          text: res.error || "Unable to revoke passkey.",
+        });
+        return;
+      }
+      setPasskeys((prev) => prev.filter((item) => item.id !== credentialId));
+      setPasskeyNotice({
+        type: "success",
+        text: "Passkey revoked and blocked from future logins.",
+      });
+    } finally {
+      setRevokingPasskeyId(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -161,27 +257,43 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     : "Free Tier Active (No Expiry)";
 
   const handleUpdateName = async () => {
-    if (!nameVal.trim()) return;
+    const trimmedName = nameVal.trim();
+    if (!trimmedName) return;
     setSavingProfile(true);
     setProfileMsg("");
     try {
-      await safeFetchJson("/api/admin/users/update", {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_auth_token") || localStorage.getItem("pdfsun_admin_token") || ""
+          : "";
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const { ok, data, error } = await safeFetchJson<{
+        success?: boolean;
+        error?: string;
+        user?: { name?: string };
+      }>("/api/user/update-profile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: userProfile.email,
-          updates: { name: nameVal.trim() },
-        }),
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ name: trimmedName }),
       });
-      userProfile.name = nameVal.trim();
+
+      if (!ok || !data?.success) {
+        setProfileMsg(error || data?.error || "Unable to update profile name.");
+        return;
+      }
+
+      const persistedName = data.user?.name || trimmedName;
+      onProfileUpdated?.(persistedName);
+      setNameVal(persistedName);
       setEditingName(false);
       setProfileMsg("Profile name updated successfully!");
       setTimeout(() => setProfileMsg(""), 3000);
     } catch {
-      userProfile.name = nameVal.trim();
-      setEditingName(false);
-      setProfileMsg("Profile updated locally.");
-      setTimeout(() => setProfileMsg(""), 3000);
+      setProfileMsg("Unable to update profile name right now.");
     } finally {
       setSavingProfile(false);
     }
@@ -612,6 +724,147 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Passkeys & Biometric Sign-In Management */}
+              <div
+                data-testid="dashboard-passkey-section"
+                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                      <Fingerprint className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span>Passkeys &amp; Biometric Sign-In</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Use Face ID, Touch ID, Windows Hello, Android biometrics, or hardware keys. Biometric data stays strictly on your device.
+                    </p>
+                  </div>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold shrink-0 self-start sm:self-center">
+                    {passkeyFeatureEnabled ? `${passkeys.length} ${passkeys.length === 1 ? "Passkey" : "Passkeys"}` : "Unavailable"}
+                  </span>
+                </div>
+
+                {passkeyNotice && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-semibold flex items-center space-x-2 ${
+                      passkeyNotice.type === "success"
+                        ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300"
+                        : "bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-300"
+                    }`}
+                  >
+                    {passkeyNotice.type === "success" ? (
+                      <CheckCircle className="w-4 h-4 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{passkeyNotice.text}</span>
+                  </div>
+                )}
+
+                {passkeyFeatureEnabled && (
+                  <form onSubmit={handleRegisterPasskey} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <input
+                      type="text"
+                      value={passkeyLabel}
+                      onChange={(e) => setPasskeyLabel(e.target.value)}
+                      maxLength={60}
+                      placeholder="Device nickname (e.g. iPhone Face ID, Work Laptop)"
+                      disabled={registeringPasskey || !passkeySupported}
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={registeringPasskey || !passkeySupported}
+                      data-testid="register-passkey-btn"
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition shadow-xs disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      {registeringPasskey ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Registering...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Register Passkey</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                {passkeyFeatureEnabled && !passkeySupported && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    WebAuthn Passkeys are not supported in this browser or context.
+                  </p>
+                )}
+
+                {loadingPasskeys ? (
+                  <div className="py-4 flex items-center justify-center space-x-2 text-xs text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Checking passkey availability...</span>
+                  </div>
+                ) : !passkeyFeatureEnabled ? (
+                  <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400">
+                    WebAuthn Passkey enrollment is disabled on this environment. Password and verified MFA protection remain active.
+                  </div>
+                ) : passkeys.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400">
+                    No passkeys registered yet. Add a passkey for faster, phishing-resistant sign-in.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    {passkeys.map((cred) => (
+                      <div
+                        key={cred.id}
+                        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-start space-x-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Fingerprint className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0 space-y-0.5">
+                            <div className="flex items-center flex-wrap gap-1.5">
+                              <span className="font-bold text-slate-900 dark:text-white truncate">
+                                {cred.label}
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase">
+                                {cred.backedUp || cred.deviceType === "multiDevice" ? "Synced" : "Device"}
+                              </span>
+                              {cred.transports && cred.transports.length > 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold uppercase">
+                                  {cred.transports.join(" / ")}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
+                              <span>Added: {new Date(cred.createdAt).toLocaleDateString()}</span>
+                              <span>
+                                Last used:{" "}
+                                {cred.lastUsedAt ? new Date(cred.lastUsedAt).toLocaleString() : "Never"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={revokingPasskeyId === cred.id}
+                          onClick={() => handleRevokePasskey(cred.id)}
+                          className="self-end sm:self-center px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-600 dark:text-rose-400 text-[11px] font-bold transition flex items-center space-x-1 disabled:opacity-50 cursor-pointer shrink-0"
+                        >
+                          {revokingPasskeyId === cred.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
+                          <span>Revoke</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Enterprise Governance / Security notice */}

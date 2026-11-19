@@ -60,8 +60,10 @@ import {
   updatePasswordWithResetToken,
   getAccountLockoutStatus,
   maskEmailAddress,
+  isOwnerAccountEmail,
+  verifyGoogleProviderToken,
 } from "./src/server/authService";
-import { authRouter, handleVerifySession, handleLogout } from "./src/server/authRoutes";
+import { authRouter, handleVerifySession, handleLogout, handleChangePassword } from "./src/server/authRoutes";
 import {
   createSubscriptionInstance,
   verifySubscriptionSignature,
@@ -3897,6 +3899,31 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
         });
       }
 
+      if (step1Result.mfaRequired === false && step1Result.token && step1Result.user) {
+        const isOwner = step1Result.role === "owner" || step1Result.hasAdminAccess;
+        const cookies = [
+          `pdfsun_user_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+          `pdfsun_user_email=${encodeURIComponent(step1Result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+        ];
+        if (isOwner) {
+          cookies.push(`pdfsun_admin_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+        }
+        res.setHeader("Set-Cookie", cookies);
+
+        return res.status(200).json({
+          ...step1Result,
+          success: true,
+          requiresMfa: false,
+          mfaRequired: false,
+          data: {
+            token: step1Result.token,
+            role: step1Result.role || "owner",
+            user: step1Result.user,
+            hasAdminAccess: Boolean(step1Result.hasAdminAccess),
+          },
+        });
+      }
+
       return res.status(200).json({
         ...step1Result,
         success: true,
@@ -3965,8 +3992,37 @@ app.post("/api/auth/login", handleUnifiedLogin);
 // 2b. Unified Social Login (Google, Facebook, SSO)
 const handleUnifiedSocialLogin = async (req: express.Request, res: express.Response) => {
   try {
-    const { provider, email, name, avatar, ssoDomain } = req.body || {};
-    if (!email) {
+    const { provider, email, name, avatar, ssoDomain, providerToken, idToken } = req.body || {};
+    const resolvedProvider = (provider || "google").toLowerCase();
+    const rawToken = providerToken || idToken || "";
+
+    let verifiedEmail = (email || "").toLowerCase().trim();
+    let verifiedName = name;
+    let verifiedAvatar = avatar;
+
+    // Enforce cryptographic verification for Google sign-in and any owner email claim
+    if (resolvedProvider === "google" || (verifiedEmail && isOwnerAccountEmail(verifiedEmail))) {
+      if (resolvedProvider !== "google") {
+        return res.status(401).json({
+          success: false,
+          message: "Owner accounts require verified Google Sign-In or Owner Password authentication.",
+          error: "Owner accounts require verified Google Sign-In or Owner Password authentication.",
+        });
+      }
+      const tokenCheck = await verifyGoogleProviderToken(rawToken);
+      if (!tokenCheck.valid || !tokenCheck.email) {
+        return res.status(401).json({
+          success: false,
+          message: tokenCheck.error || "Google authentication token verification failed.",
+          error: tokenCheck.error || "Google authentication token verification failed.",
+        });
+      }
+      verifiedEmail = tokenCheck.email;
+      verifiedName = tokenCheck.name || verifiedName;
+      verifiedAvatar = tokenCheck.avatar || verifiedAvatar;
+    }
+
+    if (!verifiedEmail) {
       return res.status(400).json({
         success: false,
         message: "Email address is required for social login.",
@@ -3975,10 +4031,10 @@ const handleUnifiedSocialLogin = async (req: express.Request, res: express.Respo
     }
 
     const result = authenticateSocialUser({
-      provider: provider || "google",
-      email,
-      name,
-      avatar,
+      provider: resolvedProvider as "google" | "facebook" | "apple" | "sso",
+      email: verifiedEmail,
+      name: verifiedName,
+      avatar: verifiedAvatar,
       ssoDomain,
     });
 
@@ -4026,6 +4082,8 @@ const handleUnifiedSocialLogin = async (req: express.Request, res: express.Respo
 
 app.post("/api/v1/auth/social-login", handleUnifiedSocialLogin);
 app.post("/api/auth/social-login", handleUnifiedSocialLogin);
+app.post("/api/v1/auth/change-password", handleChangePassword);
+app.post("/api/auth/change-password", handleChangePassword);
 
 // 3. Verify Session Token (Restores active session on page reload)
 app.all("/api/v1/auth/verify-session", handleVerifySession);
@@ -4053,6 +4111,18 @@ const handleStep1Login = async (req: express.Request, res: express.Response) => 
     if (!result.success) {
       const statusCode = result.isLocked ? 423 : result.cooldownSeconds ? 429 : 401;
       return res.status(statusCode).json(result);
+    }
+
+    if (result.mfaRequired === false && result.token && result.user) {
+      const isOwner = result.role === "owner" || result.hasAdminAccess;
+      const cookies = [
+        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+        `pdfsun_user_email=${encodeURIComponent(result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      ];
+      if (isOwner) {
+        cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+      }
+      res.setHeader("Set-Cookie", cookies);
     }
 
     return res.json(result);

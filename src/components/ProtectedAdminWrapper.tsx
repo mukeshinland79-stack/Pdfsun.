@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { ShieldAlert, Lock, ShieldCheck, Zap } from "lucide-react";
+import { ShieldAlert, Lock, ShieldCheck } from "lucide-react";
 import { UserProfile } from "../types";
 import {
-  validateAdminSession,
   verifyAdminSessionWithServer,
   getStoredAdminToken,
   getStoredAdminSecretKey,
@@ -19,11 +18,11 @@ export interface ProtectedAdminWrapperProps {
 
 /**
  * Protective Admin Wrapper Component for PDFSun
- * 
- * Enforces dual verification with zero infinite-loading traps:
+ *
+ * Strictly enforces server-backed RBAC & session verification:
  * 1. Checks React RBAC permission state (`canAccessAdmin`).
- * 2. Instant local validation with dual-owner whitelist and fallback keys.
- * 3. Graceful timeout and Emergency Bypass button to prevent any loading hang.
+ * 2. Requires authoritative verification via `/api/v1/auth/verify-session`.
+ * 3. Fails closed to owner/admin authentication prompt if verification fails.
  */
 export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
   canAccessAdmin,
@@ -32,38 +31,44 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
   onUnauthorized,
   children,
 }) => {
-  const [bypassed, setBypassed] = useState<boolean>(false);
-  const [sessionValidation, setSessionValidation] = useState<AdminSessionValidationResult>(() => {
-    return validateAdminSession(userProfile, getStoredAdminToken(), getStoredAdminSecretKey());
+  const [sessionValidation, setSessionValidation] = useState<AdminSessionValidationResult>({
+    isValid: false,
+    isOwner: false,
+    role: "unauthorized",
   });
-  const [isVerifyingSession, setIsVerifyingSession] = useState<boolean>(false);
+  const [isVerifyingSession, setIsVerifyingSession] = useState<boolean>(true);
   const [verificationError, setVerificationError] = useState<string | null>(null);
 
-  // Synchronize and run server-backed session verification
+  // Always run authoritative server-backed session verification
   useEffect(() => {
     let isCancelled = false;
 
-    // 1. Initial fast local validation check
-    const localResult = validateAdminSession(
-      userProfile,
-      getStoredAdminToken(),
-      getStoredAdminSecretKey()
-    );
-    setSessionValidation(localResult);
-
-    // If localResult is valid or canAccessAdmin is true, grant access immediately
-    if (localResult.isValid || canAccessAdmin) {
+    if (!canAccessAdmin) {
+      setSessionValidation({
+        isValid: false,
+        isOwner: false,
+        role: "unauthorized",
+      });
       setIsVerifyingSession(false);
       return;
     }
 
-    // 2. Active server verification with a max 1-second timeout
     setIsVerifyingSession(true);
     const safetyTimer = setTimeout(() => {
       if (!isCancelled) {
         setIsVerifyingSession(false);
+        setSessionValidation((prev) =>
+          prev.isValid
+            ? prev
+            : {
+                isValid: false,
+                isOwner: false,
+                role: "unauthorized",
+                reason: "Session verification timed out. Please re-authenticate.",
+              }
+        );
       }
-    }, 1000);
+    }, 10000);
 
     verifyAdminSessionWithServer({
       userProfile,
@@ -73,7 +78,7 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
       .then((serverResult) => {
         if (isCancelled) return;
         setSessionValidation(serverResult);
-        if (!serverResult.isValid && !canAccessAdmin) {
+        if (!serverResult.isValid) {
           setVerificationError(
             serverResult.reason || "Server rejected admin session verification."
           );
@@ -81,9 +86,14 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
           setVerificationError(null);
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (isCancelled) return;
-        console.warn("[ProtectedAdminWrapper] Notice:", err);
+        setSessionValidation({
+          isValid: false,
+          isOwner: false,
+          role: "unauthorized",
+          reason: "Unable to verify administrative session with server.",
+        });
       })
       .finally(() => {
         clearTimeout(safetyTimer);
@@ -98,12 +108,12 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
     };
   }, [canAccessAdmin, userProfile?.id, userProfile?.email, userProfile?.role]);
 
-  // If user clicked emergency bypass or is already validated/can access admin
-  if (bypassed || canAccessAdmin || sessionValidation.isValid) {
+  // Require BOTH client privilege state AND server-verified admin/owner session
+  if (canAccessAdmin && sessionValidation.isValid && !isVerifyingSession) {
     return <>{children}</>;
   }
 
-  // Handle transient loading state with immediate bypass option
+  // Handle transient verification state (fail-closed, zero bypass)
   if (isLoading || isVerifyingSession) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
@@ -115,22 +125,8 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
               <span>Verifying Admin Credentials</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Validating session token and ADMIN_SECRET_KEY...
+              Validating MFA-verified session token with server...
             </p>
-          </div>
-
-          <div className="pt-2 w-full flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setBypassed(true);
-                setIsVerifyingSession(false);
-              }}
-              className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5 text-orange-500" />
-              <span>Instant Enter (Bypass Loading)</span>
-            </button>
           </div>
         </div>
       </div>
@@ -150,23 +146,21 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
             {verificationError ||
-              "Access to this administrative suite requires verified Co-Owner or Admin credentials and a valid ADMIN_SECRET_KEY session token."}
+              "Access to this administrative suite requires verified Co-Owner or Admin credentials with completed MFA authentication."}
           </p>
         </div>
 
         <div className="w-full pt-1 flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => {
-              setBypassed(true);
-            }}
+            onClick={() => onUnauthorized()}
             className="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>Authenticate as Admin / Owner</span>
           </button>
           <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            Protected by Dual-Owner Zero-Trust RBAC & Session Cloaking
+            Protected by Dual-Owner Zero-Trust RBAC &amp; Mandatory MFA
           </p>
         </div>
       </div>

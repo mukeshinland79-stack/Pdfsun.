@@ -198,6 +198,12 @@ function MainApp() {
       }
     };
 
+    try {
+      localStorage.setItem("pdfsun_theme", themeMode);
+      localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
+      localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
+    } catch (e) {}
+
     if (!themeInitialized.current) {
       themeInitialized.current = true;
       updateClasses(themeMode);
@@ -210,12 +216,6 @@ function MainApp() {
       }, 250);
       return () => window.clearTimeout(timer);
     }
-
-    try {
-      localStorage.setItem("pdfsun_theme", themeMode);
-      localStorage.setItem("pdfsun_eye_protection", themeMode === "eye-protection" ? "true" : "false");
-      localStorage.setItem("pdfsun_sync_system", String(syncWithSystem));
-    } catch (e) {}
   }, [themeMode, syncWithSystem]);
 
   const {
@@ -233,6 +233,7 @@ function MainApp() {
     logout: rawLogout,
     updateRole: handleSelectRole,
     updateAvatar,
+    updateProfileName,
     syncSubscription,
   } = useAuth();
 
@@ -1070,7 +1071,7 @@ function MainApp() {
 
       {userProfile && userDashboardOpen && (
         <Suspense fallback={<WorkspaceLoadingFallback />}>
-          <UserDashboard isOpen={userDashboardOpen} onClose={() => setUserDashboardOpen(false)} userProfile={userProfile} favorites={favorites} history={history} allTools={ALL_TOOLS} onSelectTool={handleSelectTool} onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined} onOpenPricing={() => { setUserDashboardOpen(false); handleOpenPricing(); }} onOpenAvatarModal={() => setAvatarModalOpen(true)} />
+          <UserDashboard isOpen={userDashboardOpen} onClose={() => setUserDashboardOpen(false)} userProfile={userProfile} favorites={favorites} history={history} allTools={ALL_TOOLS} onSelectTool={handleSelectTool} onOpenAdminPanel={canAccessAdmin ? () => handleOpenAdminPanel() : undefined} onOpenPricing={() => { setUserDashboardOpen(false); handleOpenPricing(); }} onOpenAvatarModal={() => setAvatarModalOpen(true)} onProfileUpdated={updateProfileName} />
         </Suspense>
       )}
 

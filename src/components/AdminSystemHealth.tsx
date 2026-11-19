@@ -253,14 +253,21 @@ export const AdminSystemHealth: React.FC<AdminSystemHealthProps> = ({ className 
       queuedTasks: poolTelemetry.queuedTasks,
     }));
 
-    // Fetch Server Telemetry from /api/health
+    // Fetch Server Telemetry from owner-gated /api/admin/system-stats
     let srvHeap = serverStats.heapUsedMb;
     let srvRss = serverStats.rssMb;
     let lat = serverStats.latencyMs;
 
     try {
       const startReq = performance.now();
-      const res = await fetch("/api/health");
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+          : "";
+      const res = await fetch("/api/admin/system-stats", {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const duration = Math.round(performance.now() - startReq);
 
       if (res.ok) {
@@ -1018,7 +1025,7 @@ export const AdminSystemHealth: React.FC<AdminSystemHealthProps> = ({ className 
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400">
-                  Live from /api/health
+                  Live from /api/admin/system-stats
                 </span>
               </div>
 

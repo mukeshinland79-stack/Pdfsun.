@@ -128,8 +128,42 @@ export interface QrVerificationResult {
 }
 
 export const MAX_QR_LOGO_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_QR_PAYLOAD_LENGTH = 2500;
 
 const ALLOWED_RASTER_MIMES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+export function isSafeRasterDataUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== "string") return false;
+  return /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(url.trim());
+}
+
+export function validateBulkQrPayload(rawPayload: string): { valid: boolean; payload: string; error?: string } {
+  const cleaned = stripControlChars(rawPayload).trim();
+  if (!cleaned) {
+    return { valid: false, payload: "", error: "Empty QR payload" };
+  }
+  if (cleaned.length > MAX_QR_PAYLOAD_LENGTH) {
+    return {
+      valid: false,
+      payload: "",
+      error: `Payload exceeds ${MAX_QR_PAYLOAD_LENGTH} characters for reliable scanning.`,
+    };
+  }
+  const lower = cleaned.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("vbscript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("file:")
+  ) {
+    return {
+      valid: false,
+      payload: "",
+      error: "Unsafe URL protocol blocked in bulk QR row.",
+    };
+  }
+  return { valid: true, payload: cleaned };
+}
 
 function stripControlChars(s: string): string {
   return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
@@ -369,7 +403,13 @@ export function validateQrLogoFile(params: {
     };
   }
 
-  if (params.headerBytes && params.headerBytes.length >= 12) {
+  if (params.headerBytes) {
+    if (params.headerBytes.length < 12) {
+      return {
+        valid: false,
+        error: "File header is too small or corrupted to be a valid PNG, JPEG, or WEBP image.",
+      };
+    }
     const b = params.headerBytes;
     const isPng = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
     const isJpeg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
@@ -532,7 +572,7 @@ export async function generateQrStudioSvg(
   const margin = Math.min(8, Math.max(1, Math.round(options.margin ?? 2)));
   const fg = sanitizeHexColor(options.foreground, "#0f172a");
   const bg = options.transparentBackground ? "#00000000" : sanitizeHexColor(options.background, "#ffffff");
-  const hasLogo = Boolean(options.logoDataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(options.logoDataUrl));
+  const hasLogo = isSafeRasterDataUrl(options.logoDataUrl);
   const ecc = resolveEffectiveEcc(options.ecc, hasLogo);
 
   const rawSvg = await QRCode.toString(payload, {
@@ -569,7 +609,7 @@ export async function generateQrStudioSvg(
     ? `<rect x="${logoPos - pad}" y="${logoPos - pad}" width="${logoSize + pad * 2}" height="${logoSize + pad * 2}" rx="8" fill="${
         options.transparentBackground ? "#ffffff" : sanitizeHexColor(options.background, "#ffffff")
       }"/>` +
-      `<image href="${options.logoDataUrl}" x="${logoPos}" y="${logoPos}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid slice"/>`
+      `<image href="${escapeXml(options.logoDataUrl!.trim())}" x="${logoPos}" y="${logoPos}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid slice"/>`
     : "";
 
   const captionEl = caption
@@ -603,7 +643,7 @@ export async function renderAndVerifyQrCanvas(
   const margin = Math.min(8, Math.max(1, Math.round(options.margin ?? 2)));
   const fg = sanitizeHexColor(options.foreground, "#0f172a");
   const bg = options.transparentBackground ? "#00000000" : sanitizeHexColor(options.background, "#ffffff");
-  const hasLogo = Boolean(options.logoDataUrl && /^data:image\/(png|jpeg|webp);base64,/i.test(options.logoDataUrl));
+  const hasLogo = isSafeRasterDataUrl(options.logoDataUrl);
   const ecc = resolveEffectiveEcc(options.ecc, hasLogo);
   const caption = options.caption?.trim() || "";
   const captionExtra = caption ? 38 : 0;

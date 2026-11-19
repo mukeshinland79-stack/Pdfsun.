@@ -4,17 +4,50 @@ import jwt from "jsonwebtoken";
 import { DUAL_OWNER_EMAILS } from "../../types";
 
 // Dynamic JWT Secret resolver: Enforces minimum 256-bit cryptographically secure secret.
-// In production (NODE_ENV === "production"), startup strictly fails closed if a valid secret is not configured.
+// Strictly separated from ADMIN_SECRET_KEY so an admin secret key is never reused as JWT signing material.
+// In production (NODE_ENV === "production"), startup/invocation strictly fails closed if a valid secret is not configured.
 // In development/testing, generates an ephemeral 256-bit random key at boot with security warning.
 let ephemeralJwtSecret: string | null = null;
 function getEphemeralSecret(): string {
   if (!ephemeralJwtSecret) {
     ephemeralJwtSecret = crypto.randomBytes(32).toString("hex");
     console.warn(
-      "[SECURITY WARN] ADMIN_JWT_SECRET environment variable not configured. Generated ephemeral 256-bit runtime secret for development/testing."
+      "[SECURITY WARN] ADMIN_JWT_SECRET / JWT_SECRET environment variable not configured. Generated ephemeral 256-bit runtime secret for development/testing."
     );
   }
   return ephemeralJwtSecret;
+}
+
+const REVOKED_TOKEN_REGISTRY = new Set<string>();
+
+export function revokeAdminOrSessionToken(token: string): void {
+  if (!token) return;
+  REVOKED_TOKEN_REGISTRY.add(token);
+  if (REVOKED_TOKEN_REGISTRY.size > 10000) {
+    const first = REVOKED_TOKEN_REGISTRY.values().next().value;
+    if (first) REVOKED_TOKEN_REGISTRY.delete(first);
+  }
+}
+
+export function isRevokedAdminOrSessionToken(token: string): boolean {
+  return Boolean(token && REVOKED_TOKEN_REGISTRY.has(token));
+}
+
+export function clearRevokedTokensForTesting(): void {
+  REVOKED_TOKEN_REGISTRY.clear();
+}
+
+const KNOWN_WEAK_SECRETS = new Set<string>([
+  "12345",
+  "your_admin_secret_key",
+  "pdfsun_super_admin_secret_jwt_key_2026",
+  "pdfsun_owner_super_secret_key_2026",
+  "replace_with_64_char_random_jwt_secret",
+  "replace_with_strong_admin_secret_key",
+]);
+
+function isKnownWeakSecret(secret: string): boolean {
+  return KNOWN_WEAK_SECRETS.has(secret.trim().toLowerCase());
 }
 
 export function getJwtSecret(): string {
@@ -22,25 +55,18 @@ export function getJwtSecret(): string {
     process.env.ADMIN_JWT_SECRET ||
     process.env.JWT_SECRET ||
     process.env.OWNER_JWT_SECRET ||
-    process.env.ADMIN_SECRET_KEY ||
     ""
   ).trim();
 
-  // Enforce minimum 256-bit (32 characters) length and reject known insecure test defaults
-  if (
-    configured &&
-    configured !== "12345" &&
-    configured !== "your_admin_secret_key" &&
-    configured !== "PDFSun_Super_Admin_Secret_JWT_Key_2026" &&
-    configured.length >= 32
-  ) {
+  // Enforce minimum 256-bit (32 characters) length and reject known insecure/placeholder defaults
+  if (configured && !isKnownWeakSecret(configured) && configured.length >= 32) {
     return configured;
   }
 
   // Fail-closed in production environment per Phase 11D Rule 4
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "[FATAL SECURITY ERROR] In production, ADMIN_JWT_SECRET (minimum 256-bit / 32 characters) must be configured in environment or Google Cloud Secret Manager. Ephemeral secret fallback is strictly prohibited in production."
+      "[FATAL SECURITY ERROR] In production, ADMIN_JWT_SECRET or JWT_SECRET (minimum 256-bit / 32 characters) must be configured in environment or Google Cloud Secret Manager. Ephemeral secret fallback is strictly prohibited in production."
     );
   }
 
@@ -48,19 +74,42 @@ export function getJwtSecret(): string {
 }
 
 /**
+ * Validates that production deployments provide distinct, high-entropy JWT and Admin secrets.
+ * Fails closed on missing, weak, placeholder, or identical secrets in NODE_ENV === "production".
+ */
+export function validateProductionAuthSecrets(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+  const jwtSecret = getJwtSecret();
+  const adminSecret = (process.env.ADMIN_SECRET_KEY || "").trim();
+
+  if (!adminSecret || isKnownWeakSecret(adminSecret) || adminSecret.length < 16) {
+    throw new Error(
+      "[FATAL SECURITY ERROR] In production, ADMIN_SECRET_KEY (minimum 16 characters, non-placeholder) must be configured."
+    );
+  }
+  if (jwtSecret === adminSecret) {
+    throw new Error(
+      "[FATAL SECURITY ERROR] ADMIN_JWT_SECRET / JWT_SECRET must be strictly distinct from ADMIN_SECRET_KEY in production."
+    );
+  }
+}
+
+/**
  * Timing-safe, fail-closed validation of the administrative secret key.
  * Strictly rejects missing, placeholder ('your_admin_secret_key'), weak (< 16 chars),
- * or known insecure test tokens ('12345').
+ * or known insecure test tokens ('12345', 'pdfsun_owner_super_secret_key_2026').
  */
 export function isValidAdminSecret(providedSecret: string | undefined | null, configuredOverride?: string): boolean {
   if (!providedSecret || typeof providedSecret !== "string") return false;
   const configured = (configuredOverride !== undefined ? configuredOverride : (process.env.ADMIN_SECRET_KEY || "")).trim();
   // Fail-closed against missing, placeholder, weak (< 16 chars), or insecure defaults
-  if (!configured || configured === "12345" || configured === "your_admin_secret_key" || configured.length < 16) {
+  if (!configured || isKnownWeakSecret(configured) || configured.length < 16) {
     return false;
   }
   const provTrimmed = providedSecret.trim();
-  if (provTrimmed === "12345") return false;
+  if (!provTrimmed || isKnownWeakSecret(provTrimmed)) return false;
 
   const provBuf = Buffer.from(provTrimmed);
   const confBuf = Buffer.from(configured);
@@ -71,15 +120,16 @@ export function isValidAdminSecret(providedSecret: string | undefined | null, co
 }
 
 /**
- * Validates whether the supplied token or credential proves authentic owner identity.
- * Rejects client-supplied headers without cryptographically verified JWT.
+ * Validates whether the supplied token proves authentic, MFA-verified owner identity.
+ * Rejects client-supplied headers and pre-MFA JWTs without mfaVerified === true.
  */
 export function isVerifiedOwnerIdentity(providedToken: string | undefined | null): boolean {
   if (!providedToken || typeof providedToken !== "string") return false;
   const decoded = verifyAdminJwtToken(providedToken.trim());
   if (!decoded) return false;
   const email = (decoded.email || "").toLowerCase().trim();
-  return decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email) || email === "mukeshinland79@gmail.com";
+  const isOwner = decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email) || email === "mukeshinland79@gmail.com";
+  return isOwner && decoded.mfaVerified === true;
 }
 
 export interface AdminJwtPayload {
@@ -87,6 +137,7 @@ export interface AdminJwtPayload {
   email: string;
   role: "admin" | "owner";
   hasAdminAccess: boolean;
+  mfaVerified?: boolean;
   permissions?: Record<string, boolean>;
   iat?: number;
   exp?: number;
@@ -111,6 +162,7 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
     email: payload.email || "admin@pdfsun.in",
     role: payload.role || "admin",
     hasAdminAccess: true,
+    mfaVerified: payload.mfaVerified ?? true,
     permissions: payload.permissions || {
       analytics: true,
       userManagement: true,
@@ -120,7 +172,7 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
     },
   };
 
-  return jwt.sign(tokenData, getJwtSecret(), { expiresIn: "24h" });
+  return jwt.sign(tokenData, getJwtSecret(), { expiresIn: "24h", algorithm: "HS256" });
 }
 
 /**
@@ -128,8 +180,15 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
  */
 export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as AdminJwtPayload;
-    if (decoded && (decoded.role === "admin" || decoded.role === "owner" || decoded.hasAdminAccess === true)) {
+    if (!token || isRevokedAdminOrSessionToken(token)) return null;
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as AdminJwtPayload;
+    if (!decoded) return null;
+    const email = (decoded.email || "").toLowerCase().trim();
+    const isOwner = decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email);
+    if (isOwner && decoded.mfaVerified !== true) {
+      return null;
+    }
+    if (decoded.role === "admin" || decoded.role === "owner" || decoded.hasAdminAccess === true) {
       return decoded;
     }
     return null;
@@ -173,7 +232,7 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
       }
     }
 
-    // Direct secret key override check (e.g., dual-owner emergency secret header)
+    // Direct secret key override check (for authenticated server-to-server admin headers)
     const secretKeyHeader = req.headers["x-admin-secret"] || req.headers["x-secret-key"] || req.headers["x-admin-token"];
     if (typeof secretKeyHeader === "string" && isValidAdminSecret(secretKeyHeader)) {
       req.isAdminAuthenticated = true;
@@ -181,6 +240,7 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
         email: "owner@pdfsun.in",
         role: "owner",
         hasAdminAccess: true,
+        mfaVerified: true,
       };
       return next();
     }
@@ -190,9 +250,14 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
       const decodedUser = verifyAdminJwtToken(token);
 
       if (decodedUser) {
-        // Validate email against owner list or explicit admin permissions
-        const isOwner = DUAL_OWNER_EMAILS.includes(decodedUser.email.toLowerCase());
-        if (isOwner || decodedUser.role === "admin" || decodedUser.role === "owner" || decodedUser.hasAdminAccess) {
+        const isOwner = DUAL_OWNER_EMAILS.includes((decodedUser.email || "").toLowerCase());
+        if (isOwner || decodedUser.role === "owner") {
+          if (decodedUser.mfaVerified === true) {
+            req.isAdminAuthenticated = true;
+            req.adminUser = decodedUser;
+            return next();
+          }
+        } else if (decodedUser.role === "admin" || decodedUser.hasAdminAccess) {
           req.isAdminAuthenticated = true;
           req.adminUser = decodedUser;
           return next();

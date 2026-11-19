@@ -16,22 +16,18 @@ import {
   repairAndRestoreDatabase,
   revokeSessionToken,
   revokeOAuthProviderToken,
+  isOwnerAccountEmail,
+  verifyGoogleProviderToken,
+  changeAuthenticatedUserPassword,
 } from "./authService";
 import { DUAL_OWNER_EMAILS } from "../types";
 import { getUserSubscription } from "./paymentStore";
+import { parseCookieHeader } from "./cookieUtils";
 
 export const authRouter = express.Router();
 
-// CORS & Preflight handling specifically for auth router
+// Preflight handling (CORS origin allowlist is enforced by server.ts global middleware)
 authRouter.use((req: Request, res: Response, next: NextFunction) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key"
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
@@ -206,6 +202,31 @@ export const handleLogin = async (req: Request, res: express.Response) => {
         });
       }
 
+      if (step1Result.mfaRequired === false && step1Result.token && step1Result.user) {
+        const isOwner = step1Result.role === "owner" || step1Result.hasAdminAccess;
+        const cookies = [
+          `pdfsun_user_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+          `pdfsun_user_email=${encodeURIComponent(step1Result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+        ];
+        if (isOwner) {
+          cookies.push(`pdfsun_admin_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+        }
+        res.setHeader("Set-Cookie", cookies);
+        return res.status(200).json({
+          ...step1Result,
+          status: "ok",
+          success: true,
+          requiresMfa: false,
+          mfaRequired: false,
+          data: {
+            token: step1Result.token,
+            role: step1Result.role || "owner",
+            user: step1Result.user,
+            hasAdminAccess: Boolean(step1Result.hasAdminAccess),
+          },
+        });
+      }
+
       return res.status(200).json({
         ...step1Result,
         status: "ok",
@@ -297,6 +318,18 @@ export const handleStep1Login = async (req: Request, res: Response) => {
     if (!result.success) {
       const statusCode = result.isLocked ? 423 : result.cooldownSeconds ? 429 : 401;
       return res.status(statusCode).json(result);
+    }
+
+    if (result.mfaRequired === false && result.token && result.user) {
+      const isOwner = result.role === "owner" || result.hasAdminAccess;
+      const cookies = [
+        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+        `pdfsun_user_email=${encodeURIComponent(result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
+      ];
+      if (isOwner) {
+        cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+      }
+      res.setHeader("Set-Cookie", cookies);
     }
 
     return res.status(200).json({
@@ -634,11 +667,16 @@ export const handleLogout = async (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     const bodyToken = req.body?.token;
-    const cookieToken = (req as any).cookies?.pdfsun_user_session || (req as any).cookies?.pdfsun_admin_session;
-    const tokenToRevoke = bearerToken || bodyToken || cookieToken;
+    const parsedCookies = parseCookieHeader(req.headers.cookie);
+    const userCookieToken = parsedCookies.pdfsun_user_session || (req as any).cookies?.pdfsun_user_session;
+    const adminCookieToken = parsedCookies.pdfsun_admin_session || (req as any).cookies?.pdfsun_admin_session;
+    const tokensToRevoke = Array.from(
+      new Set([bearerToken, bodyToken, userCookieToken, adminCookieToken].filter((t): t is string => Boolean(t && typeof t === "string")))
+    );
+    const tokenToRevoke = tokensToRevoke[0] || null;
 
-    if (tokenToRevoke) {
-      revokeSessionToken(tokenToRevoke);
+    for (const tok of tokensToRevoke) {
+      revokeSessionToken(tok);
     }
 
     const provider = req.body?.provider || (req.headers["x-auth-provider"] as string);
@@ -725,10 +763,39 @@ export const handleRefreshSession = (req: Request, res: Response) => {
  * 12. Social OAuth Login (Google, Facebook, SSO)
  * POST /api/auth/social-login
  */
-export const handleSocialLogin = (req: Request, res: Response) => {
+export const handleSocialLogin = async (req: Request, res: Response) => {
   try {
-    const { provider, email, name, avatar, ssoDomain } = req.body || {};
-    if (!email) {
+    const { provider, email, name, avatar, ssoDomain, providerToken, idToken } = req.body || {};
+    const resolvedProvider = (provider || "google").toLowerCase();
+    const rawToken = providerToken || idToken || "";
+
+    let verifiedEmail = (email || "").toLowerCase().trim();
+    let verifiedName = name;
+    let verifiedAvatar = avatar;
+
+    // Enforce cryptographic verification for Google sign-in and for any owner email claim
+    if (resolvedProvider === "google" || (verifiedEmail && isOwnerAccountEmail(verifiedEmail))) {
+      if (resolvedProvider !== "google") {
+        return res.status(401).json({
+          success: false,
+          message: "Owner accounts require verified Google Sign-In or Owner Password authentication.",
+          error: "Owner accounts require verified Google Sign-In or Owner Password authentication.",
+        });
+      }
+      const tokenCheck = await verifyGoogleProviderToken(rawToken);
+      if (!tokenCheck.valid || !tokenCheck.email) {
+        return res.status(401).json({
+          success: false,
+          message: tokenCheck.error || "Google authentication token verification failed.",
+          error: tokenCheck.error || "Google authentication token verification failed.",
+        });
+      }
+      verifiedEmail = tokenCheck.email;
+      verifiedName = tokenCheck.name || verifiedName;
+      verifiedAvatar = tokenCheck.avatar || verifiedAvatar;
+    }
+
+    if (!verifiedEmail) {
       return res.status(400).json({
         success: false,
         message: "Email address is required for social login.",
@@ -737,10 +804,10 @@ export const handleSocialLogin = (req: Request, res: Response) => {
     }
 
     const result = authenticateSocialUser({
-      provider: provider || "google",
-      email,
-      name,
-      avatar,
+      provider: resolvedProvider as "google" | "facebook" | "apple" | "sso",
+      email: verifiedEmail,
+      name: verifiedName,
+      avatar: verifiedAvatar,
       ssoDomain,
     });
 
@@ -786,6 +853,59 @@ export const handleSocialLogin = (req: Request, res: Response) => {
   }
 };
 
+/**
+ * 13. Authenticated Change Password (Requires valid verified session JWT)
+ * POST /api/auth/change-password
+ */
+export const handleChangePassword = (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    let token = "";
+    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    } else if (req.headers.cookie) {
+      for (const part of String(req.headers.cookie).split(";")) {
+        const eqIdx = part.indexOf("=");
+        if (eqIdx === -1) continue;
+        const k = part.slice(0, eqIdx).trim();
+        if (k === "pdfsun_user_session" || k === "pdfsun_admin_session") {
+          try {
+            const val = decodeURIComponent(part.slice(eqIdx + 1).trim());
+            if (val) {
+              token = val;
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+
+    const payload = token ? verifySessionToken(token) : null;
+    if (!payload || !payload.email) {
+      return res.status(401).json({
+        success: false,
+        error: "You must be signed in to update your password.",
+      });
+    }
+
+    const { newPassword } = req.body || {};
+    const result = changeAuthenticatedUserPassword(payload.email, String(newPassword || ""));
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json({
+      status: "ok",
+      ...result,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || "Failed to update password.",
+    });
+  }
+};
+
 // Route Registration for Router
 authRouter.post("/register", handleRegister);
 authRouter.post("/signup", handleRegister);
@@ -808,6 +928,7 @@ authRouter.post("/reset-verify", handleResetVerify);
 authRouter.post("/verify-recovery-otp", handleResetVerify);
 authRouter.post("/new-password", handleNewPassword);
 authRouter.post("/reset-password", handleNewPassword);
+authRouter.post("/change-password", handleChangePassword);
 
 // Enterprise SSO & SAML Callbacks
 authRouter.all(["/sso/initiate", "/saml/initiate", "/sso/login"], handleSocialLogin);
@@ -828,6 +949,13 @@ authRouter.all(
 );
 authRouter.all(["/logout", "/signout"], handleLogout);
 authRouter.post("/refresh-session", handleRefreshSession);
+authRouter.get("/providers/status", (_req, res) => {
+  return res.status(200).json({
+    success: true,
+    google: { enabled: true },
+    passkey: { enabled: false },
+  });
+});
 
 // Preflight CORS Handler
 authRouter.options(/.*/, (req, res) => {

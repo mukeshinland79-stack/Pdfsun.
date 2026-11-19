@@ -1,13 +1,83 @@
 {
-  "dayKey": "2026-11-14",
-  "totalConversionsToday": 2,
-  "successfulConversions": 2,
+  "dayKey": "2026-11-16",
+  "totalConversionsToday": 6,
+  "successfulConversions": 6,
   "failedConversions": 0,
   "cancelledProcesses": 0,
   "latencyHistory": [
     145,
-    150
+    150,
+    145,
+    150,
+    142,
+    142,
+    145,
+    150,
+    145,
+    125,
+    120,
+    145
   ],
-  "toolCounters": {},
-  "recentEventIds": []
+  "toolCounters": {
+    "compress-pdf": {
+      "toolId": "compress-pdf",
+      "opened": 4,
+      "started": 0,
+      "completed": 0,
+      "validated": 0,
+      "downloaded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "lastUpdatedAt": "2026-11-16T18:27:16.125Z"
+    },
+    "pdf-to-excel": {
+      "toolId": "pdf-to-excel",
+      "opened": 4,
+      "started": 0,
+      "completed": 0,
+      "validated": 0,
+      "downloaded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "lastUpdatedAt": "2026-11-16T18:27:25.910Z"
+    },
+    "pdf-to-powerpoint": {
+      "toolId": "pdf-to-powerpoint",
+      "opened": 4,
+      "started": 0,
+      "completed": 0,
+      "validated": 0,
+      "downloaded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "lastUpdatedAt": "2026-11-16T18:28:01.128Z"
+    },
+    "merge-pdf": {
+      "toolId": "merge-pdf",
+      "opened": 0,
+      "started": 0,
+      "completed": 2,
+      "validated": 0,
+      "downloaded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "lastUpdatedAt": "2026-11-16T18:28:19.287Z"
+    }
+  },
+  "recentEventIds": [
+    "compress-pdf:tool_opened:1794853631765:c65b9575-0e0",
+    "compress-pdf:tool_opened:1794853631766:127dbe62-186",
+    "compress-pdf:tool_opened:1794853636419:0a63584c-bde",
+    "compress-pdf:tool_opened:1794853636420:297b5665-71f",
+    "pdf-to-excel:tool_opened:1794853644802:0776baf1-a48",
+    "pdf-to-excel:tool_opened:1794853644802:55ed450c-1d3",
+    "pdf-to-excel:tool_opened:1794853646182:195b145f-90d",
+    "pdf-to-excel:tool_opened:1794853646186:b81f4a6c-f49",
+    "pdf-to-powerpoint:tool_opened:1794853681122:eafda9e8-c24",
+    "pdf-to-powerpoint:tool_opened:1794853680921:c60bd020-2b3",
+    "pdf-to-powerpoint:tool_opened:1794853681120:0a6d0737-e05",
+    "pdf-to-powerpoint:tool_opened:1794853680920:c6dbe095-9ac",
+    "batch1b1-evt-test-1",
+    "batch1b1-rc-test-1"
+  ]
 }

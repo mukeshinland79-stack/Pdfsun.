@@ -196,6 +196,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [ownerMfaCountdown, setOwnerMfaCountdown] = useState(0);
   const [ownerMfaOtpHint, setOwnerMfaOtpHint] = useState<string | null>(null);
 
+  // Authenticated Change Password States
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newAccountPassword, setNewAccountPassword] = useState("");
+  const [confirmAccountPassword, setConfirmAccountPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
   // Initialize Google Identity Services (auto_select: false) & Facebook SDK
   useEffect(() => {
     initGoogleIdentityServices();
@@ -471,6 +477,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const { ok, data, error } = await safeFetchJson<{
         success: boolean;
+        mfaRequired?: boolean;
+        token?: string;
+        user?: UserProfile;
+        role?: UserRole;
         maskedEmail?: string;
         maskedPhone?: string;
         cooldownSeconds?: number;
@@ -485,6 +495,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       if (!ok || !data?.success) {
         setErrorMsg(sanitizeAuthError(error || data?.error || data?.message, "Invalid owner credentials or access denied."));
+        return;
+      }
+
+      // If credentials were verified and external OTP channels are not configured, complete login directly
+      if (data.mfaRequired === false && data.user && data.token) {
+        const ownerProfile: UserProfile = {
+          ...data.user,
+          hasAdminAccess: Boolean(data.user.hasAdminAccess),
+          isPro: Boolean(data.user.isPro),
+        };
+        const roleToSet: UserRole = ownerProfile.role || data.role || "owner";
+        saveLocalStoredUser(ownerProfile, data.token);
+        setSuccessMsg(data.message || "Credentials verified! Access granted to Owner & Administrator Suite.");
+        setTimeout(() => {
+          onSelectRole(roleToSet, ownerProfile);
+          handlePostLoginRedirectAndCleanup();
+          onClose();
+          if (roleToSet === "owner" && onSuccessOpenAdmin) {
+            onSuccessOpenAdmin();
+          }
+        }, 350);
         return;
       }
 
@@ -560,6 +591,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMsg(sanitizeAuthError(err, "Invalid MFA security code or verification expired. Please try again."));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleChangeAuthenticatedPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    const pwdCheck = validatePasswordStrength(newAccountPassword);
+    if (!pwdCheck.isValid) {
+      setErrorMsg("Password does not meet security requirements: " + pwdCheck.errors.join(", "));
+      return;
+    }
+    if (newAccountPassword !== confirmAccountPassword) {
+      setErrorMsg("New password and confirmation do not match.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
+      const { ok, data, error } = await safeFetchJson<{
+        success: boolean;
+        message?: string;
+        error?: string;
+      }>("/api/v1/auth/change-password", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ newPassword: newAccountPassword }),
+      });
+
+      if (!ok || !data?.success) {
+        setErrorMsg(sanitizeAuthError(error || data?.error || data?.message, "Could not update password. Please sign in again."));
+        return;
+      }
+
+      setSuccessMsg(data.message || "Password updated securely!");
+      setNewAccountPassword("");
+      setConfirmAccountPassword("");
+      setShowChangePassword(false);
+    } catch (err: any) {
+      setErrorMsg(sanitizeAuthError(err, "Could not update password. Please try again."));
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -644,36 +723,81 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Current Active Account Card (if logged in) */}
         {currentRole !== "public" && userProfile && (
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
-            <div className="flex items-center space-x-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0 ${
-                currentRole === "owner"
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500"
-                  : "bg-red-600"
-              }`}>
-                {currentRole === "owner" ? <Crown className="w-4 h-4" /> : (userProfile.name?.[0] || "U").toUpperCase()}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0 ${
+                  currentRole === "owner"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                    : "bg-red-600"
+                }`}>
+                  {currentRole === "owner" ? <Crown className="w-4 h-4" /> : (userProfile.name?.[0] || "U").toUpperCase()}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                    <span className="truncate max-w-[130px]">{userProfile.name}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                      {currentRole === "owner" ? "OWNER" : userProfile.isPro ? "PRO" : "FREE"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate">
+                    {userProfile.email}
+                  </div>
+                </div>
               </div>
 
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-                  <span className="truncate max-w-[130px]">{userProfile.name}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                    {currentRole === "owner" ? "OWNER" : userProfile.isPro ? "PRO" : "FREE"}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-400 truncate">
-                  {userProfile.email}
-                </div>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500 hover:text-white transition flex items-center space-x-1 shrink-0 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500 hover:text-white transition flex items-center space-x-1 shrink-0 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
-            </button>
+            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowChangePassword((v) => !v);
+                  setErrorMsg("");
+                  setSuccessMsg("");
+                }}
+                className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Key className="w-3 h-3" />
+                <span>{showChangePassword ? "Hide Password Settings" : "Set / Update Account Password"}</span>
+              </button>
+
+              {showChangePassword && (
+                <form onSubmit={handleChangeAuthenticatedPassword} className="mt-2.5 space-y-2">
+                  <input
+                    type="password"
+                    placeholder="New strong password (min 8 chars, number, symbol)"
+                    value={newAccountPassword}
+                    onChange={(e) => setNewAccountPassword(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmAccountPassword}
+                    onChange={(e) => setConfirmAccountPassword(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isUpdatingPassword}
+                    className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUpdatingPassword ? "Updating Password..." : "Save New Password"}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         )}
 
@@ -1271,13 +1395,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </div>
 
-            {/* MFA Step 1: Owner Credentials Form */}
+            {/* MFA Step 1: Verified Google Owner Sign-In + Owner Credentials Form */}
             {ownerMfaStep === 1 && (
+              <div className="space-y-3.5">
+                {/* Recommended: Instant Cryptographically Verified Google Sign-In for Registered Owner Accounts */}
+                <button
+                  type="button"
+                  disabled={socialLoading !== null || isSubmitting}
+                  onClick={() => handleSocialSignIn("google")}
+                  className="w-full py-3 px-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-amber-500/40 text-slate-900 dark:text-white font-bold text-xs transition shadow-sm flex items-center justify-center space-x-2.5 disabled:opacity-60 cursor-pointer active:scale-98"
+                >
+                  {socialLoading === "google" ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                      <span>Verifying Google Owner Identity...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                      </svg>
+                      <span>Sign in with Google (Verified Owner Access)</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="relative flex py-0.5 items-center">
+                  <div className="flex-grow border-t border-amber-500/20"></div>
+                  <span className="flex-shrink mx-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Or Owner Password
+                  </span>
+                  <div className="flex-grow border-t border-amber-500/20"></div>
+                </div>
+
               <form onSubmit={handleOwnerInitiateMfa} className="space-y-3.5">
                 <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-start space-x-2">
                   <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <span>
-                    Mandatory Multi-Factor Authentication (MFA) is active. Entering your credentials will dispatch a verification OTP to your registered devices.
+                    Sign in with your verified Owner Google account above for instant 2FA-backed access, or enter your Owner email and password below.
                   </span>
                 </div>
 
@@ -1367,6 +1525,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                 </button>
               </form>
+              </div>
             )}
 
             {/* MFA Step 2: 6-Digit OTP Verification Screen */}

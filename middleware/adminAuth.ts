@@ -22,6 +22,24 @@ export interface AdminSessionVerificationOptions {
   requireServerVerification?: boolean;
 }
 
+function isValidJwtFormat(token?: string | null): boolean {
+  if (!token || typeof token !== "string") return false;
+  const trimmed = token.trim();
+  const parts = trimmed.split(".");
+  return parts.length === 3 && parts.every((p) => p.length > 0) && trimmed.length >= 30;
+}
+
+function isStrongSecretKey(secret?: string | null): boolean {
+  if (!secret || typeof secret !== "string") return false;
+  const trimmed = secret.trim();
+  return (
+    trimmed.length >= 16 &&
+    trimmed !== "12345" &&
+    trimmed !== "pdfsunPass2026" &&
+    trimmed !== "your_admin_secret_key"
+  );
+}
+
 /**
  * Retrieves the currently active admin token or session secret from browser storage
  */
@@ -32,10 +50,10 @@ export function getStoredAdminToken(): string | null {
       localStorage.getItem("pdfsun_admin_token") ||
       localStorage.getItem("pdfsun_auth_token") ||
       sessionStorage.getItem("pdfsun_admin_token") ||
-      "verified-admin-token"
+      null
     );
   } catch {
-    return "verified-admin-token";
+    return null;
   }
 }
 
@@ -48,7 +66,7 @@ export function getStoredAdminSecretKey(): string | null {
     const val =
       localStorage.getItem("pdfsun_admin_secret_key") ||
       sessionStorage.getItem("pdfsun_admin_secret_key");
-    if (!val || val === "12345" || val === "pdfsunPass2026") return null;
+    if (!isStrongSecretKey(val)) return null;
     return val;
   } catch {
     return null;
@@ -56,8 +74,9 @@ export function getStoredAdminSecretKey(): string | null {
 }
 
 /**
- * Validates whether the current client session has sufficient credentials
- * (matching owner email list, admin privileges, or valid admin secret token).
+ * Validates whether the current client session appears to hold a real credential
+ * (syntactically valid JWT or strong secret key) paired with owner/admin claims.
+ * Authoritative access ALWAYS requires verifyAdminSessionWithServer().
  */
 export function validateAdminSession(
   userProfile?: UserProfile | null,
@@ -66,13 +85,14 @@ export function validateAdminSession(
 ): AdminSessionValidationResult {
   const activeKey = secretKey || getStoredAdminSecretKey();
   const activeToken = token || getStoredAdminToken();
+  const hasJwtCredential = isValidJwtFormat(activeToken);
+  const hasSecretCredential = isStrongSecretKey(activeKey);
 
-  // 1. If userProfile is present, check email & roles
-  if (userProfile && userProfile.email) {
+  // 1. If userProfile is present with an explicit privileged role AND a real credential
+  if (userProfile && userProfile.email && (hasJwtCredential || hasSecretCredential)) {
     const normalizedEmail = (userProfile.email || "").toLowerCase().trim();
     const isDualOwner =
       DUAL_OWNER_EMAILS.includes(normalizedEmail) ||
-      normalizedEmail === "mukeshkalonia241@gmail.com" ||
       normalizedEmail === "mukeshinland79@gmail.com";
 
     const hasExplicitAdminRole =
@@ -80,28 +100,27 @@ export function validateAdminSession(
       (userProfile.role as string) === "admin" ||
       userProfile.hasAdminAccess === true;
 
-    // Strict Dual-Owner Verification
-    if (isDualOwner || userProfile.role === "owner") {
+    if (isDualOwner && userProfile.role === "owner") {
       return {
         isValid: true,
         isOwner: true,
         role: "owner",
-        token: activeToken || activeKey || "verified-dual-owner",
+        token: activeToken || activeKey || undefined,
       };
     }
 
     if (hasExplicitAdminRole) {
       return {
         isValid: true,
-        isOwner: false,
-        role: "admin",
-        token: activeToken || activeKey || "verified-admin-token",
+        isOwner: userProfile.role === "owner",
+        role: userProfile.role === "owner" ? "owner" : "admin",
+        token: activeToken || activeKey || undefined,
       };
     }
   }
 
-  // 2. If direct secret key is provided (strictly requiring length >= 16 and rejecting known weak secrets)
-  if (activeKey && activeKey !== "12345" && activeKey !== "pdfsunPass2026" && activeKey.trim().length >= 16) {
+  // 2. Direct strong secret key (>= 16 chars, non-placeholder)
+  if (hasSecretCredential && activeKey) {
     return {
       isValid: true,
       isOwner: true,
@@ -110,58 +129,30 @@ export function validateAdminSession(
     };
   }
 
-  // 3. Fallback for development & owner session
-  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname.includes("run.app") || window.location.hostname.includes("pdfsun.in"))) {
-    const storedRole = localStorage.getItem("pdfsun_user_role");
-    if (storedRole === "owner") {
-      return {
-        isValid: true,
-        isOwner: true,
-        role: "owner",
-        token: activeToken || "owner-verified",
-      };
-    }
-  }
-
   return {
     isValid: false,
     isOwner: false,
     role: "unauthorized",
-    reason: "Current user session lacks required administrative permissions.",
+    reason: "Current user session lacks verified administrative credentials.",
   };
 }
 
 /**
- * Performs active cryptographic verification with the server-side admin endpoints
- * using the configured ADMIN_SECRET_KEY / session token with a non-blocking 1.2s timeout.
+ * Performs active server-side cryptographic verification against /api/v1/auth/verify-session
+ * using HttpOnly cookies, Bearer JWT, or ADMIN_SECRET_KEY. Always fails closed.
  */
 export async function verifyAdminSessionWithServer(
   options: AdminSessionVerificationOptions = {}
 ): Promise<AdminSessionValidationResult> {
-  const localCheck = validateAdminSession(
-    options.userProfile,
-    options.token,
-    options.adminSecretKey
-  );
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-  // If local check is already valid, immediately return valid without blocking UI
-  if (localCheck.isValid) {
-    return localCheck;
-  }
-
-  // Non-blocking server verification with AbortController timeout
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
-
-    const email = (options.userProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
     const token = options.token || getStoredAdminToken() || "";
     const secret = options.adminSecretKey || getStoredAdminSecretKey() || "";
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "x-user-email": email,
-      "x-owner-email": email,
     };
     if (token) {
       headers["x-admin-token"] = token;
@@ -171,26 +162,50 @@ export async function verifyAdminSessionWithServer(
       headers["x-admin-secret"] = secret;
     }
 
-    const res = await fetch("/api/admin/system-stats", {
-      method: "GET",
+    const res = await fetch("/api/v1/auth/verify-session", {
+      method: "POST",
+      credentials: "include",
       headers,
+      body: JSON.stringify({ token: token || undefined }),
       signal: controller.signal,
     });
-    clearTimeout(timeoutId);
 
     if (res.ok) {
+      const data = await res.json().catch(() => null);
+      const serverRole = String(data?.user?.role || data?.role || "").toLowerCase();
+      const hasAdmin =
+        data?.valid === true &&
+        Boolean(data?.user) &&
+        (serverRole === "owner" || serverRole === "admin" || data?.user?.hasAdminAccess === true);
+
+      if (hasAdmin) {
+        return {
+          isValid: true,
+          isOwner: serverRole === "owner",
+          role: serverRole === "owner" ? "owner" : "admin",
+          token: token || secret || undefined,
+        };
+      }
+
       return {
-        isValid: true,
-        isOwner: localCheck.isOwner || true,
-        role: localCheck.role === "unauthorized" ? "owner" : localCheck.role,
-        token: token || secret,
+        isValid: false,
+        isOwner: false,
+        role: "unauthorized",
+        reason: data?.error || "Server denied administrative session privileges.",
       };
     }
-  } catch (err: any) {
-    // On timeout or offline, gracefully return local check
+  } catch {
+    // Fail closed on network/timeout errors
+  } finally {
+    clearTimeout(timeoutId);
   }
 
-  return localCheck;
+  return {
+    isValid: false,
+    isOwner: false,
+    role: "unauthorized",
+    reason: "Unable to verify administrative session with server.",
+  };
 }
 
 /**

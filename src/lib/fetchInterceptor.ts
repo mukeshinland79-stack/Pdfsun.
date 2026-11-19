@@ -220,6 +220,7 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       lowerUrl.includes("/api/admin/system-config") ||
       lowerUrl.includes("/api/admin/users") ||
       lowerUrl.includes("/api/auth/verify-session") ||
+      lowerUrl.includes("/api/v1/auth/verify-session") ||
       lowerUrl.includes("/api/user/payment-history") ||
       lowerUrl.includes("/api/user/subscription") ||
       lowerUrl.includes("/api/user/session") ||
@@ -375,13 +376,15 @@ export function setupGlobalFetchInterceptor(options: InterceptorOptions = {}): v
       if (timeoutTimer) clearTimeout(timeoutTimer);
 
       const durationMs = Math.round(performance.now() - startTime);
+      const isCallerAbort = Boolean(init?.signal?.aborted) && !timeoutController?.signal?.aborted;
       const isTimeoutError =
-        err === "NETWORK_TIMEOUT_EXCEEDED" ||
-        err?.name === "AbortError" ||
-        (err?.message && err.message.toLowerCase().includes("timeout"));
+        !isCallerAbort &&
+        (err === "NETWORK_TIMEOUT_EXCEEDED" ||
+          err?.name === "AbortError" ||
+          (err?.message && err.message.toLowerCase().includes("timeout")));
       const isBrowserOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (!isIgnoredNoise && !isBackgroundGet) {
+      if (!isIgnoredNoise && !isBackgroundGet && !isCallerAbort) {
         if (isTimeoutError) {
           const timeoutMsg = isAiOrHeavyRoute
             ? `AI generation request to ${pathName || urlStr} timed out after ${Math.round(effectiveTimeoutMs / 1000)}s.`

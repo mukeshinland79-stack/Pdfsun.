@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import { isValidAdminSecret, isVerifiedOwnerIdentity } from "./middleware/adminAuth";
+import { parseCookieHeader } from "./cookieUtils";
 
 // Dynamic In-Memory Rate Limiting & Banned IP Store
 interface RateLimitRecord {
@@ -10,37 +12,27 @@ interface RateLimitRecord {
 const rateLimitStore = new Map<string, RateLimitRecord>();
 const bannedIpStore = new Map<string, number>(); // IP -> Ban Expiry Timestamp
 
-// Default Admin Secret Key (In production, loaded from process.env.ADMIN_SECRET_KEY)
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "pdfsun_owner_super_secret_key_2026";
-
 /**
  * Pillar 1: Absolute Admin Panel Cloaking & Zero-Trust Stealth Middleware
  * Returns a generic '404 Not Found' response to obscure the existence of admin endpoints
- * unless the client presents a valid authenticated session/owner key.
+ * unless the client presents a valid authenticated MFA-verified owner JWT or valid secret.
  */
 export function adminStealthMiddleware(req: Request, res: Response, next: NextFunction) {
   const clientIp = getClientIp(req);
-  const userAgent = req.headers["user-agent"] || "unknown";
 
   // Check if IP is banned
   if (isIpBanned(clientIp)) {
     return res.status(404).json({ error: "Cannot GET " + req.originalUrl });
   }
 
-  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"];
-  const cookieToken = req.headers.cookie
-    ?.split("; ")
-    .find((row) => row.startsWith("pdfsun_admin_session="))
-    ?.split("=")[1];
+  const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
+  const cookies = parseCookieHeader(req.headers.cookie);
+  const cookieToken = cookies["pdfsun_admin_session"] || "";
 
   const rawHeader = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
+  const providedToken = (typeof rawHeader === "string" ? rawHeader.replace(/^Bearer\s+/i, "").trim() : "") || cookieToken;
 
-  // Session Hijacking Protection: Verify IP & User-Agent fingerprint consistency
-  const sessionFingerprint = (req.headers["x-session-fingerprint"] as string) || "";
-  if (providedToken === ADMIN_SECRET_KEY) {
-    // Valid owner session
-    res.setHeader("Set-Cookie", `pdfsun_admin_session=${ADMIN_SECRET_KEY}; HttpOnly; Secure; SameSite=Strict; Path=/`);
+  if (isValidAdminSecret(providedToken) || isVerifiedOwnerIdentity(providedToken)) {
     return next();
   }
 

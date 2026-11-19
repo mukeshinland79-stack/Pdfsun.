@@ -11,21 +11,30 @@ const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 
-// Configuration defaults
+// Configuration defaults (strictly no hardcoded secret fallbacks)
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "mukeshinland79@gmail.com";
 const APP_BASE_URL = process.env.APP_BASE_URL || "https://pdfsun.in";
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "12345";
+const ADMIN_SECRET_KEY = (process.env.ADMIN_SECRET_KEY || "").trim();
 
-// Configure Nodemailer Transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587", 10),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER || "notifications@pdfsun.in",
-    pass: process.env.SMTP_PASS || "sample_smtp_password",
-  },
-});
+function isConfiguredAdminSecret(secret) {
+  return Boolean(secret && secret !== "12345" && secret !== "your_admin_secret_key" && secret.length >= 16);
+}
+
+// Configure Nodemailer Transporter only when SMTP credentials exist
+const SMTP_USER = (process.env.SMTP_USER || "").trim();
+const SMTP_PASS = (process.env.SMTP_PASS || "").trim();
+const transporter =
+  SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT || "587", 10),
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      })
+    : null;
 
 /**
  * Cloud Function Trigger: onNewToolFeedback
@@ -35,6 +44,16 @@ exports.onNewToolFeedback = onDocumentCreated("tool_feedback/{feedbackId}", asyn
   const snapshot = event.data;
   if (!snapshot) {
     logger.warn("No data associated with the event");
+    return;
+  }
+
+  if (!isConfiguredAdminSecret(ADMIN_SECRET_KEY)) {
+    logger.error("ADMIN_SECRET_KEY is missing or insecure; failing closed without generating admin moderation links.");
+    return;
+  }
+
+  if (!transporter) {
+    logger.error("SMTP credentials are not configured; skipping feedback notification email.");
     return;
   }
 
@@ -49,8 +68,12 @@ exports.onNewToolFeedback = onDocumentCreated("tool_feedback/{feedbackId}", asyn
   const userEmail = feedbackData.userEmail || "Anonymous User";
   const timestamp = feedbackData.timestamp || new Date().toISOString();
 
-  // Create action verification token
-  const actionToken = Buffer.from(`${feedbackId}:${ADMIN_SECRET_KEY}`).toString("base64url");
+  // Create action verification HMAC token
+  const crypto = require("crypto");
+  const actionToken = crypto
+    .createHmac("sha256", ADMIN_SECRET_KEY)
+    .update(String(feedbackId))
+    .digest("base64url");
 
   // Construct Action URLs for Approve and Delete
   const approveUrl = `${APP_BASE_URL}/api/admin/feedback/action?id=${encodeURIComponent(feedbackId)}&action=approve&token=${encodeURIComponent(actionToken)}`;

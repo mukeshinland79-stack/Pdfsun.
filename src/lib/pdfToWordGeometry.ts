@@ -10,7 +10,7 @@
  */
 
 import * as pdfjsLib from "pdfjs-dist";
-import * as pakoNs from "pako";
+import { deflate as pakoDeflate } from "pako";
 import { createSafeCanvas } from "./enterpriseImageOcrEngine";
 import { ensurePdfJsWorkerConfigured } from "./pdfjsWorkerSetup";
 
@@ -125,8 +125,7 @@ export function encodeRgbaToPng(
     rawScanlines.set(rgba.subarray(srcStart, srcStart + rowStride), destOffset + 1);
   }
 
-  const deflateFn = (pakoNs as any).deflate || (pakoNs as any).default?.deflate;
-  const compressed = deflateFn(rawScanlines, { level: 6 });
+  const compressed = pakoDeflate(rawScanlines, { level: 6 });
 
   const ihdr = new Uint8Array(13);
   const ihdrView = new DataView(ihdr.buffer);

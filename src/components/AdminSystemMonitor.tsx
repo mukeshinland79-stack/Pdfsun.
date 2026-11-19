@@ -53,14 +53,21 @@ export const AdminSystemMonitor: React.FC<AdminSystemMonitorProps> = ({
     heapTotalMb: 0,
   });
 
-  // Poll real /api/system/public-stats endpoint
+  // Poll owner-gated /api/admin/system-stats endpoint
   useEffect(() => {
     if (!isLive) return;
     let active = true;
 
     const sampleSystemStats = async () => {
       try {
-        const res = await fetch("/api/system/public-stats", { credentials: "include" });
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("pdfsun_admin_token") || localStorage.getItem("pdfsun_auth_token") || ""
+            : "";
+        const res = await fetch("/api/admin/system-stats", {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!res.ok || !active) return;
         const stats = await res.json();
         const nowStr = new Date().toLocaleTimeString();

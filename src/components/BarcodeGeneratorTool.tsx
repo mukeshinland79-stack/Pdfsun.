@@ -70,6 +70,7 @@ const SYMBOLOGIES: BarcodeSymbology[] = [
 ];
 
 const BULK_ROW_LIMIT = 500;
+const MAX_BULK_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 const GUIDE_SLUG = "complete-guide-barcode-generator-code128-ean13-gs1-128";
 
 export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
@@ -361,6 +362,17 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
   const handleBulkFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const ext = file.name.toLowerCase().split(".").pop() || "";
+    if (!["csv", "xls", "xlsx"].includes(ext)) {
+      triggerErrorToast("Unsupported File", "Upload a .csv, .xls, or .xlsx spreadsheet.");
+      if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_BULK_FILE_BYTES) {
+      triggerErrorToast("File Too Large", "Bulk spreadsheet exceeds the 10 MB browser memory safety limit.");
+      if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+      return;
+    }
     setBulkBusy(true);
     try {
       const buffer = await file.arrayBuffer();
@@ -716,10 +728,11 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
             {symbology === "CODABAR" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  <label htmlFor="codabar-start-guard" className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
                     Start Guard
                   </label>
                   <select
+                    id="codabar-start-guard"
                     value={codabarStart}
                     onChange={(e) => setCodabarStart(e.target.value as "A" | "B" | "C" | "D")}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-bold"
@@ -730,10 +743,11 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  <label htmlFor="codabar-stop-guard" className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
                     Stop Guard
                   </label>
                   <select
+                    id="codabar-stop-guard"
                     value={codabarStop}
                     onChange={(e) => setCodabarStop(e.target.value as "A" | "B" | "C" | "D")}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-bold"
@@ -766,11 +780,12 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="barcode-bar-width" className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       <span>Bar Width</span>
                       <span className="font-mono tabular-nums">{barWidth}px</span>
                     </label>
                     <input
+                      id="barcode-bar-width"
                       type="range"
                       min={1}
                       max={5}
@@ -781,11 +796,12 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="barcode-bar-height" className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       <span>Bar Height</span>
                       <span className="font-mono tabular-nums">{barHeight}px</span>
                     </label>
                     <input
+                      id="barcode-bar-height"
                       type="range"
                       min={40}
                       max={220}
@@ -799,11 +815,12 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="barcode-quiet-zone" className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       <span>Quiet Zone</span>
                       <span className="font-mono tabular-nums">{quietZoneModules}x</span>
                     </label>
                     <input
+                      id="barcode-quiet-zone"
                       type="range"
                       min={10}
                       max={24}
@@ -814,11 +831,12 @@ export const BarcodeGeneratorTool: React.FC<BarcodeGeneratorToolProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="barcode-font-size" className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       <span>Font Size</span>
                       <span className="font-mono tabular-nums">{fontSize}px</span>
                     </label>
                     <input
+                      id="barcode-font-size"
                       type="range"
                       min={10}
                       max={24}
