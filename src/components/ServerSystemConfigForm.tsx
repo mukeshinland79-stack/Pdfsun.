@@ -47,7 +47,8 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const currentUserEmail = (currentUserProfile?.email || "").toLowerCase().trim();
-  const isDualOwner = DUAL_OWNER_EMAILS.includes(currentUserEmail);
+  const isVerifiedOwner =
+    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(currentUserEmail);
 
   const getAuthHeaders = (): Record<string, string> => {
     const storedToken =
@@ -95,8 +96,12 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
   };
 
   useEffect(() => {
+    if (!isVerifiedOwner) {
+      setIsLoading(false);
+      return;
+    }
     fetchLiveConfig();
-  }, [currentUserEmail]);
+  }, [currentUserEmail, isVerifiedOwner]);
 
   const handleSaveConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -117,7 +122,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       });
 
       if (res.status === 404) {
-        setErrorMessage("Access Denied (404 Cloaked): Only verified dual-owners can alter system configurations.");
+        setErrorMessage("Access Denied (404 Cloaked): Only the verified Platform Owner can alter system configurations.");
         setIsSaving(false);
         return;
       }
@@ -210,11 +215,11 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
     const auditReport = {
       complianceHeader: {
         title: "PDFSun Enterprise System Configuration Compliance Audit Report",
-        classification: "CONFIDENTIAL / DUAL-OWNER CLEARANCE ONLY",
+        classification: "CONFIDENTIAL / SOLE-OWNER CLEARANCE ONLY",
         reportId: `audit-sys-${Date.now()}`,
         generatedAt: timestamp,
         generatedBy: currentUserEmail || "Authenticated Owner",
-        dualOwnerAuthorized: isDualOwner,
+        soleOwnerAuthorized: isVerifiedOwner,
         authorizedOwners: DUAL_OWNER_EMAILS,
       },
       currentConfigurationSnapshot: config,
@@ -229,6 +234,22 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
     dlAnchor.click();
     document.body.removeChild(dlAnchor);
   };
+
+  if (!isVerifiedOwner) {
+    return (
+      <div className="p-8 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-3">
+        <div className="p-3 rounded-full bg-rose-500/20 text-rose-500 w-12 h-12 mx-auto flex items-center justify-center">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-black text-rose-600 dark:text-rose-400">
+          Access Denied: Verified Sole-Owner Clearance Required
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+          Server &amp; System Configurations are restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) with an active Owner role session.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 animate-in fade-in">
@@ -245,7 +266,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-[10px] uppercase border border-amber-500/20 flex items-center space-x-1">
                 <Crown className="w-3 h-3" />
-                <span>DUAL-OWNER RBAC</span>
+                <span>SOLE-OWNER RBAC</span>
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

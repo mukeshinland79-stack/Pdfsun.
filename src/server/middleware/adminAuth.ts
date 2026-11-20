@@ -176,8 +176,8 @@ export function generateAdminJwtToken(payload: Partial<AdminJwtPayload>): string
     id: payload.id || "admin_" + Math.random().toString(36).substring(2, 9),
     email: payload.email || "admin@pdfsun.in",
     role: payload.role || "admin",
-    hasAdminAccess: true,
-    mfaVerified: payload.mfaVerified ?? true,
+    hasAdminAccess: payload.hasAdminAccess ?? true,
+    mfaVerified: payload.mfaVerified === true,
     permissions: payload.permissions || {
       analytics: true,
       userManagement: true,
@@ -198,19 +198,17 @@ export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
     if (!token || isRevokedAdminOrSessionToken(token)) return null;
     const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as AdminJwtPayload;
     if (!decoded) return null;
+    if (decoded.mfaVerified !== true) {
+      return null;
+    }
     const email = (decoded.email || "").toLowerCase().trim();
     const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes(email);
-    // Reject any token claiming role === "owner" for a non-allowlisted email
-    if (decoded.role === "owner" && !isAllowlistedOwner) {
-      return null;
+    // Strict Owner conjunction: requires owner role + authorized Owner identity + verified MFA
+    if (decoded.role === "owner") {
+      return isAllowlistedOwner ? decoded : null;
     }
-    if ((decoded.role === "owner" || isAllowlistedOwner) && decoded.mfaVerified !== true) {
-      return null;
-    }
-    if (decoded.role === "owner" && isAllowlistedOwner) {
-      return decoded;
-    }
-    if (decoded.role === "admin" || decoded.hasAdminAccess === true) {
+    // Strict non-owner Admin conjunction: requires admin role + explicit hasAdminAccess + verified MFA
+    if (decoded.role === "admin" && decoded.hasAdminAccess === true) {
       return decoded;
     }
     return null;
@@ -272,21 +270,12 @@ export async function adminAuth(req: Request, res: Response, next: NextFunction)
       const revokedInSharedStore = await isRevokedAdminOrSessionTokenAsync(token);
       const decodedUser = revokedInSharedStore ? null : verifyAdminJwtToken(token);
 
-      if (decodedUser) {
+      if (decodedUser && decodedUser.mfaVerified === true) {
         const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes((decodedUser.email || "").toLowerCase().trim());
-        if (decodedUser.role === "owner") {
-          if (isAllowlistedOwner && decodedUser.mfaVerified === true) {
-            req.isAdminAuthenticated = true;
-            req.adminUser = decodedUser;
-            return next();
-          }
-        } else if (isAllowlistedOwner) {
-          if (decodedUser.mfaVerified === true) {
-            req.isAdminAuthenticated = true;
-            req.adminUser = decodedUser;
-            return next();
-          }
-        } else if (decodedUser.role === "admin" || decodedUser.hasAdminAccess) {
+        const isVerifiedOwner = decodedUser.role === "owner" && isAllowlistedOwner;
+        const isVerifiedAdmin = decodedUser.role === "admin" && decodedUser.hasAdminAccess === true;
+
+        if (isVerifiedOwner || isVerifiedAdmin) {
           req.isAdminAuthenticated = true;
           req.adminUser = decodedUser;
           return next();

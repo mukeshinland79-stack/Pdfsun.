@@ -27,12 +27,14 @@ import {
   Smartphone,
   Award,
 } from "lucide-react";
-import { DUAL_OWNER_EMAILS } from "../types";
+import { DUAL_OWNER_EMAILS, UserProfile } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
 import { generateToolAuditRegistry, ToolAuditRecord } from "../lib/toolAuditRegistry";
 
 interface OwnerGrowthIntelligenceDashboardProps {
   currentUserEmail?: string;
+  currentUserProfile?: UserProfile | null;
+  currentUserRole?: string;
 }
 
 interface GscKeywordOpportunity {
@@ -50,11 +52,19 @@ const GSC_OPPORTUNITIES: GscKeywordOpportunity[] = [];
 
 export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceDashboardProps> = ({
   currentUserEmail = "",
+  currentUserProfile = null,
+  currentUserRole = "",
 }) => {
+  const effectiveEmail = (currentUserProfile?.email || currentUserEmail || "").toLowerCase().trim();
+  const effectiveRole = (currentUserProfile?.role || currentUserRole || "").toLowerCase().trim();
+
   const isAuthorizedOwner = useMemo(() => {
-    const cleanEmail = (currentUserEmail || "").toLowerCase().trim();
-    return DUAL_OWNER_EMAILS.some((owner) => owner.toLowerCase() === cleanEmail);
-  }, [currentUserEmail]);
+    return (
+      effectiveRole === "owner" &&
+      Boolean(effectiveEmail) &&
+      DUAL_OWNER_EMAILS.some((owner) => owner.toLowerCase() === effectiveEmail)
+    );
+  }, [effectiveEmail, effectiveRole]);
 
   // Audit Matrix Data
   const fullAuditRegistry = useMemo(() => generateToolAuditRegistry(), []);
@@ -234,7 +244,7 @@ export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceD
         </p>
         <div className="bg-slate-950/60 p-4 rounded-xl text-xs text-slate-400 border border-slate-800/80 text-left">
           <p className="font-semibold text-slate-300 mb-1">Current Session Info:</p>
-          <p>Authenticated: {currentUserEmail || "Anonymous"}</p>
+          <p>Authenticated: {effectiveEmail || "Anonymous"}</p>
           <p>Permission Status: Standard Access (Public Features Only)</p>
         </div>
       </div>
@@ -250,7 +260,7 @@ export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceD
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Owner Master Dashboard • Mukesh Kalonia
+              Verified Sole-Owner Master Dashboard • {DUAL_OWNER_EMAILS[0]}
             </div>
             <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
               PDFSun Growth & Tool Reliability Engine

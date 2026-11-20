@@ -658,16 +658,44 @@ export const handleVerifySession = async (req: Request, res: Response) => {
       });
     }
 
-    const isOwner = payload.role === "owner" && DUAL_OWNER_EMAILS.includes((payload.email || "").toLowerCase().trim());
-    const subCheck = getUserSubscription(payload.email);
-    const profile = getUserProfileByEmail(payload.email) || {
+    const normalizedEmail = (payload.email || "").toLowerCase().trim();
+    if (!normalizedEmail) {
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        user: null,
+        role: "public",
+        error: "Session identity missing or invalid",
+      });
+    }
+
+    const existingProfile = getUserProfileByEmail(normalizedEmail);
+    if (!existingProfile) {
+      const claimedRole = String(payload.role || "").toLowerCase().trim();
+      const claimsPrivilegedAccess =
+        claimedRole === "owner" ||
+        claimedRole === "admin" ||
+        payload.hasAdminAccess === true;
+      if (claimsPrivilegedAccess) {
+        return res.status(401).json({
+          success: false,
+          valid: false,
+          user: null,
+          role: "public",
+          error: "Privileged session requires a verified server user profile",
+        });
+      }
+    }
+
+    const subCheck = getUserSubscription(normalizedEmail);
+    const profile = existingProfile || {
       id: payload.id,
       name: payload.name,
-      email: payload.email,
-      role: payload.role,
-      plan: isOwner ? "Founder & Owner" : subCheck.isActive ? subCheck.subscription?.plan_name || "Pro Sun Plan" : "Free Plan",
-      hasAdminAccess: Boolean(payload.hasAdminAccess),
-      isPro: isOwner || subCheck.isActive,
+      email: normalizedEmail,
+      role: "user" as const,
+      plan: subCheck.isActive ? subCheck.subscription?.plan_name || "Pro Sun Plan" : "Free Plan",
+      hasAdminAccess: false,
+      isPro: subCheck.isActive,
     };
 
     return res.json({

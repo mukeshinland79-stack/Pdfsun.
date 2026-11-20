@@ -86,7 +86,8 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
   const [newDetails, setNewDetails] = useState("");
 
   const activeEmail = (currentUserProfile?.email || "").toLowerCase().trim();
-  const isVerifiedOwner = DUAL_OWNER_EMAILS.includes(activeEmail);
+  const isVerifiedOwner =
+    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(activeEmail);
 
   // Fetch live audit logs from backend
   const fetchLiveAuditLogs = async () => {
@@ -121,12 +122,13 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
   };
 
   useEffect(() => {
+    if (!isVerifiedOwner) return;
     fetchLiveAuditLogs();
-  }, []);
+  }, [isVerifiedOwner]);
 
   // Live polling stream when enabled (polls genuine server audit log store)
   useEffect(() => {
-    if (!isLiveStream) return;
+    if (!isLiveStream || !isVerifiedOwner) return;
     const interval = setInterval(() => {
       fetchLiveAuditLogs();
     }, 15000);
@@ -619,6 +621,22 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
       </span>
     );
   };
+
+  if (!isVerifiedOwner) {
+    return (
+      <div className="p-8 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-3" id="admin-audit-logs-denied">
+        <div className="p-3 rounded-full bg-rose-500/20 text-rose-500 w-12 h-12 mx-auto flex items-center justify-center">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-black text-rose-600 dark:text-rose-400">
+          Access Denied: Verified Sole-Owner Clearance Required
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+          Enterprise Audit Logs &amp; Identity Trail access is restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) with an active Owner role session.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-6 ${className}`} id="admin-audit-logs-tab">

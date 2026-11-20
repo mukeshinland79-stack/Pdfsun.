@@ -4638,9 +4638,10 @@ interface ServerAuditLog {
 let serverAuditLogs: ServerAuditLog[] = [];
 
 function resolveVerifiedAuditOperator(req: express.Request): string {
+  if (req.adminUser?.email) return req.adminUser.email;
   const identity = resolveAuthenticatedUserIdentity(req);
   if (identity?.email) return identity.email;
-  return "owner@pdfsun.in";
+  return "SYSTEM";
 }
 
 function recordServerAuditLog(entry: {

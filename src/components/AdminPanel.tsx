@@ -471,11 +471,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   if (!isOpen) return null;
 
   const userEmail = (currentUserProfile?.email || "").toLowerCase().trim();
-  const isDualOwnerUser = DUAL_OWNER_EMAILS.includes(userEmail);
+  const isVerifiedSoleOwner =
+    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(userEmail);
 
-  const isPlatformOwner = isOwner !== undefined 
-    ? (isOwner || isDualOwnerUser)
-    : (isDualOwnerUser || currentUserProfile?.plan === "Founder & Owner" || currentUserProfile?.plan === "Admin Owner");
+  const isPlatformOwner = isOwner !== undefined
+    ? Boolean(isOwner) && isVerifiedSoleOwner
+    : isVerifiedSoleOwner;
 
   const effectiveActiveTab = isPlatformOwner ? activeTab : "analytics";
 
@@ -883,7 +884,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex-1 p-6 overflow-y-auto">
           {/* Owner-Only 209 -> 10K Growth & Reliability Engine */}
           {effectiveActiveTab === "growth_engine" && (
-            <OwnerGrowthIntelligenceDashboard currentUserEmail={currentUserProfile?.email} />
+            <OwnerGrowthIntelligenceDashboard
+              currentUserProfile={currentUserProfile}
+              currentUserEmail={currentUserProfile?.email}
+            />
           )}
 
           {/* CMS & Live Translation Tab */}
@@ -921,7 +925,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       {currentUserProfile?.name || "Platform Administrator"}
                     </h3>
                     <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase">
-                      DUAL-OWNER PLATFORM ADMIN
+                      SOLE-OWNER PLATFORM ADMIN
                     </span>
                   </div>
                   <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
@@ -944,7 +948,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="text-xs font-bold text-slate-400 uppercase">Security Status</div>
                   <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center space-x-1">
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Dual-Owner RBAC Enforced</span>
+                    <span>Sole-Owner RBAC Enforced</span>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -972,7 +976,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Architected & Engineered by <strong className="text-amber-400">Mukesh Kalonia</strong> • Lead Web Developer & Dual Owner
+                        PDFSun Platform Architecture • Sole Owner Governance (<strong className="text-amber-400">{DUAL_OWNER_EMAILS[0]}</strong>)
                       </p>
                     </div>
                   </div>
@@ -1656,7 +1660,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <option value="user">Role: Regular User</option>
                       <option value="customer">Role: Customer (Pro/Paid)</option>
                       <option value="client">Role: Client (Business/Org)</option>
-                      <option value="owner">Role: Co-Owner / Admin</option>
+                      <option value="admin">Role: Delegated Admin</option>
                     </select>
                     <select
                       value={newUserPlan}
@@ -2303,10 +2307,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <ShieldAlert className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-black text-rose-600 dark:text-rose-400">
-                  Access Denied: Dual-Owner Security Clearance Required
+                  Access Denied: Sole-Owner Security Clearance Required
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  The System Activity Log is restricted exclusively to Dual-Owners (Mukesh Kalonia & Mukesh Inland) to safeguard real-time login attempt records, configuration changes, and system exception telemetry.
+                  The System Activity Log is restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) to safeguard real-time login attempt records, configuration changes, and system exception telemetry.
                 </p>
               </div>
             )

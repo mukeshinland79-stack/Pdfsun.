@@ -72,7 +72,13 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   className = "",
 }) => {
   const userEmail = (currentUserProfile?.email || "").toLowerCase().trim();
-  const isDualOwner = Boolean(userEmail) && DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === userEmail);
+  const isVerifiedOwner =
+    currentUserProfile?.role === "owner" &&
+    Boolean(userEmail) &&
+    DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === userEmail);
+  const isVerifiedAdmin =
+    currentUserProfile?.role === "admin" && currentUserProfile?.hasAdminAccess === true;
+  const hasAuthorizedAccess = isVerifiedOwner || isVerifiedAdmin;
 
   // Configuration States
   const [globalRateLimit, setGlobalRateLimit] = useState<number>(10000);
@@ -109,7 +115,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
 
   // Fetch live traffic security summary from server & record real telemetry points
   useEffect(() => {
-    if (!isLiveStream) return;
+    if (!isLiveStream || !hasAuthorizedAccess) return;
     let active = true;
 
     const fetchSummary = async () => {
@@ -160,6 +166,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
 
   // Fetch initial config from server
   useEffect(() => {
+    if (!hasAuthorizedAccess) return;
     const fetchConfig = async () => {
       try {
         const storedToken =
@@ -197,6 +204,10 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   // Save Settings to Backend API
   const handleSaveThrottlingConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!isVerifiedOwner) {
+      setErrorMessage("Access Denied: Verified Platform Owner privileges are required to modify rate limits.");
+      return;
+    }
     setIsSaving(true);
     setSaveSuccess(null);
     setErrorMessage(null);
@@ -272,12 +283,12 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
 
   const handleAddManualBlockIp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newIpToBlock.trim()) return;
+    if (!isVerifiedOwner || !newIpToBlock.trim()) return;
 
     const newItem: BannedIpItem = {
       id: `manual-${Date.now()}`,
       ip: newIpToBlock.trim(),
-      reason: "Manual Dual-Owner Security Block",
+      reason: "Manual Owner Security Block",
       blockedAt: new Date().toLocaleTimeString(),
       requestCount: 0,
       country: "GLOBAL",
@@ -299,6 +310,22 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
     activeIpCount: securitySummary.blockedTemporarily,
   };
 
+  if (!hasAuthorizedAccess) {
+    return (
+      <div className="p-8 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-3">
+        <div className="p-3 rounded-full bg-rose-500/20 text-rose-500 w-12 h-12 mx-auto flex items-center justify-center">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-black text-rose-600 dark:text-rose-400">
+          Access Denied: Verified Owner or Admin Clearance Required
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+          API Performance &amp; Real-Time Throttling telemetry is restricted to the verified Platform Owner or authorized Admin accounts.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header Banner */}
@@ -313,7 +340,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
                 API Performance & Real-Time Throttling
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold text-[10px] uppercase border border-indigo-500/40">
-                DUAL-OWNER RBAC
+                SOLE-OWNER RBAC
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -322,10 +349,10 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
           </div>
         </div>
 
-        {/* Dual-Owner Badge */}
+        {/* Sole-Owner Clearance Badge */}
         <div className="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700 text-xs font-mono font-bold text-slate-300">
           <UserCheck className="w-4 h-4 text-emerald-400" />
-          <span>{isDualOwner ? "Owner Clearance Granted" : "Read-Only Admin View"}</span>
+          <span>{isVerifiedOwner ? "Owner Clearance Granted" : "Read-Only Admin View"}</span>
         </div>
       </div>
 
@@ -492,7 +519,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
           <div className="flex items-center space-x-2">
             <Sliders className="w-5 h-5 text-indigo-500" />
             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-              Dual-Owner Rate Limit Controls
+              Owner Rate Limit Controls
             </h4>
           </div>
           {saveSuccess && (
@@ -596,8 +623,8 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
         <div className="flex items-center justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
           <button
             type="submit"
-            disabled={isSaving}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition flex items-center space-x-2"
+            disabled={isSaving || !isVerifiedOwner}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center space-x-2"
           >
             <Save className="w-4 h-4" />
             <span>{isSaving ? "Applying Throttling..." : "Apply Throttling Limits Live"}</span>
@@ -615,7 +642,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
                 Firewall IP Blacklist & Throttled Clients
               </h4>
               <p className="text-[10px] text-slate-500">
-                Manage IPs currently blocked by automated security threshold rules or manual Dual-Owner enforcement
+                Manage IPs currently blocked by automated security threshold rules or manual Owner enforcement
               </p>
             </div>
           </div>
@@ -626,11 +653,13 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
               placeholder="e.g. 192.168.1.100"
               value={newIpToBlock}
               onChange={(e) => setNewIpToBlock(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white"
+              disabled={!isVerifiedOwner}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white disabled:opacity-50"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center space-x-1"
+              disabled={!isVerifiedOwner}
+              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-extrabold text-xs flex items-center space-x-1"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Block IP</span>

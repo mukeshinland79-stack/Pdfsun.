@@ -664,6 +664,7 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
   const ownerJwt = generateAdminJwtToken({
     email: "mukeshinland79@gmail.com",
     role: "owner",
+    mfaVerified: true,
   });
   assert(
     isVerifiedOwnerIdentity(ownerJwt) === true,
@@ -884,6 +885,7 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
     email: "mukeshinland79@gmail.com",
     role: "owner",
     hasAdminAccess: true,
+    mfaVerified: true,
   });
   const ownerResult = simulateAdminAccessCheck({ authorization: `Bearer ${validOwnerToken}` });
   assert(ownerResult.authorized && ownerResult.status === 200, "P0 Guard: Valid cryptographically signed owner JWT succeeds with 200 OK");

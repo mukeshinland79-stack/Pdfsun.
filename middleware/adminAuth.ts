@@ -81,15 +81,15 @@ export function getStoredAdminSecretKey(): string | null {
 export function validateAdminSession(
   userProfile?: UserProfile | null,
   token?: string | null,
-  secretKey?: string | null
+  _secretKey?: string | null
 ): AdminSessionValidationResult {
-  const activeKey = secretKey || getStoredAdminSecretKey();
   const activeToken = token || getStoredAdminToken();
   const hasJwtCredential = isValidJwtFormat(activeToken);
-  const hasSecretCredential = isStrongSecretKey(activeKey);
 
-  // 1. If userProfile is present with an explicit privileged role AND a real credential
-  if (userProfile && userProfile.email && (hasJwtCredential || hasSecretCredential)) {
+  // Require an explicit verified userProfile paired with a syntactically valid JWT credential.
+  // Client-side localStorage secret strings MUST NEVER self-grant Owner or Admin privileges;
+  // authoritative verification always requires verifyAdminSessionWithServer().
+  if (userProfile && userProfile.email && hasJwtCredential) {
     const normalizedEmail = (userProfile.email || "").toLowerCase().trim();
     const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes(normalizedEmail);
 
@@ -99,7 +99,7 @@ export function validateAdminSession(
           isValid: true,
           isOwner: true,
           role: "owner",
-          token: activeToken || activeKey || undefined,
+          token: activeToken || undefined,
         };
       }
       // Reject non-allowlisted email claiming owner role
@@ -116,19 +116,9 @@ export function validateAdminSession(
         isValid: true,
         isOwner: false,
         role: "admin",
-        token: activeToken || activeKey || undefined,
+        token: activeToken || undefined,
       };
     }
-  }
-
-  // 2. Direct strong secret key (>= 16 chars, non-placeholder)
-  if (hasSecretCredential && activeKey) {
-    return {
-      isValid: true,
-      isOwner: true,
-      role: "owner",
-      token: activeKey,
-    };
   }
 
   return {

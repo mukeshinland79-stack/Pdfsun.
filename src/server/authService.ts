@@ -25,7 +25,7 @@ const USERS_FILE_PATH = path.join(process.cwd(), "users_store.json");
 
 export function isOwnerAccountEmail(email: string): boolean {
   const clean = (email || "").toLowerCase().trim();
-  return DUAL_OWNER_EMAILS.includes(clean) || clean === "mukeshinland79@gmail.com";
+  return DUAL_OWNER_EMAILS.includes(clean);
 }
 
 /**

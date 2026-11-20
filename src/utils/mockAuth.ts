@@ -11,10 +11,7 @@ const LOCAL_TOKEN_KEY = "pdfsun_auth_token";
 export function isOwnerAccount(email: string): boolean {
   if (!email) return false;
   const clean = email.toLowerCase().trim();
-  return (
-    DUAL_OWNER_EMAILS.includes(clean) ||
-    clean === "mukeshinland79@gmail.com"
-  );
+  return DUAL_OWNER_EMAILS.includes(clean);
 }
 
 /**
@@ -35,10 +32,7 @@ export function createMockUserProfile(params: {
     ? "Mukesh Inland"
     : params.name?.trim() || cleanEmail.split("@")[0].replace(/[._]/g, " ") || "Customer";
 
-  const canonicalOwnerId =
-    cleanEmail === "mukeshinland79@gmail.com"
-      ? "owner-002"
-      : "owner-002";
+  const canonicalOwnerId = "owner-002";
 
   return {
     id: isOwner ? canonicalOwnerId : `usr-${Date.now()}`,
