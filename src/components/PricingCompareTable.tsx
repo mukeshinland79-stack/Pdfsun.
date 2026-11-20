@@ -92,7 +92,7 @@ export const PricingCompareTable: React.FC<PricingCompareTableProps> = ({
           enterprise: t("pricing.matrix.dedicated_ocr", "Dedicated OCR Engine"),
         },
         {
-          name: t("pricing.matrix.feat_gemini", "Gemini 3.6 Flash AI Document Chat"),
+          name: t("pricing.matrix.feat_gemini", "Google Gemini AI Document Chat"),
           tooltip: t("pricing.matrix.feat_gemini_tip", "Ask questions, extract data tables, and summarize multi-page contracts"),
           free: t("pricing.matrix.queries_5", "5 queries / day"),
           proYearly: t("pricing.matrix.unlimited_prio", "Unlimited Priority"),

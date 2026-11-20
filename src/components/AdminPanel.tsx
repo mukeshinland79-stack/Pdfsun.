@@ -990,7 +990,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <Sparkles className="w-4 h-4 shrink-0" />
                       <span className="truncate">AI Core</span>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-300">Gemini 3.6 AI</div>
+                    <div className="text-[11px] font-mono text-slate-300">Google Gemini AI</div>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between space-y-2">
@@ -1299,7 +1299,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     const priorityBadges = [
                       { title: "🚀 Tier 1 Priority (Scale First)", desc: `Highest user demand (${count} uses, ${share}% share). Prioritize batch processing support & WebAssembly speed tuning.` },
                       { title: "⭐ Tier 2 Priority (Feature Polish)", desc: `High retention tool (${count} uses). Add granular custom presets and instant drag-and-drop enhancements.` },
-                      { title: "⚡ Tier 3 Priority (AI & Extensions)", desc: `Growing popularity (${count} uses). Expand Gemini 3.6 prompt options & export customization.` },
+                      { title: "⚡ Tier 3 Priority (AI & Extensions)", desc: `Growing popularity (${count} uses). Expand Gemini AI prompt options & export customization.` },
                     ];
 
                     const pInfo = priorityBadges[rank] || priorityBadges[2];
@@ -1707,8 +1707,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                     {activeUserList
                       .filter((usr) => {
-                        const emailLower = (usr.email || "").toLowerCase();
-                        const isOwner = emailLower.includes("mukesh") || usr.plan?.toLowerCase().includes("owner") || (usr as any).role === "owner";
+                        const emailLower = (usr.email || "").toLowerCase().trim();
+                        const isOwner = DUAL_OWNER_EMAILS.includes(emailLower) && (usr as any).role === "owner";
                         const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
                         const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
 
@@ -1724,8 +1724,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         return true;
                       })
                       .map((usr, index) => {
-                        const emailLower = (usr.email || "").toLowerCase();
-                        const isOwner = emailLower.includes("mukeshkalonia") || emailLower.includes("mukeshinland") || usr.plan?.toLowerCase().includes("owner") || (usr as any).role === "owner";
+                        const emailLower = (usr.email || "").toLowerCase().trim();
+                        const isOwner = DUAL_OWNER_EMAILS.includes(emailLower) && (usr as any).role === "owner";
                         const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
                         const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
 
@@ -1878,7 +1878,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setLocalSettings({ ...localSettings, aiModelVersion: e.target.value })}
                     className="w-full p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200"
                   >
-                    <option value="gemini-3.8-flash">gemini-3.8-flash (Recommended: Lightning Fast Document Analysis & Translation)</option>
+                    <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended: Fast Multimodal Document Analysis & Translation)</option>
                     <option value="gemini-flash-latest">gemini-flash-latest (High-Availability Production Fallback)</option>
                   </select>
                 </div>

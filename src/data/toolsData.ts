@@ -379,7 +379,7 @@ export const ALL_TOOLS: ToolItem[] = [
     isStudentFavorite: true,
     isAi: true,
     isPro: true,
-    badge: "Gemini 3.8 Flash",
+    badge: "Gemini AI",
     supportedInput: [".pdf", ".txt", ".docx"],
     outputFormat: "Interactive AI Chat",
   },
@@ -463,7 +463,7 @@ export const ALL_TOOLS: ToolItem[] = [
     isStudentFavorite: true,
     isAi: true,
     isPro: true,
-    badge: "Gemini Vision AI • Pro",
+    badge: "Gemini Vision",
     supportedInput: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
     outputFormat: "Searchable PDF / Text",
   },
@@ -1143,7 +1143,7 @@ export const FAQS = [
   },
   {
     q: "How does PDFSun handle AI PDF Chat, Summaries, and Explanations?",
-    a: "PDFSun integrates Google Gemini 3.6 AI to analyze text extracted from your PDF. You can summarize 200+ page textbooks, ask specific research questions, generate flashcards, or translate full documents into 30+ languages in seconds.",
+    a: "PDFSun integrates Google Gemini AI to analyze text extracted from your PDF over encrypted TLS HTTPS. You can summarize long documents, ask specific research questions, generate flashcards, or translate documents into 30+ languages.",
   },
   {
     q: "Is PDFSun completely free to use?",

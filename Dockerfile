@@ -31,8 +31,9 @@ RUN apk add --no-cache curl
 RUN addgroup -g 1001 -S pdfsun && \
     adduser -S pdfsun -u 1001 -G pdfsun
 
-# Copy compiled assets and external dependencies
+# Copy compiled public assets, isolated backend server bundle, and external dependencies
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist-server ./dist-server
 COPY --from=builder /app/package*.json ./
 RUN npm ci --only=production
 
@@ -48,4 +49,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-CMD ["node", "dist/server.cjs"]
+CMD ["node", "dist-server/server.cjs"]

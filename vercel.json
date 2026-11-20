@@ -115,55 +115,19 @@
       ]
     }
   ],
-  "routes": [
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
     {
-      "src": "^/sitemap\\.xml$",
-      "headers": {
-        "content-type": "application/xml; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=86400"
-      },
-      "dest": "/sitemap.xml"
+      "source": "/api/(.*)",
+      "destination": "/api"
     },
     {
-      "src": "^/sitemap-compress-sizes\\.xml$",
-      "headers": {
-        "content-type": "application/xml; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=86400"
-      },
-      "dest": "/sitemap-compress-sizes.xml"
-    },
-    {
-      "src": "^/sitemap-pseo\\.xml$",
-      "headers": {
-        "content-type": "application/xml; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=86400"
-      },
-      "dest": "/sitemap-pseo.xml"
-    },
-    {
-      "src": "^/robots\\.txt$",
-      "headers": {
-        "content-type": "text/plain; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=86400"
-      },
-      "dest": "/robots.txt"
-    },
-    {
-      "src": "/assets/(.*)",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "^/api/(.*)$",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "destination": "/index.html"
     }
   ]
 }

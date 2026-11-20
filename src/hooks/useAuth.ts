@@ -128,29 +128,28 @@ export function sanitizeAuthError(err: unknown, fallbackMessage = "Authenticatio
 export function checkAdminRole(user: UserProfile | null, role?: UserRole): boolean {
   if (!user || !user.email) return false;
   if (role === "public") return false;
-  if (role === "owner") return true;
+
+  if (checkOwnerRole(user, role)) return true;
 
   const email = (user.email || "").toLowerCase().trim();
-  if (DUAL_OWNER_EMAILS.includes(email)) return true;
-  if (email === "mukeshinland79@gmail.com") return true;
+  // Never grant admin access via a non-allowlisted "owner" claim
+  if (user.role === "owner" || role === "owner") {
+    return DUAL_OWNER_EMAILS.includes(email);
+  }
 
-  if (user.role === "owner" || user.hasAdminAccess === true) return true;
-  return false;
+  return user.role === "admin" && user.hasAdminAccess === true;
 }
 
 /**
- * Pure helper function to verify if a user is a confirmed Platform Owner
- * STRICT: Returns false if user is unauthenticated, guest, or missing valid email.
+ * Pure helper function to verify if a user is the confirmed Sole Platform Owner
+ * STRICT: Requires BOTH authoritative DUAL_OWNER_EMAILS membership AND server-verified role === "owner".
  */
 export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boolean {
   if (!user || !user.email) return false;
   if (role === "public") return false;
 
   const email = (user.email || "").toLowerCase().trim();
-  if (DUAL_OWNER_EMAILS.includes(email)) return true;
-  if (email === "mukeshinland79@gmail.com") return true;
-
-  return user.role === "owner" || role === "owner";
+  return DUAL_OWNER_EMAILS.includes(email) && (user.role === "owner" || role === "owner");
 }
 
 /**
@@ -209,16 +208,16 @@ export function useAuth() {
     const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
 
     const applyAuthenticatedUser = (userData: UserProfile, sessionToken?: string | null) => {
-      const serverRole: UserRole =
-        userData.role === "owner" || isOwnerAccount(userData.email)
-          ? userData.role === "owner"
-            ? "owner"
-            : "user"
-          : userData.role || "user";
+      const isAuthorizedOwner = userData.role === "owner" && isOwnerAccount(userData.email);
+      const serverRole: UserRole = isAuthorizedOwner
+        ? "owner"
+        : userData.role === "owner"
+        ? "user"
+        : userData.role || "user";
       const enrichedUser: UserProfile = {
         ...userData,
         role: serverRole,
-        hasAdminAccess: Boolean(userData.hasAdminAccess) || serverRole === "owner",
+        hasAdminAccess: isAuthorizedOwner || (serverRole === "admin" && Boolean(userData.hasAdminAccess)),
         isPro: Boolean(userData.isPro),
       };
 

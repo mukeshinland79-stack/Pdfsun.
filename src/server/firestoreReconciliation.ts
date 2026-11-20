@@ -782,7 +782,7 @@ export async function reconcilePaymentWithFirestore(
       amountPaise: receivedAmountPaise || expectedAmountPaise,
       currency: receivedCurrency,
       status: "COMPLETED",
-      planId: matchedProduct.internalProductId,
+      planId: matchedProduct.internalProductId || matchedProduct.id || "pro-monthly",
       paymentMethod: input.source === "qr_scan" ? "Dynamic UPI QR" : "Razorpay Gateway",
       signatureVerified: input.signatureVerified,
     });
@@ -811,7 +811,7 @@ export async function reconcilePaymentWithFirestore(
       amountPaise: receivedAmountPaise || expectedAmountPaise,
       currency: receivedCurrency,
       status: "COMPLETED",
-      planId: matchedProduct.internalProductId,
+      planId: matchedProduct.internalProductId || matchedProduct.id || "pro-monthly",
       signatureVerified: input.signatureVerified,
     });
 

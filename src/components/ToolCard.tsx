@@ -67,9 +67,7 @@ import {
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ToolRating } from "./ToolRating";
-import { QuickTipTooltip } from "./QuickTipTooltip";
 import { ProFeatureIcon } from "./ProFeatureIcon";
-import { ProFeatureBadge } from "./ProFeatureBadge";
 import { useLanguage } from "../lib/i18n";
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
@@ -195,8 +193,6 @@ export const ToolCard: React.FC<ToolCardProps> = React.memo(({
           </div>
 
           <div className="relative z-10 flex items-center space-x-1.5 flex-wrap justify-end gap-y-1">
-            <QuickTipTooltip toolId={tool.id} variant="tooltip" />
-
             {ratingState && onRateTool && (
               <ToolRating
                 toolId={tool.id}
@@ -282,9 +278,6 @@ export const ToolCard: React.FC<ToolCardProps> = React.memo(({
                 {translatedName}
               </a>
             </h3>
-            {tool.isPro && (
-              <ProFeatureBadge size="xs" tooltip={t("badges.proTooltip", "Pro Feature - Enterprise PDF Processing")} />
-            )}
             {Boolean(tool.badge) && typeof tool.badge === "string" && (
               <span
                 role="status"

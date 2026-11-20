@@ -396,7 +396,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
     csvContent += `Total Records Exported,${targetLogs.length}\n`;
     csvContent += `Active Category Filter,${categoryFilter}\n`;
     csvContent += `Active Status Filter,${statusFilter}\n`;
-    csvContent += `Regulatory Standard,SOC 2 Type II / ISO 27001 / SAML 2.0 Identity Governance / GDPR\n\n`;
+    csvContent += `Governance Profile,Security Readiness Controls / SAML 2.0 Identity Governance / GDPR Controls (Formal Certification Not Claimed)\n\n`;
 
     // Standard Compliance Columns
     csvContent += "Log ID,Timestamp,ISO Timestamp,Category,Event Type,Action / Operation,Target Resource / SSO Domain,Status,Admin Operator,IP Address,Identity Provider,SSO Domain,Organization Name,Plan Tier,SAML Request ID,Error Reason / Rejection Code,Details & Compliance Assessment,Metadata JSON\n";
@@ -439,7 +439,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
       {
         appName: "PDFSun Enterprise Platform",
         reportType: "Security Audit & Identity Compliance Snapshot",
-        complianceStandards: ["SOC 2 Type II", "ISO/IEC 27001", "SAML 2.0 Identity Governance"],
+        complianceStandards: ["Security Readiness Controls", "SAML 2.0 Identity Governance", "GDPR Data Minimization"],
         exportedAt: nowStr,
         authorizedAdmin: activeEmail,
         scope: scope === "filtered" ? "Filtered View" : "Full Audit Archive",
@@ -1645,11 +1645,11 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
                   <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center space-x-2">
                     <span>Audit & Compliance Report Exporter</span>
                     <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold text-[9px] uppercase border border-blue-500/30">
-                      SOC 2 / ISO 27001
+                      SECURITY READINESS
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Export certified records for regulatory compliance, security reviews, and SSO identity audits.
+                    Export structured audit logs for internal security reviews, governance tracking, and SSO identity audits.
                   </p>
                 </div>
               </div>
@@ -1795,7 +1795,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
                   value={exportReportTitle}
                   onChange={(e) => setExportReportTitle(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                  placeholder="e.g. Q3 SOC-2 Access Review Audit Trail"
+                  placeholder="e.g. Q3 Security Access Review Audit Trail"
                 />
               </div>
 

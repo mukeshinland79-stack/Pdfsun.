@@ -68,7 +68,7 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "badges.utilitiesTitle", label: "Badge: Utilities Count", category: "hero", defaultValue: "68+ Pro PDF Utilities" },
   { key: "badges.ultraFast", label: "Badge: Ultra Fast", category: "hero", defaultValue: "Ultra Fast Speed" },
   { key: "badges.noStorage", label: "Badge: No Storage", category: "hero", defaultValue: "No Storage Purge" },
-  { key: "badges.geminiAi", label: "Badge: Gemini AI", category: "hero", defaultValue: "Gemini 3.6 AI" },
+  { key: "badges.geminiAi", label: "Badge: Gemini AI", category: "hero", defaultValue: "Google Gemini AI" },
 
   // Supported Formats
   { key: "formats.badge", label: "Formats: Section Badge", category: "formats", defaultValue: "Universal Document Converter" },
@@ -88,7 +88,7 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "pricing.termsText", label: "Pricing: Terms Text", category: "pricing", defaultValue: "7-Day Money-Back Guarantee: Eligible first-time purchases can be refunded within 7 days if less than 30% of the included quota or credits has been used. Applicable payment gateway fees are non-refundable. Cancel your subscription anytime; access continues until the current billing period ends.", isMultiLine: true },
 
   // Testimonials
-  { key: "testimonials.badge", label: "Testimonials: Badge", category: "testimonials", defaultValue: "Loved by 500,000+ Users" },
+  { key: "testimonials.badge", label: "Testimonials: Badge", category: "testimonials", defaultValue: "Community Feedback" },
   { key: "testimonials.title", label: "Testimonials: Title", category: "testimonials", defaultValue: "Trusted by Students, Lawyers & Researchers" },
   { key: "testimonials.subtitle", label: "Testimonials: Subtitle", category: "testimonials", defaultValue: "See what students and industry professionals say about PDFSun efficiency, privacy, and Gemini AI capabilities.", isMultiLine: true },
 
@@ -99,14 +99,14 @@ const DEFAULT_EDITABLE_FIELDS: CmsEditableField[] = [
   { key: "faq.q1", label: "FAQ Q1: Files Safe?", category: "faq", defaultValue: "Are my uploaded PDF files safe on PDFSun?", isMultiLine: true },
   { key: "faq.a1", label: "FAQ A1: Files Safe Answer", category: "faq", defaultValue: "Absolutely! At PDFSun, privacy is paramount. Most operations run 100% locally inside your browser via WebAssembly.", isMultiLine: true },
   { key: "faq.q2", label: "FAQ Q2: AI Features?", category: "faq", defaultValue: "How does PDFSun handle AI PDF Chat, Summaries, and Explanations?", isMultiLine: true },
-  { key: "faq.a2", label: "FAQ A2: AI Features Answer", category: "faq", defaultValue: "PDFSun integrates Google Gemini 3.6 AI to analyze text extracted from your PDF securely and in memory.", isMultiLine: true },
+  { key: "faq.a2", label: "FAQ A2: AI Features Answer", category: "faq", defaultValue: "PDFSun integrates Google Gemini AI over HTTPS when you explicitly run an AI tool, while standard PDF tools execute locally in your browser.", isMultiLine: true },
   { key: "faq.q3", label: "FAQ Q3: Free to use?", category: "faq", defaultValue: "Is PDFSun completely free to use?", isMultiLine: true },
-  { key: "faq.a3", label: "FAQ A3: Free Answer", category: "faq", defaultValue: "Yes! PDFSun offers generous free access to all 68+ tools with zero registration required.", isMultiLine: true },
+  { key: "faq.a3", label: "FAQ A3: Free Answer", category: "faq", defaultValue: "Yes! PDFSun offers generous free access to 68+ tools with zero registration required.", isMultiLine: true },
   { key: "faq.q4", label: "FAQ Q4: Offline & PWA?", category: "faq", defaultValue: "Can I use PDFSun offline or as a PWA?", isMultiLine: true },
-  { key: "faq.a4", label: "FAQ A4: Offline Answer", category: "faq", defaultValue: "Yes! PDFSun is built as a Progressive Web App (PWA). All core PDF tools work even without an internet connection.", isMultiLine: true },
+  { key: "faq.a4", label: "FAQ A4: Offline Answer", category: "faq", defaultValue: "Yes! PDFSun is built as a Progressive Web App (PWA). Core client-side PDF tools work even without an internet connection.", isMultiLine: true },
 
   // Footer & Brand
-  { key: "footer.tagline", label: "Footer: Main Tagline", category: "footer", defaultValue: "PDFSun (pdfsun.in) — Your Smart Document Companion. Merge, split, compress, convert, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.", isMultiLine: true },
+  { key: "footer.tagline", label: "Footer: Main Tagline", category: "footer", defaultValue: "PDFSun (pdfsun.in) — Your Smart Document Companion. Merge, split, compress, convert, edit, and analyze documents with local WebAssembly privacy and optional Google Gemini AI.", isMultiLine: true },
   { key: "footer.brandKit", label: "Footer: Brand Kit Link", category: "footer", defaultValue: "Brand Identity Guidelines & Logo Kit" },
   { key: "footer.developedBy", label: "Footer: Developer Tag", category: "footer", defaultValue: "Architected & Engineered by" },
   { key: "footer.leadDev", label: "Footer: Lead Developer Title", category: "footer", defaultValue: "Lead Web Developer" },

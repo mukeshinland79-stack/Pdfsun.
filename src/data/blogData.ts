@@ -18,15 +18,15 @@ export const BLOG_POSTS: BlogPost[] = [
     lastModified: "2026-09-14",
     relatedTools: ["merge-pdf", "compress-pdf", "protect-pdf", "ai-chat-pdf"],
     executiveSummary:
-      "For over two decades, online PDF utility sites have forced users to upload sensitive contracts, tax filings, and medical records to remote cloud servers. In 2026, WebAssembly (WASM) renders this architecture obsolete. By executing compiled native code directly inside your local browser sandbox, PDFSun processes documents entirely on your device hardware. Your files never touch external storage, guaranteeing mathematical zero-data retention, eliminating cloud data breach vectors, and complying inherently with strict global privacy mandates including GDPR, HIPAA, CCPA, and India's DPDP Act.",
+      "For over two decades, online PDF utility sites have forced users to upload sensitive contracts, tax filings, and private records to remote cloud servers. In 2026, WebAssembly (WASM) renders this architecture unnecessary for standard PDF tasks. By executing compiled native code directly inside your local browser sandbox, PDFSun processes standard documents entirely on your device hardware. Your files do not touch external storage for local WASM tools, supporting strong data minimization aligned with privacy principles such as GDPR, CCPA, and India's DPDP Act (formal HIPAA certification or BAA is not claimed).",
     comparisonTable: {
       headers: ["Evaluation Factor", "PDFSun In-Browser (WASM)", "Traditional Cloud Converters (e.g. SmallPDF / iLovePDF)"],
       rows: [
         ["File Transmission", "0 bytes uploaded (stays in device memory)", "Entire file uploaded via HTTP POST to remote cloud"],
         ["Server File Retention", "Absolute Zero (No server disk access)", "Saved on disk temporarily (often 1-2 hours or cached)"],
         ["Security Vulnerability", "Zero cloud interception risk", "Susceptible to network interception and cloud storage leaks"],
-        ["Regulatory Compliance", "Native GDPR, HIPAA, SOC2 & DPDP compliance", "Requires Data Processing Addendum (DPA) & audit proof"],
-        ["Processing Latency", "Sub-second (<200ms) local CPU execution", "Dependent on broadband upload/download bandwidth bottlenecks"],
+        ["Privacy Architecture", "Local in-browser execution minimizes server exposure (formal certification not claimed)", "Requires Data Processing Addendum (DPA) & third-party cloud retention policies"],
+        ["Processing Latency", "Local CPU execution (depends on device hardware & file size)", "Dependent on broadband upload/download bandwidth bottlenecks"],
         ["Offline Usability", "100% functional without Internet via PWA", "Fails immediately when offline or experiencing packet loss"],
       ],
     },
@@ -42,9 +42,9 @@ export const BLOG_POSTS: BlogPost[] = [
           "No. WebAssembly executes high-performance compiled logic directly inside modern browser engines off the main user-interface thread. This ensures that even when processing multi-hundred-page documents, your browser remains responsive, fluid, and fast.",
       },
       {
-        question: "Is in-browser PDF processing compliant with HIPAA and GDPR regulations?",
+        question: "How does in-browser PDF processing support GDPR and healthcare privacy policies?",
         answer:
-          "Yes, it exceeds standard compliance. Because your protected health information (PHI) or personally identifiable information (PII) is never collected, transferred, stored, or processed by a third-party data processor, no data transfer event occurs under GDPR Article 44 or HIPAA Security Rule §164.308. PDFSun serves as an ephemeral client-side utility runtime rather than a data repository.",
+          "Because standard WebAssembly PDF operations run locally in your browser without uploading document bytes to PDFSun servers, no third-party server file transfer occurs during local processing. Note that PDFSun does not claim formal HIPAA certification or issue a Business Associate Agreement (BAA); regulated organizations should review their internal compliance policies before processing regulated records.",
       },
       {
         question: "What happens if my browser crashes while merging or compressing a file?",
@@ -524,44 +524,44 @@ To ensure absolute confidentiality, documents must be secured using **256-bit Ad
    * ========================================================================= */
   {
     id: "post-6",
-    title: "AI Document Analysis: How Gemini 3.6 & In-Browser AI Transform PDF Summaries and Research Workflows",
+    title: "AI Document Analysis: How Google Gemini AI & Browser Workflows Transform PDF Summaries",
     slug: "gemini-ai-pdf-summarizer-guide",
-    excerpt: "Explore how Gemini 3.6 AI integration enables multi-hundred-page context analysis, instant executive summaries, and interactive document interrogation without privacy leaks.",
+    excerpt: "Explore how Google Gemini AI integration enables long-context document analysis, structured executive summaries, and interactive Q&A with transparent privacy boundaries.",
     category: "AI & Innovation",
     readTime: "8 min read",
     date: "September 02, 2026",
     author: "Mukesh Kalonia",
     image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
-    tags: ["Gemini 3.6", "AI Document Analysis", "Research Workflows", "PDF Summarizer", "Machine Learning"],
+    tags: ["Google Gemini AI", "AI Document Analysis", "Research Workflows", "PDF Summarizer", "Machine Learning"],
     lastModified: "2026-09-14",
     relatedTools: ["ai-chat-pdf", "pdf-to-word", "ocr-pdf", "compress-pdf"],
     executiveSummary:
-      "Knowledge workers spend significant time sifting through dense academic papers, financial prospectuses, and complex legal briefs. The integration of cutting-edge multimodal AI models—specifically Google's Gemini 3.6 architecture—revolutionizes document analysis. By combining client-side text parsing with secure, zero-data-retention AI reasoning, PDFSun enables professionals to interrogate multi-hundred-page documents in real-time, extract complex tabular citations, generate automated study flashcards, and translate foreign language research with unmatched precision.",
+      "Knowledge workers spend significant time sifting through dense academic papers, financial prospectuses, and complex legal briefs. Modern multimodal AI models—including Google's Gemini API—transform document analysis. By combining client-side text extraction with server-proxied Gemini AI reasoning (explicitly triggered only when you choose an AI tool), PDFSun helps professionals interrogate long documents, extract tables, generate study flashcards, and translate research efficiently.",
     comparisonTable: {
-      headers: ["AI Feature", "PDFSun Gemini 3.6 Engine", "Generic AI Chatbots"],
+      headers: ["AI Feature", "PDFSun Gemini AI Engine", "Generic AI Chatbots"],
       rows: [
-        ["Context Window", "Large context buffer (analyzes entire books)", "Capped at short prompts (truncates long PDFs)"],
+        ["Context Window", "Long-context window for multi-page documents", "Often capped at short prompts (truncates long PDFs)"],
         ["Tabular & Visual Understanding", "Multimodal parsing of charts, diagrams & footnotes", "Flattens complex visual tables into broken text"],
-        ["Citation Precision", "Provides exact page number & paragraph citations", "Frequent inaccuracies without source verification"],
-        ["Data Training Policy", "Enterprise Zero-Retention (Never used to train models)", "User inputs frequently ingested for public model training"],
-        ["Multi-Language Synthesis", "Translates & synthesizes across 100+ languages", "Limited cross-language contextual awareness"],
+        ["Citation Precision", "References source sections and page context", "Frequent inaccuracies without source context"],
+        ["Data Handling Clarity", "Local tools stay in-browser; AI tools send only submitted text/pages to Gemini API", "All files uploaded to third-party cloud storage"],
+        ["Multi-Language Synthesis", "Translates & synthesizes across 30+ languages", "Limited cross-language contextual awareness"],
       ],
     },
     faqs: [
       {
-        question: "How does PDFSun ensure my uploaded document is not used to train AI models?",
+        question: "How does PDFSun handle my document when I use AI tools?",
         answer:
-          "PDFSun interfaces directly with enterprise-tier Gemini API endpoints governed by strict Enterprise Privacy Commitments. Under these terms, your document inputs and prompts are processed strictly in ephemeral memory and are never logged, retained, or utilized to train future public foundation models.",
+          "Standard PDFSun tools run locally in your browser without uploading files. When you explicitly invoke an AI tool (such as AI Chat, AI Summary, AI Translate, or AI OCR), the extracted text or rendered page content is sent over HTTPS to PDFSun's backend proxy for Google Gemini API processing and is not stored in permanent PDFSun file archives.",
       },
       {
         question: "Can the AI analyze scanned PDFs or documents with handwritten notes?",
         answer:
-          "Yes. Gemini 3.6 features native multimodal vision capabilities. It analyzes the visual layouts of scanned pages, deciphering complex charts, scientific plots, architectural diagrams, and handwritten notes that traditional text-only models fail to interpret.",
+          "Yes. Google Gemini multimodal vision capabilities analyze the visual layouts of scanned pages, helping decipher charts, diagrams, and handwritten notes alongside local Tesseract OCR fallback.",
       },
       {
-        question: "What is the maximum number of pages Gemini 3.6 can process at once?",
+        question: "What is the maximum number of pages Gemini AI can process at once?",
         answer:
-          "Thanks to expansive context capabilities, PDFSun can analyze documents spanning hundreds of pages in a single interactive session without discarding earlier chapters or truncating appendices.",
+          "Depending on document density and API payload limits, PDFSun extracts text in-browser and sends structured context chunks to Google Gemini so you can analyze lengthy documents smoothly.",
       },
       {
         question: "Can I generate study flashcards or quiz questions from lecture notes?",
@@ -587,12 +587,12 @@ Skimming through dense technical texts leads to fatigue, missed details, and del
 
 ## How Long-Context AI Transforms Document Understanding
 
-With modern multimodal AI architectures like **Gemini 3.6**, document understanding has undergone a major advancement:
+With modern multimodal AI architectures like **Google Gemini**, document understanding has undergone a major advancement:
 
-- **Massive Context Capacity**: By processing long documents in a single context window, you can analyze entire dissertations, regulatory guidelines, or clinical trial dossiers in one session without losing coherence between early and late chapters.
-- **Multimodal Visual Reasoning**: The model interprets visual layouts directly, understanding two-column academic formats, the relationship between charts and statistical legends, and multi-tier financial tables.
-- **Verified Page Citations**: Responses are linked directly to source paragraphs and page numbers, enabling rapid verification.
-- **Zero-Retention Privacy**: Queries are executed ephemerally without storing documents or using user content to train public models.
+- **Expansive Context Capacity**: By processing long extracted text in structured sessions, you can analyze dissertations, guidelines, or multi-chapter reports without losing coherence between sections.
+- **Multimodal Visual Reasoning**: The model interprets visual layouts directly, understanding two-column academic formats, charts, and multi-tier financial tables.
+- **Source-Grounded Responses**: Responses reference source sections and headings to make verification straightforward.
+- **Clear Privacy Boundaries**: Standard PDF tools remain local in your browser; optional AI tools transmit only the selected content over HTTPS to the Gemini API when triggered.
 
 ---
 
@@ -1028,8 +1028,8 @@ Say goodbye to predatory mobile subscriptions and privacy-invasive cloud uploads
         ["Network Ingress Payload", "100% of document bytes transmitted via HTTP POST", "0 bytes transmitted (100% local device execution)"],
         ["Server Disk File Retention", "Stored on remote temporary disk (1-2 hours typical)", "Absolute Zero: Never writes to external disk storage"],
         ["Cloud Interception Liability", "Exposed to man-in-the-middle & cloud bucket leaks", "Immune to network interception; sandboxed locally"],
-        ["Regulatory Compliance", "Requires external Data Processing Agreement (DPA)", "Native compliance with GDPR Art 44, HIPAA & India DPDP"],
-        ["Processing Latency (15MB file)", "6.4s (Bandwidth upload + cloud queue + download)", "0.38s (Near-instant hardware CPU execution)"],
+        ["Privacy Architecture", "Requires external Data Processing Agreement (DPA)", "Browser-local WASM minimizes server exposure (formal HIPAA certification not claimed)"],
+        ["Processing Latency", "Dependent on broadband upload + cloud queue + download", "Local device CPU execution (varies by hardware & file size)"],
         ["Offline Operability", "Completely non-functional without active connection", "Fully operational offline via Progressive Web App (PWA)"],
       ],
     },
@@ -1050,9 +1050,9 @@ Say goodbye to predatory mobile subscriptions and privacy-invasive cloud uploads
           "Legacy PDF architectures rely on server-side command-line utilities (such as Ghostscript or QPDF) running inside cloud virtual machines. The server must first write your entire uploaded document to its temporary disk before invoking the conversion binary, creating a critical window where files could be accessed or retained in temporary caches.",
       },
       {
-        question: "Does client-side document processing meet GDPR and HIPAA requirements?",
+        question: "How does client-side document processing align with GDPR and healthcare privacy requirements?",
         answer:
-          "Yes. Under GDPR Article 44 and HIPAA §164.308, data transfers to third parties require strict organizational safeguards. Because PDFSun performs ephemeral in-memory processing where no user data is transferred, collected, or stored by an external processor, your documents remain in your custody at all times.",
+          "For local WebAssembly operations, PDFSun performs ephemeral in-browser processing so standard document files are not uploaded to or stored on PDFSun servers. PDFSun does not claim formal HIPAA certification or execute Business Associate Agreements (BAAs); regulated teams should confirm internal compliance requirements.",
       },
     ],
     content: `## Executive Summary: The 2026 Digital Document Threat Surface
@@ -1075,7 +1075,7 @@ For the past decade, this workflow relied on an unspoken compromise: users hande
 | **Server Persistence** | Cached on remote disk for 1–2 hours | **Absolute Zero (Never touches a disk)** | Zero-retention compliance |
 | **Vector Typography** | 38% convert text to blurry raster pixels | **100% Scalable Vector Outlines Kept** | Text remains crisp at 400% zoom |
 | **Average Sizing Ratio** | 52% – 68% size reduction | **78% – 91% size reduction** | Fits strict <100KB portal quotas |
-| **Execution Latency** | 6.4s (Upload + Remote Queue + Download) | **0.38s (Instant Local Hardware CPU)** | **16x faster execution** |
+| **Execution Latency** | Network upload + remote queue + download | **Local Device CPU (Zero Upload Wait)** | **No network round-trip overhead** |
 
 ---
 

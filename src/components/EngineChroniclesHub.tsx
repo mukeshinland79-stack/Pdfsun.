@@ -342,7 +342,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                   Why In-Browser WebAssembly PDF Processing Beats Cloud Uploads in 2026
                 </p>
                 <p className="text-[11px] text-slate-300 line-clamp-2 leading-normal">
-                  How compiled WASM bytecodes eliminate remote server data breach vectors, ensuring GDPR, HIPAA &amp; DPDP compliance.
+                  How compiled WASM bytecodes eliminate remote server upload exposure for standard PDF tools, supporting privacy-first GDPR &amp; DPDP data minimization.
                 </p>
               </div>
 
@@ -371,7 +371,7 @@ export const EngineChroniclesHub: React.FC<EngineChroniclesHubProps> = ({
                   className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/60 text-left transition group/item text-xs"
                 >
                   <span className="text-[11px] font-medium text-slate-200 group-hover/item:text-cyan-300 truncate">
-                    AI Document Analysis &amp; Gemini 3.6 Models
+                    AI Document Analysis &amp; Google Gemini Models
                   </span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-cyan-400 shrink-0 ml-1" />
                 </button>

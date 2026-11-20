@@ -114,7 +114,7 @@ export const AI_TABS_CONFIG: AiTabConfig[] = [
     canonicalName: "AI Chat with PDF",
     buttonLabel: "Send Message",
     icon: AiChatSaaSIcon,
-    badge: "Gemini 3.8 Flash",
+    badge: "Gemini AI",
     shortTooltip: "Chat interactively to ask questions, cross-examine clauses & cite pages",
     description: "Chat interactively with any uploaded document to ask questions, cross-examine clauses, and verify facts with full multi-turn conversational memory.",
     emptyGuidance: "Upload a document on the left, then ask questions below to interactively chat with your PDF using Gemini AI.",
@@ -1175,7 +1175,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                           <Bot className="w-7 h-7" />
                         </div>
                         <h3 className="text-base font-bold text-slate-900">
-                          Ask Gemini 3.8 Flash Anything About This Document
+                          Ask Gemini AI Anything About This Document
                         </h3>
                         <p className="text-xs text-slate-500 max-w-md leading-relaxed">
                           {activeTabConfig.emptyGuidance}
@@ -1231,7 +1231,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                     {isAiLoading && (
                       <div className="flex items-center space-x-2 text-xs text-orange-700 font-bold p-3 bg-amber-50 border border-amber-200 rounded-xl">
                         <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
-                        <span>Gemini 3.8 Flash is analyzing document and formulating response...</span>
+                        <span>Gemini AI is analyzing document and formulating response...</span>
                       </div>
                     )}
                   </div>
@@ -1476,7 +1476,7 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
                       <div className="h-full flex flex-col items-center justify-center space-y-3 text-slate-500">
                         <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
                         <span className="font-bold text-sm text-slate-900">
-                          Gemini 3.8 Flash Processing...
+                          Gemini AI Processing...
                         </span>
                         <span className="text-xs max-w-sm text-center">
                           Extracting insights and formatting output with AI precision.

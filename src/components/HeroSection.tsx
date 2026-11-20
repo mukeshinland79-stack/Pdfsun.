@@ -14,6 +14,10 @@ import {
   FileText,
   Barcode,
   QrCode,
+  Scissors,
+  Edit3,
+  Cloud,
+  X,
 } from "lucide-react";
 import { ToolItem } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
@@ -30,15 +34,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onOpenSearch,
 }) => {
   const { t } = useLanguage();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
-      const defaultTool =
-        acceptedFiles.length > 1
-          ? ALL_TOOLS.find((t) => t.id === "merge-pdf")!
-          : ALL_TOOLS.find((t) => t.id === "ai-chat-pdf")!;
-      onSelectTool(defaultTool, acceptedFiles);
+      setPendingFiles(acceptedFiles);
     }
+  };
+
+  const handleLaunchPendingWithTool = (toolId: string) => {
+    const targetTool = ALL_TOOLS.find((item) => item.id === toolId);
+    if (!targetTool) return;
+    const filesToPass = pendingFiles;
+    setPendingFiles([]);
+    onSelectTool(targetTool, filesToPass);
+  };
+
+  const clearPendingFiles = () => {
+    setPendingFiles([]);
   };
 
   const onDropRejected = (fileRejections: any[]) => {
@@ -96,23 +109,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span>{t("hero.allEnginesFast", "All PDF engines running at maximum speed")}</span>
+            <span>{t("hero.allEnginesFast", "Local WASM & Cloud AI engines ready")}</span>
           </div>
 
-          {/* Badge 1: 100% Client-Side Privacy */}
+          {/* Badge 1: Local-First Browser Privacy */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold">{t("badges.privacyTitle", "100% Client-Side Privacy")}</span>
+            <span className="font-bold">{t("badges.privacyTitle", "Local-First Browser Privacy")}</span>
             <span className="text-emerald-300 dark:text-emerald-700 font-light">•</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-normal">{t("badges.privacySub", "Files Never Leave Your Browser")}</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-normal">{t("badges.privacySub", "Core PDF Tools Run Locally (WASM)")}</span>
           </div>
 
-          {/* Badge 2: Offline Ready */}
+          {/* Badge 2: Offline Ready for Core Local Tools */}
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-[11px] font-medium shadow-2xs backdrop-blur-xs">
             <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
             <span className="font-bold">{t("badges.ultraFast", "Lightning Fast")}</span>
             <span className="text-blue-300 dark:text-blue-700 font-light">•</span>
-            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.noStorageDesc", "Works 100% Offline")}</span>
+            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.noStorageDesc", "Local Tools Work Offline • Optional Cloud AI")}</span>
           </div>
 
           {/* Badge 3: 68+ Free Online PDF & Document Tools */}
@@ -120,7 +133,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <span className="font-bold">{t("badges.tools50", "68+ Free Online PDF & Document Tools")}</span>
             <span className="text-slate-300 dark:text-slate-600 font-light">•</span>
-            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.clientSandboxed", "Client Sandboxed")}</span>
+            <span className="text-slate-600 dark:text-slate-400 font-normal">{t("badges.clientSandboxed", "Local WASM + Encrypted Cloud AI")}</span>
           </div>
 
           {/* Dynamic Counter Component Badge */}
@@ -163,54 +176,155 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </button>
         </div>
 
-        {/* Drag & Drop Main Dropzone - Compact & Tight */}
-        <div
-          {...getRootProps()}
-          className={`max-w-xl mx-auto rounded-2xl p-4 sm:p-5 border-2 border-dashed transition-all duration-300 shadow-md relative group cursor-pointer aurora-glass ${
-            isDragAccept || isDragActive
-              ? "border-emerald-500 bg-emerald-500/10 scale-[1.01] ring-2 ring-emerald-500/20"
-              : "border-slate-300 dark:border-slate-700 bg-white/85 dark:bg-slate-800/85 hover:border-blue-500 dark:hover:border-blue-400"
-          }`}
-        >
-          <input {...getInputProps()} aria-label={t("dropzoneTitle", "Drop PDF files here or click to browse")} />
+        {/* Drag & Drop Main Dropzone OR Privacy-Transparent Tool Chooser */}
+        {pendingFiles.length > 0 ? (
+          <div
+            data-testid="hero-file-tool-chooser"
+            className="max-w-xl mx-auto rounded-2xl p-4 sm:p-5 border-2 border-blue-500/50 bg-white dark:bg-slate-900 shadow-lg text-left space-y-3"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                  <FileCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="truncate">
+                    {pendingFiles.length === 1
+                      ? pendingFiles[0].name
+                      : `${pendingFiles.length} files selected`}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  Choose how to process your document. Core tools run locally in your browser; Cloud AI tools require your explicit selection.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearPendingFiles}
+                aria-label="Clear selected files"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-          <div className="flex flex-col items-center justify-center space-y-2.5">
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr p-0.5 shadow-sm group-hover:scale-105 transition duration-200 ${
-              isDragActive ? "from-emerald-500 to-teal-500 shadow-emerald-500/30 animate-bounce" : "from-blue-600 to-indigo-600 shadow-blue-500/20"
-            }`}>
-              <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
-                <UploadCloud className={`w-5 h-5 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} aria-hidden="true" />
+            {/* Local Browser (WASM) Actions */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span>Local Browser Tools (Stays on Your Device — No Upload)</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {pendingFiles.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchPendingWithTool("merge-pdf")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                  >
+                    <Combine className="w-3.5 h-3.5" />
+                    <span>Merge {pendingFiles.length} PDFs</span>
+                  </button>
+                )}
+                {[
+                  { id: "compress-pdf", label: "Compress PDF", icon: Minimize2 },
+                  { id: "split-pdf", label: "Split PDF", icon: Scissors },
+                  { id: "edit-pdf", label: "Edit PDF", icon: Edit3 },
+                  { id: "protect-pdf", label: "Protect PDF", icon: Lock },
+                  { id: "pdf-to-word", label: "PDF to Word", icon: FileText },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleLaunchPendingWithTool(item.id)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="space-y-0.5">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                {isDragActive
-                  ? t("dropzoneActiveTitle", "Release files to launch tool workspace")
-                  : t("dropzoneTitle", "Drop PDF files here or click to browse")}
-              </h2>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                {isDragActive ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                    {t("dropzoneActiveSub", "Drop now to start processing instantly")}
-                  </span>
-                ) : (
-                  <>
-                    {t("or", "or")} <span className="text-blue-600 dark:text-blue-400 font-semibold underline">{t("hero.chooseFiles", "Choose Files from Device")}</span>
-                  </>
-                )}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-1.5 pt-0.5 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PDF</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Word</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Excel</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PPTX</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Images</span>
+            {/* Optional Cloud AI (Google Gemini) Actions */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                <Cloud className="w-3.5 h-3.5 shrink-0" />
+                <span>Optional Cloud AI (Encrypted TLS via Google Gemini API)</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "ai-chat-pdf", label: "AI Chat with PDF", icon: Sparkles },
+                  { id: "ai-pdf-summary", label: "AI Summary", icon: Zap },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleLaunchPendingWithTool(item.id)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{item.label}</span>
+                      <span className="text-[9px] font-bold uppercase px-1 py-0.2 rounded bg-blue-600/15 text-blue-700 dark:text-blue-300">
+                        Cloud AI
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            {...getRootProps()}
+            className={`max-w-xl mx-auto rounded-2xl p-4 sm:p-5 border-2 border-dashed transition-all duration-300 shadow-md relative group cursor-pointer aurora-glass ${
+              isDragAccept || isDragActive
+                ? "border-emerald-500 bg-emerald-500/10 scale-[1.01] ring-2 ring-emerald-500/20"
+                : "border-slate-300 dark:border-slate-700 bg-white/85 dark:bg-slate-800/85 hover:border-blue-500 dark:hover:border-blue-400"
+            }`}
+          >
+            <input {...getInputProps()} aria-label={t("dropzoneTitle", "Drop PDF files here or click to browse")} />
+
+            <div className="flex flex-col items-center justify-center space-y-2.5">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr p-0.5 shadow-sm group-hover:scale-105 transition duration-200 ${
+                isDragActive ? "from-emerald-500 to-teal-500 shadow-emerald-500/30 animate-bounce" : "from-blue-600 to-indigo-600 shadow-blue-500/20"
+              }`}>
+                <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
+                  <UploadCloud className={`w-5 h-5 ${isDragActive ? "text-emerald-500" : "text-blue-600"}`} aria-hidden="true" />
+                </div>
+              </div>
+
+              <div className="space-y-0.5">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  {isDragActive
+                    ? t("dropzoneActiveTitle", "Release files to choose your tool")
+                    : t("dropzoneTitle", "Drop PDF files here or click to browse")}
+                </h2>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  {isDragActive ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {t("dropzoneActiveSub", "Select a Local WASM or Cloud AI tool after dropping")}
+                    </span>
+                  ) : (
+                    <>
+                      {t("or", "or")} <span className="text-blue-600 dark:text-blue-400 font-semibold underline">{t("hero.chooseFiles", "Choose Files from Device")}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-1.5 pt-0.5 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PDF</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Word</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Excel</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">PPTX</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">Images</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Popular Quick Tools Pills */}
         <div className="pt-0.5">

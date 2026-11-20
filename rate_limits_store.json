@@ -5,5 +5,19 @@
     "lastUpdated": "2026-11-19T12:09:27.755Z",
     "identifierHash": "17af1cf3d1b5332c",
     "tier": "guest"
+  },
+  "guest_12ca17b49af22894_2026-11-19": {
+    "count": 3,
+    "date": "2026-11-19",
+    "lastUpdated": "2026-11-19T17:52:03.549Z",
+    "identifierHash": "12ca17b49af22894",
+    "tier": "guest"
+  },
+  "guest_12ca17b49af22894_2026-11-20": {
+    "count": 3,
+    "date": "2026-11-20",
+    "lastUpdated": "2026-11-20T04:18:41.742Z",
+    "identifierHash": "12ca17b49af22894",
+    "tier": "guest"
   }
 }

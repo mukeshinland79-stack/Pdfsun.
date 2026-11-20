@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { TRAFFIC_SECURITY_CONFIG, RateLimitRule } from "../config/trafficSecurityConfig";
+import { getDistributedStateStore } from "./distributedStateStore";
 
 // Sliding-window record for tracking request frequency
 interface ClientTrafficRecord {
@@ -273,7 +274,7 @@ export function globalTrafficHygieneMiddleware(req: Request, res: Response, next
  *     * Level 4: Temporary IP hold for sustained flooding
  */
 export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: string = "general") {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     const userAgent = (req.headers["user-agent"] || "").toString();
 
     // 1. Search Engine Crawlers are exempt from rate limits on public pages ONLY (never auth endpoints)
@@ -289,7 +290,30 @@ export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: stri
     // Unique key: auth endpoints strictly key by IP (prevents header-rotation bypass); general endpoints may scope by IP+category
     const clientKey = userIdHeader ? `${clientIp}:${userIdHeader}:${categoryName}` : `${clientIp}:${categoryName}`;
 
+    // If a shared distributed store (Redis REST) is configured, enforce cross-instance limits first
+    const sharedStore = getDistributedStateStore();
+    if (sharedStore.distributedReliable) {
+      const distributed = await sharedStore.consumeWindow(clientKey, rule.maxRequests, rule.windowMs);
+      res.setHeader("X-RateLimit-Limit", String(distributed.limit));
+      res.setHeader("X-RateLimit-Remaining", String(distributed.remaining));
+      res.setHeader("X-RateLimit-Reset", String(Math.ceil(distributed.resetAtMs / 1000)));
+      if (!distributed.allowed) {
+        const retryAfterSec = Math.max(1, Math.ceil((distributed.resetAtMs - Date.now()) / 1000));
+        trafficAuditStats.rateLimited++;
+        trafficAuditStats.suspiciousRequests++;
+        res.setHeader("Retry-After", String(retryAfterSec));
+        addAuditLog(req.path, 429, "rate_limited_client", "direct", `${categoryName} distributed limit exceeded`);
+        return res.status(429).json({
+          error: "Too Many Requests",
+          message: rule.message,
+          retryAfter: retryAfterSec,
+        });
+      }
+      return next();
+    }
+
     const now = Date.now();
+    const resetEpochSec = Math.ceil((now + rule.windowMs) / 1000);
     let record = ipTrafficStore.get(clientKey);
 
     if (!record) {
@@ -300,6 +324,9 @@ export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: stri
         anomalyScore: 0,
       };
       ipTrafficStore.set(clientKey, record);
+      res.setHeader("X-RateLimit-Limit", String(rule.maxRequests));
+      res.setHeader("X-RateLimit-Remaining", String(Math.max(0, rule.maxRequests - 1)));
+      res.setHeader("X-RateLimit-Reset", String(resetEpochSec));
       return next();
     }
 
@@ -313,6 +340,9 @@ export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: stri
     if (record.temporaryThrottleUntil && now < record.temporaryThrottleUntil) {
       trafficAuditStats.rateLimited++;
       const retrySec = Math.ceil((record.temporaryThrottleUntil - now) / 1000);
+      res.setHeader("X-RateLimit-Limit", String(rule.maxRequests));
+      res.setHeader("X-RateLimit-Remaining", "0");
+      res.setHeader("X-RateLimit-Reset", String(Math.ceil(record.temporaryThrottleUntil / 1000)));
       res.setHeader("Retry-After", retrySec);
       addAuditLog(req.path, 429, "rate_limited_client", "direct", `${categoryName} throttle active`);
       return res.status(429).json({
@@ -323,6 +353,12 @@ export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: stri
     }
 
     const currentCount = record.requests.length;
+    const oldestInWindow = record.requests[0] || now;
+    const windowResetSec = Math.ceil((oldestInWindow + rule.windowMs) / 1000);
+
+    res.setHeader("X-RateLimit-Limit", String(rule.maxRequests));
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, rule.maxRequests - currentCount)));
+    res.setHeader("X-RateLimit-Reset", String(windowResetSec));
 
     // Check limit
     if (currentCount > rule.maxRequests) {

@@ -91,29 +91,31 @@ export function validateAdminSession(
   // 1. If userProfile is present with an explicit privileged role AND a real credential
   if (userProfile && userProfile.email && (hasJwtCredential || hasSecretCredential)) {
     const normalizedEmail = (userProfile.email || "").toLowerCase().trim();
-    const isDualOwner =
-      DUAL_OWNER_EMAILS.includes(normalizedEmail) ||
-      normalizedEmail === "mukeshinland79@gmail.com";
+    const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes(normalizedEmail);
 
-    const hasExplicitAdminRole =
-      userProfile.role === "owner" ||
-      (userProfile.role as string) === "admin" ||
-      userProfile.hasAdminAccess === true;
-
-    if (isDualOwner && userProfile.role === "owner") {
+    if (userProfile.role === "owner") {
+      if (isAllowlistedOwner) {
+        return {
+          isValid: true,
+          isOwner: true,
+          role: "owner",
+          token: activeToken || activeKey || undefined,
+        };
+      }
+      // Reject non-allowlisted email claiming owner role
       return {
-        isValid: true,
-        isOwner: true,
-        role: "owner",
-        token: activeToken || activeKey || undefined,
+        isValid: false,
+        isOwner: false,
+        role: "unauthorized",
+        reason: "Account is not authorized for Owner privileges.",
       };
     }
 
-    if (hasExplicitAdminRole) {
+    if ((userProfile.role as string) === "admin" && userProfile.hasAdminAccess === true) {
       return {
         isValid: true,
-        isOwner: userProfile.role === "owner",
-        role: userProfile.role === "owner" ? "owner" : "admin",
+        isOwner: false,
+        role: "admin",
         token: activeToken || activeKey || undefined,
       };
     }
@@ -173,16 +175,21 @@ export async function verifyAdminSessionWithServer(
     if (res.ok) {
       const data = await res.json().catch(() => null);
       const serverRole = String(data?.user?.role || data?.role || "").toLowerCase();
+      const serverEmail = String(data?.user?.email || "").toLowerCase().trim();
+      const isVerifiedSoleOwner =
+        serverRole === "owner" && DUAL_OWNER_EMAILS.includes(serverEmail);
+      const isVerifiedAdmin =
+        serverRole === "admin" && data?.user?.hasAdminAccess === true;
       const hasAdmin =
         data?.valid === true &&
         Boolean(data?.user) &&
-        (serverRole === "owner" || serverRole === "admin" || data?.user?.hasAdminAccess === true);
+        (isVerifiedSoleOwner || isVerifiedAdmin);
 
       if (hasAdmin) {
         return {
           isValid: true,
-          isOwner: serverRole === "owner",
-          role: serverRole === "owner" ? "owner" : "admin",
+          isOwner: isVerifiedSoleOwner,
+          role: isVerifiedSoleOwner ? "owner" : "admin",
           token: token || secret || undefined,
         };
       }

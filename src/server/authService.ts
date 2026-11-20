@@ -176,7 +176,7 @@ function resolveAuthoritativeEntitlement(user: Pick<StoredUser, "email" | "role"
   isPro: boolean;
   plan: string;
 } {
-  if (isOwnerAccountEmail(user.email) || user.role === "owner") {
+  if (isOwnerAccountEmail(user.email) && user.role === "owner") {
     return { isPro: true, plan: "Founder & Owner" };
   }
   const { subscription, isActive } = getUserSubscription(user.email);
@@ -716,7 +716,7 @@ export async function initiateBankingStep1Login(params: {
       role: user.role,
       plan: user.plan,
       hasAdminAccess: user.hasAdminAccess,
-      isPro: user.isPro,
+      isPro: Boolean(user.isPro),
       avatar: user.avatar,
       joinedDate: user.joinedDate,
     };
@@ -892,7 +892,7 @@ export async function verifyBankingStep2Otp(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
-    isPro: user.isPro,
+    isPro: Boolean(user.isPro),
     avatar: user.avatar,
     joinedDate: user.joinedDate,
   };
@@ -1162,7 +1162,7 @@ export async function verifyAndResetPassword(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
-    isPro: user.isPro,
+    isPro: Boolean(user.isPro),
     avatar: user.avatar,
     joinedDate: user.joinedDate,
   };
@@ -1312,7 +1312,7 @@ export async function updatePasswordWithResetToken(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
-    isPro: user.isPro,
+    isPro: Boolean(user.isPro),
     avatar: user.avatar,
     joinedDate: user.joinedDate,
   };
@@ -1420,7 +1420,7 @@ export function registerUserAccount(params: {
     role: newUser.role,
     plan: newUser.plan,
     hasAdminAccess: newUser.hasAdminAccess,
-    isPro: newUser.isPro,
+    isPro: Boolean(newUser.isPro),
     avatar: newUser.avatar,
     joinedDate: newUser.joinedDate,
   };
@@ -1520,7 +1520,7 @@ export function authenticateUser(params: {
       role: user.role,
       plan: user.plan,
       hasAdminAccess: user.hasAdminAccess,
-      isPro: user.isPro,
+      isPro: Boolean(user.isPro),
       avatar: user.avatar,
       joinedDate: user.joinedDate,
     },
@@ -1632,7 +1632,7 @@ export function authenticateSocialUser(params: {
     role: user.role,
     plan: user.plan,
     hasAdminAccess: user.hasAdminAccess,
-    isPro: user.isPro,
+    isPro: Boolean(user.isPro),
     avatar: user.avatar,
     joinedDate: user.joinedDate,
   };

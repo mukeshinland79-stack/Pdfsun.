@@ -224,7 +224,7 @@ export const TOOL_SPECIFIC_FAQS: Record<string, ToolFAQ[]> = {
   "ai-chat-pdf": [
     {
       question: "How does AI Chat with PDF work?",
-      answer: "AI Chat with PDF uses Google Gemini 3.6 AI to read and understand your uploaded document. You can ask complex questions, verify facts, search for specific data points, and receive cited page references instantly.",
+      answer: "AI Chat with PDF uses Google Gemini AI over HTTPS to analyze extracted text from your document. You can ask complex questions, verify facts, search for specific data points, and inspect relevant sections quickly.",
     },
     {
       question: "Can I chat with long 200+ page textbooks, legal contracts, or research papers?",
@@ -363,9 +363,9 @@ export function getCategoryFallbackFaq(tool: ToolItem): ToolFAQ {
     case "ai":
       return {
         question: `How does AI technology process files in ${tool.name}?`,
-        answer: `${tool.name} utilizes secure Google Gemini 3.6 AI models to analyze, summarize, or extract structured data from your ${
+        answer: `${tool.name} utilizes Google Gemini AI models over HTTPS to analyze, summarize, or extract structured data from your ${
           tool.supportedInput.length > 0 ? tool.supportedInput.join(" or ") : "PDF"
-        } documents with enterprise-grade speed and precision.`,
+        } documents when you explicitly invoke the AI workflow.`,
       };
     case "security":
       return {

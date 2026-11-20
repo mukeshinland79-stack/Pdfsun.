@@ -23,6 +23,9 @@ import {
 import { DUAL_OWNER_EMAILS } from "../types";
 import { getUserSubscription } from "./paymentStore";
 import { parseCookieHeader } from "./cookieUtils";
+import { buildSessionCookies, buildClearSessionCookies } from "./cookieSecurity";
+import { issueCsrfTokenHandler } from "./middleware/csrfOriginProtection";
+import { isRevokedAdminOrSessionTokenAsync } from "./middleware/adminAuth";
 
 export const authRouter = express.Router();
 
@@ -85,11 +88,16 @@ export const handleRegister = (req: Request, res: Response) => {
       });
     }
 
-    // Set secure session cookies
-    res.setHeader("Set-Cookie", [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ]);
+    // Set hardened session cookies (HttpOnly, SameSite=Lax, Secure in prod/HTTPS)
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner: false,
+        req,
+      })
+    );
 
     return res.status(200).json({
       status: "ok",
@@ -155,15 +163,16 @@ export const handleLogin = async (req: Request, res: express.Response) => {
         });
       }
 
-      const isOwner = mfaRes.role === "owner" || mfaRes.hasAdminAccess;
-      const cookies = [
-        `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        `pdfsun_user_email=${encodeURIComponent(mfaRes.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ];
-      if (isOwner) {
-        cookies.push(`pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-      }
-      res.setHeader("Set-Cookie", cookies);
+      const isOwner = Boolean(mfaRes.role === "owner" || mfaRes.hasAdminAccess);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: mfaRes.token || "",
+          email: mfaRes.user?.email || "",
+          isOwner,
+          req,
+        })
+      );
 
       return res.status(200).json({
         status: "ok",
@@ -203,15 +212,16 @@ export const handleLogin = async (req: Request, res: express.Response) => {
       }
 
       if (step1Result.mfaRequired === false && step1Result.token && step1Result.user) {
-        const isOwner = step1Result.role === "owner" || step1Result.hasAdminAccess;
-        const cookies = [
-          `pdfsun_user_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-          `pdfsun_user_email=${encodeURIComponent(step1Result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        ];
-        if (isOwner) {
-          cookies.push(`pdfsun_admin_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-        }
-        res.setHeader("Set-Cookie", cookies);
+        const isOwner = Boolean(step1Result.role === "owner" || step1Result.hasAdminAccess);
+        res.setHeader(
+          "Set-Cookie",
+          buildSessionCookies({
+            token: step1Result.token,
+            email: step1Result.user.email || "",
+            isOwner,
+            req,
+          })
+        );
         return res.status(200).json({
           ...step1Result,
           status: "ok",
@@ -255,15 +265,16 @@ export const handleLogin = async (req: Request, res: express.Response) => {
       });
     }
 
-    const isOwner = result.user?.role === "owner" || result.user?.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.user?.role === "owner" || result.user?.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.status(200).json({
       status: "ok",
@@ -321,15 +332,16 @@ export const handleStep1Login = async (req: Request, res: Response) => {
     }
 
     if (result.mfaRequired === false && result.token && result.user) {
-      const isOwner = result.role === "owner" || result.hasAdminAccess;
-      const cookies = [
-        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        `pdfsun_user_email=${encodeURIComponent(result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ];
-      if (isOwner) {
-        cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-      }
-      res.setHeader("Set-Cookie", cookies);
+      const isOwner = Boolean(result.role === "owner" || result.hasAdminAccess);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: result.token,
+          email: result.user.email || "",
+          isOwner,
+          req,
+        })
+      );
     }
 
     return res.status(200).json({
@@ -368,17 +380,16 @@ export const handleVerifyOtp = async (req: Request, res: Response) => {
       return res.status(statusCode).json(result);
     }
 
-    const isOwner = result.role === "owner" || result.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.role === "owner" || result.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.status(200).json({
       status: "ok",
@@ -502,9 +513,15 @@ export const handleNewPassword = async (req: Request, res: Response) => {
       }
 
       if (directResult.token) {
-        res.setHeader("Set-Cookie", [
-          `pdfsun_user_session=${directResult.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        ]);
+        res.setHeader(
+          "Set-Cookie",
+          buildSessionCookies({
+            token: directResult.token,
+            includeEmailCookie: false,
+            isOwner: false,
+            req,
+          })
+        );
       }
 
       return res.status(200).json({
@@ -530,9 +547,15 @@ export const handleNewPassword = async (req: Request, res: Response) => {
     }
 
     if (result.token) {
-      res.setHeader("Set-Cookie", [
-        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ]);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: result.token,
+          includeEmailCookie: false,
+          isOwner: false,
+          req,
+        })
+      );
     }
 
     return res.status(200).json({
@@ -583,7 +606,7 @@ export const handleResendOtp = async (req: Request, res: Response) => {
  * 9. Session Verification
  * GET / POST /api/auth/verify-session
  */
-export const handleVerifySession = (req: Request, res: Response) => {
+export const handleVerifySession = async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     let token = "";
@@ -623,7 +646,8 @@ export const handleVerifySession = (req: Request, res: Response) => {
       });
     }
 
-    const payload = verifySessionToken(token);
+    const revokedInSharedStore = await isRevokedAdminOrSessionTokenAsync(token);
+    const payload = revokedInSharedStore ? null : verifySessionToken(token);
     if (!payload) {
       return res.json({
         success: false,
@@ -634,7 +658,7 @@ export const handleVerifySession = (req: Request, res: Response) => {
       });
     }
 
-    const isOwner = payload.role === "owner" || DUAL_OWNER_EMAILS.includes(payload.email.toLowerCase());
+    const isOwner = payload.role === "owner" && DUAL_OWNER_EMAILS.includes((payload.email || "").toLowerCase().trim());
     const subCheck = getUserSubscription(payload.email);
     const profile = getUserProfileByEmail(payload.email) || {
       id: payload.id,
@@ -685,16 +709,8 @@ export const handleLogout = async (req: Request, res: Response) => {
       await revokeOAuthProviderToken(provider, providerToken);
     }
 
-    // Set-Cookie clearing headers for all authentication cookies
-    res.setHeader("Set-Cookie", [
-      "pdfsun_admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
-      "pdfsun_user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
-      "pdfsun_user_email=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax",
-      "session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
-      "access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
-      "refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax",
-      "pdfsun_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax",
-    ]);
+    // Set-Cookie clearing headers matching hardened issuance attributes
+    res.setHeader("Set-Cookie", buildClearSessionCookies(req));
 
     // Instruct browser to purge stored session data
     res.setHeader("Clear-Site-Data", '"cache", "cookies", "storage"');
@@ -719,7 +735,7 @@ export const handleLogout = async (req: Request, res: Response) => {
  * 11. Refresh Session
  * POST /api/auth/refresh-session
  */
-export const handleRefreshSession = (req: Request, res: Response) => {
+export const handleRefreshSession = async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   let token = "";
   if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
@@ -742,7 +758,8 @@ export const handleRefreshSession = (req: Request, res: Response) => {
       }
     }
   }
-  const payload = token ? verifySessionToken(token) : null;
+  const revokedInSharedStore = token ? await isRevokedAdminOrSessionTokenAsync(token) : false;
+  const payload = token && !revokedInSharedStore ? verifySessionToken(token) : null;
   if (!payload) {
     return res.status(401).json({
       status: "error",
@@ -750,6 +767,16 @@ export const handleRefreshSession = (req: Request, res: Response) => {
       error: "Authentication required to refresh session.",
     });
   }
+  const isOwner = payload.role === "owner" && DUAL_OWNER_EMAILS.includes((payload.email || "").toLowerCase().trim());
+  res.setHeader(
+    "Set-Cookie",
+    buildSessionCookies({
+      token,
+      email: payload.email || "",
+      isOwner,
+      req,
+    })
+  );
   return res.json({
     status: "ok",
     success: true,
@@ -819,15 +846,16 @@ export const handleSocialLogin = async (req: Request, res: Response) => {
       });
     }
 
-    const isOwner = result.role === "owner" || result.user?.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.role === "owner" || result.user?.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.status(200).json({
       status: "ok",
@@ -949,6 +977,7 @@ authRouter.all(
 );
 authRouter.all(["/logout", "/signout"], handleLogout);
 authRouter.post("/refresh-session", handleRefreshSession);
+authRouter.get("/csrf-token", issueCsrfTokenHandler);
 authRouter.get("/providers/status", (_req, res) => {
   return res.status(200).json({
     success: true,
@@ -961,7 +990,7 @@ authRouter.get("/providers/status", (_req, res) => {
 authRouter.options(/.*/, (req, res) => {
   res.setHeader("Allow", "POST, GET, OPTIONS, HEAD");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, HEAD");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-user-token, x-admin-token");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-user-token, x-admin-token, x-csrf-token");
   res.status(204).end();
 });
 

@@ -403,7 +403,7 @@ export const BlogModal: React.FC<BlogModalProps> = ({
 
       {/* Footer Note */}
       <div className="w-full py-6 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 text-center text-xs text-slate-500">
-        <p>PDFSun — 100% In-Browser Zero-Knowledge WebAssembly Architecture. GDPR &amp; HIPAA Compliant.</p>
+        <p>PDFSun — Local-First WebAssembly Core &amp; Transparent Cloud AI. GDPR Privacy Controls &amp; HIPAA Security Assessment.</p>
       </div>
     </div>
   );

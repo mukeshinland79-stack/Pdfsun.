@@ -17,7 +17,7 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
 
   const [filesCount, setFilesCount] = useState<number | null>(null);
   const [activeUsers, setActiveUsers] = useState<number>(1);
-  const [avgSpeedMs, setAvgSpeedMs] = useState<number>(120);
+  const [avgSpeedMs, setAvgSpeedMs] = useState<number | null>(null);
 
   // Connect to actual server-side SSE telemetry stream and stats API
   useEffect(() => {
@@ -91,21 +91,21 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
     if (["de", "fr", "es", "it", "nl"].includes(lang)) {
       return {
         label: "Tier-1 Europe",
-        text: "GDPR Compliant • 100% In-Browser WASM",
+        text: "GDPR Privacy Controls • Local WASM Core",
         accent: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20",
       };
     }
     if (["ar"].includes(lang)) {
       return {
         label: "Tier-2 Middle East",
-        text: "Zero Cloud Bandwidth • 100% Private",
+        text: "Local-First WASM • Encrypted Cloud AI",
         accent: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
       };
     }
     // Default Tier-1 North America / Global
     return {
       label: "Tier-1 Global",
-      text: "HIPAA & Zero-Data-Retention Certified",
+      text: "HIPAA Security Controls Assessment",
       accent: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
     };
   }, [currentLanguage]);
@@ -159,14 +159,20 @@ export const LiveActivityStatsWidget: React.FC<LiveActivityStatsWidgetProps> = (
         <div className="hidden sm:flex items-center space-x-3 text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-medium">
             <Zap className="w-3 h-3 shrink-0" />
-            <span>Avg Speed: <strong className="tabular-nums font-bold">{(avgSpeedMs / 1000).toFixed(2)}s</strong></span>
+            <span>
+              {avgSpeedMs !== null && avgSpeedMs > 0 ? (
+                <>Avg Speed: <strong className="tabular-nums font-bold">{(avgSpeedMs / 1000).toFixed(2)}s</strong></>
+              ) : (
+                <>Engine: <strong className="font-bold">Local WASM</strong></>
+              )}
+            </span>
           </div>
 
           <span className="text-slate-300 dark:text-slate-700">•</span>
 
           <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400 font-medium">
             <ShieldCheck className="w-3 h-3 shrink-0" />
-            <span>100% In-Browser WASM</span>
+            <span>Local-First WASM Core</span>
           </div>
 
           <span className="text-slate-300 dark:text-slate-700">•</span>

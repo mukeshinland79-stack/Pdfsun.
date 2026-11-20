@@ -160,7 +160,9 @@ export function getCommentsHandler(req: Request, res: Response) {
 
   // Sort by helpfulCount desc then date desc
   filtered.sort((a, b) => {
-    if (b.helpfulCount !== a.helpfulCount) return b.helpfulCount - a.helpfulCount;
+    const bHelpful = b.helpfulCount ?? 0;
+    const aHelpful = a.helpfulCount ?? 0;
+    if (bHelpful !== aHelpful) return bHelpful - aHelpful;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
@@ -308,7 +310,7 @@ export function addCommentHandler(req: Request, res: Response) {
     toolId: cleanToolId,
     toolName: cleanToolName,
     userName: cleanUserName,
-    userEmail: cleanEmail,
+    userEmail: cleanEmail || "",
     rating: numRating,
     comment: cleanComment,
     createdAt: new Date().toISOString(),
@@ -429,7 +431,7 @@ export function upvoteCommentHandler(req: Request, res: Response) {
     });
   }
 
-  target.helpfulCount += 1;
+  target.helpfulCount = (target.helpfulCount ?? 0) + 1;
   target.helpfulIpHashes.push(ipHash);
   saveCommentsToDisk();
 

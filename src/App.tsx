@@ -290,7 +290,7 @@ function MainApp() {
     adsenseEnabled: true,
     adsensePubId: "ca-pub-4189458265489554",
     defaultTheme: "dark",
-    aiModelVersion: "gemini-3.8-flash",
+    aiModelVersion: "gemini-2.5-flash",
   });
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");

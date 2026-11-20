@@ -311,7 +311,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       ultraFastDesc: "Motor de aceleración en navegador local.",
       noStorage: "Cero retención de archivos",
       noStorageDesc: "Garantía de eliminación permanente e inmediata.",
-      geminiAi: "Gemini 3.6 IA",
+      geminiAi: "Gemini IA",
       geminiAiDesc: "Chat inteligente, resumen y traducción.",
       tools50: "68+ herramientas funcionales",
       tools50Desc: "Suite completa de conversión PDF.",
@@ -391,7 +391,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       },
       "ai-chat-pdf": {
         name: "Chat IA con PDF",
-        desc: "Haga preguntas, extraiga datos y converse de forma interactiva con sus documentos PDF mediante Gemini 3.6 IA.",
+        desc: "Haga preguntas, extraiga datos y converse de forma interactiva con sus documentos PDF mediante Gemini IA.",
       },
       "ai-pdf-summary": {
         name: "Resumen de documentos con IA",
@@ -424,7 +424,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       q1: "¿Están seguros mis archivos PDF cargados en PDFSun?",
       a1: "¡Absolutamente! En PDFSun, la privacidad es primordial. La mayoría de las operaciones se ejecutan 100% localmente en su navegador a través de WebAssembly.",
       q2: "¿Cómo maneja PDFSun el chat, resúmenes y explicaciones de IA?",
-      a2: "PDFSun integra Google Gemini 3.6 IA para analizar texto extraído de su PDF de forma rápida y segura.",
+      a2: "PDFSun integra Google Gemini IA para analizar texto extraído de su PDF de forma rápida y segura.",
       q3: "¿Es PDFSun completamente gratuito?",
       a3: "¡Sí! PDFSun ofrece acceso gratuito generoso a todas las más de 68 herramientas sin necesidad de registrarse.",
       q4: "¿Puedo usar PDFSun sin conexión o como PWA?",
@@ -442,7 +442,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       openInNew: "Abrir herramienta",
     },
     footer: {
-      tagline: "PDFSun (pdfsun.in) — Su compañero inteligente de documentos con Gemini 3.6 IA y 100% de privacidad en el navegador.",
+      tagline: "PDFSun (pdfsun.in) — Su compañero inteligente de documentos con Gemini IA y 100% de privacidad en el navegador.",
       brandKit: "Pautas de identidad de marca",
       quickLinks: "Enlaces rápidos",
       policies: "Políticas",
@@ -512,7 +512,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       ultraFastDesc: "Moteur d'accélération dans le navigateur local.",
       noStorage: "Zéro conservation des fichiers",
       noStorageDesc: "Garantie de suppression permanente et immédiate.",
-      geminiAi: "Gemini 3.6 IA",
+      geminiAi: "Gemini IA",
       geminiAiDesc: "Chat intelligent, résumé et traduction.",
       tools50: "68+ Outils fonctionnels",
       tools50Desc: "Suite complète de conversion PDF.",
@@ -592,7 +592,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       },
       "ai-chat-pdf": {
         name: "Chat IA avec PDF",
-        desc: "Posez des questions, extrayez des faits et discutez avec vos documents PDF grâce à l'IA Gemini 3.6.",
+        desc: "Posez des questions, extrayez des faits et discutez avec vos documents PDF grâce à l'IA Gemini.",
       },
       "ai-pdf-summary": {
         name: "Résumé de document IA",
@@ -609,7 +609,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       q1: "Mes fichiers PDF téléchargés sont-ils en sécurité sur PDFSun ?",
       a1: "Absolument ! Chez PDFSun, la confidentialité est primordiale. Les opérations s'exécutent 100% localement dans votre navigateur via WebAssembly.",
       q2: "Comment PDFSun gère-t-il le chat, les résumés et les explications par IA ?",
-      a2: "PDFSun intègre Google Gemini 3.6 IA pour analyser le texte extrait de votre PDF rapidement et en toute sécurité.",
+      a2: "PDFSun intègre Google Gemini IA pour analyser le texte extrait de votre PDF rapidement et en toute sécurité.",
       q3: "PDFSun est-il totalement gratuit ?",
       a3: "Oui ! PDFSun offre un accès gratuit généreux à l'ensemble des plus de 68 outils sans inscription.",
       q4: "Puis-je utiliser PDFSun hors ligne ou en tant que PWA ?",
@@ -627,7 +627,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       openInNew: "Ouvrir l'outil",
     },
     footer: {
-      tagline: "PDFSun (pdfsun.in) — Votre compagnon intelligent pour vos documents avec Gemini 3.6 IA et confidentialité totale.",
+      tagline: "PDFSun (pdfsun.in) — Votre compagnon intelligent pour vos documents avec Gemini IA et confidentialité totale.",
       brandKit: "Charte graphique",
       quickLinks: "Liens rapides",
       policies: "Politiques",
@@ -697,7 +697,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       ultraFastDesc: "Lokale Browser-Beschleunigung.",
       noStorage: "Keine Datenspeicherung",
       noStorageDesc: "Garantie der sofortigen und permanenten Löschung.",
-      geminiAi: "Gemini 3.6 KI",
+      geminiAi: "Gemini KI",
       geminiAiDesc: "Intelligenter Chat, Zusammenfassung & Übersetzung.",
       tools50: "68+ funktionierende Tools",
       tools50Desc: "Komplette Suite für PDF-Konvertierung.",
@@ -777,7 +777,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       },
       "ai-chat-pdf": {
         name: "KI-Chat mit PDF",
-        desc: "Stellen Sie Fragen und chatten Sie mit Ihren PDF-Dokumenten via Gemini 3.6 KI.",
+        desc: "Stellen Sie Fragen und chatten Sie mit Ihren PDF-Dokumenten via Gemini KI.",
       },
       "ai-pdf-summary": {
         name: "KI-Zusammenfassung",
@@ -794,7 +794,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       q1: "Sind meine hochgeladenen PDF-Dateien auf PDFSun sicher?",
       a1: "Absolut! Bei PDFSun hat Datenschutz oberste Priorität. Operationen laufen 100% lokal im Browser über WebAssembly.",
       q2: "Wie funktioniert der KI-Chat mit PDF?",
-      a2: "PDFSun integriert Google Gemini 3.6 KI, um Text aus Ihrer PDF schnell und sicher zu analysieren.",
+      a2: "PDFSun integriert Google Gemini KI, um Text aus Ihrer PDF schnell und sicher zu analysieren.",
       q3: "Ist PDFSun völlig kostenlos?",
       a3: "Ja! PDFSun bietet großzügigen kostenlosen Zugang zu allen 68+ Tools ohne Registrierung.",
       q4: "Kann ich PDFSun offline oder als PWA nutzen?",
@@ -812,7 +812,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       openInNew: "Tool öffnen",
     },
     footer: {
-      tagline: "PDFSun (pdfsun.in) — Ihr intelligenter Dokumentenbegleiter mit Gemini 3.6 KI und 100% Datenschutz.",
+      tagline: "PDFSun (pdfsun.in) — Ihr intelligenter Dokumentenbegleiter mit Gemini KI und 100% Datenschutz.",
       brandKit: "Brand Guidelines",
       quickLinks: "Schnelllinks",
       policies: "Richtlinien",
@@ -882,7 +882,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       ultraFastDesc: "محرك تسريع محلي داخل المتصفح.",
       noStorage: "بدون تخزين سحابي",
       noStorageDesc: "ضمان حذف الملفات المؤقتة فوراً.",
-      geminiAi: "ذكاء اصطناعي Gemini 3.6",
+      geminiAi: "ذكاء اصطناعي Gemini",
       geminiAiDesc: "محادثة ذكية، وتلخيص، وترجمة.",
       tools50: "68+ أداة تعمل بكفاءة",
       tools50Desc: "حزمة شاملة لتحويل وتحرير PDF.",
@@ -962,7 +962,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       },
       "ai-chat-pdf": {
         name: "محادثة بالذكاء الاصطناعي مع PDF",
-        desc: "اطرح أسئلة وتفاعل مع محتوى مستنداتك عبر ذكاء Gemini 3.6 الاصطناعي.",
+        desc: "اطرح أسئلة وتفاعل مع محتوى مستنداتك عبر ذكاء Gemini الاصطناعي.",
       },
       "ai-pdf-summary": {
         name: "تلخيص المستندات بالذكاء الاصطناعي",
@@ -979,7 +979,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       q1: "هل ملفاتي المرفوعة آمنة على PDFSun؟",
       a1: "بالتأكيد! الخصوصية تأتي أولاً في PDFSun. معظم العمليات تعمل محلياً بنسبة 100% داخل متصفحك عبر WebAssembly.",
       q2: "كيف يعمل الذكاء الاصطناعي في PDFSun؟",
-      a2: "يدمج PDFSun ذكاء Google Gemini 3.6 لتحليل وتلخيص مستنداتك بسرعة فائقة وبخصوصية تامة.",
+      a2: "يدمج PDFSun ذكاء Google Gemini لتحليل وتلخيص مستنداتك بسرعة فائقة وبخصوصية تامة.",
       q3: "هل استخدام PDFSun مجاني بالكامل؟",
       a3: "نعم! يوفر PDFSun وصولاً مجانياً سخياً لجميع الأدوات الـ 68+ دون الحاجة لأي تسجيل.",
       q4: "هل يمكنني استخدام PDFSun دون اتصال بالإنترنت؟",
@@ -997,7 +997,7 @@ export const CORE_REGIONAL_LANGUAGES: Record<string, Record<string, any>> = {
       openInNew: "فتح الأداة",
     },
     footer: {
-      tagline: "PDFSun (pdfsun.in) — رفيقك الذكي لإدارة وتحويل مستندات PDF بذكاء Gemini 3.6 وخصوصية كاملة داخل المتصفح.",
+      tagline: "PDFSun (pdfsun.in) — رفيقك الذكي لإدارة وتحويل مستندات PDF بذكاء Gemini وخصوصية كاملة داخل المتصفح.",
       brandKit: "دليل الهوية البصرية",
       quickLinks: "روابط سريعة",
       policies: "السياسات",

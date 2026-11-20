@@ -141,7 +141,7 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
             </h2>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-              {t("newsletter.subtitle", "Join over 150,000+ professionals, students, and legal teams. Get exclusive tutorials, Gemini 3.6 AI prompt workflows, and early access to new PDFSun tools—delivered once a week.")}
+              {t("newsletter.subtitle", "Get practical document tutorials, Google Gemini AI prompt workflows, and early access to new PDFSun tools—delivered once a week.")}
             </p>
 
             {/* Subscriber Perks List */}
@@ -154,7 +154,7 @@ export const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
               <ul className="text-xs text-slate-300 space-y-2 font-medium">
                 <li className="flex items-center space-x-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                  <span>{t("newsletter.perk1", "Early access to new Gemini 3.6 AI PDF utilities")}</span>
+                  <span>{t("newsletter.perk1", "Early access to new Google Gemini AI PDF utilities")}</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />

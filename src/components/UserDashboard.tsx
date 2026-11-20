@@ -189,7 +189,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   if (!isOpen) return null;
 
   const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
-  const isOwner = userProfile.role === "owner" || DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
+  const isOwner = userProfile.role === "owner" && DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
   const resolvedPlan = resolvePaymentProduct({
     planId: userProfile.planId || userProfile.plan,
   });
@@ -1240,7 +1240,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       </div>
                       <div className="text-[11px] text-slate-400 font-medium pt-0.5">
                         {usageTracker.currentPlan.maxDailyAiQueries === Infinity
-                          ? "Gemini 3.8 Flash Pro Access"
+                          ? "Google Gemini AI Pro Access"
                           : `${usageTracker.aiQueriesToday} / ${usageTracker.currentPlan.maxDailyAiQueries} daily trial used`}
                       </div>
                     </div>

@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "tsx scripts/generate-sitemaps.ts && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
+    "build": "tsx scripts/generate-sitemaps.ts && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs && tsx scripts/verify-build-output.ts",
+    "start": "node dist-server/server.cjs",
     "preview": "vite preview",
-    "lint": "tsc --noEmit",
-    "test": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "test": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
   },
   "dependencies": {
     "@google/genai": "^3.3.0",

@@ -4399,7 +4399,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-3">
                 <div className="font-bold text-orange-600 dark:text-amber-400 flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-orange-500" />
-                  <span>Gemini 3.8 Flash Neural Translation Engine</span>
+                  <span>Google Gemini AI Translation Engine</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-300">
                   Translates complete document text with strict preservation of tables, headings, numbers, IDs, and layout structure.
@@ -4442,7 +4442,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({
               <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs space-y-1.5">
                 <div className="font-bold text-orange-600 dark:text-amber-400 flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-orange-500" />
-                  <span>Gemini 3.8 Flash Neural OCR Engine</span>
+                  <span>Google Gemini AI OCR Engine</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-300">
                   Extracts full plain text from scanned PDFs, handwritten notes, forms, and images. Preserves document structure, headings, lists, and tables. Outputs a downloadable .txt file.

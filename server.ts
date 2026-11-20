@@ -5,7 +5,6 @@ import os from "os";
 import fs from "fs";
 import crypto from "crypto";
 import zlib from "zlib";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
@@ -20,7 +19,7 @@ import {
   calculateLiveMetrics,
 } from "./src/server/analytics";
 import { historyRouter } from "./src/server/historyService";
-import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken, isValidAdminSecret, isVerifiedOwnerIdentity } from "./src/server/middleware/adminAuth";
+import { adminAuth, generateAdminJwtToken, verifyAdminJwtToken, isValidAdminSecret, isVerifiedOwnerIdentity, isRevokedAdminOrSessionTokenAsync } from "./src/server/middleware/adminAuth";
 import {
   getCommentsHandler,
   addCommentHandler,
@@ -115,6 +114,12 @@ import {
   getAiQuotaStatus,
 } from "./src/server/distributedRateLimiter";
 import { TRAFFIC_SECURITY_CONFIG } from "./src/config/trafficSecurityConfig";
+import { buildSessionCookies } from "./src/server/cookieSecurity";
+import {
+  createCsrfOriginProtectionMiddleware,
+  issueCsrfTokenHandler,
+} from "./src/server/middleware/csrfOriginProtection";
+import { getDistributedStateDiagnostics } from "./src/server/distributedStateStore";
 
 dotenv.config();
 
@@ -359,7 +364,7 @@ app.use((req, res, next) => {
       res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key"
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-owner-email, x-admin-token, x-user-token, x-idempotency-key, x-csrf-token"
       );
       res.setHeader("Access-Control-Max-Age", "86400");
     } else {
@@ -382,12 +387,20 @@ app.use((req, res, next) => {
 // 1. Enterprise Security Headers (HSTS, nosniff, Referrer-Policy, Permissions-Policy)
 app.use(trafficSecurityHeadersMiddleware);
 
+// 1b. Explicit CSRF & Origin Validation for State-Changing API Requests (Exempts HMAC-verified webhooks)
+app.use("/api", createCsrfOriginProtectionMiddleware(VERIFIED_CORS_ORIGINS));
+
 // 2. Global Traffic Hygiene & Bot Anomaly Filter (Allows all verified search crawlers, blocks exploit scanners, flags referral spam)
 app.use(globalTrafficHygieneMiddleware);
 
 // 3. Sliding-Window Rate Limiters on Sensitive Endpoints
-app.use("/api/ai", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.aiEndpoints, "ai"));
-app.use("/api/auth", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.authEndpoints, "auth"));
+const aiSlidingLimiter = createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.aiEndpoints, "ai");
+const authSlidingLimiter = createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.authEndpoints, "auth");
+app.use("/api/ai", aiSlidingLimiter);
+app.use("/api/translate", aiSlidingLimiter);
+app.use("/api/auth", authSlidingLimiter);
+app.use("/api/v1/auth", authSlidingLimiter);
+app.use("/api/admin/auth", authSlidingLimiter);
 app.use("/api/comments", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.commentsEndpoints, "comments"));
 app.use("/api/history", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "history"));
 app.use("/api/user", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "user"));
@@ -454,7 +467,7 @@ function applyRuntimeConfigUpdates(newConfig: SystemConfig) {
 }
 
 // Dual-Owner RBAC Middleware for Server-side Endpoints
-function verifyDualOwnerAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function verifyDualOwnerAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers["x-admin-token"] || req.headers["authorization"] || req.headers["x-admin-secret"];
   const cookieToken = req.headers.cookie
     ?.split("; ")
@@ -465,7 +478,8 @@ function verifyDualOwnerAccess(req: express.Request, res: express.Response, next
   const providedToken = (typeof rawHeader === "string" ? rawHeader.replace("Bearer ", "").trim() : "") || cookieToken;
 
   const isCorrectSecretKey = isValidAdminSecret(providedToken, currentSystemConfig.ADMIN_SECRET_KEY);
-  const isVerifiedJwtOwner = isVerifiedOwnerIdentity(providedToken);
+  const revokedInSharedStore = providedToken ? await isRevokedAdminOrSessionTokenAsync(providedToken) : false;
+  const isVerifiedJwtOwner = !revokedInSharedStore && isVerifiedOwnerIdentity(providedToken);
 
   // Fail-Closed: Client-supplied email header alone NEVER establishes owner privileges without valid credentials
   if (!isCorrectSecretKey && !isVerifiedJwtOwner) {
@@ -524,10 +538,15 @@ function resolveAuthenticatedUserIdentity(req: express.Request): {
 
   const session = verifySessionToken(token);
   if (session && session.email) {
+    const normalizedSessionEmail = session.email.toLowerCase().trim();
+    const isVerifiedSoleOwner =
+      session.role === "owner" && DUAL_OWNER_EMAILS.includes(normalizedSessionEmail);
+    const isVerifiedAdmin =
+      session.role === "admin" || (session.role !== "owner" && Boolean(session.hasAdminAccess));
     return {
       authenticated: true,
-      isOwnerOrAdmin: session.role === "owner" || session.role === "admin" || Boolean(session.hasAdminAccess),
-      email: session.email.toLowerCase().trim(),
+      isOwnerOrAdmin: isVerifiedSoleOwner || isVerifiedAdmin,
+      email: normalizedSessionEmail,
       id: (session.id || session.email).toLowerCase().trim(),
     };
   }
@@ -698,16 +717,36 @@ app.use((req, res, next) => {
   next();
 });
 
+// Runtime-aware body size cap: Vercel Serverless enforces a 4.5 MB request body ceiling,
+// whereas persistent Node / Cloud Run containers support up to 50 MB for large AI/OCR payloads.
+const RUNTIME_BODY_LIMIT = process.env.VERCEL === "1" ? "4mb" : "50mb";
+
 app.use(
   express.json({
-    limit: "50mb",
+    limit: RUNTIME_BODY_LIMIT,
     verify: (req: any, _res: any, buf: Buffer) => {
       req.rawBody = buf;
     },
   })
 );
 
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: RUNTIME_BODY_LIMIT }));
+
+app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err && (err.type === "entity.too.large" || err.status === 413)) {
+    return res.status(413).json({
+      success: false,
+      error: "Payload Too Large",
+      code: "PAYLOAD_LIMIT_EXCEEDED",
+      limit: RUNTIME_BODY_LIMIT,
+      message:
+        process.env.VERCEL === "1"
+          ? "Request exceeds the 4 MB serverless API payload cap. Process large PDFs locally in-browser or split/extract text before invoking AI endpoints."
+          : "Request exceeds the 50 MB API payload limit.",
+    });
+  }
+  next(err);
+});
 
 app.use(idempotencyMiddleware);
 
@@ -921,7 +960,7 @@ function runWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string
   ]);
 }
 
-// Unified Gemini Engine with multi-model failover (Primary: gemini-3.8-flash, Backup: gemini-3.1-flash-lite)
+// Unified Gemini Engine with multi-model failover (Primary: gemini-2.5-flash, Backup: gemini-3.1-flash-lite)
 interface GeminiCallParams {
   contents: any;
   systemInstruction?: string;
@@ -934,7 +973,7 @@ async function callGeminiWithFallback(
   ai: ReturnType<typeof getGeminiClient>,
   params: GeminiCallParams
 ): Promise<{ text: string; modelUsed: string }> {
-  const models = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
+  const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite"];
   let lastError: any = null;
 
   for (let i = 0; i < models.length; i++) {
@@ -1184,7 +1223,7 @@ Document Content Context:
 ${documentText ? documentText.slice(0, 15000) : "No document text uploaded yet."}
 ---`;
 
-    const contents = [];
+    const contents: string[] = [];
     if (history && Array.isArray(history)) {
       for (const msg of history) {
         contents.push(`${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`);
@@ -1284,7 +1323,7 @@ app.post(["/api/translate", "/api/ai/translate"], async (req, res) => {
     const chunks = splitTextIntoChunks(rawInput, 25000);
 
     const translatedChunks: string[] = [];
-    let modelUsed = "gemini-3.8-flash";
+    let modelUsed = "gemini-2.5-flash";
     for (let i = 0; i < chunks.length; i++) {
       const translatedChunk = await translateChunkWithGemini(ai, chunks[i], cleanTargetLang);
       translatedChunks.push(translatedChunk.text);
@@ -1382,7 +1421,7 @@ ${rawText.slice(0, 20000)}`,
       temperature: 0.2,
     });
 
-    let flashcards = [];
+    let flashcards: Array<{ question: string; answer: string }> = [];
     try {
       flashcards = JSON.parse(callResult.text || "[]");
     } catch {
@@ -1513,9 +1552,8 @@ app.post("/api/ai/ocr", async (req, res) => {
 
     // Multimodal OCR model priority:
     // 1. gemini-2.5-flash (Google official designated model for multimodal vision & doc extraction)
-    // 2. gemini-3.1-flash-lite (Fastest low-latency model)
-    // 3. gemini-3.8-flash (General reasoning fallback)
-    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
+    // 2. gemini-3.1-flash-lite (Fastest low-latency fallback)
+    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite"];
     let lastErr = null;
     let extractedText = "";
     let modelUsed = "gemini-2.5-flash";
@@ -1615,7 +1653,7 @@ app.post("/api/ai/extract-table", async (req, res) => {
       .trim();
 
     const ai = getGeminiClient();
-    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
+    const models = ["gemini-2.5-flash", "gemini-3.1-flash-lite"];
 
     const promptText = `### SYSTEM ROLE & OBJECTIVE:
 You are "PDFSun AI Document Engine v5.0", an enterprise-grade OCR and Data Layout Reconstruction System specializing in Image-to-Excel conversion. Your job is to analyze any given document image (scans, mobile photos, screenshots, blurred receipts, skewed invoices) and extract 100% accurate structured table data directly into clean Excel/CSV format.
@@ -1670,8 +1708,8 @@ Return pure JSON with this exact schema:
 
 ${documentText ? `Document Text Context:\n${documentText.slice(0, 15000)}` : "Analyze and extract high-precision table matrix from the document image."}`;
 
-    let lastErr = null;
-    let extractedData = null;
+    let lastErr: any = null;
+    let extractedData: any = null;
     let modelUsed = "gemini-2.5-flash";
 
     for (const model of models) {
@@ -1860,7 +1898,7 @@ You MUST return ONLY valid JSON matching this exact schema:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       contents: `Extract and structure this resume/bio input into JSON:\n\n${inputText.slice(0, 25000)}`,
       config: {
         systemInstruction,
@@ -1869,7 +1907,7 @@ You MUST return ONLY valid JSON matching this exact schema:
       },
     });
 
-    let resumeData = null;
+    let resumeData: any = null;
     try {
       resumeData = JSON.parse(response.text || "{}");
     } catch (parseErr) {
@@ -1916,7 +1954,7 @@ app.post("/api/ai/resume-improve", async (req, res) => {
 
     if (field && targetText) {
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         contents: `Task: ${taskInstruction}\n\nOriginal Text for ${field}:\n"${targetText}"\n\nReturn ONLY the improved text without markdown quotes or conversational commentary.`,
         config: {
           systemInstruction: "You are an elite Executive Resume Editor. Return only the polished text directly.",
@@ -1932,7 +1970,7 @@ app.post("/api/ai/resume-improve", async (req, res) => {
 
     // Full resume refinement
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       contents: `Task: ${taskInstruction}\n\nPlease refine the summary, experience bullets, and project descriptions in this resume JSON. Do NOT alter names, companies, degrees, dates, or contact info.\n\nInput Resume JSON:\n${JSON.stringify(resumeData || {})}`,
       config: {
         systemInstruction: "You are an elite Executive Resume Editor. Return ONLY valid JSON matching the exact structure provided.",
@@ -2006,7 +2044,7 @@ You MUST return valid JSON adhering to:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       contents: `Run complete ATS audit on this resume:\n\n${JSON.stringify(resumeData)}`,
       config: {
         systemInstruction,
@@ -2015,7 +2053,7 @@ You MUST return valid JSON adhering to:
       },
     });
 
-    let auditResult = null;
+    let auditResult: any = null;
     try {
       auditResult = JSON.parse(response.text || "{}");
     } catch {
@@ -2074,7 +2112,7 @@ You MUST return valid JSON adhering to:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       contents: `Candidate Resume:\n${JSON.stringify(resumeData)}\n\nTarget Job Description (JD):\n${jobDescription.slice(0, 15000)}`,
       config: {
         systemInstruction,
@@ -2083,7 +2121,7 @@ You MUST return valid JSON adhering to:
       },
     });
 
-    let matchResult = null;
+    let matchResult: any = null;
     try {
       matchResult = JSON.parse(response.text || "{}");
     } catch {
@@ -2271,6 +2309,14 @@ const getSystemStatsPayload = () => {
       platform: process.platform,
       arch: process.arch,
       env: process.env.NODE_ENV || "development",
+      runtime: process.env.VERCEL ? "vercel-serverless" : "node-http",
+    },
+    services: {
+      aiConfigured: Boolean((process.env.GEMINI_API_KEY || "").trim() && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY"),
+      paymentGatewayConfigured: Boolean((process.env.RAZORPAY_KEY_ID || "").trim() && (process.env.RAZORPAY_KEY_SECRET || "").trim()),
+      authGoogleEnabled: true,
+      payloadLimitMb: process.env.VERCEL === "1" ? 4 : 50,
+      distributedState: getDistributedStateDiagnostics(),
     },
   };
 };
@@ -2723,7 +2769,7 @@ async function processRazorpayAutoActivation(payload: any, eventType: string, si
     amountPaise: amountPaisa || matchedProduct.displayPriceINR * 100,
     currency,
     status: paymentStatus,
-    planId: matchedPlanId,
+    planId: matchedPlanId || matchedProduct.id || "pro-monthly",
     signatureVerified,
     rawEvent: { event: eventType, payload },
     source: "webhook",
@@ -2873,7 +2919,7 @@ async function handlePaymentReconciliation(req: express.Request, res: express.Re
       amountPaise: Number(amountPaise) || resolvedProduct.displayPriceINR * 100,
       currency,
       status,
-      planId: resolvedProduct.internalProductId,
+      planId: resolvedProduct.internalProductId || resolvedProduct.id || "pro-monthly",
       signatureVerified,
       source: "manual_sync",
     });
@@ -3096,7 +3142,7 @@ async function handleVerifySubscriptionPayment(req: express.Request, res: expres
       amountPaise: verifiedAmountPaise,
       currency,
       status: "captured",
-      planId: normalizedPlanId,
+      planId: normalizedPlanId || "pro-monthly",
       signatureVerified: true,
       source: "client_verify",
     });
@@ -3701,7 +3747,7 @@ app.post("/api/process-refund", async (req, res) => {
       return res.status(404).json({ success: false, error: "Verified transaction not found." });
     }
 
-    const txOwnerEmail = String(tx.userEmail || "").toLowerCase().trim();
+    const txOwnerEmail = String(tx.email || "").toLowerCase().trim();
     if (!identity.isOwnerOrAdmin && txOwnerEmail !== identity.email) {
       return res.status(403).json({
         success: false,
@@ -3786,11 +3832,16 @@ const handleUnifiedRegister = (req: express.Request, res: express.Response) => {
       });
     }
 
-    // Set secure session cookies
-    res.setHeader("Set-Cookie", [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ]);
+    // Set hardened session cookies (HttpOnly, SameSite=Lax, Secure in prod/HTTPS)
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner: false,
+        req,
+      })
+    );
 
     return res.status(200).json({
       success: true,
@@ -3853,15 +3904,16 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
         });
       }
 
-      const isOwner = mfaRes.role === "owner" || mfaRes.hasAdminAccess;
-      const cookies = [
-        `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        `pdfsun_user_email=${encodeURIComponent(mfaRes.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ];
-      if (isOwner) {
-        cookies.push(`pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-      }
-      res.setHeader("Set-Cookie", cookies);
+      const isOwner = Boolean(mfaRes.role === "owner" || mfaRes.hasAdminAccess);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: mfaRes.token || "",
+          email: mfaRes.user?.email || "",
+          isOwner,
+          req,
+        })
+      );
 
       return res.status(200).json({
         success: true,
@@ -3900,15 +3952,16 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
       }
 
       if (step1Result.mfaRequired === false && step1Result.token && step1Result.user) {
-        const isOwner = step1Result.role === "owner" || step1Result.hasAdminAccess;
-        const cookies = [
-          `pdfsun_user_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-          `pdfsun_user_email=${encodeURIComponent(step1Result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        ];
-        if (isOwner) {
-          cookies.push(`pdfsun_admin_session=${step1Result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-        }
-        res.setHeader("Set-Cookie", cookies);
+        const isOwner = Boolean(step1Result.role === "owner" || step1Result.hasAdminAccess);
+        res.setHeader(
+          "Set-Cookie",
+          buildSessionCookies({
+            token: step1Result.token,
+            email: step1Result.user.email || "",
+            isOwner,
+            req,
+          })
+        );
 
         return res.status(200).json({
           ...step1Result,
@@ -3951,15 +4004,16 @@ const handleUnifiedLogin = async (req: express.Request, res: express.Response) =
       });
     }
 
-    const isOwner = result.user?.role === "owner" || result.user?.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.user?.role === "owner" || result.user?.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.status(200).json({
       success: true,
@@ -4046,15 +4100,16 @@ const handleUnifiedSocialLogin = async (req: express.Request, res: express.Respo
       });
     }
 
-    const isOwner = result.role === "owner" || result.user?.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.role === "owner" || result.user?.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.status(200).json({
       status: "ok",
@@ -4085,9 +4140,11 @@ app.post("/api/auth/social-login", handleUnifiedSocialLogin);
 app.post("/api/v1/auth/change-password", handleChangePassword);
 app.post("/api/auth/change-password", handleChangePassword);
 
-// 3. Verify Session Token (Restores active session on page reload)
+// 3. Verify Session Token & CSRF Token Issuance
 app.all("/api/v1/auth/verify-session", handleVerifySession);
 app.all("/api/auth/verify-session", handleVerifySession);
+app.get("/api/v1/auth/csrf-token", issueCsrfTokenHandler);
+app.get("/api/auth/csrf-token", issueCsrfTokenHandler);
 
 // 4. Banking-Grade Multi-Factor Authentication (MFA) & Step-by-Step API Routes
 const handleStep1Login = async (req: express.Request, res: express.Response) => {
@@ -4114,15 +4171,16 @@ const handleStep1Login = async (req: express.Request, res: express.Response) => 
     }
 
     if (result.mfaRequired === false && result.token && result.user) {
-      const isOwner = result.role === "owner" || result.hasAdminAccess;
-      const cookies = [
-        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-        `pdfsun_user_email=${encodeURIComponent(result.user.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ];
-      if (isOwner) {
-        cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-      }
-      res.setHeader("Set-Cookie", cookies);
+      const isOwner = Boolean(result.role === "owner" || result.hasAdminAccess);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: result.token,
+          email: result.user.email || "",
+          isOwner,
+          req,
+        })
+      );
     }
 
     return res.json(result);
@@ -4158,17 +4216,16 @@ const handleVerifyOtp = async (req: express.Request, res: express.Response) => {
       return res.status(statusCode).json(result);
     }
 
-    const isOwner = result.role === "owner" || result.hasAdminAccess;
-    const cookies = [
-      `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_email=${encodeURIComponent(result.user?.email || "")}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ];
-
-    if (isOwner) {
-      cookies.push(`pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
-    }
-
-    res.setHeader("Set-Cookie", cookies);
+    const isOwner = Boolean(result.role === "owner" || result.hasAdminAccess);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: result.token || "",
+        email: result.user?.email || "",
+        isOwner,
+        req,
+      })
+    );
 
     return res.json({
       status: "ok",
@@ -4240,10 +4297,15 @@ app.post("/api/admin/auth/login", async (req, res) => {
     if (!isAdminOrOwner) {
       return res.status(403).json({ success: false, error: "Owner or Administrator privileges required." });
     }
-    res.setHeader("Set-Cookie", [
-      `pdfsun_admin_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      `pdfsun_user_session=${mfaRes.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    ]);
+    res.setHeader(
+      "Set-Cookie",
+      buildSessionCookies({
+        token: mfaRes.token || "",
+        includeEmailCookie: false,
+        isOwner: true,
+        req,
+      })
+    );
     return res.json({
       status: "ok",
       success: true,
@@ -4270,10 +4332,15 @@ app.post("/api/admin/auth/login", async (req, res) => {
     return res.status(401).json({ success: false, error: result.error || "Invalid administrator credentials." });
   }
 
-  res.setHeader("Set-Cookie", [
-    `pdfsun_admin_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-    `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-  ]);
+  res.setHeader(
+    "Set-Cookie",
+    buildSessionCookies({
+      token: result.token || "",
+      includeEmailCookie: false,
+      isOwner: true,
+      req,
+    })
+  );
 
   res.json({
     status: "ok",
@@ -4391,9 +4458,15 @@ const handleNewPasswordSubmission = async (req: express.Request, res: express.Re
     }
 
     if (result.token) {
-      res.setHeader("Set-Cookie", [
-        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ]);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: result.token,
+          includeEmailCookie: false,
+          isOwner: false,
+          req,
+        })
+      );
     }
 
     return res.status(200).json(result);
@@ -4455,9 +4528,15 @@ const handleResetPassword = async (req: express.Request, res: express.Response) 
     }
 
     if (result.token) {
-      res.setHeader("Set-Cookie", [
-        `pdfsun_user_session=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`,
-      ]);
+      res.setHeader(
+        "Set-Cookie",
+        buildSessionCookies({
+          token: result.token,
+          includeEmailCookie: false,
+          isOwner: false,
+          req,
+        })
+      );
     }
 
     return res.status(200).json({
@@ -4529,8 +4608,8 @@ app.post("/api/admin/repair-auth", verifyDualOwnerAccess, (req, res) => {
   try {
     const result = repairAndRestoreDatabase();
     res.json({
-      success: true,
       ...result,
+      success: true,
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {
@@ -4748,9 +4827,9 @@ app.post("/api/admin/users/restore", verifyDualOwnerAccess, (req, res) => {
       details: "Repaired database user accounts and baseline owner profiles.",
     });
     res.json({
+      ...result,
       success: true,
       message: "Database users and roles restored successfully.",
-      ...result,
       users: updatedUsers,
     });
   } catch (err: any) {
@@ -5585,12 +5664,6 @@ ${sitemapEntries}
 app.use("/public", express.static(path.join(process.cwd(), "public")));
 app.use("/locales", express.static(path.join(process.cwd(), "public/locales")));
 
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.json(getSystemStatsPayload());
-});
-
 // Explicit API 404 handler: guarantees /api/* routes always return JSON (never HTML or empty response)
 app.all(/^\/api(?:\/.*)?$/, (req, res) => {
   res.status(404).json({
@@ -5713,6 +5786,7 @@ async function startServer() {
       return res.sendFile(workerFile);
     });
 
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false, ws: false },
       appType: "custom",
@@ -5855,7 +5929,12 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-});
+export { app };
+export default app;
+
+if (!process.env.VERCEL && process.env.PDFSUN_DISABLE_AUTO_LISTEN !== "1") {
+  startServer().catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  });
+}

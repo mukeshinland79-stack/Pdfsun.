@@ -77,7 +77,7 @@ export function isInternalOwnerTraffic(): boolean {
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
       const email = (parsed?.email || "").toLowerCase().trim();
-      if (DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === email) || parsed?.role === "owner") {
+      if (parsed?.role === "owner" && DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === email)) {
         return true;
       }
     }

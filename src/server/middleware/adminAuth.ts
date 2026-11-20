@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { DUAL_OWNER_EMAILS } from "../../types";
+import { getDistributedStateStore } from "../distributedStateStore";
 
 // Dynamic JWT Secret resolver: Enforces minimum 256-bit cryptographically secure secret.
 // Strictly separated from ADMIN_SECRET_KEY so an admin secret key is never reused as JWT signing material.
@@ -27,10 +28,24 @@ export function revokeAdminOrSessionToken(token: string): void {
     const first = REVOKED_TOKEN_REGISTRY.values().next().value;
     if (first) REVOKED_TOKEN_REGISTRY.delete(first);
   }
+  // Propagate revocation to shared distributed state store (Redis REST when configured)
+  getDistributedStateStore()
+    .revokeToken(token)
+    .catch((err) => {
+      console.warn("[AdminAuth] Distributed token revocation write failed:", err);
+    });
 }
 
 export function isRevokedAdminOrSessionToken(token: string): boolean {
   return Boolean(token && REVOKED_TOKEN_REGISTRY.has(token));
+}
+
+export async function isRevokedAdminOrSessionTokenAsync(token: string): Promise<boolean> {
+  if (!token) return false;
+  if (REVOKED_TOKEN_REGISTRY.has(token)) return true;
+  const store = getDistributedStateStore();
+  if (!store.distributedReliable) return false;
+  return store.isTokenRevoked(token);
 }
 
 export function clearRevokedTokensForTesting(): void {
@@ -128,7 +143,7 @@ export function isVerifiedOwnerIdentity(providedToken: string | undefined | null
   const decoded = verifyAdminJwtToken(providedToken.trim());
   if (!decoded) return false;
   const email = (decoded.email || "").toLowerCase().trim();
-  const isOwner = decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email) || email === "mukeshinland79@gmail.com";
+  const isOwner = decoded.role === "owner" && DUAL_OWNER_EMAILS.includes(email);
   return isOwner && decoded.mfaVerified === true;
 }
 
@@ -184,11 +199,18 @@ export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
     const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as AdminJwtPayload;
     if (!decoded) return null;
     const email = (decoded.email || "").toLowerCase().trim();
-    const isOwner = decoded.role === "owner" || DUAL_OWNER_EMAILS.includes(email);
-    if (isOwner && decoded.mfaVerified !== true) {
+    const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes(email);
+    // Reject any token claiming role === "owner" for a non-allowlisted email
+    if (decoded.role === "owner" && !isAllowlistedOwner) {
       return null;
     }
-    if (decoded.role === "admin" || decoded.role === "owner" || decoded.hasAdminAccess === true) {
+    if ((decoded.role === "owner" || isAllowlistedOwner) && decoded.mfaVerified !== true) {
+      return null;
+    }
+    if (decoded.role === "owner" && isAllowlistedOwner) {
+      return decoded;
+    }
+    if (decoded.role === "admin" || decoded.hasAdminAccess === true) {
       return decoded;
     }
     return null;
@@ -201,7 +223,7 @@ export function verifyAdminJwtToken(token: string): AdminJwtPayload | null {
  * Express Middleware: Enforces JWT role validation for all sensitive financial API endpoints and admin routes.
  * Ensures unauthorized or non-admin requests to /api/admin/* receive a 404 response (Stealth mode security).
  */
-export function adminAuth(req: Request, res: Response, next: NextFunction): void {
+export async function adminAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     // 1. Extract token from Authorization header, custom headers, or HttpOnly cookie (never query parameters)
     let token: string | null = null;
@@ -237,7 +259,7 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
     if (typeof secretKeyHeader === "string" && isValidAdminSecret(secretKeyHeader)) {
       req.isAdminAuthenticated = true;
       req.adminUser = {
-        email: "owner@pdfsun.in",
+        email: DUAL_OWNER_EMAILS[0],
         role: "owner",
         hasAdminAccess: true,
         mfaVerified: true,
@@ -245,13 +267,20 @@ export function adminAuth(req: Request, res: Response, next: NextFunction): void
       return next();
     }
 
-    // 2. Validate extracted JWT Token
+    // 2. Validate extracted JWT Token (including shared distributed revocation check when Redis is configured)
     if (token) {
-      const decodedUser = verifyAdminJwtToken(token);
+      const revokedInSharedStore = await isRevokedAdminOrSessionTokenAsync(token);
+      const decodedUser = revokedInSharedStore ? null : verifyAdminJwtToken(token);
 
       if (decodedUser) {
-        const isOwner = DUAL_OWNER_EMAILS.includes((decodedUser.email || "").toLowerCase());
-        if (isOwner || decodedUser.role === "owner") {
+        const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes((decodedUser.email || "").toLowerCase().trim());
+        if (decodedUser.role === "owner") {
+          if (isAllowlistedOwner && decodedUser.mfaVerified === true) {
+            req.isAdminAuthenticated = true;
+            req.adminUser = decodedUser;
+            return next();
+          }
+        } else if (isAllowlistedOwner) {
           if (decodedUser.mfaVerified === true) {
             req.isAdminAuthenticated = true;
             req.adminUser = decodedUser;

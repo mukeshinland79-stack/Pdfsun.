@@ -370,7 +370,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         t("pricing.plans.pro-monthly.f1", "Unlimited PDF Conversions & Edits"),
         t("pricing.plans.pro-monthly.f2", "Unlimited File Size (up to 2 GB per file)"),
         t("pricing.plans.pro-monthly.f3", "Batch Processing up to 50 files"),
-        t("pricing.plans.pro-monthly.f4", "Gemini 3.6 Flash Document AI & OCR"),
+        t("pricing.plans.pro-monthly.f4", "Google Gemini Document AI & OCR"),
         t("pricing.plans.pro-monthly.f5", "No Watermarks & Zero Advertisements"),
         t("pricing.plans.pro-monthly.f6", "Instant Dynamic QR with Auto-Amount"),
       ],
@@ -1688,7 +1688,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                   <Sparkles className="w-5 h-5" />
                 </div>
-                <h4 className="text-sm font-black text-slate-900 dark:text-white">Gemini 3.6 Flash AI</h4>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">Google Gemini AI</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Instant contract summarization, financial table extraction, smart notes generation, and precision multilingual OCR.
                 </p>

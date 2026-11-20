@@ -161,7 +161,7 @@ export const AdminAlertSystem: React.FC<AdminAlertSystemProps> = ({
         timestamp,
         severity: "warning",
         title: "Gemini AI Model Latency Spike",
-        message: "Response ping for Gemini 3.6 Flash increased to 850ms.",
+        message: "Response ping for Google Gemini AI API increased to 850ms.",
         category: "api_latency",
         actionRequired: "Fallback to Cached Models",
       };

@@ -76,7 +76,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
       });
 
       if (res.status === 404) {
-        setErrorMessage("Access Cloaked: Dual-Owner RBAC privileges required.");
+        setErrorMessage("Access Cloaked: Sole-Owner RBAC privileges required.");
         setIsLoading(false);
         return;
       }
@@ -218,7 +218,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         authorizedOwners: DUAL_OWNER_EMAILS,
       },
       currentConfigurationSnapshot: config,
-      complianceAttestation: "Exported from active PDFSun Dual-Owner console.",
+      complianceAttestation: "Exported from active PDFSun Owner console.",
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditReport, null, 2));
@@ -265,13 +265,13 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         </button>
       </div>
 
-      {/* Verified Dual-Owner Banner */}
+      {/* Verified Sole-Owner Banner (Display-Only Policy Indicator) */}
       <div className="p-4 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex items-start space-x-3">
           <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
           <div>
             <span className="font-extrabold text-blue-900 dark:text-blue-300">
-              Authenticated Dual-Owner Privileges Active
+              Authenticated Sole-Owner Privileges Active
             </span>
             <p className="text-slate-600 dark:text-slate-400 mt-0.5">
               Verified session: <strong className="font-mono text-blue-600 dark:text-blue-400">{currentUserProfile?.email || "Authenticated Owner"}</strong>
@@ -279,7 +279,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
           </div>
         </div>
         <div className="text-[11px] text-slate-500 font-mono bg-white dark:bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-          Owner 1: mukeshkalonia241@gmail.com | Owner 2: mukeshinland79@gmail.com
+          Authorized Owner: {DUAL_OWNER_EMAILS[0]}
         </div>
       </div>
 
@@ -545,7 +545,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
               type="button"
               onClick={handleExportAuditReport}
               className="px-4 py-2.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 font-extrabold text-xs transition border border-indigo-500/30 flex items-center justify-center space-x-2 shadow-xs"
-              title="Signed compliance audit report of configuration changes for Dual-Owners"
+              title="Signed compliance audit report of configuration changes for the Platform Owner"
             >
               <FileCheck className="w-4 h-4 text-emerald-400" />
               <span>Audit Export</span>

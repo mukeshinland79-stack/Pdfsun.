@@ -27,7 +27,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ activeTool }) => {
       q: t("faq.q2", "How does PDFSun handle AI PDF Chat, Summaries, and Explanations?"),
       a: t(
         "faq.a2",
-        "PDFSun integrates Google Gemini 3.6 AI to analyze text extracted from your PDF. You can summarize 200+ page textbooks, ask specific research questions, generate flashcards, or translate full documents into 30+ languages in seconds."
+        "PDFSun integrates Google Gemini AI to analyze text extracted from your PDF over encrypted TLS HTTPS. You can summarize long documents, ask specific research questions, generate flashcards, or translate documents into 30+ languages."
       ),
     },
     {

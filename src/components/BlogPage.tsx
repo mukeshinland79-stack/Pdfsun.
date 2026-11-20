@@ -1209,9 +1209,9 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                 100% Client-Side Processing Powered by WebAssembly
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                PDFSun operates directly on your device CPU. Your private documents are
-                never uploaded to third-party cloud servers, guaranteeing complete compliance
-                with GDPR, HIPAA, and corporate confidentiality policies.
+                PDFSun runs standard PDF tools directly on your device CPU. Local WebAssembly
+                operations keep documents on your device without server uploads, supporting
+                strong data-minimization and corporate confidentiality workflows.
               </p>
             </div>
             <button

@@ -146,7 +146,7 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
             {verificationError ||
-              "Access to this administrative suite requires verified Co-Owner or Admin credentials with completed MFA authentication."}
+              "Access to this administrative suite requires verified Sole-Owner or Admin credentials with completed MFA authentication."}
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export const ProtectedAdminWrapper: React.FC<ProtectedAdminWrapperProps> = ({
             <span>Authenticate as Admin / Owner</span>
           </button>
           <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            Protected by Dual-Owner Zero-Trust RBAC &amp; Mandatory MFA
+            Protected by Sole-Owner Zero-Trust RBAC &amp; Mandatory MFA
           </p>
         </div>
       </div>

@@ -73,7 +73,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
           </span>
           <span className="inline-flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#D1FAE5] text-[#065F46] border border-[#6EE7B7] dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30 ml-auto hidden sm:inline-flex shadow-2xs">
             <ShieldCheck className="w-3 h-3 text-[#065F46] dark:text-emerald-400 mr-0.5" />
-            {t("enterpriseSuite.badgeSoc", "SOC-2 & GDPR Ready")}
+            {t("enterpriseSuite.badgeSoc", "SOC 2 Readiness • GDPR Controls")}
           </span>
         </div>
 
@@ -83,7 +83,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
             <span>{t("enterpriseSuite.title", "PDFSun Global Enterprise Suite")}</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl font-medium">
-            {t("enterpriseSuite.description", "Empower high-volume teams with zero-knowledge, in-browser WebAssembly document automation, hardware-accelerated batch conversions, and enterprise identity federation.")}
+            {t("enterpriseSuite.description", "Empower high-volume teams with local-first in-browser WebAssembly document automation, batch conversions, optional Google Gemini AI workflows, and enterprise security architecture.")}
           </p>
         </div>
 
@@ -92,37 +92,37 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-xs flex flex-col justify-between shadow-2xs">
             <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 mb-1">
               <Zap className="w-4 h-4" />
-              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">&lt;200ms</span>
+              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">WASM</span>
             </div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.edgeSpeed", "Edge Speed")}</div>
-            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.edgeSpeedSub", "Zero cloud latency (<200ms)")}</div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.edgeSpeed", "Local Speed")}</div>
+            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.edgeSpeedSub", "In-browser execution (no upload wait)")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-xs flex flex-col justify-between shadow-2xs">
             <div className="flex items-center justify-between text-purple-600 dark:text-purple-400 mb-1">
               <KeyRound className="w-4 h-4" />
-              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">SAML 2.0</span>
+              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">SSO Ready</span>
             </div>
             <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.enterpriseSso", "Enterprise SSO")}</div>
-            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.enterpriseSsoSub", "Okta & Azure AD (SAML 2.0)")}</div>
+            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.enterpriseSsoSub", "SAML 2.0 / Okta onboarding")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-xs flex flex-col justify-between shadow-2xs">
             <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 mb-1">
               <Lock className="w-4 h-4" />
-              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">256-Bit</span>
+              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">Local Core</span>
             </div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.zeroLeakage", "Zero Leakage")}</div>
-            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.zeroLeakageSub", "Pure client sandbox (256-Bit)")}</div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.zeroLeakage", "Client Sandboxed")}</div>
+            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.zeroLeakageSub", "Core PDF tools stay on device")}</div>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-xs flex flex-col justify-between shadow-2xs">
             <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 mb-1">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">99.99%</span>
+              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">PWA</span>
             </div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.uptimeSla", "Uptime SLA")}</div>
-            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.uptimeSlaSub", "Offline PWA ready (99.99%)")}</div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">{t("enterpriseSuite.uptimeSla", "Offline Ready")}</div>
+            <div className="text-[10px] text-slate-600 dark:text-slate-400">{t("enterpriseSuite.uptimeSlaSub", "Core WASM tools work offline")}</div>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export const EnterpriseSuiteCard: React.FC<EnterpriseSuiteCardProps> = ({
         </div>
 
         <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:inline">
-          {t("badges.tools50", "68+ Tools")} • {t("badges.privacyTitle", "100% In-Browser Privacy")}
+          {t("badges.tools50", "68+ Tools")} • {t("badges.privacyTitle", "Local-First Browser Privacy")}
         </span>
       </div>
     </div>

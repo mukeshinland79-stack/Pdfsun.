@@ -48,19 +48,19 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
     id: "evt-201",
     timestamp: new Date().toLocaleTimeString(),
     userEmail: "mukeshinland79@gmail.com",
-    action: "Dual-Owner Login Authentication",
+    action: "Owner Login Authentication",
     category: "login_attempt",
     ipAddress: "152.58.16.42",
     status: "success",
-    details: "Authenticated via 2FA token as Verified Dual-Owner.",
+    details: "Authenticated via MFA token as Verified Sole Owner.",
   },
   {
     id: "evt-202",
     timestamp: new Date(Date.now() - 1000 * 45).toLocaleTimeString(),
-    userEmail: "mukeshkalonia241@gmail.com",
+    userEmail: "mukeshinland79@gmail.com",
     action: "Runtime Config Update",
     category: "config_change",
-    ipAddress: "103.21.124.9",
+    ipAddress: "152.58.16.42",
     status: "success",
     details: "Updated TEMP_STORAGE_RETENTION_MINUTES to 60 with Zero Downtime.",
   },
@@ -107,12 +107,12 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
   {
     id: "evt-207",
     timestamp: new Date(Date.now() - 1000 * 900).toLocaleTimeString(),
-    userEmail: "mukeshkalonia241@gmail.com",
-    action: "Promoted Admin User Permissions",
+    userEmail: "mukeshinland79@gmail.com",
+    action: "Sole-Owner Policy Audit",
     category: "user_management",
-    ipAddress: "103.21.124.9",
+    ipAddress: "152.58.16.42",
     status: "success",
-    details: "Granted Dual-Owner Admin Rights to mukeshinland79@gmail.com.",
+    details: "Verified sole Owner authorization boundary for mukeshinland79@gmail.com.",
   },
 ];
 
@@ -126,8 +126,9 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
   const [isLiveStream, setIsLiveStream] = useState<boolean>(true);
   const [logs, setLogs] = useState<SystemActivityEntry[]>(INITIAL_SYSTEM_EVENTS);
 
-  const activeEmail = (currentUserProfile?.email || "mukeshinland79@gmail.com").toLowerCase().trim();
-  const isVerifiedOwner = DUAL_OWNER_EMAILS.includes(activeEmail);
+  const activeEmail = (currentUserProfile?.email || "").toLowerCase().trim();
+  const isVerifiedOwner =
+    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(activeEmail);
 
   // Fetch genuine audit logs from server or maintain verified records without random generation
   useEffect(() => {

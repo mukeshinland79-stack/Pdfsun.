@@ -12,7 +12,7 @@ export interface PSEOLandingPage {
   intentCategory?: "government-portal" | "email-resume" | "large-docs" | "general";
   intentBlockText?: string;
   targetDevice?: string; // e.g., "Mac", "Windows", "Mobile", "All"
-  complianceBadge?: string; // e.g., "HIPAA Compliant", "GDPR Verified", "Govt Portal Certified"
+  complianceBadge?: string; // e.g., "Privacy-First Client-Side Security", "Local Browser Processing"
   seoTitle: string;
   seoDescription: string;
   headline: string;
@@ -190,7 +190,7 @@ export function generateCompressSizePseoPage(
       },
       {
         question: `Is it safe to compress sensitive PDFs to ${targetFormatted} on this site?`,
-        answer: `Yes. Your files are processed 100% locally in your browser via WebAssembly (WASM). Your document is never uploaded to an external server, making it 100% secure and compliant with HIPAA and GDPR standards.`,
+        answer: `Yes. Your files are processed 100% locally in your browser via WebAssembly (WASM), so document bytes are never uploaded to an external server for standard compression. This local-first architecture supports data minimization (formal HIPAA or GDPR certification is not claimed).`,
       },
       {
         question: `Can I compress PDF to ${targetFormatted} on iPhone or Android?`,
@@ -356,20 +356,20 @@ export const PSEO_LANDING_PAGES: PSEOLandingPage[] = [
     tier: 1,
     region: "USA",
     language: "en",
-    complianceBadge: "HIPAA Compliant Client-Side Security",
-    seoTitle: "HIPAA Compliant PDF Merge Online - Zero Server Uploads | PDF Sun",
-    seoDescription: "Merge medical records, clinical notes, and healthcare PDFs with 100% HIPAA compliance. Files process exclusively in local browser memory.",
-    headline: "HIPAA Compliant PDF Merge & Combiner",
-    subheadline: "Combine medical charts, clinical evaluations, and PHI documents securely. With zero cloud uploads, patient health information never leaves your device.",
+    complianceBadge: "Privacy-First Client-Side Security",
+    seoTitle: "Private Healthcare PDF Merge Online - Local Browser Processing | PDF Sun",
+    seoDescription: "Merge medical records, clinical notes, and healthcare PDFs with local WebAssembly browser processing. Local merge tools avoid uploading files to PDFSun servers.",
+    headline: "Privacy-First Healthcare PDF Merge & Combiner",
+    subheadline: "Combine medical charts, clinical evaluations, and healthcare PDFs in your browser. Standard local merge processing runs inside your device memory without server uploads.",
     intent: "Niche Commercial",
     estimatedMonthlyVol: "5K–12K",
     cpcValue: "$8.50+",
     crossLinkToolIds: ["protect-pdf", "redact-pdf", "compress-pdf", "sign-pdf"],
     featureHighlights: [
-      "Zero Cloud Storage: Zero transmission of Protected Health Information (PHI)",
-      "Satisfies HIPAA Security Rule §164.312 data privacy requirements",
-      "Unlimited file merging with drag-and-drop sequencing",
-      "Instant offline-capable WebAssembly processing",
+      "Local Browser Processing: Standard merge operations execute in-browser without uploading files",
+      "Designed for privacy-conscious healthcare workflows (formal HIPAA certification / BAA not claimed)",
+      "Drag-and-drop multi-file merging and page sequencing",
+      "Fast WebAssembly client-side PDF assembly",
     ],
     howToSteps: [
       { name: "Add Health Documents", text: "Select your patient records or medical charts securely.", position: 1 },
@@ -378,8 +378,8 @@ export const PSEO_LANDING_PAGES: PSEOLandingPage[] = [
     ],
     customFaqs: [
       {
-        question: "Why is PDF Sun inherently HIPAA compliant?",
-        answer: "Because PDF Sun executes 100% client-side inside your browser via WebAssembly, your documents are never uploaded to any remote server or third-party cloud. No Business Associate Agreement (BAA) is required because no PHI is ever received or stored by us.",
+        question: "How does PDF Sun protect healthcare PDFs during merging?",
+        answer: "Standard PDFSun merge operations execute locally inside your browser via WebAssembly so document bytes are not uploaded to PDFSun servers. PDFSun does not claim formal HIPAA certification or issue a Business Associate Agreement (BAA); organizations subject to HIPAA should confirm their internal compliance policies before processing regulated records.",
       },
     ],
   },
@@ -1252,7 +1252,7 @@ export const PSEO_LANDING_PAGES: PSEOLandingPage[] = [
     featureHighlights: [
       "100% Offline-capable: once the app is loaded, you can merge files even with your Wi-Fi disconnected",
       "Zero server uploads: files are processed strictly in your local device RAM with WebAssembly",
-      "Safe for bank statements, tax returns, healthcare records (HIPAA), and non-disclosure agreements",
+      "Browser-local processing for bank statements, tax returns, NDAs, and privacy-sensitive records (formal HIPAA certification / BAA not claimed)",
       "Instant drag-and-drop page reordering with multi-gigabyte processing capacity",
     ],
     howToSteps: [

@@ -174,7 +174,7 @@ export function recordVerifiedTransaction(params: {
   const normalizedPlanId = (params.planId || "pro-monthly").toLowerCase().trim();
   const productConfig: PaymentProduct | undefined = PDFSUN_PAYMENT_PRODUCTS[normalizedPlanId];
 
-  const planName = productConfig ? productConfig.productName : "Pro Sun Plan";
+  const planName = productConfig?.productName || productConfig?.name || "Pro Sun Plan";
   const amountINR = params.amountPaise ? params.amountPaise / 100 : productConfig ? productConfig.displayPriceINR : 199;
   const currency = params.currency || "INR";
 

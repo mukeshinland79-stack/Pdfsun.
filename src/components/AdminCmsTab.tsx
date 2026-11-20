@@ -131,7 +131,7 @@ export const AdminCmsTab: React.FC = () => {
     { key: "faq.q1", label: "FAQ Q1: Are uploaded files safe?", category: "faq", defaultValue: "Are my uploaded PDF files safe on PDFSun?", isMultiLine: true },
     { key: "faq.a1", label: "FAQ A1: Safe files answer", category: "faq", defaultValue: "Absolutely! At PDFSun, privacy is paramount. Most operations run 100% locally inside your browser via WebAssembly.", isMultiLine: true },
     { key: "faq.q2", label: "FAQ Q2: AI PDF Chat", category: "faq", defaultValue: "How does PDFSun handle AI PDF Chat, Summaries, and Explanations?", isMultiLine: true },
-    { key: "faq.a2", label: "FAQ A2: AI answer", category: "faq", defaultValue: "PDFSun integrates Google Gemini 3.6 AI to analyze text extracted from your PDF securely and in memory.", isMultiLine: true },
+    { key: "faq.a2", label: "FAQ A2: AI answer", category: "faq", defaultValue: "PDFSun integrates Google Gemini AI over HTTPS when you explicitly run an AI tool, while standard PDF tools execute locally in your browser.", isMultiLine: true },
   ];
 
   const getFieldValue = (key: string, fallback: string): string => {

@@ -97,17 +97,17 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="w-full bg-[#F8FAFC] dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-xl py-4 px-6 mb-10 shadow-xs backdrop-blur-md">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-left">
             
-            {/* Card 1: 100% In-Browser Privacy */}
+            {/* Card 1: Local-First Browser Privacy */}
             <div className="flex items-center space-x-3">
               <div className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                 <Lock className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div className="min-w-0">
                 <span className="text-[#0F172A] dark:text-[#F8FAFC] block font-bold text-xs truncate">
-                  {t("trustBadges.privacyTitle", "100% In-Browser Privacy")}
+                  {t("trustBadges.privacyTitle", "Local-First Browser Privacy")}
                 </span>
                 <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
-                  {t("trustBadges.privacySub", "Zero Server Uploads")}
+                  {t("trustBadges.privacySub", "Local WASM • Optional Cloud AI")}
                 </span>
               </div>
             </div>
@@ -122,7 +122,7 @@ export const Footer: React.FC<FooterProps> = ({
                   {t("trustBadges.securityTitle", "Enterprise Security")}
                 </span>
                 <span className="text-[11px] text-[#475569] dark:text-[#94A3B8] block truncate font-medium">
-                  {t("trustBadges.securitySub", "ISO 27001 & GDPR Compliant")}
+                  {t("trustBadges.securitySub", "ISO 27001 Readiness • GDPR Controls")}
                 </span>
               </div>
             </div>
@@ -180,7 +180,7 @@ export const Footer: React.FC<FooterProps> = ({
             </p>
 
             <p className="text-xs text-[#334155] dark:text-[#CBD5E1] leading-relaxed">
-              Merge, split, compress, edit, and analyze documents with cutting-edge Gemini 3.6 AI and 100% in-browser privacy.
+              Merge, split, compress, edit, and analyze documents with Google Gemini AI and local-first in-browser processing.
             </p>
 
             {/* Clean Action Row & Micro Status */}
@@ -196,7 +196,7 @@ export const Footer: React.FC<FooterProps> = ({
 
               <div className="flex items-center space-x-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
                 <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500 shrink-0" />
-                <span className="text-[11px]">100% Private &amp; In-Browser Processing</span>
+                <span className="text-[11px]">Local WASM Core • Transparent Cloud AI</span>
               </div>
             </div>
           </div>
@@ -510,7 +510,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-medium text-xs shadow-2xs shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-slate-700 dark:text-slate-300 font-medium">
-              {t("footer.isoSecurity", "Built aligned with ISO 27001 Security Standards • GDPR Privacy Compliant")}
+              {t("footer.isoSecurity", "ISO 27001 Readiness Framework • GDPR Privacy Controls")}
             </span>
           </div>
 

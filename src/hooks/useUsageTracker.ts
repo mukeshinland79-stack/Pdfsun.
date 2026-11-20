@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { DUAL_OWNER_EMAILS } from "../types";
 
 const USAGE_STORAGE_KEY = "pdfsun_usage_tracker_v1";
 const PRO_PLAN_KEY = "pdfsun_user_plan_v1";
@@ -122,7 +123,7 @@ export function detectActivePlanTier(
     const email = (verifiedProfile.email || "").toLowerCase().trim();
     if (
       verifiedProfile.role === "owner" &&
-      (email === "mukeshinland79@gmail.com" || email === "mukeshkalonia241@gmail.com")
+      DUAL_OWNER_EMAILS.includes(email)
     ) {
       return "owner";
     }

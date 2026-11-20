@@ -46,7 +46,7 @@ export function generateToolAuditRegistry(): ToolAuditRecord[] {
     let maxMb = 100;
 
     if (isAi) {
-      engine = "Gemini 3.8 Flash Server API + Client Stream";
+      engine = "Google Gemini Server API + Client Stream";
       backendReq = "Hybrid (Client + Gemini Server)";
       outputFormats = ["Text", "JSON", "PDF"];
       maxMb = 50;

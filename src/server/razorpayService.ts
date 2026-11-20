@@ -220,11 +220,14 @@ export async function createSubscriptionInstance(params: {
 
   console.log(`[RazorpayService] Initiating payment session for ${userEmail} -> Plan: ${product.productName}`);
 
+  const resolvedPlanId = product.internalProductId || product.id || normalizedKey;
+  const resolvedPlanName = product.productName || product.name || "Pro Sun Plan";
+
   // If live Razorpay API keys and verified plan ID exist, call official Razorpay Subscriptions API
   if (targetPlanId && keySecret && !keySecret.includes("placeholder") && !keySecret.includes("your_live_key_secret")) {
     try {
       const rzp = getRazorpayClient();
-      const subscription = await rzp.subscriptions.create({
+      const subscription = (await rzp.subscriptions.create({
         plan_id: targetPlanId,
         total_count: totalCount,
         quantity: quantity,
@@ -232,20 +235,20 @@ export async function createSubscriptionInstance(params: {
         notes: {
           userEmail: userEmail,
           userName: userName || "PDFSun User",
-          planId: product.internalProductId,
-          planName: product.productName,
+          planId: resolvedPlanId,
+          planName: resolvedPlanName,
           platform: "PDFSun.in Payment Suite",
         },
-      });
+      })) as { id: string };
 
       console.log(`[RazorpayService] Official Razorpay Subscription created: ${subscription.id}`);
       return {
         subscriptionId: subscription.id,
         keyId,
-        planId: product.internalProductId,
+        planId: resolvedPlanId,
         amount: product.displayPriceINR * 100, // in paise
         currency: "INR",
-        planName: product.productName,
+        planName: resolvedPlanName,
         hostedLink: product.razorpayPaymentLink,
       };
     } catch (apiError: any) {
@@ -258,10 +261,10 @@ export async function createSubscriptionInstance(params: {
   return {
     subscriptionId: sessionSubId,
     keyId,
-    planId: product.internalProductId,
+    planId: resolvedPlanId,
     amount: product.displayPriceINR * 100,
     currency: "INR",
-    planName: product.productName,
+    planName: resolvedPlanName,
     hostedLink: product.razorpayPaymentLink,
   };
 }

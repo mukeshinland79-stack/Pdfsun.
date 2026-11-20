@@ -120,7 +120,7 @@ export const PDFSunBrandShowcaseModal: React.FC<PDFSunBrandShowcaseModalProps> =
       name: "Smart AI Cyan",
       hex: "#38BDF8",
       rgb: "rgb(56, 189, 248)",
-      role: "Gemini 3.6 AI Sparkle, Live Status Badges & Glow Overlays",
+      role: "Google Gemini AI Sparkle, Live Status Badges & Glow Overlays",
       bgClass: "bg-[#38BDF8]",
     },
     {

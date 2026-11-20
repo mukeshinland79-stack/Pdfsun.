@@ -666,10 +666,9 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
           ${localizedFaqs.map((f) => `<div><h3>${f.question}</h3><p>${f.answer}</p></div>`).join("")}
 
           <section class="geo-insights" style="margin-top: 32px; padding: 16px; background: #f8fafc; border-left: 4px solid #3b82f6; border-radius: 4px;">
-            <h3>Privacy Guarantee &amp; Document Intelligence Specifications</h3>
-            <p><strong>Zero Server Ingress:</strong> All document parsing and conversion execute directly inside the client browser sandbox using compiled WebAssembly. Files never leave your device.</p>
-            <p><strong>Financial &amp; Enterprise Security:</strong> Safe for sensitive GST invoices, bank statements, tax documents, and legal contracts with AES-256 integrity.</p>
-            <p><strong>Compliance:</strong> GDPR, CCPA, and HIPAA privacy-by-design compliant.</p>
+            <h3>Privacy Architecture &amp; Document Intelligence Specifications</h3>
+            <p><strong>Local-First Processing:</strong> Core PDF conversions and edits execute directly inside your browser sandbox using WebAssembly without server upload. Optional AI tools transmit extracted text over encrypted TLS HTTPS for transient Google Gemini API inference.</p>
+            <p><strong>Security Controls:</strong> Engineered with privacy-by-design architecture, TLS encryption, and GDPR/CCPA data-minimization controls (HIPAA security controls assessment in progress).</p>
           </section>
         </article>
       `,

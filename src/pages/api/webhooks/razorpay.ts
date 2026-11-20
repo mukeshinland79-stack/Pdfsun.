@@ -178,7 +178,7 @@ export default async function handleRazorpayWebhook(req: Request, res: Response)
         amountPaise,
         currency,
         status,
-        planId: matchedPlanId,
+        planId: matchedPlanId || "pro-monthly",
         signatureVerified: true,
         rawEvent: { event, payload },
         source: "webhook",

@@ -100,7 +100,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
       "Password Protect and Unlock PDF files",
       "Add and Remove Watermarks",
       "Edit PDF Text and Annotate documents",
-      "100% Client-Side WebAssembly Processing for zero data leaks"
+      "Local-First WebAssembly Processing for core PDF tools plus optional encrypted Google Gemini AI"
     ],
     "offers": {
       "@type": "Offer",
@@ -121,7 +121,7 @@ export const SEOManager: React.FC<SEOManagerProps> = ({
     "@context": "https://schema.org",
     "@type": "Product",
     "name": "PDFSun Pro & Enterprise SSO Plans",
-    "description": "High-speed WebAssembly PDF processing with 100% private in-browser security, Gemini 3.6 AI, and SAML 2.0 Enterprise SSO.",
+    "description": "Local-first WebAssembly PDF processing with optional Google Gemini AI workflows and enterprise security architecture.",
     "brand": {
       "@type": "Brand",
       "name": "PDFSun",

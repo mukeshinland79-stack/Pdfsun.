@@ -87,7 +87,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">Core Technology Stack</h4>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Client-Side Engine:</strong> Custom WebAssembly (pdf-lib, pdfjs-dist, and Tesseract OCR) executing entirely offline in the browser.</li>
-          <li><strong>AI Document Intelligence:</strong> Google Gemini 3.6 API integration for natural language summaries, research Q&amp;A, and multilingual document translation.</li>
+          <li><strong>AI Document Intelligence:</strong> Google Gemini API integration over encrypted TLS HTTPS for natural language summaries, research Q&amp;A, and multilingual document translation.</li>
           <li><strong>Infrastructure &amp; Uptime:</strong> Globally distributed Cloud Run edge containers with automated HTTPS/TLS encryption and 99.98% target availability.</li>
         </ul>
 
