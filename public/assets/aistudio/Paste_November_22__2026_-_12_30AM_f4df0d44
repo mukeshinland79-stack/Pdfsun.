@@ -1,0 +1,1223 @@
+PDFSun.in — PR-1A Security Remediation Design v2.1.10
+
+ULTIMATE READ-ONLY CORRECTION, SECURITY ENGINEERING & INDEPENDENT VERIFICATION PROMPT
+
+Project: PDFSun Global Document Productivity Platform
+Website: https://www.pdfsun.in/
+Canonical Domain: https://pdfsun.in
+Workstream: PR-1A — Authentication, Authorization, Session Security & Security Remediation
+Target Revision: v2.1.10
+Current Reference Revision: v2.1.9
+Execution Mode: STRICT READ-ONLY / DESIGN CORRECTION / INDEPENDENT REVIEW
+Implementation Authorization: NOT GRANTED
+Production Deployment Authorization: NOT GRANTED
+Budget: ₹0 — No additional paid infrastructure or services
+Dependency Policy: Zero new npm dependencies
+Governance: Permanent PDFSun Engineering Constitution
+
+---
+
+1. YOUR ROLE — ELITE SECURITY ENGINEERING REVIEW BOARD
+
+Act as an independent, multidisciplinary engineering review board consisting of:
+
+1. Principal Application Security Architect.
+2. Senior Backend and Authentication Engineer.
+3. Redis and Lua Concurrency Specialist.
+4. Identity and Access Management (IAM) Specialist.
+5. Senior TypeScript / Node.js Engineer.
+6. OWASP Application Security Specialist.
+7. Distributed Systems and Transaction Recovery Engineer.
+8. Production Reliability and Incident Response Engineer.
+9. Privacy and Data Protection Architect.
+10. Independent Quality Assurance and Security Verification Lead.
+
+Your responsibility is not to approve the design merely because it looks comprehensive.
+
+Your responsibility is to determine whether PR-1A v2.1.9 can be converted into a technically coherent, secure, testable and implementation-ready v2.1.10 design.
+
+Apply independent engineering judgment.
+
+Challenge assumptions, identify contradictions, inspect available source code without changing it, and document evidence.
+
+Do not confuse a detailed explanation with an implemented or verified security control.
+
+---
+
+2. ABSOLUTE EXECUTION BOUNDARY
+
+This assignment is strictly documentation-only.
+
+2.1 Permitted activities
+
+You MAY:
+
+- Read existing repository files.
+- Inspect existing authentication and authorization architecture.
+- Read existing Redis integration and Lua scripts.
+- Inspect existing API routes and middleware.
+- Read existing test files and test reports.
+- Inspect existing configuration structure without exposing secret values.
+- Analyze existing production architecture from available documentation.
+- Identify missing controls and contradictory implementation assumptions.
+- Prepare corrected security architecture.
+- Write complete proposed Lua source code directly inside the audit report.
+- Write proposed TypeScript pseudocode or implementation specifications directly inside the report.
+- Prepare test cases and verification matrices.
+- Provide a precise future implementation plan.
+- Identify exact files that would require modification in a separately authorized phase.
+
+2.2 Absolutely prohibited activities
+
+You MUST NOT:
+
+- Create, modify, delete, rename or overwrite repository files.
+- Modify application source code.
+- Modify test files.
+- Execute proposed Lua scripts against Redis.
+- Execute database mutations.
+- Modify Redis keys or production state.
+- Modify "users_store.json" or any production user data.
+- Modify "comments_store.json".
+- Change account roles or permissions.
+- Modify password hashes, credentials or sessions.
+- Generate or rotate production secrets.
+- Modify environment variables.
+- Install, remove or upgrade npm packages.
+- Add dependencies.
+- Run migrations.
+- Run production tests or destructive tests.
+- Build or compile the application.
+- Start or stop services.
+- Deploy to production.
+- Change DNS, hosting, payment, subscription or infrastructure configuration.
+- Touch or execute "/tmp/pdfsun-stage1b2-recovery-v0.3.4.sh".
+
+If a proposed verification requires executing code or changing state, document the procedure and mark it NOT EXECUTED — REQUIRES SEPARATE AUTHORIZATION.
+
+If repository access is unavailable, state that clearly. Never pretend to have inspected files.
+
+---
+
+3. PERMANENT PDFSUN GOVERNANCE AND PROTECTED INVARIANTS
+
+All existing governance requirements remain binding.
+
+3.1 Account protection
+
+The sole authorized PDFSun Owner authority is:
+
+"mukeshinland79@gmail.com"
+
+The following account is a protected Standard Customer:
+
+"mukeshkalonia241@gmail.com"
+
+Its required state remains:
+
+- "role: "user""
+- "hasAdminAccess: false"
+
+Preserve both accounts and their existing identities.
+
+Do not:
+
+- Promote the Standard Customer.
+- Downgrade the authorized Owner.
+- Delete either account.
+- Recreate either account.
+- Rename either account.
+- Reset either account's password.
+- Change either account's credentials.
+- Modify account records as part of this assignment.
+
+Any future account-level remediation requires separate explicit Owner authorization.
+
+Do not assume the person requesting this work is the Owner.
+
+3.2 Platform protection
+
+Preserve:
+
+- All 68 canonical PDFSun tools.
+- Existing 59 Free / 9 Pro tool distribution.
+- Existing pricing and subscription entitlements.
+- Existing user access policies unless separately approved.
+- Existing product architecture.
+- Existing payment integration.
+- Existing public routes and SEO functionality.
+- Existing privacy-by-default principles.
+- Existing ₹0 budget.
+- Zero additional npm dependencies.
+
+Do not introduce unnecessary architectural rewrites.
+
+3.3 Data and infrastructure layers
+
+Maintain strict separation:
+
+Layer| Scope| Permission
+Layer A| Application source and test source| Read-only inspection
+Layer B| Production data, users, comments, analytics, Redis state| No modification
+Layer C| Secrets, environment variables, credentials| No modification or disclosure
+
+Never expose actual secret values in the report.
+
+3.4 Existing governance status
+
+These conditions remain unchanged:
+
+- Stage 1C-1: OPTION B — HOLD / REVISE.
+- Stage 1B recovery script: untouched.
+- DEC-01 through DEC-05: OPEN.
+- HR-01: separate written risk acceptance required if Google-federated Class 2B access is proposed.
+- PR-1A implementation authorization: NOT GRANTED.
+- Production deployment authorization: NOT GRANTED.
+
+Do not silently convert any open decision into an approval.
+
+---
+
+4. FIRST TASK — INDEPENDENTLY REASSESS v2.1.9
+
+Before preparing v2.1.10, review the complete v2.1.9 design.
+
+Do not simply copy its claims.
+
+For every important claim, classify it as:
+
+- VERIFIED FROM SOURCE
+- AUTHOR-REPORTED
+- DESIGN-DEFINED
+- INDEPENDENTLY VERIFIED
+- TEST-VERIFIED
+- NOT VERIFIED
+- CONTRADICTED
+- NOT APPLICABLE
+
+Use evidence references wherever available.
+
+A design document's assertion is not proof that the repository implements the feature.
+
+An existing test file is not proof that the test passed.
+
+A reported test result is not independent verification unless the actual execution evidence is available.
+
+Produce a discrepancy register containing:
+
+ID| v2.1.9 claim| Actual evidence| Gap| Severity| Required correction
+
+Review all previous findings CR-01 through CR-05 and HR-05 through HR-10.
+
+Do not close a finding without evidence.
+
+---
+
+5. CRITICAL-01 — COMPLETE EXECUTABLE REDIS LUA SOURCE
+
+This is a mandatory correction.
+
+The v2.1.9 document describes Redis scripts through KEYS, ARGV, transitions and return codes, but descriptions are not executable Lua source.
+
+For v2.1.10, provide the complete proposed Lua 5.1 source code directly in the report.
+
+Do not use placeholders such as:
+
+- "-- implementation omitted"
+- "-- remaining logic"
+- "TODO"
+- "same as above"
+- "..."
+- "Implement according to specification"
+
+Every script must contain its complete proposed executable body.
+
+5.1 Required scripts
+
+Provide complete source for:
+
+1. Script 1 — OTP challenge creation and issuance.
+2. Script 2 — OTP verification and attempt management.
+3. Script 3A — OTP resend / cooldown handling.
+4. Script 3B — OTP challenge invalidation and lifecycle handling.
+5. Script 4A — Password-reset token acquisition.
+6. Script 4B — Password-reset token consumption.
+7. Script 4C — Password-reset rollback or recovery transition.
+8. Script 5A — Dispatch worker job leasing.
+9. Script 5B — Dispatch job acknowledgement.
+10. Script 5C — Dispatch retry, expiry and cleanup.
+
+If the actual repository architecture requires different script boundaries, explain the change and preserve all required security guarantees.
+
+5.2 Every script must define
+
+For each script provide:
+
+- Script name and version.
+- Complete Lua source.
+- KEYS contract.
+- ARGV contract.
+- Redis key types.
+- Expected Redis key existence.
+- Input validation.
+- Type validation.
+- TTL behavior.
+- Atomicity guarantees.
+- Concurrency behavior.
+- Return codes and return data.
+- Failure conditions.
+- Retry behavior.
+- Idempotency behavior.
+- Security implications.
+- Corresponding TypeScript invocation contract.
+- Required unit and integration test cases.
+
+5.3 Redis key-type consistency
+
+Use one consistent and explicitly documented storage model.
+
+The v2.1.9 design proposes:
+
+Data| Redis type
+OTP cooldown| STRING
+Rate limits| STRING
+Lockout| STRING
+Active challenge pointer| STRING
+OTP challenge| HASH
+Reset token| HASH
+Dispatch job| HASH
+Dispatch queue| SORTED SET
+
+Validate this architecture against the actual Redis integration.
+
+For every script:
+
+- Verify the expected key type before applying commands.
+- Never issue HASH commands against STRING keys.
+- Never issue STRING commands against HASH keys.
+- Define missing-key behavior.
+- Define malformed-record behavior.
+- Define expiration behavior.
+- Avoid silent key-type conversion.
+- Prevent partial state transitions.
+- Document Redis Cluster key-slot requirements if applicable.
+- Document all KEYS passed to each script.
+
+Do not claim atomicity across multiple Redis and filesystem operations.
+
+5.4 OTP concurrency and replay protection
+
+Explicitly solve:
+
+- Two simultaneous valid OTP submissions.
+- Valid OTP and invalid OTP arriving concurrently.
+- Multiple resend requests.
+- Expired OTP verification.
+- Replayed OTP.
+- Replayed challenge identifiers.
+- Concurrent challenge replacement.
+- Rate-limit exhaustion.
+- Redis timeout during verification.
+- Worker or application restart during verification.
+
+A valid OTP must not be rejected merely because a concurrent invalid request consumed an unrelated attempt slot.
+
+Define precisely how a successful verification consumes the challenge exactly once.
+
+If the operation cannot be completed safely, fail closed.
+
+---
+
+6. CRITICAL-02 — PASSWORD RESET AND DISTRIBUTED CRASH CONSISTENCY
+
+The v2.1.9 design uses Redis locks and password-hash digests to recover from interrupted password-reset operations.
+
+This needs a complete distributed transaction analysis.
+
+A Redis Lua script cannot make a filesystem password update atomic.
+
+Do not claim otherwise.
+
+6.1 Required analysis
+
+Analyze all relevant failure windows:
+
+1. Before reset-token acquisition.
+2. After acquisition but before password hashing.
+3. After hashing but before persistence.
+4. During temporary-file creation.
+5. During file write.
+6. After file write but before flush.
+7. After flush but before atomic rename.
+8. After rename but before Redis token consumption.
+9. After Redis token consumption but before HTTP response.
+10. During application restart.
+11. During concurrent password change.
+12. During concurrent password-reset completion.
+13. During Redis outage.
+14. During filesystem failure.
+
+6.2 Required correction
+
+Define a coherent recovery architecture that accounts for both Redis and the actual persistent password store.
+
+Evaluate whether the existing architecture can safely support:
+
+- Per-user serialization.
+- Durable operation identifiers.
+- Idempotent recovery.
+- Atomic filesystem replacement.
+- Temporary-file handling.
+- File flush and directory synchronization where supported.
+- Crash recovery.
+- Stale-operation reconciliation.
+- Token replay prevention.
+- Password-change supersession.
+- Recovery after process termination.
+
+If the existing architecture cannot guarantee these properties, explicitly state the limitation.
+
+Do not invent transactional guarantees.
+
+6.3 Mandatory operation state machine
+
+Provide an explicit state machine for password-reset operations.
+
+At minimum, evaluate:
+
+- CREATED
+- ACQUIRED
+- PREPARED
+- PERSISTING
+- PERSISTED
+- CONSUMED
+- ROLLBACK_PENDING
+- FAILED
+- RECOVERY_REQUIRED
+
+Use only states justified by the final architecture.
+
+For every transition document:
+
+Current state| Trigger| Required atomic operation| Next state| Recovery behavior
+
+6.4 Concurrent password-change handling
+
+Define one authoritative per-user serialization strategy for:
+
+- "/change-password"
+- "/new-password"
+- Any other endpoint that changes password credentials.
+
+Ensure a concurrent password change cannot be overwritten by an older reset operation.
+
+Define how an already persisted password change is distinguished from an uncommitted operation.
+
+Do not rely exclusively on "lastLoginAt" or an in-memory lock.
+
+If safe recovery requires a durable journal or a different storage architecture, describe the minimum viable design and identify any required future architectural decision.
+
+---
+
+7. CRITICAL-03 — LEGACY GOOGLE ACCOUNT LINKING
+
+Correct all eight v2.1.9 legacy-linking branches.
+
+7.1 Malformed Branch 4 condition
+
+The v2.1.9 report contains an invalid expression resembling:
+
+"!user.lastLoginAt    user.lastLoginAt === user.createdAt"
+
+This must not be carried forward.
+
+Provide the corrected logical predicate and explain its exact semantics.
+
+7.2 Critical evidence problem
+
+Do not treat:
+
+"lastLoginAt && lastLoginAt !== createdAt"
+
+as proof of a successful password login.
+
+"lastLoginAt" may reflect:
+
+- Google login.
+- Password login.
+- Another identity provider.
+- An administrative session.
+- A legacy migration.
+- An incomplete historical event.
+
+It is not reliable password-specific evidence.
+
+Define how the system establishes whether a user previously authenticated with a password.
+
+Use trustworthy existing authentication evidence if it is available.
+
+If password-login history is unavailable, classify the history as UNKNOWN.
+
+Never silently infer that an account is safe to link or disable its password.
+
+7.3 Required account-linking decision matrix
+
+Cover:
+
+1. Authorized Owner account.
+2. Previously verified and active standard customer.
+3. Dormant unverified legacy account.
+4. Existing Google subject conflict.
+5. Google email change.
+6. New Google identity.
+7. Unsupported identity provider.
+8. Incomplete or unknown historical authentication evidence.
+
+For every branch define:
+
+- Email verification requirement.
+- Google issuer validation.
+- Google subject validation.
+- Immutable subject binding.
+- Password preservation.
+- Password disabling conditions.
+- Existing identity conflict handling.
+- Recovery or support path.
+- Session invalidation requirements.
+- Audit event requirements.
+- Failure behavior.
+
+7.4 Protected Owner requirements
+
+The authorized Owner account must never be automatically linked solely because a Google email matches.
+
+Define the exact prerequisites for any Owner Google binding.
+
+Do not disable the Owner's existing password authentication as an automatic side effect of Google linking.
+
+Any change to Owner authentication requirements needs separate explicit Owner approval.
+
+The protected Standard Customer must never receive Owner/Admin privileges through identity linking.
+
+---
+
+8. CRITICAL-04 — CLASS 2B AUTHORIZATION AND MFA POLICY
+
+The v2.1.9 manifest identifies six Class 2B routes but does not fully define the assurance requirement for every route.
+
+Correct this ambiguity.
+
+8.1 Mandatory route-level table
+
+Extract all six Class 2B routes from the actual v2.1.9 manifest and independently compare them with the repository.
+
+Do not invent or omit endpoints.
+
+For every route define:
+
+Route| HTTP method| Operation| Required role| Password auth| Google auth| MFA requirement| Freshness| Risk justification
+
+Do not use one generic policy for all six routes.
+
+8.2 Explicitly review sensitive mutations
+
+Pay particular attention to:
+
+- "DELETE /api/admin/system-errors"
+- "POST /api/admin/comments/bulk-action"
+- "POST /api/admin/audit-logs"
+
+Determine whether each action requires fresh PDFSun MFA, stronger authorization, or an alternative control.
+
+Do not weaken existing controls.
+
+8.3 Google-federated Class 2B
+
+Google-federated Class 2B access must remain blocked unless HR-01 has separate written Owner risk acceptance.
+
+If HR-01 is absent:
+
+- Deny Google-only Class 2B authentication.
+- Do not silently substitute password authentication.
+- Do not treat a valid Google session as PDFSun MFA.
+- Document the user-facing and operational failure behavior.
+
+8.4 DEC-05 password fallback
+
+Where Class 2A password fallback is dependent on DEC-05, document:
+
+- Exact route scope.
+- Eligible account types.
+- Required password verification.
+- Session assurance.
+- Audit logging.
+- Expiry or review period.
+- Revocation procedure.
+- Default behavior when acceptance is missing.
+- Whether fallback can be disabled without a deployment.
+
+DEC-05 remains OPEN until Owner approval.
+
+---
+
+9. CRITICAL-05 — REDIRECT SANITIZER AND CANONICALIZATION
+
+The v2.1.9 nine-step sanitizer requires a more precise canonicalization contract.
+
+A secure redirect sanitizer must not rely on an ambiguous mixture of raw input and URL-parser-normalized paths.
+
+9.1 Define the canonicalization algorithm
+
+Provide an exact ordered algorithm covering:
+
+1. Input type and maximum length.
+2. Control-character rejection.
+3. Raw backslash handling.
+4. Raw and encoded separator handling.
+5. Percent-encoding validation.
+6. Decode depth and repeated-encoding policy.
+7. Invalid UTF-8 handling.
+8. Unicode normalization policy.
+9. Absolute URL rejection.
+10. Protocol-relative URL rejection.
+11. Same-origin enforcement.
+12. URL parser normalization behavior.
+13. Dot-segment and path traversal rejection.
+14. Duplicate separator handling.
+15. Case-sensitivity policy.
+16. Trailing slash normalization.
+17. Language-prefix handling.
+18. API and authentication route restrictions.
+19. SPA route allowlisting.
+20. Tool and PSEO route matching.
+21. Query-string key allowlisting.
+22. Query value validation.
+23. Duplicate query parameter behavior.
+24. Query-key case sensitivity.
+25. Hash validation.
+26. Final output construction.
+
+9.2 Raw path versus parsed path
+
+Define exactly:
+
+- Which representation is used for validation.
+- Which representation is used for route matching.
+- Whether the raw path is preserved.
+- Whether the parsed URL path is used.
+- How parser normalization is detected.
+- How encoded dot segments are handled.
+- How encoded slashes are handled.
+- How double encoding is handled.
+
+Do not assume "new URL()" preserves the original path representation.
+
+If normalization occurs before validation, explain how the implementation detects dangerous original input.
+
+9.3 Route compatibility
+
+Preserve legitimate PDFSun routes.
+
+Explicitly consider:
+
+- 33 supported language prefixes.
+- Canonical tool routes.
+- PSEO pages.
+- Existing public routes.
+- Existing authentication routes.
+- Query parameters required by legitimate internal navigation.
+
+Do not break SEO or existing tool navigation through an unnecessarily restrictive sanitizer.
+
+9.4 Redirect test matrix
+
+Provide adversarial test vectors for:
+
+- Absolute external URLs.
+- Protocol-relative URLs.
+- Backslashes.
+- Encoded slashes.
+- Double-encoded separators.
+- Dot segments.
+- Mixed-case encodings.
+- Invalid percent sequences.
+- Unicode path segments.
+- Duplicate separators.
+- Repeated language prefixes.
+- Authentication loops.
+- API paths.
+- Query injection.
+- Duplicate query keys.
+- Malformed hashes.
+- Legitimate localized tool routes.
+- Legitimate PSEO routes.
+
+For every vector provide expected behavior and the precise rule responsible.
+
+---
+
+10. HIGH-PRIORITY — AES-GCM DISPATCH KEY ROTATION
+
+The v2.1.9 dispatch design uses AES-256-GCM with a "keyId".
+
+A "keyId" field alone does not implement key rotation.
+
+Define:
+
+- Key derivation algorithm.
+- HKDF hash and parameters.
+- Salt handling.
+- Context-specific info value.
+- Encryption key length.
+- AES-GCM IV generation.
+- Authentication tag storage.
+- AAD construction.
+- Ciphertext encoding.
+- Key identifier format.
+- Active key selection.
+- Previous-key lookup.
+- Unknown key identifier behavior.
+- Key rotation procedure.
+- Old-key retention period.
+- Job lifetime overlap.
+- Recovery of jobs encrypted under an old key.
+- Safe retirement of an old key.
+
+Do not place secret material in Redis job records.
+
+Do not expose key material in reports or logs.
+
+If the current deployment cannot safely retain previous encryption keys, document the operational limitation rather than claiming rotation support.
+
+---
+
+11. HIGH-PRIORITY — DISPATCH WORKER LEASE OWNERSHIP
+
+The v2.1.9 scripts describe a 30-second visibility lease, retry schedule and acknowledgement.
+
+This is incomplete without ownership and stale-worker protections.
+
+11.1 Required lease model
+
+Define:
+
+- Unique worker identifier.
+- Unique lease token.
+- Lease creation time.
+- Lease expiration time.
+- Job attempt number.
+- Job status.
+- Lease renewal rules.
+- Lease ownership verification.
+- Stale worker behavior.
+- Duplicate delivery handling.
+- Acknowledgement idempotency.
+
+11.2 Required scenarios
+
+Analyze:
+
+1. Worker A acquires a job.
+2. Worker A pauses beyond lease expiry.
+3. Worker B acquires the expired job.
+4. Worker A resumes and tries to acknowledge.
+5. Worker B acknowledges successfully.
+6. Both workers attempt delivery.
+7. Worker crashes after delivery but before ACK.
+8. Worker crashes before delivery.
+9. Redis becomes unavailable.
+10. Job expires during processing.
+
+A stale worker must not acknowledge or overwrite a newer worker's lease.
+
+Provide the exact ownership conditions that Scripts 5A, 5B and 5C must enforce.
+
+11.3 Delivery guarantees
+
+State honestly whether the architecture provides:
+
+- At-most-once delivery.
+- At-least-once delivery.
+- Best-effort delivery.
+- Effectively-once behavior through idempotency.
+
+Do not claim exactly-once external email delivery unless the mail provider and system architecture actually guarantee it.
+
+Preserve the uniform external 60-second password-reset cooldown.
+
+Terminal dispatch failure must not shorten the public cooldown or reveal account existence.
+
+---
+
+12. HIGH-PRIORITY — PASSWORD RESET ANTI-ENUMERATION
+
+Review the v2.1.9 uniform cooldown policy.
+
+Required external behavior:
+
+- Same response status where appropriate.
+- Same response structure.
+- Same public cooldown.
+- No account auto-creation.
+- No account-existence disclosure.
+- No distinction between existing and nonexistent accounts.
+- No distinction between delivery success and delivery failure.
+- No 15-second terminal failure exception.
+- No shortened retry window.
+- No sensitive details in public errors.
+
+The 60-second policy must remain consistent across:
+
+- Existing accounts.
+- Nonexistent accounts.
+- Protected accounts.
+- Delivery failures.
+- Internal dispatch retries.
+
+Identify any remaining timing, response-size, status-code or behavioral side channels.
+
+Do not assume identical JSON alone eliminates account enumeration.
+
+---
+
+13. HIGH-PRIORITY — ANALYTICS, TELEMETRY AND PUBLIC DATA EXPOSURE
+
+Reassess all analytics and telemetry endpoints.
+
+The v2.1.9 proposed rules include:
+
+- Suppress outcome metrics below 10.
+- Suppress presence values from 1–4.
+- Preserve genuine zero.
+- Show exact integer values at or above 5.
+- Avoid public "lastUpdatedAt".
+- Use canonical 68-tool ID allowlisting.
+- Apply shared sanitization across HTTP, SSE and WebSocket.
+
+Validate every rule.
+
+13.1 Required inspection
+
+Find every route and alternate exposure path involving:
+
+- HTTP analytics.
+- SSE.
+- WebSocket.
+- Public dashboards.
+- Tool usage statistics.
+- Presence indicators.
+- Error reporting.
+- Public status endpoints.
+- Cached analytics.
+- Search indexing.
+- Logs or debug endpoints.
+
+Do not assume that securing one endpoint secures every telemetry channel.
+
+13.2 Required guarantees
+
+Define:
+
+- Minimum aggregation thresholds.
+- Suppression behavior.
+- Zero-value semantics.
+- Integer rounding.
+- Cross-filter leakage risks.
+- Repeated-query inference risks.
+- Cache behavior.
+- WebSocket origin validation.
+- Authentication and authorization.
+- Public/private field boundaries.
+- Retention and minimization requirements.
+
+Do not expose user identities, emails, IP addresses, session identifiers or personal activity records in public analytics.
+
+---
+
+14. COMPREHENSIVE ROUTE AND AUTHORIZATION MANIFEST
+
+Reconcile the complete 38-row v2.1.9 manifest with actual repository routes.
+
+Expected previous distribution:
+
+- Class 2A: 12 routes.
+- Class 2B: 6 routes.
+- Class 3: 20 routes.
+- Total: 38 rows.
+
+These are reconciliation targets, not facts to copy blindly.
+
+For every route capture:
+
+Field| Required information
+Route ID| Stable unique identifier
+HTTP method| Exact method
+Route path| Exact path
+Route source| Actual source file
+Route class| 2A / 2B / 3
+Authentication| Required mechanism
+Authorization| Required role/permission
+MFA| Required or not required
+Freshness| Exact limit
+Fallback| Explicitly allowed or denied
+Mutation risk| Read-only / sensitive mutation
+Test reference| Exact relevant test
+Verification| Evidence status
+
+Detect:
+
+- Missing routes.
+- Duplicate entries.
+- Incorrect route classifications.
+- Unprotected aliases.
+- Alternate HTTP methods.
+- Middleware bypasses.
+- Dynamic route matching gaps.
+- Routes registered outside the main router.
+- New routes absent from the manifest.
+
+Do not certify complete route coverage without inspecting all relevant registration paths.
+
+---
+
+15. SECURITY TEST PLAN — DESIGN ONLY
+
+Prepare a complete future verification matrix.
+
+Do not execute the tests in this assignment.
+
+Include tests for:
+
+Authentication
+
+- Local password authentication.
+- Google authentication.
+- Session freshness.
+- MFA enforcement.
+- MFA expiration.
+- Session invalidation.
+- Account linking.
+- Legacy account handling.
+
+Authorization
+
+- Class 2A access.
+- All six Class 2B routes.
+- All Class 3 routes.
+- Owner-only restrictions.
+- Standard Customer privilege boundaries.
+- Unauthorized mutation attempts.
+
+Redis and Lua
+
+- Key type mismatch.
+- Missing keys.
+- Expired keys.
+- Concurrent OTP verification.
+- Concurrent resend.
+- Replay protection.
+- Rate-limit exhaustion.
+- Worker lease expiration.
+- Stale ACK.
+- Duplicate ACK.
+- Redis timeout.
+- Retry and cleanup.
+
+Password reset
+
+- Invalid token.
+- Expired token.
+- Replayed token.
+- Concurrent password change.
+- Process termination.
+- Filesystem failure.
+- Redis failure.
+- Recovery after persistence.
+- Recovery before persistence.
+
+Redirect security
+
+- All adversarial vectors in Section 9.
+- Legitimate PDFSun localized routes.
+- Legitimate tool navigation.
+- Legitimate PSEO navigation.
+
+Privacy and analytics
+
+- Threshold suppression.
+- Presence suppression.
+- Zero-value handling.
+- HTTP/SSE/WS consistency.
+- Unauthorized data access.
+- Cross-filter inference.
+- Sensitive-data leakage.
+
+For every test specify:
+
+- Test ID.
+- Security objective.
+- Preconditions.
+- Input.
+- Expected result.
+- Failure condition.
+- Relevant route or script.
+- Evidence required.
+- Whether the test requires a disposable environment.
+
+Clearly label the complete matrix:
+
+PROPOSED TEST PLAN — NOT EXECUTED
+
+---
+
+16. FILE IMPACT AND SCOPE RECONCILIATION
+
+The v2.1.9 report proposed:
+
+- 26 files.
+- 23 application files.
+- 3 test files.
+- 2 new application files.
+- 21 modified application files.
+- 1 new test file.
+- 2 modified test files.
+
+Independently verify these counts against the actual proposed v2.1.10 scope.
+
+Do not preserve old counts merely for consistency.
+
+Produce:
+
+File path| Existing/new| Layer| Purpose| Change required| Evidence
+
+Requirements:
+
+- No invented file paths.
+- No unverified repository assumptions.
+- No unnecessary file modifications.
+- No new dependencies.
+- No production data changes.
+- No secret/environment changes.
+
+If the required changes exceed the original scope, explain why and provide revised arithmetic.
+
+---
+
+17. INDEPENDENT VERIFICATION REGISTER
+
+Carry forward IRC-01 through IRC-18.
+
+For every item:
+
+- State the verification objective.
+- Identify the relevant source files.
+- Identify the evidence required.
+- Record the actual evidence available.
+- Assign a truthful verification status.
+- Explain unresolved gaps.
+
+Use these labels precisely:
+
+Status| Meaning
+VERIFIED FROM SOURCE| Directly confirmed by source inspection
+INDEPENDENTLY VERIFIED| Independently reviewed against evidence
+TEST-VERIFIED| Relevant test actually executed with evidence
+AUTHOR-REPORTED| Claimed by the author, not independently confirmed
+DESIGN-DEFINED| Described in the design only
+NOT VERIFIED| Insufficient evidence
+CONTRADICTED| Evidence conflicts with the claim
+BLOCKED| Verification cannot proceed under current constraints
+
+Never convert AUTHOR-REPORTED into TEST-VERIFIED.
+
+Never convert DESIGN-DEFINED into VERIFIED FROM SOURCE.
+
+Never report successful tests, builds or deployments that were not actually performed.
+
+---
+
+18. DECISION REGISTER — OWNER AUTHORITY REQUIRED
+
+Keep DEC-01 through DEC-05 OPEN.
+
+For each decision document:
+
+- Decision title.
+- Technical background.
+- Available options.
+- Security implications.
+- Operational implications.
+- Cost implications.
+- Recommended option.
+- Consequences of rejection.
+- Exact Owner approval required.
+
+HR-01 must remain a separate written risk-acceptance decision if Google-federated Class 2B access is proposed.
+
+No developer or AI agent may approve these decisions on behalf of Mukesh Kalonia.
+
+A recommendation is not an approval.
+
+Silence is not approval.
+
+A design document is not implementation authorization.
+
+---
+
+19. v2.1.10 FINAL DELIVERABLE STRUCTURE
+
+Produce one comprehensive report using this exact structure:
+
+1. Executive Security Verdict.
+2. Scope and Governance Confirmation.
+3. Independent v2.1.9 Assessment.
+4. Critical Finding Register.
+5. High-Priority Finding Register.
+6. Corrected Authentication Architecture.
+7. Complete Redis Data Model.
+8. Complete Proposed Lua 5.1 Source — Scripts 1–5C.
+9. OTP Concurrency and Replay Protection.
+10. Password-Reset Distributed Recovery Architecture.
+11. Legacy Google Account Linking Decision Matrix.
+12. Class 2A / 2B / 3 Authorization Matrix.
+13. Redirect Sanitizer Canonicalization Specification.
+14. AES-GCM Key Rotation Design.
+15. Dispatch Worker Lease and Retry Design.
+16. Password-Reset Anti-Enumeration Design.
+17. Analytics and Telemetry Privacy Specification.
+18. Complete 38-Route Reconciliation.
+19. Security Threat Model.
+20. Proposed Security Test Matrix.
+21. File Impact and Scope Reconciliation.
+22. IRC-01 through IRC-18 Verification Register.
+23. DEC-01 through DEC-05 Owner Decision Register.
+24. HR-01 Risk Acceptance Register.
+25. Residual Risk and Known Limitations.
+26. Future Implementation Sequence.
+27. Final Governance and Authorization Status.
+
+The report must be internally consistent.
+
+Every route, script, key, state, test and file reference must use the same naming and contract throughout the document.
+
+---
+
+20. FUTURE IMPLEMENTATION SEQUENCE — NO EXECUTION NOW
+
+Provide a future phase-wise implementation plan.
+
+Each phase must contain:
+
+- Objective.
+- Exact scope.
+- Preconditions.
+- Required Owner approval.
+- Files involved.
+- Security risks.
+- Rollback strategy.
+- Verification requirements.
+- Exit criteria.
+- Explicit exclusions.
+
+Separate the following approvals:
+
+Approval A: Design acceptance.
+
+Approval B: Application source implementation authorization.
+
+Approval C: Test execution authorization, if it involves actions beyond the approved scope.
+
+Approval D: Production data or Layer B changes, if ever required.
+
+Approval E: Layer C secrets/environment changes, if ever required.
+
+Approval F: Production deployment authorization.
+
+None of these approvals is granted by this prompt.
+
+Do not begin a later phase merely because an earlier phase has been documented.
+
+---
+
+21. FINAL VERDICT — STRICT DECISION RULE
+
+At the end of the report, select exactly one recommendation:
+
+- OPTION A — DESIGN READY FOR OWNER REVIEW.
+- OPTION B — HOLD / REVISE.
+- OPTION C — REJECT CURRENT DESIGN.
+
+Use OPTION A only when every mandatory critical design requirement has a complete, internally consistent and technically defensible solution.
+
+OPTION A does not mean implementation approval.
+
+If complete Lua source, crash recovery guarantees, account-linking evidence, Class 2B policy or redirect canonicalization remains incomplete, select OPTION B or OPTION C as appropriate.
+
+Do not reduce severity to achieve approval.
+
+Required final status table
+
+Governance item| Required status
+v2.1.10 design correction| Report actual result
+Independent verification| Actual evidence only
+Test verification| Actual execution evidence only
+IRC-01–IRC-18| Individual statuses
+DEC-01–DEC-05| OPEN
+HR-01| Separate written acceptance pending, if applicable
+Implementation authorization| NOT GRANTED
+Production deployment authorization| NOT GRANTED
+Layer B modifications| PROHIBITED
+Layer C modifications| PROHIBITED
+Recovery script| UNTOUCHED
+Stage 1C-1| OPTION B — HOLD / REVISE
+
+---
+
+22. PERMANENT ENGINEERING RULES
+
+These rules are mandatory for every future PR-1A phase:
+
+1. Inspect before changing.
+2. Preserve valid existing work.
+3. Never assume source code matches documentation.
+4. Never claim unexecuted tests passed.
+5. Never claim a security guarantee without a defensible mechanism.
+6. Never treat Redis atomicity as cross-system transaction atomicity.
+7. Never use ambiguous identity history to make privileged account-linking decisions.
+8. Never weaken MFA requirements to improve convenience without Owner approval.
+9. Never expose secrets or personal data in reports.
+10. Never introduce paid infrastructure or new dependencies without approval.
+11. Never modify protected accounts.
+12. Never modify production data during a read-only audit.
+13. Never deploy without separate explicit authorization.
+14. Preserve all 68 canonical PDFSun tools.
+15. Preserve existing Free and Pro entitlements.
+16. Maintain privacy-by-default and least-privilege principles.
+17. Document every unresolved risk.
+18. Maintain phase-wise execution discipline.
+19. Preserve a clear audit trail of decisions and evidence.
+20. Stop immediately if the requested action exceeds the authorized scope.
+
+---
+
+FINAL INSTRUCTION
+
+Start with a read-only inspection of the available v2.1.9 design and relevant repository evidence.
+
+Then independently correct every unresolved finding.
+
+Produce a complete, technically rigorous v2.1.10 design report.
+
+Where executable Lua source is required, include the complete proposed source directly in the report rather than merely describing it.
+
+Where repository evidence is unavailable, mark the requirement NOT VERIFIED.
+
+Where a distributed-system guarantee cannot be achieved by the existing architecture, explain the limitation honestly and propose the minimum safe architectural correction.
+
+Do not modify files, execute scripts, change accounts, alter production data, install dependencies, run builds, or deploy.
+
+Your final responsibility is to deliver an independently defensible security design—not to manufacture an approval.
+
+PDFSun Engineering Governance: INSPECT → ANALYZE → ADVISE → OWNER AUTHORIZE → IMPLEMENT → VERIFY → DEPLOY ONLY WITH SEPARATE APPROVAL.
+
+CURRENT AUTHORIZATION: READ-ONLY DESIGN REVIEW ONLY.
