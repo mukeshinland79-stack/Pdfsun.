@@ -1,0 +1,205 @@
+PDFSun.in — Stage 1C-1 Gate 0.4 Independent Security Audit & Real-Tool Validation Report
+1. Executive Summary
+Final Gate 0.4 Outcome: GATE 0.4 FAIL (per Section 19D — multiple Critical and High security, provenance, filesystem-escape, and transactional-reliability defects were confirmed with reproducible proof-of-concept exploits in disposable /tmp against pdfsun-stage1b2-recovery-v0.3.1.sh).
+Simultaneous Mandatory Prerequisites Still BLOCKED:
+Persistent on-disk baseline scripts (v0.3.0 and v0.3.1) & original Gate 0.3.1 fixtures: NOT FOUND ON DISK (audit ran against a clearly labeled verbatim copy extracted from the Gate 0.3.1 report whose SHA-256 matched b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f byte-for-byte; this is not relabeled as an independently persisted original disk file).
+Genuine Gitleaks: GITLEAKS_STATUS=NOT_INSTALLED (BLOCKED).
+Genuine ShellCheck: SHELLCHECK_STATUS=NOT_INSTALLED (BLOCKED).
+Missing Authoritative Artifact (Blocker A): /app/applet/dist-server/server.cjs (50b6ef051c86f46f69d5df9cfe35b79851920cd9ee45a496269956c66ae5e957, 1,210,911 bytes) remains ABSENT (13/14 verified — BELOW LEVEL 1).
+Owner Configuration & Governance Decisions: All authoritative pins (EXPECTED_ORIGIN_URL, EXPECTED_REPO_ROOT_COMMIT, EXPECTED_PROD_BRANCH, EXPECTED_SIGNING_PUBKEY_SHA256, REVOKED_KEY_FINGERPRINTS_FILE, .env.example, RPO/RTO option) remain unapproved and unset.
+New Adversarial Suite (G01–G30): 9 PASS / 21 FAIL (including 1 accidental-exit finding G13 and 1 container-root nuance G22).
+Remediation Hold: Per Section 19D, v0.3.1 was not patched and v0.3.2 was not implemented. All findings and remediation recommendations are documented below awaiting separate explicit Owner authorization.
+2. Authorization & Execution-Boundary Confirmation
+Authorized Scope: Stage 1C-1 — Gate 0.4 ONLY (2026-11-20T18:09:50Z UTC).
+Verified Zero-Impact Boundaries:
+/app/applet modifications: 0 (APPLET_CLEAN).
+/app/applet/.git: ABSENT.
+Layer B runtime stores (users_store.json, comments_store.json, rate_limits_store.json, banned_ips.json, data/analytics_events.json): present, untouched, contents never read or printed (metadata stat existence check only).
+Real Git writes / pushes / builds / deployments / cloud resource changes: 0.
+Disposable /tmp sandboxes: auto-cleaned on EXIT (TMP_CLEAN).
+Stage 1C-1 recovery execution beyond Gate 0.4: STRICTLY BLOCKED.
+3. Baseline Artifact Inventory (Gate 0.3.1 Preserved)
+Artifact / Baseline Item	Status	Observed Evidence
+pdfsun-stage1b2-recovery-v0.3.0.sh (on disk)	BLOCKED (NOT FOUND)	find /tmp /app/applet "$HOME" returned 0 files; reported SHA-256 9b6d526a00d185f098299433b43011b39cca571091460c1fcf46deb41b519bbd preserved untouched.
+pdfsun-stage1b2-recovery-v0.3.1.sh (on disk)	BLOCKED (NOT FOUND)	find /tmp /app/applet "$HOME" returned 0 files; original /tmp sandbox auto-cleaned on EXIT.
+Original Gate 0.3.1 test fixtures & raw logs	BLOCKED (UNAVAILABLE)	Ephemeral /tmp/pdfsun-gate031-verify.* removed on EXIT.
+dist-server/server.cjs (Blocker A)	BLOCKED (ABSENT)	MISSING_ARTIFACT_CHECK=ABSENT; expected 50b6ef051c86f46f69d5df9cfe35b79851920cd9ee45a496269956c66ae5e957 (1,210,911 bytes); 13/14 verified (BELOW LEVEL 1).
+Layer B runtime stores (5 files)	PASS (PROTECTED)	All 5 exist on disk; zero content reads/writes (users_store.json 4585B, comments_store.json 86B, rate_limits_store.json 593B, banned_ips.json 2B, data/analytics_events.json 2142B).
+Preserved Layer A Exclusions	UNMODIFIED	.env.example (unapproved, 5 non-placeholder fields pending review), 15 PHASE-11A/11D Markdown files, eng.traineddata, patches/phase11f-changes.patch, assets/.aistudio/.gitignore, public/assets/aistudio/Paste_November_07__2026_-_12_48AM_427718f1.
+Gate 0.3.1 Findings Preserved	RETAINED	Part A (unpinned fetch, unchecked pushurl, missing root-commit/prod-branch checks, TOCTOU gap), Part B (arbitrary pubkey substitution, missing SPKI DER pin, missing revocation, key-ID binding, incomplete custody, priv/pub derivation), and local author-identity propagation bug.
+4. v0.3.0 and v0.3.1 SHA-256 Verification
+Field	v0.3.0	v0.3.1 (On-Disk Original)	v0.3.1 (Verbatim Copy Reconstructed from Gate 0.3.1 Report in /tmp for Audit Only)
+Exact File Path	Not present on disk	Not present on disk	/tmp/pdfsun-gate04-audit.XXXXXX/v0.3.1_from_report.sh (ephemeral, deleted on EXIT)
+Reported SHA-256	9b6d526a00d185f098299433b43011b39cca571091460c1fcf46deb41b519bbd	b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f	b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f
+Actual SHA-256	UNVERIFIABLE (NO FILE)	UNVERIFIABLE (NO FILE)	b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f
+File Size	N/A	N/A	33,030 bytes
+Line Count	N/A	N/A	818 lines (note: exact line count of the verbatim artifact)
+File Permissions	N/A	N/A	0700 (set in /tmp harness)
+Bash Syntax (bash -n)	NOT RUN	NOT RUN	PASS (GNU bash 5.2.15(1)-release)
+Inspection Timestamp (UTC)	2026-11-20T18:09:50Z	2026-11-20T18:09:50Z	2026-11-20T18:11:45Z
+Hash Match / Provenance Status	BLOCKED	BLOCKED	Byte-exact SHA-256 match to report text; NOT an independently persisted on-disk original
+5. Actual v0.3.1 Line-by-Line Source Inspection (All 22 Components)
+(Line numbers refer to the exact 818-line report-reconstructed v0.3.1 copy matching b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f.)
+#	Function / Block (Line)	Status	Key Code-Level Findings
+1	classify_path() (L93–140)	PARTIALLY VALIDATED	Handles basic .., Layer B runtime stores, .env*, metadata, archives. Gaps: Case-sensitive patterns (ENV, .PEM, USERS_STORE.JSON unblocked on case-insensitive FS); does not block control/newline chars or space-suffixed tricks like src/ok .env; does not block patches/ vs individual paths consistently for all uppercase/special forms.
+2	assert_path_allowed() (L142–148)	PASS	Fails closed via die when classify_path != ALLOWED.
+3	validate_remote_url_policy() (L153–196)	PARTIALLY VALIDATED	Blocks whitespace, embedded HTTPS creds, local paths in prod mode, and REPO_DIR self-origin. Gap: Does not normalize trailing .git or check SSH/SCP options (-oProxyCommand=... injection if hostname starts with -? No, ^git@[^:]+:.+ blocks leading -, though ssh:// options/proxies remain unchecked).
+4	verify_remote_identity() (L198–256)	FAIL	CRITICAL (L239, L248): Checks root commit ONLY on local HEAD (rev-list --max-parents=0 HEAD) and checks remote ONLY via ls-remote --heads origin refs/heads/$EXPECTED_PROD_BRANCH. Never verifies remote production branch descends from EXPECTED_REPO_ROOT_COMMIT! Also ignores core.sshCommand, GIT_SSH_COMMAND, credential.helper, core.hooksPath, http.proxy, and hardcodes 40-char SHA-1 (L60, L206) without documenting SHA-256 repo rejection.
+5	pubkey_spki_sha256() (L261–265)	PARTIALLY VALIDATED	Canonical SPKI DER SHA-256 is sound; openssl stderr suppressed (2>/dev/null), relying on set -o pipefail + require_hex64 caller check.
+6	privkey_derived_spki_sha256() (L267–271)	PARTIALLY VALIDATED	Correctly derives SPKI DER SHA-256 from private key; fails if openssl errors under pipefail.
+7	check_key_not_revoked() (L273–281)	FAIL	HIGH: Optional when REVOKED_KEY_FINGERPRINTS_FILE is empty (L275); fails open on malformed lines (L277 never validates each entry is strict 64-char hex); no signature or SHA-256 integrity anchor on revocation file (G11, G12).
+8	verify_trusted_public_key() (L283–299)	PARTIALLY VALIDATED	Correctly pins SPKI DER SHA-256 (L293), but inherits check_key_not_revoked() weaknesses.
+9	verify_private_key_custody() (L301–320)	FAIL	HIGH (L313): `stat -c '%a' ... 2>/dev/null
+10	compute_tree_hash() (L322–332)	PARTIALLY VALIDATED	Deterministic under LC_ALL=C, but line-based (IFS= read -r) breaks on newline filenames and hashes ONLY allowlisted entries (cannot detect extra unallowlisted files when called alone in restore-test).
+11	verify_manifest_and_allowlist() (L334–385)	FAIL	CRITICAL/HIGH: (1) [[ ! -L "$target_dir/$rel" ]] (L347) checks leaf only, allowing symlinked parent dirs (G15); (2) awk '{print $2}' (L354) truncates space-containing filenames (G16); (3) find ... \( -type f -o -type l \) (L364) ignores FIFOs, sockets, and device nodes (G20); (4) no duplicate-entry check on manifest (G17); (5) mktemp files (L360–361) leak if die() fires before L376.
+12	verify_signed_export_record() (L387–451)	FAIL	HIGH (L411–416): awk -F= permits duplicate fields (e.g., duplicate signing_key_id=) and ignores arbitrary unexpected fields (G18); does not enforce strict key allowlist, exact key count, or strict value regexes (e.g. file_count integer, created_utc ISO-8601).
+13	run_gitleaks_dir() (L453–458)	FAIL	HIGH (L455–456): Accepts any GITLEAKS_BIN executable without binary SHA-256 or version provenance check (G27 fake exit 0 bypassed silently); conflates exit 1 (leak) with exit 2/crash (G26); suppresses stderr completely (>/dev/null 2>&1).
+14	cmd_prepare_export() (L463–542)	FAIL	CRITICAL/HIGH: (1) trap '... rm -rf "$CLEAN_EXPORT_DIR"' RETURN (L491) does NOT fire when die() calls exit 1, leaving partial CLEAN_EXPORT_DIR behind; (2) L497 ([[ ! -L "$WORKSPACE_EXPORT/$rel" ]]) fails to block symlinked parent directories (G15 copied file from outside WORKSPACE_EXPORT!).
+15	cmd_audit_history() (L544–561)	FAIL	MEDIUM/HIGH: Despite its name (audit-history), L549 only runs git ls-files (current working-tree index), NOT full Git commit history (git rev-list --all), AND inherits verify_remote_identity remote-lineage bypass (G01/G02) and Git config injection (G07/G08).
+16	cmd_stage() (L566–650)	FAIL	CRITICAL: (1) trap quarantine_stage RETURN (L593) NEVER fires on die() (exit 1) (G21: quarantined=0, unquarantined_left=YES) or SIGINT/SIGTERM; (2) L590 suppresses quarantine mv errors via `2>/dev/null
+17	cmd_commit() (L655–677)	FAIL	MEDIUM (L671): Uses git commit --no-verify without documented policy or core.hooksPath audit (G28); does not explicitly manage commit.gpgsign signing policy; relies on verify_remote_identity.
+18	cmd_tag() (L682–706)	PARTIALLY VALIDATED	Verifies annotated tag type and peeled commit SHA (L697–702); does not address tag.gpgSign policy or remote race prior to push.
+19	cmd_push() (L711–735)	FAIL	CRITICAL (L722–724): Does NOT use --force-with-lease="refs/heads/$RECOVERY_BRANCH:" (or re-verify ls-remote empty ref) before push --atomic. If RECOVERY_BRANCH is created on origin after stage pointing to an ancestor commit, cmd_push silently fast-forward overwrites it (G03 rc=0)!
+20	cmd_verify_remote() (L740–760)	PARTIALLY VALIDATED	Verifies remote branch SHA, tag object SHA, and peeled commit SHA via read-only ls-remote, but inherits verify_remote_identity gaps.
+21	cmd_restore_test() (L765–803)	FAIL	CRITICAL (L779, L791–799): (1) Never checks git ls-files in $restore_dir against .pdfsun-allowlist.txt, so an extra unallowlisted backdoor.txt committed to the remote recovery branch passed RESTORE_TEST_PASS (G30); (2) trap 'rm -rf "$restore_dir"' RETURN (L779) does NOT fire on die(), leaking /tmp/pdfsun-restore-test.* (G23: restore_tmp_leaked=1).
+22	Main Dispatch (L805–818)	PASS	Clean case dispatch; unknown/empty subcommand fails closed via die.
+6. Remote Identity & Repository Provenance Findings (Gate 0.4B §5.1)
+Local vs. Remote Root Lineage Split (CRITICAL — G01, G02): verify_remote_identity() checks rev-list --max-parents=0 HEAD exclusively in the local repository (L239) and only checks that refs/heads/$EXPECTED_PROD_BRANCH exists on origin (L248). When EXPECTED_PROD_HEAD_SHA is unset (its default), pointing origin to an unrelated bare repository (G01) or a force-pushed orphan main branch (G02) passed AUDIT_HISTORY_PASS (rc=0).
+Remote Branch Creation Race (CRITICAL — G03): cmd_push() omits --force-with-lease="refs/heads/$RECOVERY_BRANCH:" (expecting empty/absent ref). When an unexpected backup/stage-1b.2-verified branch appeared on origin pointing to main after stage, cmd_push silently fast-forward overwrote it (ce0d8b7..14a0aae). Existing tags (G04) and divergent branches (G05) were safely rejected atomically.
+Repository Object Format (INFO / Policy Gap): require_hex40() (L60, L206, L208) enforces 40-character lowercase SHA-1 hashes. SHA-256 Git repositories (extensions.objectFormat=sha256, 64-char hashes) are implicitly rejected without documenting this restriction or checking git rev-parse --show-object-format.
+7. Git Configuration & Push-Destination Findings (Gate 0.4B §5.1C)
+url.*.pushInsteadOf (G06): PASS on Git 2.34.1 — git remote get-url --all --push origin expanded the global pushInsteadOf rule and v0.3.1 blocked the mismatch (rc=1).
+Multiple Push URLs (G09): PASS — push_url_count -ne 1 rejected 2 push URLs (rc=1).
+Unblocked Git Config Injection (HIGH — G07, G08): v0.3.1 never sanitizes or audits Git config scopes (system, global, local, worktree, GIT_CONFIG_* env vars). Both core.sshCommand + GIT_SSH_COMMAND (G07) and credential.helper="!echo exfil" (G08) passed AUDIT_HISTORY_PASS (rc=0). core.hooksPath, http.proxy, and remote.origin.fetch refspecs are likewise unaudited.
+8. Cryptographic Trust-Anchor Findings (Gate 0.4B §5.2)
+SPKI DER Fingerprinting: pubkey_spki_sha256() (L261) and privkey_derived_spki_sha256() (L267) correctly hash canonical DER SubjectPublicKeyInfo, neutralizing PEM formatting ambiguity and arbitrary attacker keypair substitution (A05/A09).
+Signed-Record Schema & Parser Ambiguity (HIGH — G18): verify_signed_export_record() (L411–416) extracts only 6 fields with awk -F=. A validly signed record containing duplicate signing_key_id= and injected unexpected_extra=injected passed STAGE_PASS (rc=0).
+Malformed Schema Version (G19): PASS — pdfsun-export-record-v999 rejected (rc=1).
+9. Key Custody & Revocation Findings (Gate 0.4B §5.2–5.3)
+Optional Revocation Enforcement (HIGH): REVOKED_KEY_FINGERPRINTS_FILE defaults to empty (L33, L275), silently disabling revocation checks unless manually set.
+Malformed Revocation List Fails Open (HIGH — G11): Invalid non-hex/truncated lines (NOT_A_VALID_SHA256_LINE\n12345) did not fail closed; stage returned STAGE_PASS (rc=0).
+Unsigned Revocation File (HIGH — G12): Adding the Owner key blocked commit (rc=1), but emptying the unsigned revocation file immediately re-enabled COMMIT_PASS (rc=0) because the revocation file has no independent signature or pinned SHA-256.
+Cross-Platform Permission Check Fails Open (HIGH — G14): World-readable chmod 644 key was blocked on Linux (rc=1), but when stat -c fails (as on macOS/BSD), L313 (|| true) returned empty string and accepted the world-readable key (PREPARE_EXPORT_PASS, rc=0).
+Symlinked Private Key Containment Flaw (MEDIUM — G13): Placing a symlink $WS/sym_owner.key -> /keys/owner.key inside WORKSPACE_EXPORT was missed by is_subpath() (which only checked canonical_path target); it exited rc=1 only accidentally because stat -c '%a' on a symlink returns 777. File ownership UID is also never checked.
+10. Manifest & Export-Integrity Findings (Gate 0.4B §5.5)
+Duplicate Manifest Entries Accepted (MEDIUM — G17): Concatenating manifest.sha256 twice passed PREPARE_EXPORT_PASS (rc=0).
+Space-Containing Filenames Truncated in Manifest Policy (HIGH — G16): mpath="$(printf '%s' "$line" | awk '{print $2}')" (L354) truncated src/ok .env to src/ok, bypassing manifest path classification (PREPARE_EXPORT_PASS, rc=0).
+Restore Verification Misses Extra Unallowlisted Files (CRITICAL — G30): cmd_restore_test() checks sha256sum -c on manifest entries and compute_tree_hash() only over allowlist.txt, never comparing git ls-files in $restore_dir against .pdfsun-allowlist.txt. A remote commit containing an extra backdoor.txt passed RESTORE_TEST_PASS (rc=0).
+11. Path Traversal & Filesystem Safety Findings (Gate 0.4B §5.4)
+Nested Symlinked Parent Directory Escapes WORKSPACE_EXPORT (CRITICAL — G15): src/esc -> /tmp/.../outside_secret_dir with allowlisted src/esc/pwn.ts bypassed [[ ! -L "$WORKSPACE_EXPORT/$rel" ]] (L497, L347) and copied an external file into CLEAN_EXPORT_DIR (PREPARE_EXPORT_PASS files=1, rc=0).
+Special Files Invisible to Export Enumeration (HIGH — G20): A FIFO (mkfifo rogue_pipe) placed inside CLEAN_EXPORT_DIR bypassed find . -mindepth 1 \( -type f -o -type l \) (L364), returning STAGE_PASS (rc=0). Sockets and device files are equally invisible.
+Newlines / Case Variants (MEDIUM — G16): Line-based while read / find / comm cannot safely process newline-containing filenames (-print0 / NUL-delimited processing is absent); classify_path() does not normalize case (LC_ALL=C exact-case globbing only).
+12. Bash Reliability & Error-Handling Findings (Gate 0.4B §5.6)
+Broken trap ... RETURN Breaks Transactional Quarantine & Cleanup (CRITICAL — G21, G23, G25):
+Lines 491 (cmd_prepare_export), 593 (cmd_stage), and 779 (cmd_restore_test) register RETURN traps.
+In Bash, calling exit 1 inside die() triggers EXIT, NOT RETURN.
+Proven in G21: Triggering die() mid-cmd_stage left g21_stage unquarantined (quarantined=0, unquarantined_left=YES).
+Proven in G23: Triggering die() inside cmd_restore_test leaked /tmp/pdfsun-restore-test.* (restore_tmp_leaked=1).
+Proven in G25: Line 590 also masks quarantine mv failures with 2>/dev/null || true and uses 1-second date -u +%s collision-prone names.
+Hidden git rm Failure (MEDIUM — L612): git -C "$STAGE_CLONE_DIR" rm -rf --ignore-unmatch . >/dev/null 2>&1 || true masks genuine index-lock or permission errors.
+No Concurrency Lock (MEDIUM — G24): Zero flock usage (flock_refs=0); simultaneous invocations race on STAGE_CLONE_DIR (p1_rc=1, p2_rc=0).
+Leaked mktemp Files (LOW — L360–361, L623–624): Temporary comparison files leak on die() prior to rm -f.
+Container Root Caveat (G22): Read-only directory test chmod 500 succeeded (rc=0) because this sandbox runs as uid=0 (root), where discretionary 0500 modes do not block writes; non-root write-failure testing requires an unprivileged user on the Owner workstation.
+13. Genuine Gitleaks Validation (Gate 0.4D)
+GITLEAKS_STATUS=NOT_INSTALLED (BLOCKED)
+command -v gitleaks returned non-zero; no genuine gitleaks binary exists on this host.
+Compatibility / Script Review Note (G26, G27): run_gitleaks_dir() (L456) invokes "$GITLEAKS_BIN" detect --no-git --source "$scan_dir" --redact --exit-code 1 (valid for Gitleaks v8+, though untested against genuine installed binary here), does not distinguish exit code 1 (leak) from 2/crash, and does not verify GITLEAKS_BIN provenance/SHA-256 (G27: fake exit 0 binary bypassed silently).
+No synthetic shim is claimed as genuine Gitleaks validation.
+14. Genuine ShellCheck Validation (Gate 0.4E)
+SHELLCHECK_STATUS=NOT_INSTALLED (BLOCKED)
+command -v shellcheck returned non-zero; bash -n (PASS) is not a substitute for shellcheck -S warning.
+Manual Static Preview of Likely ShellCheck Warnings in v0.3.1: SC2064 (trap string expansion / RETURN trap scope), SC2155 (none found — local declarations are separated), SC2164 (cd inside subshells relies on set -e), unused/unchecked exit status in || true guards. Genuine shellcheck -S warning remains mandatory on the Owner workstation.
+15. Review of All 13 Reported Gate 0.3.1 Adversarial Tests (A01–A12 + A01B)
+Original Fixtures / Logs Status: BLOCKED (UNAVAILABLE) — ephemeral /tmp harness from Gate 0.3.1 auto-deleted on EXIT.
+Independent Audit Assessment of Historical Gate 0.3.1 Claims:
+Gate 0.3.1 Test	Historical Claim	Independent Gate 0.4 Assessment
+A01, A01B, A02, A03, A04, A10	PASS (disposable /tmp)	PARTIALLY VALIDATED — Code paths exist in v0.3.1 (L153–256, L716), but Gate 0.4 proved they do NOT cover remote root lineage (G01/G02), post-preflight FF branch races (G03), or core.sshCommand/credential.helper injection (G07/G08).
+A05, A06, A07, A08, A09, A11	PASS (disposable /tmp)	PARTIALLY VALIDATED — Real OpenSSL SPKI DER pinning & signature checks exist (L261–299, L400–430), but Gate 0.4 proved revocation fails open when unset/malformed/unsigned (G11/G12) and record parsing allows duplicate/extra fields (G18).
+A12 (Privkey custody)	PASS (disposable /tmp)	PARTIALLY VALIDATED — Direct subpath inside WORKSPACE_EXPORT is blocked, but Gate 0.4 proved symlink-in-workspace bypasses is_subpath (G13) and stat -c fails open on BSD/macOS (G14).
+16. Review of Positive Lifecycle Evidence
+Historical Status: Reported PASS in disposable /tmp with synthetic gitleaks stub and OWNER_LOCAL_REPO_UNTOUCHED=YES.
+Gate 0.4 Reassessment: PARTIALLY VALIDATED (historical disposable evidence only). Not valid as production certification because: (a) genuine gitleaks & shellcheck were absent, (b) restore-test failed to detect extra backdoor files (G30), (c) stage/prepare-export transactional traps fail on die() (G21/G23), and (d) original fixtures are no longer on disk.
+17. New Gate 0.4F Disposable Adversarial Test Results (G01–G30)
+Executed exclusively in ephemeral /tmp/pdfsun-gate04-suite.* and /tmp/pdfsun-gate04-p2.* against the report-reconstructed v0.3.1 copy (b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f), using real Git 2.34.1 and real OpenSSL 3.0.22 (with test-only synthetic gitleaks stub where stage/prepare-export required invocation).
+Test ID	Scenario	Expected	Actual rc	Verdict	Key Observed Behavior / Before-After State
+G01	Remote origin has different root lineage	rc!=0	0	FAIL	AUDIT_HISTORY_PASS despite completely unrelated remote root commit.
+G02	Local HEAD root matches; remote main is orphan commit	rc!=0	0	FAIL	AUDIT_HISTORY_PASS; remote ancestry never verified.
+G03	Recovery branch appears on origin after preflight (ancestor commit)	rc!=0	0	FAIL	push --atomic silently fast-forward overwrote backup/stage-1b.2-verified (ce0d8b7..14a0aae).
+G04	Recovery tag appears on origin after preflight	rc!=0 & no branch	1	PASS	Atomic push rejected; branch=NONE (zero partial publication).
+G05	Recovery branch diverges on origin after preflight	rc!=0 & no tag	1	PASS	Atomic push rejected non-FF; tag=NONE.
+G06	Global url.<evil>.pushInsteadOf rewrites remote	rc!=0	1	PASS	remote get-url --push expanded rewrite; pushurl mismatch blocked.
+G07	Unexpected core.sshCommand + GIT_SSH_COMMAND	rc!=0	0	FAIL	AUDIT_HISTORY_PASS; SSH command override unchecked.
+G08	Unexpected credential.helper="!echo exfil"	rc!=0	0	FAIL	AUDIT_HISTORY_PASS; credential helper unchecked.
+G09	Multiple push URLs on origin	rc!=0	1	PASS	Origin push URL count invalid: expected 1, got 2.
+G10	Configured revocation file missing	rc!=0	1	PASS	FATAL: Revocation file configured but missing (note: unset still skips check).
+G11	Revocation file malformed (NOT_A_VALID_SHA256_LINE)	rc!=0	0	FAIL	STAGE_PASS; invalid lines silently ignored.
+G12	Revocation list modified (add vs attacker clear)	both blocked	1 / 0	FAIL	Add blocked (rc=1), but clearing unsigned revocation file allowed COMMIT_PASS (rc=0).
+G13	Symlinked private key inside WORKSPACE_EXPORT pointing outside	custody block	1	FAIL (Accidental Exit)	is_subpath missed symlink in WORKSPACE_EXPORT; exited rc=1 only because symlink stat -c '%a' was 777.
+G14	World-readable key (644) + simulated BSD stat -c failure	both blocked	1 / 0	FAIL	Linux 644 blocked (rc=1), but stat -c failure returned PREPARE_EXPORT_PASS (rc=0, fail-open).
+G15	Nested symlinked parent dir (src/esc -> outside)	rc!=0	0	FAIL	PREPARE_EXPORT_PASS files=1; copied external file outside WORKSPACE_EXPORT!
+G16	Space-containing filename src/ok .env in manifest	rc!=0	0	FAIL	PREPARE_EXPORT_PASS; awk '{print $2}' truncated path to src/ok.
+G17	Duplicate manifest entry	rc!=0	0	FAIL	PREPARE_EXPORT_PASS; duplicates silently accepted.
+G18	Duplicate signing_key_id= + extra field in signed record	rc!=0	0	FAIL	STAGE_PASS; duplicate & unexpected fields ignored.
+G19	Malformed signed-record schema (v999)	rc!=0	1	PASS	FATAL: Unexpected export-record schema: pdfsun-export-record-v999.
+G20	Special file (mkfifo rogue_pipe) inside CLEAN_EXPORT_DIR	rc!=0	0	FAIL	STAGE_PASS; find ignored FIFO completely.
+G21	Mid-stage die() after STAGE_CLONE_DIR created	quarantined=YES	1	FAIL	quarantined=0, unquarantined_left=YES — RETURN trap never fired on die()!
+G22	Write failure (chmod 500 parent dir) + git rm || true	rc!=0	0	FAIL (Root UID caveat)	Container runs as uid=0 (bypassed chmod 500); code defect at L612 (git rm || true) confirmed statically.
+G23	Pre-existing STAGE_CLONE_DIR collision + restore-test tmp leak	block & 0 leak	1 / 1	FAIL	Collision blocked (rc=1), but restore-test leaked /tmp/pdfsun-restore-test.* (restore_tmp_leaked=1) on die().
+G24	Simultaneous stage invocations	flock lock	1 / 0	FAIL	flock_refs=0; race condition without mutual exclusion.
+G25	Quarantine failure handling	explicit fail	N/A	FAIL	L590 suppresses mv error via 2>/dev/null || true + L593 RETURN trap broken on die().
+G26	Scanner returns unexpected exit code (2)	rc!=0	1	PASS	Fails closed (rc=1), though conflates crash with leak.
+G27	Scanner missing vs replaced with fake exit 0 script	both blocked	1 / 0	FAIL	Missing blocked (rc=1); fake no-op binary passed silently (rc=0).
+G28	Planted failing pre-commit hook vs commit --no-verify	policy review	0	FAIL	COMMIT_PASS; L671 silently bypassed pre-commit hook without documented policy.
+G29	restore-test clone has mismatched orphan root commit	rc!=0	1	PASS	FATAL: Repository root-commit identity mismatch.
+G30	Extra unallowlisted backdoor.txt committed in remote backup branch	rc!=0	0	FAIL	RESTORE_TEST_PASS; extra backdoor file in restored repo completely undetected!
+18. Confirmed Vulnerabilities & Severity Matrix
+ID	Severity	Exact v0.3.1 Location	Confirmed Defect & Impact	Proof Test
+V-01	CRITICAL	L239, L248 (verify_remote_identity)	Checks local root commit only; never verifies remote production branch descends from EXPECTED_REPO_ROOT_COMMIT. Allows targeting an unrelated repository or force-pushed orphan main.	G01, G02
+V-02	CRITICAL	L497, L347 (cmd_prepare_export, verify_manifest_and_allowlist)	Checks leaf symlink only (! -L), not canonical containment of resolved paths. Nested symlinked parent dir copies arbitrary external host files into the backup export.	G15
+V-03	CRITICAL	L791–799 (cmd_restore_test)	Never compares git ls-files in restored repo against .pdfsun-allowlist.txt. Extra unallowlisted/backdoor files in remote recovery branch pass RESTORE_TEST_PASS.	G30
+V-04	CRITICAL	L722–724 (cmd_push)	Missing --force-with-lease="refs/heads/$RECOVERY_BRANCH:" (zero-OID expectation). Pre-existing remote recovery branch created after preflight is silently fast-forward overwritten.	G03
+V-05	CRITICAL	L491, L593, L779 (trap ... RETURN)	Bash RETURN traps do not execute when die() calls exit 1 or on SIGINT/SIGTERM. Failed staging clones are never quarantined and /tmp restore directories leak.	G21, G23, G25
+V-06	HIGH	L275–279 (check_key_not_revoked)	Revocation file is optional when unset, fails open on malformed lines, and has no signature/SHA-256 trust anchor (deleting lines bypasses revocation).	G11, G12
+V-07	HIGH	L313 (verify_private_key_custody)	stat -c '%a' ... || true fails open on macOS/BSD (accepts 0644 private keys); is_subpath ignores symlink placement inside WORKSPACE_EXPORT; UID ownership unchecked.	G13, G14
+V-08	HIGH	L364 (verify_manifest_and_allowlist)	find checks -type f -o -type l only, ignoring FIFOs, sockets, and device files placed in CLEAN_EXPORT_DIR.	G20
+V-09	HIGH	L354 (verify_manifest_and_allowlist)	awk '{print $2}' truncates space-containing paths in manifests, bypassing sensitive-path classification; newline filenames break line-oriented tools.	G16
+V-10	HIGH	L411–416 (verify_signed_export_record)	awk -F= permits duplicate fields and arbitrary unexpected keys in signed export records.	G18
+V-11	HIGH	L198–256, L544–561 (Git config & history)	core.sshCommand, GIT_SSH_COMMAND, credential.helper, core.hooksPath, http.proxy unaudited (G07, G08); audit-history checks git ls-files only, not full commit history (git rev-list --all).	G07, G08
+V-12	HIGH	L455–456 (run_gitleaks_dir)	No binary SHA-256 or version provenance check on GITLEAKS_BIN; untrusted no-op stub passes silently; exit code 1 conflated with crash exit codes.	G26, G27
+V-13	MEDIUM	L334–385, L612, L671, L590, no flock	Duplicate manifest entries accepted (G17); git rm ... || true hides errors (L612); commit --no-verify bypasses hooks without policy (G28); no flock concurrency protection (G24); mktemp files leak on error.	G17, G24, G28
+19. Corrective Recommendations (Proposal Roadmap Only — NOT Implemented)
+If separately authorized to author pdfsun-stage1b2-recovery-v0.3.2.sh (leaving v0.3.0 and v0.3.1 untouched):
+Remote Lineage Proof (V-01): Fetch refs/heads/$EXPECTED_PROD_BRANCH into an isolated disposable temp ref (--no-tags) inside a temp bare/staging repo (never mutating Owner's REPO_DIR) and assert git merge-base --is-ancestor "$EXPECTED_REPO_ROOT_COMMIT" "$FETCHED_PROD_SHA". Document explicit SHA-1 object-format enforcement (git rev-parse --show-object-format == sha1).
+Race-Proof Creation Push (V-04): Re-check ls-remote in cmd_push() AND pass --force-with-lease="refs/heads/$RECOVERY_BRANCH:" (explicit zero-OID empty expectation) alongside --atomic.
+Git Config Isolation (V-11): Audit/reject unexpected core.sshCommand, GIT_SSH_COMMAND, credential.helper (unless explicitly allowlisted), core.hooksPath, url.*.insteadOf, and http.proxy across git config --show-origin --list; scan full commit history (git rev-list --all --objects) in audit-history.
+Strict Canonical Containment & All-Type Enumeration (V-02, V-08, V-09): Resolve realpath -e of every source/export file and assert is_subpath inside WORKSPACE_EXPORT/CLEAN_EXPORT_DIR (blocks symlinked parent dirs); reject ANY non-regular/non-dir object (! -type f ! -type d); parse manifests with ^[0-9a-f]{64} (.+)$ (not awk '{print $2}'), reject duplicate manifest entries, reject spaces/control/newline chars in paths, and use NUL-delimited (-print0) enumeration.
+Restore Completeness Check (V-03): In cmd_restore_test(), run comm between git -C "$restore_dir" ls-files | LC_ALL=C sort -u and .pdfsun-allowlist.txt to fail closed on any extra/missing tracked file, plus verify git status --porcelain is empty.
+Real Transactional EXIT/INT/TERM Traps & flock (V-05, V-13): Replace all trap ... RETURN with centralized EXIT INT TERM cleanup/quarantine handlers using nanosecond/PID-unique quarantine paths (mktemp -d), remove 2>/dev/null || true on quarantine mv and git rm, acquire an flock lock, and track all mktemp files in a global cleanup array.
+Mandatory Signed Revocation & Cross-Platform Custody (V-06, V-07, V-10): Make REVOKED_KEY_FINGERPRINTS_FILE mandatory (with pinned EXPECTED_REVOCATION_FILE_SHA256 or detached signature), fail closed on any non-64-hex line; support both GNU stat -c '%a:%u' and BSD stat -f '%Lp:%u' with hard die if unavailable; reject symlinked private keys ([[ ! -L "$SIGNING_PRIVATE_KEY" ]]) and non-owner UID; enforce strict exact-key, single-occurrence parser on .pdfsun-export-record.txt.
+Scanner Provenance & Hook Policy (V-12, V-13): Pin EXPECTED_GITLEAKS_SHA256 (optional strict mode required in production), verify gitleaks version, differentiate exit 1 vs unexpected exit codes, and document/gate --no-verify and commit/tag signing policy explicitly.
+Target Backup Architecture Review (Design Only — Unimplemented): Align eventual Layer A (encrypted offsite Git mirror + immutable tags), Layer B (encrypted point-in-time Firestore + runtime store backups), and Layer C (dedicated Secret Manager) to 3-2-1-1-0 with Owner-selected RPO/RTO (Option A: 24h/4h, Option B: 1h/1h, or Option C: 15m/30m — none selected on Owner's behalf).
+20. Remaining Blockers
+Confirmed v0.3.1 Critical/High Defects (V-01–V-12) — must be remediated in a separately versioned v0.3.2 after Owner approval.
+Genuine Security Tools Unavailable in Sandbox (BLOCKED): GITLEAKS_STATUS=NOT_INSTALLED and SHELLCHECK_STATUS=NOT_INSTALLED — must run on Owner workstation.
+Persistent On-Disk Script & Fixture Provenance (BLOCKED): Persist authoritative signed script artifacts and test logs outside ephemeral /tmp.
+Blocker A — Missing Authoritative Build Artifact (BLOCKED): dist-server/server.cjs (50b6ef051c86f46f69d5df9cfe35b79851920cd9ee45a496269956c66ae5e957, 1,210,911 bytes) remains missing (13/14 — BELOW LEVEL 1).
+Unapproved Owner Inputs & Governance Decisions (BLOCKED): EXPECTED_ORIGIN_URL, EXPECTED_REPO_ROOT_COMMIT, EXPECTED_PROD_BRANCH, optional EXPECTED_PROD_HEAD_SHA, EXPECTED_SIGNING_PUBKEY_SHA256, SIGNING_KEY_ID, REVOKED_KEY_FINGERPRINTS_FILE + trust anchor, ALLOW_ENV_EXAMPLE=0|1, inclusion decisions for 15 PHASE-11A/11D docs & eng.traineddata, and RPO/RTO option (A/B/C).
+21. Exact Evidence & Redacted Command Logs
+Discovery (2026-11-20T18:09:50Z):
+TOOL|gitleaks|NOT_INSTALLED|NONE, TOOL|shellcheck|NOT_INSTALLED|NONE
+GNU bash, version 5.2.15(1)-release, git version 2.34.1, OpenSSL 3.0.22 25 Aug 2026, sha256sum (GNU coreutils) 9.1
+MISSING_ARTIFACT_CHECK=ABSENT, APPLET_GIT_DIR=ABSENT, all 5 runtime stores exists=YES (metadata only; zero contents accessed)
+Reconstructed v0.3.1 Verification (2026-11-20T18:11:45Z):
+SHA256=b9aaf3e5dd7d775e48a1c36900b108b2d0b08004130d898b2b8830ec06a7793f, BYTES=33030, LINES=818, PERMS=700, BASH_N=PASS
+Adversarial Suites (task-499 & G21–G30, 2026-11-20T18:15:31Z – 18:17:51Z):
+All 30 scenarios executed in isolated /tmp/pdfsun-gate04-suite.* & /tmp/pdfsun-gate04-p2.* using fresh ephemeral RSA-2048 keys (zero real PDFSun credentials); cleaned up cleanly (TMP_CLEAN, APPLET_CLEAN).
+22. Final Gate 0.4 Verdict
+GATE 0.4 FAIL
+(With concurrent BLOCKED prerequisites: genuine Gitleaks NOT_INSTALLED, genuine ShellCheck NOT_INSTALLED, persistent on-disk v0.3.0/v0.3.1 artifacts unavailable, Blocker A dist-server/server.cjs missing, and Owner configuration pins unapproved.)
+Stage 1C-1 recovery execution, Stage 1C-2, real Git writes, builds, and deployments remain STRICTLY BLOCKED.
+23. Explicit Next-Step Authorization Requirements
+Before any further work proceeds, separate explicit Owner authorization is required for:
+Option 1 (Recommended Next Gate): Explicit approval to draft and test a separately versioned pdfsun-stage1b2-recovery-v0.3.2.sh remediating V-01–V-13 (in disposable /tmp, preserving v0.3.0/v0.3.1 untouched) and run all A01–A12 + G01–G30 regression tests.
+Owner Workstation Real-Tool Verification: Run genuine shellcheck -S warning and genuine gitleaks (clean + seeded synthetic-secret fixtures) on a machine where verified binaries are installed.
+Blocker A Resolution: Separate explicit authorization for Option A (archive recovery), Option B (private repo/CI retrieval), or Option C (isolated reproducible build comparison) for dist-server/server.cjs.
+Owner Configuration & Governance Sign-Off: Supply verified out-of-band values for all Section 13 configuration pins, exclusion decisions, and RPO/RTO selection (A, B, or C) before any future external backup execution gate is authorized.
