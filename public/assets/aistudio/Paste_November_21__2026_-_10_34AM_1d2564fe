@@ -1,0 +1,1200 @@
+PDFSun.in — Stage 1C-1
+
+FINAL ARCHITECTURE INTEGRITY, ADVERSARIAL SECURITY & READINESS CHALLENGE
+
+G44-35 Through G44-40 + Full Historical Reassessment + Principal Architect Recommendations
+
+Project: PDFSun Global Platform
+Website: https://www.pdfsun.in/
+Stage: 1C-1 — Security Architecture and Recovery Readiness
+Review Mode: STRICT DESIGN-ONLY / READ-ONLY
+Frozen Candidate: v0.3.4
+Future Candidate: v0.3.5 — NOT CREATED
+Static C Launcher: NOT CREATED
+Primary Objective: Resolve architectural inconsistencies, independently challenge security assumptions, preserve all historical findings, and establish a defensible independent-review readiness decision.
+
+---
+
+PART 1 — ROLE AND ENGINEERING STANDARD
+
+Act as an independent Principal Security Architect, Linux Systems Security Engineer, Git Internals Specialist, Cryptographic Protocol Reviewer, C Systems Programmer, Secure Shell Engineer, Infrastructure Security Architect, and Adversarial Red-Team Reviewer.
+
+Your responsibility is not to defend the existing architecture.
+
+Your responsibility is to attempt to disprove its security claims.
+
+Review the complete supplied Stage 1C-1 architecture, including:
+
+- G44-01 through G44-34.
+- R-01 through R-09.
+- RR-01 through RR-13.
+- V-01 through V-13.
+- IR-01 through IR-10.
+- NEW-01 through NEW-09.
+- All previously identified blockers.
+- The latest G44-27 through G44-34 consolidated design report.
+- The previous G44-35 through G44-40 correction specification.
+
+Do not assume that a finding is resolved merely because a mitigation has been described.
+
+For every proposed control, establish:
+
+1. Exact threat.
+2. Trust assumptions.
+3. Enforcement point.
+4. Required input validation.
+5. Expected successful behavior.
+6. Failure behavior.
+7. Bypass possibilities.
+8. Resource-exhaustion behavior.
+9. Required test evidence.
+10. Remaining residual risk.
+
+Core principle: A mitigation is not a verified security property until its implementation and behavior have been independently demonstrated.
+
+The reviewer must be permitted to reject existing assumptions, identify better approaches, and recommend architectural redesign where necessary.
+
+PART 2 — ABSOLUTE GOVERNANCE AND SAFETY BOUNDARY
+
+2.1 Strict design-only restriction
+
+This assignment authorizes documentation analysis and architectural recommendations only.
+
+DO NOT:
+
+- Create v0.3.5.
+- Create or compile the C launcher.
+- Create scripts, binaries, configurations, keys, credentials or Git objects.
+- Modify v0.3.4.
+- Execute recovery or verification scripts.
+- Install Gitleaks, ShellCheck or other software.
+- Run Git clone, restore, staging, signing, push or backup operations.
+- Access production credentials, private keys, tokens or secrets.
+- Modify application source code.
+- Perform production recovery.
+- Push to external Git repositories.
+- Deploy anything.
+- Begin Stage 1C-2.
+
+Do not convert this assignment into implementation authorization.
+
+2.2 Protected Layer B stores
+
+The following files are permanently protected:
+
+- "/app/applet/users_store.json"
+- "/app/applet/comments_store.json"
+- "/app/applet/rate_limits_store.json"
+- "/app/applet/banned_ips.json"
+- "/app/applet/data/analytics_events.json"
+
+Never read, print, copy, hash, export, inspect, modify or use their contents as test fixtures.
+
+Do not access their contents indirectly through Git objects, archives, backups, logs, scanners or recovery workflows.
+
+2.3 Frozen baseline
+
+Preserve the previously reported v0.3.4 baseline:
+
+SHA-256:
+
+"159a067ac0442395619aa92152bf8443668383290c6fa6ae32d568b7d112e75d"
+
+Reported size: 68,022 bytes.
+
+Reported mode: 0555.
+
+Do not claim independent verification unless genuine authorized evidence exists.
+
+Do not reconstruct missing versions or artifacts to satisfy historical hashes.
+
+2.4 Owner authorization
+
+PDFSun Owner authority belongs to Mukesh Kalonia.
+
+A design recommendation, assistant assessment, participant approval or independent-review recommendation does not constitute Owner implementation authorization.
+
+Any future implementation requires separate, explicit, written Owner authorization defining its exact scope.
+
+PART 3 — G44-35: COMPLETE GIT ODB ENUMERATION AND RESOURCE-BOUNDED PROCESSING
+
+Priority: CRITICAL
+
+3.1 Finding
+
+The previous design enumerates all Git objects using "cat-file --batch-all-objects", but the proposed implementation writes enumeration output to temporary files before applying some limits.
+
+This may allow excessive disk consumption before the object-count or size limit is enforced.
+
+The same concern applies to:
+
+- "fsck" output.
+- Tree enumeration.
+- Commit and tag materialization.
+- Blob extraction.
+- Scanner input generation.
+- Quarantine reports.
+- Temporary repository metadata.
+
+3.2 Required design
+
+Define a genuinely resource-bounded ODB processing architecture.
+
+Distinguish:
+
+- Maximum object count.
+- Maximum individual object size.
+- Maximum total ODB-reported bytes.
+- Maximum materialized bytes.
+- Maximum temporary-file bytes.
+- Maximum tree entries per tree.
+- Maximum total tree entries.
+- Maximum tree depth.
+- Maximum commit count.
+- Maximum parent count per commit.
+- Maximum tag nesting depth.
+- Maximum diagnostic output.
+- Maximum processing time.
+- Maximum memory consumption.
+- Maximum quarantine-report size.
+- Maximum number of simultaneously running child processes.
+- Maximum number of open file descriptors.
+
+For each limit, define:
+
+1. Exact numerical value.
+2. Enforcement point.
+3. Whether enforcement occurs before or during allocation.
+4. Overflow behavior.
+5. Producer termination behavior.
+6. Cleanup behavior.
+7. Failure classification.
+
+Do not assume that checking file size after writing proves resource safety.
+
+3.3 Bounded producer/consumer architecture
+
+Evaluate:
+
+- Bounded streaming.
+- Fixed-size temporary files.
+- Sealed memfd handling.
+- Producer/consumer processes.
+- Explicit byte counters.
+- Maximum record lengths.
+- Timeout and process termination.
+- Filesystem quotas or equivalent operating-system resource controls.
+- Process and file-descriptor limits.
+
+Every producer's exit status must be checked.
+
+No process-substitution or command-substitution shortcut may hide producer failure.
+
+Explain how process termination is handled when a producer or consumer exceeds its limit.
+
+3.4 Resource isolation
+
+Define the difference between application-level limits and operating-system-enforced limits.
+
+Evaluate:
+
+- "RLIMIT_FSIZE".
+- "RLIMIT_AS" or suitable memory limits.
+- "RLIMIT_NOFILE".
+- "RLIMIT_NPROC", where applicable.
+- CPU-time limits.
+- Filesystem quota or dedicated bounded temporary storage.
+- Process-group termination.
+- Child-process cleanup.
+
+Do not claim these controls are active until their implementation and enforcement are independently demonstrated.
+
+3.5 Required adversarial scenarios
+
+Specify future tests for:
+
+- 50,001 objects.
+- One object exceeding 25 MiB.
+- Total materialization exceeding 256 MiB.
+- Excessive "fsck" diagnostics.
+- A tree with an excessive number of entries.
+- Tree nesting exceeding 64 levels.
+- Excessive tag nesting.
+- Temporary filesystem exhaustion.
+- Interrupted object enumeration.
+- Producer failure halfway through output.
+- Integer overflow in object-size calculations.
+- Partial writes and reads.
+- Cleanup failure after a resource-limit violation.
+- Excessive simultaneous child processes.
+- File-descriptor exhaustion.
+
+All tests remain NOT RUN.
+
+PART 4 — G44-36: CANONICAL MANIFEST IDENTITIES AND BYTE-EXACT ENCODING
+
+Priority: HIGH
+
+4.1 Finding
+
+The previous report describes nine distinct identifiers while separately listing primary and signing fingerprints.
+
+It also describes a combined configuration digest without a fully specified canonical byte-level encoding.
+
+These inconsistencies must be corrected.
+
+4.2 Required identifier registry
+
+Create one authoritative identifier registry.
+
+At minimum, distinguish:
+
+1. Git blob OID.
+2. Raw file SHA-256.
+3. Executable SHA-256.
+4. Configuration SHA-256.
+5. OpenPGP primary-key fingerprint.
+6. OpenPGP signing-key/subkey fingerprint.
+7. Public-keyring SHA-256.
+8. Git commit OID.
+9. Git tree OID.
+10. Git annotated-tag OID.
+
+For every identifier, define:
+
+- Canonical name.
+- Exact format.
+- Character case.
+- Length.
+- Cryptographic domain.
+- Input byte sequence.
+- Purpose.
+- Comparison rule.
+- Whether it is an object identity, content digest or key identity.
+
+Do not merge different identifiers into a single count or interchangeable field.
+
+4.3 Canonical configuration digest
+
+Define an unambiguous multi-file digest format.
+
+It must specify:
+
+- File count.
+- Filename encoding.
+- Filename byte ordering.
+- Filename length encoding.
+- File-content length encoding.
+- File-content bytes.
+- Record separators or length-prefix encoding.
+- Digest algorithm.
+- Version/domain-separation prefix.
+
+A digest must not depend on ambiguous concatenation.
+
+Provide at least three hypothetical test vectors:
+
+- One configuration file.
+- Two configuration files.
+- Same contents with filenames exchanged.
+
+Expected properties:
+
+- Changing content changes the digest.
+- Changing filename changes the digest.
+- Changing file order does not change the canonical digest when canonical ordering is required.
+- Duplicate filenames are rejected.
+
+Do not invent computed cryptographic results without actually calculating them in a future authorized test.
+
+4.4 Cryptographic agility
+
+The reported Git object format is SHA-1, while the architecture also uses SHA-256 for raw content integrity.
+
+Keep these cryptographic roles separate.
+
+Define:
+
+- Which operations depend on Git's SHA-1 object identity.
+- Which operations depend on SHA-256 content integrity.
+- Whether any security decision relies solely on SHA-1.
+- How a Git object-format migration would be handled.
+- How algorithm identifiers are versioned.
+- How downgrade or algorithm-confusion attempts are rejected.
+- How new hash algorithms can be introduced without silently changing existing manifest semantics.
+
+Do not claim that adding SHA-256 to the manifest eliminates every SHA-1-related risk.
+
+4.5 Canonical manifest parser
+
+Define:
+
+- Fixed schema.
+- Field order.
+- Exact encoding.
+- Path byte representation.
+- Duplicate rejection.
+- Unknown-field rejection.
+- Missing-field rejection.
+- Maximum field length.
+- Maximum entry count.
+- Maximum total manifest size.
+- Sorting rules.
+- Permission and mode mapping.
+
+Explain how the parser prevents:
+
+- Path traversal.
+- Ambiguous normalization.
+- Duplicate paths.
+- Conflicting identities.
+- Unicode normalization confusion.
+- Embedded NUL bytes.
+- CRLF and delimiter injection.
+- Manifest poisoning.
+
+The hardcoded Layer B exclusion policy must remain independent of manifest authorization.
+
+PART 5 — G44-37: COMPLETE GIT OBJECT-CLOSURE AND HISTORY VALIDATION
+
+Priority: CRITICAL
+
+5.1 Finding
+
+Complete ODB enumeration and reachable-history traversal are different operations.
+
+The design must define a precise algorithm that validates every object relationship, not merely rely on one Git traversal command.
+
+5.2 Required object-closure algorithm
+
+Define the complete traversal model.
+
+Roots must include every explicitly accepted reference and the approved HEAD.
+
+The algorithm must validate:
+
+- Commit root-tree references.
+- Commit parent references.
+- Nested tree references.
+- Blob references.
+- Annotated tag references.
+- Tag-to-tag chains, if permitted.
+- Object type consistency.
+- Missing referenced objects.
+- Duplicate or malformed tree entries.
+- Cycles or unexpected recursive relationships.
+- Unreachable objects.
+- Dangling objects.
+
+For each object reference, verify that the referenced OID exists in the complete ODB inventory and has the exact expected type.
+
+Define how the algorithm detects a reference whose target is missing or has the wrong type.
+
+5.3 Independent closure comparison
+
+Specify the relationship between:
+
+- Complete ODB inventory.
+- Reachable object closure.
+- Dangling object set.
+- Unreachable object set.
+- Approved object set.
+
+Every object must receive exactly one documented classification.
+
+No object may disappear between sets.
+
+Provide a mathematical set relationship and explain how the implementation would validate it.
+
+5.4 Git compatibility
+
+Preserve the supported Git version profile:
+
+- Git 2.34.1 as previously reported.
+
+Define which features are version-specific.
+
+Do not assume newer Git options exist in 2.34.1.
+
+Any required option must have its availability verified during a separately authorized compatibility test.
+
+PART 6 — G44-38: GIT HTTP AUTHENTICATION AND CREDENTIAL CONFIGURATION ISOLATION
+
+Priority: HIGH
+
+6.1 Finding
+
+The previous design isolates HOME and uses a strict ".netrc" allowlist.
+
+However, repository-local Git HTTP configuration may still influence authentication, request headers, cookies, proxy use or destination behavior.
+
+6.2 Required configuration threat model
+
+Review all relevant configuration sources:
+
+- System Git configuration.
+- Global Git configuration.
+- Local repository configuration.
+- Command-line configuration.
+- Environment-based configuration.
+- URL-specific configuration.
+- HTTP-specific configuration.
+- Credential-related configuration.
+- Proxy-related configuration.
+- AskPass configuration.
+- Cookie configuration.
+- Extra HTTP headers.
+- Redirect handling.
+- TLS verification.
+- Remote URL aliases and multiple push URLs.
+
+Do not assume that clearing global configuration also neutralizes repository-local settings.
+
+6.3 Explicit allowlist
+
+Define a complete policy for permitted Git HTTP settings.
+
+Explicitly evaluate:
+
+- "http.extraHeader"
+- "http.cookieFile"
+- "http.proxy"
+- "http.sslVerify"
+- "http.followRedirects"
+- "credential.helper"
+- "core.askPass"
+- "remote.origin.url"
+- "remote.origin.pushurl"
+- URL-specific configuration sections
+
+Do not claim this is a complete list without an adversarial configuration review.
+
+6.4 Destination integrity
+
+Define how the design guarantees that:
+
+- The remote URL is the exact Owner-approved origin.
+- The push destination cannot be changed independently.
+- Redirect behavior cannot silently redirect credentials to an unapproved host.
+- Multiple remote URLs cannot be used to exfiltrate data.
+- Proxy variables cannot silently redirect traffic.
+- Hostname and port validation are unambiguous.
+- Authentication is never silently downgraded.
+- Authentication headers cannot be injected through an alternate configuration source.
+
+Define whether redirects are prohibited or restricted to an explicit same-origin policy.
+
+6.5 Required tests
+
+Specify future tests for:
+
+- Injected "http.extraHeader".
+- Unexpected cookie file.
+- Malicious proxy configuration.
+- Multiple push URLs.
+- Redirect to another hostname.
+- Hostile local Git configuration.
+- Global configuration override.
+- Credential helper fallback.
+- AskPass fallback.
+- TLS verification disabled.
+- URL rewriting.
+- Unexpected authentication headers.
+
+All tests remain NOT RUN.
+
+PART 7 — G44-39: GPG STATUS-PARSER AND EXECUTABLE TRUST-BOUNDARY COMPLETENESS
+
+Priority: HIGH
+
+7.1 Finding
+
+The previous design specifies FD-separated GnuPG status output, but genuine GnuPG 2.2.27 and Git 2.34.1 compatibility evidence remains pending.
+
+The executable inventory also requires a clearer separation between the static launcher, direct child processes, transitive helpers and OS trust components.
+
+7.2 GnuPG parser review
+
+Review the complete parser specification.
+
+Challenge:
+
+- NEWSIG state transitions.
+- SIG_ID association.
+- GOODSIG key-ID association.
+- VALIDSIG fingerprint positions.
+- Primary-key fingerprint handling.
+- Signing-subkey fingerprint handling.
+- Hash algorithm restrictions.
+- Signature creation and expiration time.
+- Revocation status.
+- Trust status.
+- Unknown status records.
+- Duplicate records.
+- Multiple signatures.
+- Incomplete status output.
+- Truncated status files.
+- Non-zero process exit codes.
+- Conflicting Git verification results.
+
+Determine whether any parser assumption is unsupported by genuine GnuPG 2.2.27 documentation or observed behavior.
+
+Do not fabricate real compatibility evidence.
+
+7.3 Status-channel integrity
+
+Specify how the design prevents:
+
+- Status-file truncation.
+- Partial writes.
+- Concurrent writers.
+- Unexpected file replacement.
+- Unbounded status output.
+- Diagnostic text being interpreted as authenticated status.
+- A valid status file being paired with the wrong signature input.
+- A verification result being reused for a different commit or tag.
+
+Define the binding between:
+
+- Signature object.
+- Payload bytes.
+- Signature bytes.
+- GPG status result.
+- Git verification result.
+- Expected primary fingerprint.
+- Expected signing fingerprint.
+
+7.4 Authoritative executable inventory
+
+Create one definitive inventory with these distinct categories:
+
+A. Static C launcher.
+
+B. Direct Bash executable.
+
+C. Core script-invoked utilities.
+
+D. Mandatory Git transport and internal helpers.
+
+E. Conditional GPG signing helpers.
+
+F. Optional SSH helpers.
+
+G. Security scanner.
+
+H. Dynamic shared libraries and OS TCB.
+
+For each item, specify:
+
+- Exact path.
+- Binary or script classification.
+- Required/optional/disabled status.
+- Expected digest provenance.
+- Expected owner.
+- Expected permissions.
+- Invocation conditions.
+- Allowed environment.
+- Timeout.
+- Expected exit codes.
+- Failure behavior.
+
+Reconcile all previously reported counts.
+
+Do not claim inventory completeness until authorized runtime execution traces confirm every supported workflow.
+
+Explicitly preserve:
+
+- "gpgconf" diagnostic-only status.
+- "tar" removed.
+- SSH disabled by default.
+- Credential helpers disabled.
+- Dirmngr disabled during verification.
+- Genuine Gitleaks required for production scanning.
+
+PART 8 — G44-40: CROSS-LAYER FAILURE, CLEANUP, QUARANTINE AND RECOVERY SAFETY
+
+Priority: HIGH
+
+8.1 Finding
+
+The architecture contains many individual fail-closed controls.
+
+However, their combined behavior must be reviewed across process failures, partial operations, interruptions, storage exhaustion and cleanup failures.
+
+8.2 End-to-end failure-state model
+
+Define the exact lifecycle:
+
+1. Launcher entry.
+2. Trust-anchor validation.
+3. Configuration validation.
+4. Credential validation.
+5. Lock acquisition.
+6. Repository inspection.
+7. Full ODB enumeration.
+8. Object closure verification.
+9. Manifest comparison.
+10. Secret scanning.
+11. Staging.
+12. Post-staging verification.
+13. Commit verification.
+14. Tag verification.
+15. Push pre-check.
+16. Optional remote operation.
+17. Cleanup.
+18. Final audit evidence.
+
+For each step, specify:
+
+- State before operation.
+- State after success.
+- State after failure.
+- Files created.
+- Sensitive material present.
+- Lock status.
+- Quarantine status.
+- Permitted next action.
+
+8.3 Interruption and cleanup
+
+Evaluate:
+
+- SIGINT.
+- SIGTERM.
+- SIGHUP.
+- SIGKILL.
+- Kernel termination.
+- Disk full.
+- Read-only filesystem.
+- Failed unlink.
+- Failed rename.
+- Failed quarantine creation.
+- Lock acquisition failure.
+- Lock-release failure.
+- Process timeout.
+- Child process surviving parent termination.
+- Interrupted network operation.
+
+Do not claim EXIT or signal traps can handle SIGKILL or kernel termination.
+
+Define how the system detects and safely handles incomplete state on a subsequent invocation.
+
+8.4 Quarantine integrity
+
+Specify:
+
+- Directory ownership.
+- Directory permissions.
+- File permissions.
+- Path traversal prevention.
+- No symlink following.
+- Evidence manifest format.
+- Object identity recording.
+- Evidence size limits.
+- No sensitive-content logging.
+- Non-destructive preservation.
+- Reviewer access boundaries.
+
+No automatic Git prune, garbage collection, or suspicious-object deletion is permitted.
+
+8.5 Recovery state integrity
+
+Define how the future architecture prevents:
+
+- Partial staging from being treated as complete.
+- Partial commits from being treated as verified.
+- Failed verification from being followed by push.
+- Failed cleanup from being treated as success.
+- Quarantine failure from being silently ignored.
+- A retry from inheriting unsafe state.
+
+Every incomplete state must have an explicit terminal or recoverable classification.
+
+PART 9 — PRINCIPAL ARCHITECT ADDITIONAL RECOMMENDATIONS
+
+These recommendations are mandatory review subjects. Do not silently assume they are already satisfied by the existing design.
+
+9.1 Independent threat model and trust-boundary diagram
+
+Produce a threat model that identifies:
+
+- Assets.
+- Trust boundaries.
+- Entry points.
+- Privilege boundaries.
+- External dependencies.
+- Attacker capabilities.
+- Protected data.
+- Security objectives.
+- Failure consequences.
+
+Include a trust-boundary diagram showing:
+
+1. Static C launcher.
+2. Bash recovery script.
+3. Configuration and manifest.
+4. Git repository and object database.
+5. GPG verification environment.
+6. HTTPS authentication environment.
+7. Security scanner.
+8. Temporary storage and quarantine.
+9. Operating-system TCB.
+10. External Git remote.
+
+Clearly distinguish what the launcher enforces from what depends on the OS.
+
+9.2 Threat-severity and attack-feasibility review
+
+Do not assign severity only from theoretical impact.
+
+For every critical or high finding, separately evaluate:
+
+- Attacker privilege.
+- Required access.
+- Attack complexity.
+- Exploit preconditions.
+- Potential confidentiality impact.
+- Integrity impact.
+- Availability impact.
+- Detectability.
+- Recovery impact.
+
+Explain why the selected severity is justified.
+
+Do not downgrade historical severity merely because a proposed mitigation exists.
+
+9.3 Independent control validation
+
+For every major security claim, identify at least one adversarial test that attempts to falsify it.
+
+Examples:
+
+- Launcher integrity claim → replace a checked file after verification.
+- Configuration integrity claim → introduce duplicate and malformed fields.
+- ODB completeness claim → introduce unreachable objects and malformed trees.
+- Manifest integrity claim → create conflicting file identities.
+- GPG verification claim → substitute signature payloads and fingerprints.
+- HTTPS isolation claim → inject alternate HTTP authentication configuration.
+- Cleanup claim → interrupt the workflow at every state transition.
+
+The validation matrix must test negative behavior, not only successful workflows.
+
+9.4 Fail-closed semantics must be operationally precise
+
+For every failure condition, define:
+
+- Exact non-zero exit behavior.
+- Whether a child process is terminated.
+- Whether the lock remains held.
+- Whether temporary files remain.
+- Whether quarantine is required.
+- Whether retry is permitted.
+- Whether Owner intervention is required.
+
+Avoid vague statements such as "abort safely" or "fail securely."
+
+9.5 Separate safety from availability
+
+A fail-closed system can still fail operationally.
+
+Evaluate:
+
+- Recovery availability.
+- False-positive rejection.
+- Resource exhaustion.
+- Lock contention.
+- Temporary storage exhaustion.
+- Scanner unavailability.
+- GPG key expiration.
+- Revocation-list staleness.
+- Remote authentication failure.
+
+Never weaken security controls automatically to make recovery succeed.
+
+9.6 Independent evidence integrity
+
+Define how future audit evidence is protected.
+
+Evaluate:
+
+- Hashing of source artifacts.
+- Hashing of test reports.
+- Test environment identity.
+- Tool version and binary identity.
+- UTC timestamps.
+- Test execution identity.
+- Reviewer identity and role.
+- Immutable evidence storage.
+- Evidence completeness.
+- Evidence tampering detection.
+
+Separate:
+
+- Model-generated design recommendations.
+- Operator-reported observations.
+- Actual test output.
+- Independently reproduced findings.
+- Owner decisions.
+
+A generated summary is not primary evidence.
+
+9.7 No hidden fallback paths
+
+Audit every fallback path.
+
+Explicitly reject silent fallback from:
+
+- Genuine Gitleaks to a synthetic stub.
+- ShellCheck to "bash -n".
+- Pinned binaries to PATH resolution.
+- HTTPS to HTTP.
+- Pinned remote to another URL.
+- Pinned GPG keyring to system keyrings.
+- Verified object set to partial history.
+- Failed cleanup to successful completion.
+
+Every fallback must be explicitly authorized, separately documented, and fail closed by default.
+
+9.8 Recovery rollback and retry safety
+
+Design a recovery state machine that makes retries idempotent where possible.
+
+For every operation, establish:
+
+- Whether it can be repeated safely.
+- Whether it can create duplicate artifacts.
+- Whether it can publish partially verified data.
+- Whether a previous incomplete operation affects the next run.
+- Whether rollback is possible.
+- Whether rollback itself can fail.
+
+No automatic destructive rollback is permitted.
+
+9.9 Production readiness is a separate gate
+
+Independent design approval must never be presented as production readiness.
+
+Production readiness requires separate evidence for:
+
+- Genuine build artifact integrity.
+- Genuine Gitleaks execution.
+- Genuine ShellCheck execution.
+- Genuine GnuPG compatibility.
+- Git transport validation.
+- Root and non-root testing.
+- Resource-limit testing.
+- Full adversarial regression.
+- Independent implementation audit.
+- Owner approval.
+- Explicit production authorization.
+
+9.10 Security claims must be measurable
+
+Replace unsupported marketing-style claims with measurable acceptance criteria.
+
+Do not use:
+
+- 100% secure.
+- Guaranteed safe.
+- Fully bulletproof.
+- Zero vulnerabilities.
+- Production certified.
+- ISO certified.
+
+Unless a specific independent certification and its scope have actually been established.
+
+PART 10 — FULL CROSS-FINDING CONSISTENCY REVIEW
+
+After reviewing G44-35 through G44-40, reassess all historical findings.
+
+At minimum, evaluate:
+
+1. Launcher trust boundary.
+2. Hash trust-anchor provenance.
+3. Static binary integrity.
+4. Bash privilege mode.
+5. Environment sanitization.
+6. Configuration parsing.
+7. Descriptor provenance.
+8. Memfd sealing.
+9. Locking.
+10. Git configuration.
+11. Git transport.
+12. Git authentication.
+13. Executable inventory.
+14. Git object enumeration.
+15. Full object closure.
+16. Unreachable trees.
+17. Tree mode validation.
+18. Commit and tag relationships.
+19. Manifest integrity.
+20. Four-way comparison.
+21. Secret scanning.
+22. Layer B exclusion.
+23. GPG trust.
+24. GPG status parsing.
+25. Signature container parsing.
+26. OpenPGP armor compatibility.
+27. HTTPS credential handling.
+28. Resource limits.
+29. Temporary storage.
+30. Cleanup.
+31. Quarantine.
+32. Signal handling.
+33. Same-UID isolation.
+34. OS TCB boundaries.
+35. Root and non-root behavior.
+36. Audit evidence.
+37. Genuine security-tool availability.
+38. Production build artifact availability.
+39. Independent audit readiness.
+40. Owner authorization boundary.
+
+For every area, classify:
+
+- RESOLVED BY DESIGN.
+- PARTIAL.
+- OPEN.
+- BLOCKED.
+- NOT ASSESSED.
+
+PART 11 — NEW ADVERSARIAL FINDINGS
+
+Do not restrict the review to G44-35 through G44-40.
+
+Search for new weaknesses across all layers.
+
+Consider:
+
+- Integer overflow.
+- Resource exhaustion.
+- Time-of-check/time-of-use.
+- Object type confusion.
+- Path traversal.
+- Parser differentials.
+- Git configuration precedence.
+- URL redirect behavior.
+- Credential leakage.
+- Signature substitution.
+- Trust-anchor substitution.
+- Process inheritance.
+- Descriptor replacement.
+- Memfd sealing errors.
+- Temporary-file races.
+- Lock races.
+- Signal handling.
+- Child-process survival.
+- Quarantine failure.
+- Recovery retry confusion.
+- Log injection.
+- Error suppression.
+- Same-UID attacks.
+- Root compromise.
+- OS trust-boundary assumptions.
+
+Assign new identifiers G44-41 onward.
+
+Do not delete, merge, rename or downgrade existing findings.
+
+PART 12 — FUTURE VALIDATION MATRIX
+
+Prepare reproducible future tests for every new finding.
+
+Each test must contain:
+
+Field| Required information
+Test ID| Unique ID
+Finding| G44-35 through G44-40 or historical ID
+Threat| Exact attack
+Preconditions| Disposable environment requirements
+Procedure| Reproducible steps
+Expected result| Exact result
+Failure behavior| Explicit fail-closed condition
+Evidence| Hashes, logs, traces or reports
+Execution status| NOT RUN
+Reviewer status| PENDING
+
+Keep these test categories separate:
+
+- Static source review.
+- Synthetic unit tests.
+- Genuine tool compatibility tests.
+- Root tests.
+- Non-root tests.
+- Adversarial integration tests.
+- Resource-exhaustion tests.
+- Independent security audit.
+
+No unexecuted test may be labelled PASS.
+
+For every security control, include at least one negative test.
+
+PART 13 — BLOCKER REGISTER
+
+Preserve all existing blockers.
+
+Blocker A: Missing genuine "dist-server/server.cjs" artifact.
+
+Expected SHA-256:
+
+"50b6ef051c86f46f69d5df9cfe35b79851920cd9ee45a496269956c66ae5e957"
+
+Expected size: 1,210,911 bytes.
+
+Do not fabricate or reconstruct it.
+
+Blocker B: Genuine Gitleaks unavailable.
+
+A synthetic stub is not genuine secret scanning.
+
+Blocker C: Genuine ShellCheck unavailable.
+
+"bash -n" is not ShellCheck.
+
+Blocker D: No v0.3.5 implementation, no launcher, and no independent Gate 0.4.5 audit.
+
+Blocker E: Genuine GnuPG 2.2.27/Git 2.34.1 compatibility, live libcurl authentication, executable traces and timeout digest remain pending.
+
+Add newly identified blockers without removing existing ones.
+
+PART 14 — REQUIRED FINAL REPORT
+
+Return a comprehensive, evidence-disciplined report with:
+
+1. Executive Security Verdict.
+2. Scope and Governance Confirmation.
+3. Baseline Preservation Statement.
+4. G44-35 — Resource-Bounded ODB Processing.
+5. G44-36 — Canonical Manifest Identity.
+6. G44-37 — Complete Git Object Closure.
+7. G44-38 — Git HTTP Authentication Isolation.
+8. G44-39 — GPG and Executable Trust Boundary.
+9. G44-40 — End-to-End Failure and Recovery Safety.
+10. Principal Architect Additional Recommendations Assessment.
+11. Full Historical Finding Preservation Matrix.
+12. New Adversarial Findings.
+13. Threat Model and Trust-Boundary Diagram.
+14. Cross-Layer Consistency Audit.
+15. Future Validation Matrix.
+16. Updated Residual Risk Register.
+17. Updated Blocker Register.
+18. Independent Reviewer Readiness Assessment.
+19. Owner Decision Requirements.
+20. Explicit Authorization Boundary.
+21. Final Decision Gate.
+
+For every conclusion, identify whether it is based on:
+
+- Supplied documentation.
+- Previously reported host measurements.
+- Established technical reasoning.
+- Actual executed evidence.
+- Independent reviewer findings.
+
+Never describe a supplied report as independently verified.
+
+PART 15 — EVIDENCE AND ACCEPTANCE RULES
+
+Apply these mandatory rules:
+
+1. A written mitigation is not implementation evidence.
+2. A synthetic test is not genuine tool compatibility evidence.
+3. A successful build is not a security audit.
+4. A clean "bash -n" result is not ShellCheck.
+5. A fake Gitleaks executable is not genuine secret scanning.
+6. A matching final Git tree is not proof that intermediate history is clean.
+7. A hash calculated by an untrusted process is not an independent trust anchor.
+8. A successful GPG command is not sufficient without correct fingerprint and signature association.
+9. A successful Git push is not proof that the intended remote received only approved data.
+10. A cleanup trap is not protection against SIGKILL or kernel failure.
+11. A design review is not implementation authorization.
+12. An implementation test is not independent certification.
+13. An absent artifact must remain absent; never reconstruct it to satisfy a hash.
+14. No unresolved critical issue may be hidden inside a broad PASS summary.
+
+If evidence is missing, mark the relevant control PARTIAL, BLOCKED or NOT ASSESSED.
+
+PART 16 — STOP CONDITIONS AND ESCALATION
+
+Immediately stop the review from advancing to a favorable readiness conclusion if any of the following is found:
+
+- An unresolved critical design weakness.
+- A protected Layer B access requirement.
+- A credential or private-key exposure requirement.
+- An unbounded resource-consumption path.
+- An unverified executable trust dependency.
+- A fail-open authentication or signature path.
+- An ambiguous Git object classification.
+- A manifest authorization bypass.
+- An unexplained difference between approved and actual data.
+- A cleanup or quarantine failure that can be treated as success.
+- A conflict between Owner authorization and the proposed scope.
+- Any unsupported claim of testing, certification or production readiness.
+
+Record the issue, preserve the evidence classification, and identify the exact next decision required.
+
+Do not proceed by silently weakening a security condition.
+
+PART 17 — FINAL DECISION GATE
+
+Choose exactly one option.
+
+OPTION A — READY FOR INDEPENDENT SECURITY REVIEW
+
+Choose only if:
+
+- No unresolved critical architectural weakness remains.
+- The architecture is internally consistent.
+- Trust boundaries are explicit.
+- Failure behavior is unambiguous.
+- Resource limits are enforceable.
+- Historical findings remain preserved.
+- Required validation is clearly defined.
+- No unsupported security claims remain.
+- Remaining limitations are honestly documented.
+
+This option does not authorize implementation.
+
+OPTION B — DESIGN CORRECTION REQUIRED
+
+Choose if any important architectural ambiguity, missing enforcement point, unresolved high-risk assumption or inconsistent control remains.
+
+Identify exact finding IDs and the smallest necessary correction round.
+
+OPTION C — REJECT CURRENT ARCHITECTURE
+
+Choose if the design has fundamental security weaknesses requiring architectural redesign.
+
+Explain the reasons and required replacement architecture.
+
+Do not choose Option A merely because all findings have written mitigations.
+
+PART 18 — FINAL NON-NEGOTIABLE AUTHORIZATION BOUNDARY
+
+This assignment is strictly design-only.
+
+Preserve v0.3.4 unchanged.
+
+Do not create v0.3.5.
+
+Do not compile or execute the launcher.
+
+Do not inspect or modify protected Layer B contents.
+
+Do not access secrets or production credentials.
+
+Do not perform production recovery, external Git push, backup, restore or deployment.
+
+Do not enter Stage 1C-2.
+
+A favorable independent design-review verdict is not implementation authorization.
+
+A future disposable implementation phase requires separate, explicit written Owner authorization with a precisely defined scope.
+
+Production authorization remains a separate decision after implementation, genuine security-tool validation, independent Gate 0.4.5 audit and closure of applicable blockers.
+
+Permanent engineering sequence:
+
+INSPECT → ANALYZE → THREAT MODEL → DESIGN → ADVERSARIAL CHALLENGE → CORRECT → INDEPENDENT REVIEW → OWNER DECISION → SEPARATE IMPLEMENTATION AUTHORIZATION → IMPLEMENT → VERIFY → INDEPENDENT AUDIT → PRODUCTION DECISION.
+
+STOP after delivering the complete design assessment and final decision gate.

@@ -1,0 +1,221 @@
+PDFSun.in — Stage 1C-1 Independent Security Review Report
+1. Executive Verdict
+Readiness Gate	Independent Status	Evidence Basis
+Design Readiness	HOLD / REVISE (OPTION B)	DOC + REASONED — Core architecture is sound (not REJECT), but independent review identified 5 material design contradictions/omissions (G44-46–G44-50) that must be corrected before formal design acceptance.
+Implementation Readiness	BLOCKED	OWNER + DOC — Design acceptance pending (OPTION B); no separate written Owner authorization from Mukesh Kalonia (Blocker F).
+Verification Readiness	BLOCKED	HOST + DOC — No v0.3.5 code/launcher exists (Blocker D); genuine GnuPG 2.2.27 / Git 2.34.1 / libcurl / strace evidence NOT RUN (Blocker E); genuine gitleaks & shellcheck unavailable (Blockers B, C).
+Production Readiness	BLOCKED	HOST + DOC + OWNER — Missing genuine dist-server/server.cjs (Blocker A), Blockers B–F, no Gate 0.4.5 independent implementation audit, no production authorization.
+Independent Reviewer Decision: OPTION B — HOLD / REVISE (one tightly scoped design correction round closing G44-46–G44-50 is required; no fundamental redesign needed).
+2. Independence and Scope Statement
+Role: Independent Principal Security Architect and adversarial design reviewer — not the architecture author. All prior claims of "RESOLVED BY DESIGN" and "Ready for Independent Security Review" were challenged independently rather than accepted at face value.
+Strict Mode: DESIGN-ONLY / READ-ONLY documentation review. Zero shell commands executed; zero files, scripts, launchers, binaries, keys, credentials, or Git objects created, modified, compiled, installed, or executed.
+Permanent Prohibitions Preserved: Frozen v0.3.4 untouched; v0.3.5 and static C launcher not created; protected Layer B stores (/app/applet/users_store.json, /app/applet/comments_store.json, /app/applet/rate_limits_store.json, /app/applet/banned_ips.json, /app/applet/data/analytics_events.json) never read, copied, hashed, modified, or used as fixtures; zero Git, backup, deployment, or Stage 1C-2 activity.
+3. Evidence Provenance
+Every conclusion in this report uses the mandatory evidence taxonomy:
+Label	Definition & Usage in This Review
+DOC	Supplied Stage 1C-1 consolidated report (G44-35–G44-45) and prior historical design/audit reports
+HOST	Previously reported host measurements (e.g., git 2.34.1, gpg 2.2.27, OpenSSL 3.0.22, v0.3.4 SHA-256) — not independently re-executed in this documentation-only turn
+REASONED	Independent security engineering & Linux/Git/GnuPG/libcurl protocol analysis
+EXECUTED	Actual runtime test execution evidence (NONE exists for v0.3.5)
+REPRODUCED	Independently reproduced runtime evidence (NONE exists for v0.3.5; prior Gate 0.4.4 audit applied only to v0.3.4)
+OWNER	Explicit written Owner decision from Mukesh Kalonia (NONE received for v0.3.5)
+UNKNOWN	Insufficient evidence / NOT VERIFIED in this turn
+4. Baseline and Governance
+Item	Supplied Position (DOC / HOST)	Independent Verification Status in This Turn
+Stage 1C-1 submitted gate	Option A — Ready for Independent Security Review (DOC)	Overridden to OPTION B — HOLD / REVISE (REASONED)
+v0.3.4 (/tmp/pdfsun-stage1b2-recovery-v0.3.4.sh)	Reported SHA-256 159a067ac0442395619aa92152bf8443668383290c6fa6ae32d568b7d112e75d, 68,022 bytes, 0555 (HOST/DOC)	NOT VERIFIED (documentation-only review; zero filesystem commands run)
+v0.3.5 script & static C launcher	Reported ABSENT (HOST/DOC)	NOT VERIFIED in this turn; not created
+Protected Layer B stores (5 files)	Permanently protected (DOC)	Zero access attempted or performed
+Owner authorization (Mukesh Kalonia)	Not received (DOC)	Confirmed absent (OWNER: none)
+Implementation / Production / External Git / Stage 1C-2	Blocked (DOC)	Remains BLOCKED
+5. Independent Review of G44-35 Through G44-45
+Finding	Submitted Claim (DOC)	Independent Technical Challenge (REASONED)	Independent Verdict	Remaining Uncertainty
+G44-35 Resource-Bounded ODB	RESOLVED BY DESIGN (17 limits + C --bounded-run + RLIMIT_*)	Fails full scrutiny (G44-46): (1) kill(-pgid, SIGKILL) does not terminate grandchildren that call setsid() (notably gpg-agent --daemon), contradicting "zero surviving grandchildren"; (2) RLIMIT_FSIZE (32 MiB) and RLIMIT_CPU (300s) are per-process, not aggregate — 50,000 1-byte files can exhaust /tmp inodes (f_favail unchecked!) while staying under byte caps, and sequential spawns multiply CPU; (3) memory protection for Go gitleaks & total process caps depend on optional OS cgroup v2 (memory.max, pids.max) and dedicated tmpfs quotas, not enforceable by unprivileged userspace alone.	PARTIAL (blocked from design acceptance by G44-46)	Exact tmpfs/cgroup availability on Owner host (UNKNOWN)
+G44-36 Canonical Manifest Identities	RESOLVED BY DESIGN (10-ID registry, PDFSUN-CFG-DIGEST-V1, C manifest parser)	10-ID registry, PDFSUN-CFG-DIGEST-V1 binary length-prefix encoding, SHA-1 agility disclosure, and anti-downgrade header are technically sound (REASONED). However (G44-50): Section 5.4 places the 4 MiB manifest parser inside the C launcher, whereas the launcher spec & trust diagram define only 3 memfds (script, config <= 64 KiB, cred <= 512 B) — omitting --manifest-fd and EXPECTED_MANIFEST_SHA256 binding.	PARTIAL (contradiction logged as G44-50)	Computed vectors deferred until authorized execution (EXECUTED: none)
+G44-37 Complete Git Object Closure	RESOLVED BY DESIGN (
+ + 6 classes)	Mathematical contradiction (G44-47): The 3-way reachability partition (
+) is not pairwise disjoint from the 6 claimed object classes (VALID_APPROVED, VALID_UNREACHABLE, DANGLING, CORRUPT, UNEXPECTED, PROHIBITED_CONTENT): e.g., a reachable or dangling tree containing users_store.json + a 120000 symlink belongs to multiple classes simultaneously. Also omits an explicit UNCLASSIFIABLE set for corrupt objects that fail cat-file --batch-all-objects before typing.	PARTIAL (set-model bug logged as G44-47)	Live git 2.34.1 corrupt/cycle/unreachable tests NOT RUN
+G44-38 Git HTTP Auth & Config Isolation	RESOLVED BY DESIGN (strict local config allowlist + followRedirects=false)	Switching from denylist to allowlist is a strong improvement, but (G44-48): (1) git config --local --list --null omits --no-includes and --show-scope --show-origin (risking include.path/includeIf evaluation during audit or undetected non-local scope leakage); (2) CLI -c http.extraHeader= does not override URL-scoped http.<url>.extraHeader, making --show-scope --no-includes load-bearing; (3) case-sensitivity of Git subsection names (branch.<Case>.remote) and .git/config.worktree need explicit handling; (4) http.followRedirects=false requires exact canonical .git URLs on GitHub/GitLab to avoid 301 operational failures.	PARTIAL (config audit gap logged as G44-48)	Live libcurl-gnutls redirect & .netrc tests NOT RUN (Blocker E)
+G44-39 GPG Status Parser & Executable Trust	PARTIAL (5-channel FD-3/FD-4 + git verify-* + 8-cat inventory)	Correctly kept PARTIAL due to missing live GnuPG 2.2.27 + Git 2.34.1 captures (Blocker E). Additional design defect (G44-49): Eliminating /usr/bin/timeout via C --bounded-run left non-wrapped Category C utilities (find, sort, grep, openssl, sha256sum) without per-invocation wall-clock timeout or stdout caps, and re-invoking /tmp/pdfsun-stage1b2-launch-v0.3.5 --bounded-run by /tmp path introduces re-exec path TOCTOU unless pinned via inherited /proc/self/fd/<launcher_fd> and executed via fexecve(tool_fd).	PARTIAL (inventory/TOCTOU gap logged as G44-49)	Live GnuPG 2.2.27 FD-3 tokens & strace traces NOT RUN (Blocker E)
+G44-40 Failure, Cleanup & Quarantine	RESOLVED BY DESIGN (18-step lifecycle, crash state, non-destructive quarantine)	Strong fail-closed lifecycle; honest SIGKILL/OOM treatment via flock-protected atomic state file; failed cleanup (91) and failed quarantine (92) never masked as success. Dependent on G44-46 (inode/escaping-child cleanup) and runtime fault injection.	RESOLVED BY DESIGN (subject to impl/testing & G44-46)	Disk-full / RO-FS / SIGKILL recovery tests NOT RUN
+G44-41 --bounded-run Argument Surface	RESOLVED BY DESIGN (enum-restricted pinned tools, env scrub)	Concept is sound, but under-specified on /tmp path re-invocation TOCTOU, whether every call re-verifies fexecve(tool_fd), and which Category C utilities are in the enum (G44-49).	PARTIAL (depends on G44-49)	C unit & fuzz tests NOT RUN
+G44-42 Packfile Zlib / Delta Bomb	RESOLVED BY DESIGN (raw .git/objects <= 512 MiB, RLIMIT_CPU, cgroup v2)	Correctly notes stdout limits do not stop pre-output CPU/RAM exhaustion; however, raw compressed .git/objects <= 512 MiB still permits a < 1 MiB packfile expanding to gigabytes of RAM if cgroup v2 memory.max is unavailable (RR-14).	PARTIAL (OS cgroup v2 dependency — RR-14)	Zlib/delta bomb test NOT RUN
+G44-43 Audit & Terminal Injection	RESOLVED BY DESIGN (hex-escape outside 0x20–0x7E)	Technically sound provided the escaping encoder is centralized in a single mandatory output helper (never raw printf '%s' of filenames, commit subjects, GPG UIDs, or Git/GPG stderr lines).	RESOLVED BY DESIGN (subject to impl/testing)	ANSI/CR/invalid-UTF-8 injection test NOT RUN
+G44-44 Remote Push Split-Brain	RESOLVED BY DESIGN (REMOTE_STATE_UNCERTAIN, no auto-retry/rollback)	Sound fail-closed design: terminal state, read-only ls-remote OID check, mandatory Owner decision before any further mutation.	RESOLVED BY DESIGN (subject to impl/testing)	Dropped-ACK network test NOT RUN
+G44-45 NUL-Safe Config Parsing	RESOLVED BY DESIGN (IFS= read -r -d '', split first \n, reject valueless/\n/\r)	Sound NUL-safe parser logic, but must explicitly cover duplicate singleton keys (reject count > 1), empty values (reject unless explicitly allowed), EOF trailing non-NUL truncation, and combine with --no-includes --show-scope --show-origin (G44-48).	PARTIAL (depends on G44-48)	Malformed .git/config unit tests NOT RUN
+6. Historical Finding Regression (V-01–RR-15 Preserved Without Deletion or Downgrade)
+ID	Original Severity	Technical Defect	Proposed Mitigation (DOC)	Evidence	Independent Verdict	Remaining Risk
+V-01–V-13	High–Critical	Baseline v0.3.0–v0.3.2 recovery, lock, signing, isolation defects	Hardened v0.3.5 + static C launcher	DOC, HOST (v0.3.4 only)	PARTIAL (v0.3.5 NOT RUN)	RR-01–RR-17
+IR-01–IR-05	High	Historical scan, Git isolation, error propagation, NUL paths, genuine scanner	Full ODB scan + --bounded-run + genuine gitleaks	DOC, HOST (gitleaks absent)	BLOCKED (IR-01/05 by Blocker B)	RR-08
+IR-06–IR-10	Med–High	Gate 0.4.3/0.4.4 additional integrity/hardening requirements	Integrated into v0.3.5 spec	DOC	PARTIAL (NOT RUN)	RR-01–RR-10
+NEW-01,03,05–08	Med–Critical	Lock symlink, masked errors, shallow/replace, repo dir, export, cleanup	Preserved + {LOCK_FD} + O_NOFOLLOW + crash state	DOC, HOST (v0.3.4)	PARTIAL (v0.3.5 NOT RUN)	RR-01, RR-10
+NEW-02,04,09	High–Critical	Post-stage tamper, dangerous Git config, signing/key defects	Closed via G44-01–09, 20, 27, 29, 38	DOC, REASONED	PARTIAL (depends on G44-47,48,49)	RR-11, RR-12
+G44-01–G44-02	CRITICAL	Intermediate-commit smuggling; remote.origin.pushurl exfil	Full ODB + HEAD ancestry ==1 + strict local config allowlist	DOC, REASONED	PARTIAL (depends on G44-47,48)	Low
+G44-03–G44-06	HIGH	Restore hooks RCE; PATH hijack; unpinned GPG/SSH; multi-URL/worktree/alias	Global/system scrub + C launcher + G44-38/39	DOC, REASONED	PARTIAL (depends on G44-48,49)	RR-01, RR-10
+G44-07–G44-09	MEDIUM	ls-tree symlinks/gitlinks; index flags; restore GPG skip & BASH_ENV	ls-tree -z + ls-files -s/-v -z + G44-29 + bash -p	DOC, REASONED	PARTIAL (NOT RUN)	RR-01
+G44-10–G44-11	LOW	exec 9>&- 2>/dev/null mute; cp -P -p / shallow symlink / TMPDIR	{LOCK_FD} + explicit chmod + ancestor O_NOFOLLOW	DOC, REASONED	RESOLVED BY DESIGN (NOT RUN)	Low
+G44-12–G44-17 (R-01–07)	HIGH	Pre-interpreter LD_PRELOAD/BASH_ENV, forgeable marker, ld.so.preload TCB, provenance, memfd/fexecve, non-circular C hashing, NUL config, FD parsing, {LOCK_FD}	Static C launcher + 4-tier provenance + sealed memfds	DOC, HOST, REASONED	PARTIAL (depends on G44-49,50)	RR-01–RR-05
+R-08	HIGH	Dual mandatory primary + signing FPR + pubring SHA-256	Dual-FPR + G44-29 FD-3 state machine	DOC, REASONED	PARTIAL (Blocker E)	RR-11
+R-09	HIGH (Limit)	Same-UID direct /usr/bin/bash -p bypass	Explicitly documented NOT ACHIEVABLE in single-UID DAC	DOC, REASONED	RESOLVED BY DESIGN (honest limit)	RR-01
+G44-18	HIGH	GIT_CONFIG_GLOBAL=/dev/null vs GPG signing CLI -c	Authenticated CLI -c signing flags	DOC, REASONED	PARTIAL (Blocker E)	RR-12
+G44-19	MEDIUM	Container git/gpg unpackaged	Tier 1 container-only vs Tier 4 Owner host	HOST, DOC	PARTIAL (Owner Tier-4 pending)	RR-06
+G44-20	CRITICAL	git archive .gitattributes export-ignore bypass	git archive & tar eliminated; direct ls-tree/cat-file	DOC, REASONED	RESOLVED BY DESIGN (NOT RUN)	Low
+G44-21–G44-22	HIGH	Transitive executable inventory; GPG NEWSIG state machine	8-cat inventory + 5-channel G44-39	DOC, HOST, REASONED	PARTIAL (G44-49, Blocker E)	RR-06,10,11
+G44-23–G44-24	HIGH / MED	Git object closure; private HTTPS auth	G44-37 + G44-28/38 .netrc allowlist	DOC, REASONED	PARTIAL (G44-47,48, Blocker E)	RR-13
+G44-25	HIGH	SIGNING_GNUPGHOME overrides & OPENSSL_CONF=/dev/null	Pre-sign config audit + OPENSSL_CONF=/dev/null	HOST (openssl), DOC	PARTIAL (live GPG test NOT RUN)	RR-02, RR-12
+G44-26	MEDIUM	Multi-gpgsig/packets & gitleaks .gitleaksignore	Raw container check + --no-git on $SCAN_DIR	DOC, HOST (gitleaks absent)	BLOCKED (Blocker B)	RR-08
+G44-27–G44-28	CRIT / HIGH	Full ODB + unreachable trees; C-validated .netrc allowlist	G44-35/37 + Approach A C-validated cred_memfd	DOC, REASONED	PARTIAL (G44-46,47, Blocker E)	RR-13, RR-15
+G44-29	HIGH	Physical 5-channel FD-separated GnuPG status parser	FD-3/FD-4 + git verify-* cross-check	DOC, REASONED	PARTIAL (Blocker E)	RR-11
+G44-30–G44-34	HIGH / MED	Profile A armor, manifest IDs, inventory, $(...)/<(...)/C memfd/DoS/reflogs	Integrated across G44-35–40	DOC, REASONED	PARTIAL (G44-46,49,50)	RR-06, RR-14
+G44-35–G44-45	CRIT / HIGH / MED	See Section 5	See Section 5	DOC, REASONED	PARTIAL (G44-35–39,41,42,45); RESOLVED BY DESIGN (G44-40,43,44)	RR-11–RR-17
+7. Newly Discovered Independent Review Findings (G44-46–G44-50)
+G44-46 — HIGH — setsid() Process-Group Escape, Inode Exhaustion & Per-Process vs. Aggregate RLIMIT Conflation
+Affected Component: Static C launcher --bounded-run & G44-35 resource controls.
+Preconditions: Hostile Git repo with 50,000 tiny files on an inode-constrained /tmp, OR a child process invoking setsid() (e.g., gpg-agent --daemon), OR repeated sequential spawns under RLIMIT_CPU.
+Failure Scenario: (a) Extracting 50,000 1-byte blobs consumes 50,000 inodes without triggering RLIMIT_FSIZE=32 MiB or byte caps, causing ENOSPC during quarantine/cleanup; (b) gpg-agent --daemon calls setsid(), escaping kill(-child_pgid, SIGKILL); (c) per-process RLIMIT_CPU=300s resets for every spawned git command, allowing aggregate CPU exhaustion.
+Security Impact: Availability DoS, orphaned privileged/signing child daemons surviving termination, and cleanup/quarantine failure on inode exhaustion.
+Why Existing Design Fails: Checked statvfs free bytes but omitted free inodes (f_favail); claimed "zero surviving grandchildren" via kill(-pgid, SIGKILL) without accounting for setsid(); conflated per-process RLIMIT_* with session-wide budgets.
+Required Mitigation: (a) Check statvfs.f_favail pre-run AND enforce explicit MAX_TMP_INODES (10,000 max materialized files; batch or stream blobs into capped batches rather than materializing 50,000 individual files simultaneously if inode cap exceeded); (b) enforce session-wide monotonic wall-clock & cumulative child-CPU (getrusage(RUSAGE_CHILDREN)) budget in C; (c) explicitly document that setsid() escape prevention requires OS cgroup v2 (cgroup.kill) or PID namespace (RR-16), and stop claiming kill(-pgid, SIGKILL) eliminates setsid() daemons.
+Falsification Test: V46-01 (small inode-capped tmpfs with 10,001 1-byte blobs) & V46-02 (child calling setsid() + sleeping under --bounded-run).
+Closure Evidence: Corrected G44-35 spec + V46-01/02 execution logs (NOT RUN).
+Residual Risk: RR-16 (setsid() escape without cgroup v2 / PID namespace).
+Dependencies: G44-35, G44-40, G44-42.
+G44-47 — HIGH — Non-Disjoint Object Classification & Missing UNCLASSIFIABLE Set in G44-37
+Affected Component: G44-37 Git ODB closure & classification model.
+Preconditions: Repository containing an object that is both reachable (or dangling) AND violates security rules (e.g., reachable secret blob, dangling tree with users_store.json + 120000 symlink), OR a corrupt loose object whose header fails cat-file --batch-all-objects.
+Failure Scenario: Single-label mapping breaks pairwise disjointness; a corrupt loose object failing enumeration disappears from 
+ before classification.
+Security Impact: Ambiguous object disposition, potential miscounting in cardinality invariant 
+, or silent omission of unparseable objects.
+Why Existing Design Fails: Merged topological reachability (REACHABLE/DANGLING/UNREACHABLE) and security status (CORRUPT/UNEXPECTED/PROHIBITED_CONTENT) into one flat 6-class list without precedence or an UNCLASSIFIABLE bucket.
+Required Mitigation: Define two orthogonal, strictly pairwise-disjoint dimensions:
+Topology Partition of 
+ (all files in .git/objects/ + packs): 
+ (where 
+ captures any corrupt/unenumerable object from fsck/filesystem check).
+Security Disposition with Total Precedence: CORRUPT/UNCLASSIFIABLE > UNEXPECTED > PROHIBITED_CONTENT > DANGLING_CLEAN > UNREACHABLE_CLEAN > VALID_APPROVED. Any non-empty top-3 class (or any non-empty DANGLING/UNREACHABLE in staging/default repo policy) fails closed deterministically.
+Falsification Test: V47-01 (dangling tree containing both users_store.json and 120000 symlink) & V47-02 (corrupt loose object header failing cat-file --batch-all-objects).
+Closure Evidence: Corrected mathematical model in G44-37 + V47-01/02 logs (NOT RUN).
+Residual Risk: Low once mathematically orthogonal.
+Dependencies: G44-27, G44-37.
+G44-48 — HIGH — Repo-Local Git Config Audit Precedence & --no-includes / --show-scope / Case-Sensitivity Gaps in G44-38
+Affected Component: G44-38 / G44-45 Git configuration auditor.
+Preconditions: Hostile .git/config containing include.path, includeIf.*, extensions.worktreeConfig=true + .git/config.worktree, duplicate singleton keys, empty values, or URL-scoped http.<url>.extraHeader.
+Failure Scenario: Calling git config --local --list --null without --no-includes causes Git to parse included external files during the audit itself; omitting --show-scope --show-origin fails to verify that no system/global/worktree/command config leaked in; CLI -c http.extraHeader= does not override URL-scoped http.<url>.extraHeader keys.
+Security Impact: Undetected config injection, unauthorized HTTP header/proxy/credential-helper activation, or operational failure on canonical URL redirects (http.followRedirects=false).
+Why Existing Design Fails: Specified git config --local --list --null without --no-includes, --show-scope, --show-origin, duplicate-singleton rejection, empty-value rejection, or .git/config.worktree absence check.
+Required Mitigation: (a) Verify .git/config.worktree absent; (b) run BOTH git config --local --no-includes --list --null (strict allowlist, zero include.*/includeIf.*, singleton count == 1, non-empty value check, exact case-sensitive subsection match) AND git config --show-scope --show-origin --no-includes --list --null (proving scope == local exclusively, zero system/global/worktree/command entries); (c) document exact canonical .git-suffixed URL requirement for http.followRedirects=false.
+Falsification Test: V48-01 (include.path & includeIf pointing to external file), V48-02 (.git/config.worktree), V48-03 (duplicate remote.origin.url / empty value / http.<url>.extraHeader).
+Closure Evidence: Corrected G44-38/G44-45 spec + V48-01–03 logs (NOT RUN).
+Residual Risk: Low.
+Dependencies: G44-02, G44-06, G44-38, G44-45.
+G44-49 — HIGH — --bounded-run Coverage Gap for Category C Utilities & /tmp Re-Invocation Path TOCTOU in G44-39 / G44-41
+Affected Component: Static C launcher --bounded-run & Category C executable invocation.
+Preconditions: /usr/bin/timeout removed from inventory; Bash invokes find, sort, grep, openssl, sha256sum directly, AND re-invokes /tmp/pdfsun-stage1b2-launch-v0.3.5 --bounded-run by path in /tmp.
+Failure Scenario: (a) Unbounded find/sort/grep/openssl lack per-call wall-clock timeout & stdout byte caps; (b) under non-root same-UID execution, re-invoking /tmp/pdfsun-stage1b2-launch-v0.3.5 by path in /tmp risks binary replacement between initial launch and --bounded-run re-invocation; (c) unspecified whether --bounded-run re-hashes and fexecve(tool_fd)s the child binary.
+Security Impact: Unbounded CPU/disk hang in Category C tools and avoidable path-TOCTOU window on launcher re-invocation.
+Why Existing Design Fails: Removed /usr/bin/timeout while only routing git/gpg/gitleaks through --bounded-run, and specified path-based re-invocation in /tmp.
+Required Mitigation: (a) Expand --bounded-run enum to cover ALL producer/heavy Category C utilities (git, gpg, gitleaks, openssl, find, sort, grep, sha256sum) with explicit per-tool byte/time caps; (b) open launcher self-FD (O_RDONLY|O_CLOEXEC=0 on /proc/self/exe at startup, passed as --launcher-fd <fd>) OR require root-owned /usr/local/libexec/pdfsun/ in production; (c) inside --bounded-run, open target tool via openat(O_NOFOLLOW), verify its single pinned SHA-256 on tool_fd, and execute via fexecve(tool_fd, ...) (eliminating child path TOCTOU for all --bounded-run tools!).
+Falsification Test: V49-01 (find on deeply nested dir exceeding cap), V49-02 (--bounded-run rejects tampered binary via fexecve(tool_fd)).
+Closure Evidence: Corrected G44-39/G44-41 spec + V49-01/02 logs (NOT RUN).
+Residual Risk: RR-01 (same-UID), RR-10 (for trivial rm/mkdir/mv not using --bounded-run).
+Dependencies: G44-16, G44-21, G44-35, G44-39, G44-41.
+G44-50 — MEDIUM — Missing --manifest-fd Sealed memfd & EXPECTED_MANIFEST_SHA256 Binding in C Launcher (G44-36)
+Affected Component: Static C launcher memfd handoff & G44-36 canonical manifest parser.
+Preconditions: G44-36 Section 5.4 assigns the 4 MiB canonical manifest parser to the C launcher, but Sections 9.1 & 13 specify only 3 sealed memfds (script, config <= 64 KiB, optional cred <= 512 B).
+Failure Scenario: Implementation ambiguity leads either to parsing the manifest in Bash (reintroducing Bash NUL-byte blindness R-06) or failing recovery.conf's 64 KiB ceiling.
+Security Impact: Manifest NUL/truncation bypass or build-time specification contradiction.
+Why Existing Design Fails: Manifest memfd was not added to the launcher interface when G44-36 moved manifest parsing into C.
+Required Mitigation: Add explicit 4th sealed memfd (--manifest-fd <fd>, MAX_MANIFEST_BYTES = 4 MiB, F_SEAL_WRITE|SHRINK|GROW|SEAL), opened via openat(O_NOFOLLOW) from MANIFEST_PATH in recovery.conf, verified against EXPECTED_MANIFEST_SHA256 (from recovery.conf), and byte-validated in C (schema, sort order, 10-ID formats, zero NUL/CR/non-ASCII, hardcoded Layer B exclusion) before sealing and passing to Bash.
+Falsification Test: V50-01 (manifest hash mismatch, NUL byte in manifest, >4 MiB manifest, post-open manifest replacement).
+Closure Evidence: Reconciled C launcher spec + V50-01 log (NOT RUN).
+Residual Risk: RR-04 (FD provenance under direct same-UID bypass).
+Dependencies: R-06, R-07, G44-32, G44-36.
+8. Cross-Layer Consistency Assessment (All 15 Layers)
+Layer	Cross-Layer Interaction Findings (REASONED)	Status
+1. Static C Launcher	Must expand from 3 → 4 sealed memfds (--manifest-fd, G44-50) and use fexecve(tool_fd) in --bounded-run (G44-49).	HOLD / REVISE
+2. Bash Environment	bash -p + /usr/bin/env -i consistent; must route find/sort/grep/openssl/sha256sum through --bounded-run (G44-49).	HOLD / REVISE
+3. Config & Manifest	PDFSUN-CFG-DIGEST-V1 solid; manifest handoff inconsistent until G44-50 closed.	HOLD / REVISE
+4. Git ODB	Strong full-ODB goal, but set-disjointness & UNCLASSIFIABLE require G44-47 fix.	HOLD / REVISE
+5. GnuPG Verification	5-channel FD-3/FD-4 design is strong; remains PARTIAL pending genuine 2.2.27 captures (Blocker E).	PARTIAL
+6. Git HTTPS Transport	Strict allowlist needs --no-includes --show-scope --show-origin & .git/config.worktree check (G44-48); live test NOT RUN.	HOLD / REVISE
+7. Executable Inventory	Category A–H structure clear; Category C timeout coverage & fexecve(tool_fd) require G44-49; strace NOT RUN.	PARTIAL
+8. Temporary Storage	Byte caps defined, but inode exhaustion (f_favail, MAX_TMP_INODES) missing (G44-46).	HOLD / REVISE
+9. Resource Enforcement	Per-process RLIMIT_* vs aggregate limits & setsid() escape overstated (G44-46); cgroup v2 optional (RR-14, RR-16).	HOLD / REVISE
+10. Locking & Crash Recovery	Atomic flock state file + SIGKILL detection + REMOTE_STATE_UNCERTAIN (G44-44) are coherent and sound.	RESOLVED BY DESIGN
+11. Quarantine & Audit	Non-destructive 0700/0400 quarantine + hex-escaped logs (G44-43) sound; depends on inode headroom (G44-46).	RESOLVED BY DESIGN
+12. OS TCB	Honest separation of dynamic loader, shared libs, /etc/ld.so.preload, /etc/gnupg/*; add cgroup v2 & setsid() boundary (RR-16).	RESOLVED BY DESIGN
+13. Same-UID Boundaries	Honestly disclosed (RR-01, RR-13); launcher /tmp re-exec exposure tightened via G44-49.	RESOLVED BY DESIGN
+14. Owner Authorization	Properly gated on explicit written Mukesh Kalonia decision (Blocker F).	BLOCKED
+15. Production Approval	Properly separated from design & disposable /tmp implementation (Blockers A–F).	BLOCKED
+9. Threat Model and Trust Boundaries (Independent Assessment)
+What the Static C Launcher Actually Enforces: Scrubbing caller environment & inherited FDs; pure-C SHA-256 verification of script, config, manifest (G44-50), cred (G44-28), bash (fexecve), and pinned --bounded-run tools (fexecve(tool_fd), G44-49); sealed memfd immutability; per-call streaming byte/record/wall-clock caps.
+What Depends Strictly on the Operating System TCB (Cannot Be Enforced by Unprivileged Userspace Alone):
+Preventing same-UID direct /usr/bin/bash -p execution (RR-01) or same-UID reading of $TEMP_HOME/.netrc (RR-13) → requires dedicated service UID or SELinux/AppArmor.
+Terminating setsid()-escaped descendants (gpg-agent --daemon, RR-16) and hard-capping Go gitleaks / git packfile RAM (RR-14) → requires OS cgroup v2 (memory.max, pids.max, cgroup.kill) or PID namespace.
+Preventing /tmp inode exhaustion by external same-host workloads → requires dedicated bounded tmpfs mount / filesystem quota (RR-17).
+Dynamic linker /lib64/ld-linux-x86-64.so.2, shared libraries, /etc/ld.so.preload TOCTOU, /etc/gnupg/*, and root compromise (RR-02, RR-10, RR-12).
+10. Resource and Failure-State Assessment
+Strengths: Explicit exit codes (10–92, 124–130, 143), honest admission that traps cannot catch SIGKILL/OOM, persistent crash-state detection, mandatory non-zero exit on cleanup (91) or quarantine (92) failure, and terminal REMOTE_STATE_UNCERTAIN (G44-44).
+Required Corrections Before Design Acceptance:
+Add statvfs.f_favail + MAX_TMP_INODES + batched blob scanning if ODB exceeds inode ceiling (G44-46).
+Separate per-process RLIMIT_CPU/RLIMIT_FSIZE from cumulative session CPU (RUSAGE_CHILDREN) and wall-clock budgets (G44-46).
+Replace the overstated "zero surviving grandchildren" claim with an honest setsid() boundary (RR-16) + optional cgroup v2 cgroup.kill recommendation.
+Route Category C utilities (find, sort, grep, openssl, sha256sum) through --bounded-run (G44-49).
+11. Residual Risk Register (RR-01–RR-15 Preserved + RR-16–RR-17 Added)
+Risk ID	Description	Severity	Boundary / Required Decision
+RR-01–RR-05	Same-UID bash bypass (R-09), /etc/ld.so.preload & shared-lib TCB, same-UID ptrace, FD provenance on direct bypass, Bash NUL blindness	High–Low	Preserved unchanged; service UID / MAC needed to close RR-01/RR-03
+RR-06–RR-09	Unpackaged container git/gpg (Tier 1); Open Blockers A (server.cjs), B (gitleaks), C (shellcheck)	Med / Blocker	Preserved unchanged; Owner workstation Tier-4 + genuine tools required
+RR-10–RR-13	Root /usr/bin/* TOCTOU (narrowed for --bounded-run tools via G44-49), offline GPG revocation staleness, inherited signing gpg-agent, same-UID $TEMP_HOME/.netrc window	Low–Med	Preserved unchanged; service UID / MAC closes RR-13
+RR-14–RR-15	Go gitleaks RAM incompatible with RLIMIT_AS (cgroup v2 needed); Git SHA-1 internal DAG pointers	Low–Med	Preserved unchanged
+RR-16 (New)	setsid() Process-Group Escape (G44-46): Descendants calling setsid() (e.g., gpg-agent --daemon) escape kill(-pgid, SIGKILL) when cgroup v2 cgroup.kill or PID namespace is absent.	Medium	Requires OS cgroup v2 (systemd-run --scope) or PID namespace for guaranteed descendant reaping
+RR-17 (New)	Shared /tmp Inode & Quota Contention (G44-46): Without a dedicated bounded tmpfs/quota mount, concurrent host workloads can exhaust /tmp space/inodes mid-recovery.	Low–Med	Provision dedicated bounded tmpfs or filesystem quota on Owner workstation
+12. Blocker Register
+Blocker	Description	Status
+Blocker A	Missing genuine dist-server/server.cjs (expected SHA-256 50b6ef051c86f46f69d5df9cfe35b79851920cd9ee45a496269956c66ae5e957, size 1,210,911 bytes).	BLOCKED
+Blocker B	Genuine gitleaks unavailable on container host (synthetic stub unacceptable).	BLOCKED
+Blocker C	Genuine shellcheck unavailable on container host (bash -n unacceptable).	BLOCKED
+Blocker D	No v0.3.5 implementation, no static C launcher, and no independent Gate 0.4.5 audit.	BLOCKED
+Blocker E	Genuine GnuPG 2.2.27 / Git 2.34.1 FD-3 captures, live libcurl-gnutls .netrc/redirect tests, and full-workflow strace traces remain NOT RUN.	BLOCKED
+Blocker F	No separate, explicit written Owner authorization from Mukesh Kalonia.	BLOCKED
+Blocker G (New)	Design Acceptance Hold (OPTION B): Five material design contradictions/omissions (G44-46–G44-50) must be reconciled in one concise design addendum before formal independent design acceptance.	BLOCKED (Design Gate)
+13. Future Validation Matrix (ALL TESTS: NOT RUN | REVIEWER: PENDING)
+Test ID	Finding	Category	Objective	Safe Fixture	Preconditions	Procedure	Expected Result	Evidence	Status
+V46-01	G44-46	Resource-Exhaustion (root+non-root)	Catch inode exhaustion before ENOSPC	10,001 1-byte synthetic blobs on small inode-capped tmpfs	Disposable tmpfs (nr_inodes=2048)	Run bounded ODB scan & blob materialization	f_favail/MAX_TMP_INODES fails closed cleanly (exit 126) before exhausting inodes; quarantine succeeds	df -i, exit code, logs	NOT RUN
+V46-02	G44-46	C Unit + Resource-Exhaustion	Verify setsid() escape & cumulative CPU cap behavior	Dummy helper calling setsid() + CPU burner	Disposable /tmp	Run under --bounded-run (with and without cgroup v2 scope)	Cumulative CPU limit triggers exit 124; setsid() helper documented/reaped under cgroup v2 scope	ps, RUSAGE_CHILDREN, logs	NOT RUN
+V47-01–02	G44-47	Git Integration (Git 2.34.1)	Verify orthogonal 2-dim partition & UNCLASSIFIABLE handling	Repo with (1) dangling tree containing users_store.json + 120000 symlink; (2) corrupt loose object header	Disposable git 2.34.1 repo	Run full ODB closure + cardinality check	Exact disjoint partition holds; precedence classifies UNEXPECTED & UNCLASSIFIABLE; fails closed + quarantines	Partition JSON/log, quarantine manifest	NOT RUN
+V48-01–03	G44-48	Git Integration + libcurl HTTPS	Block include.path, includeIf, .git/config.worktree, dup/empty keys, http.<url>.extraHeader, 301/302 redirects	Hostile .git/config + local HTTPS redirect server	Disposable repo + HTTPS fixture	Run --no-includes --show-scope --show-origin --list --null & remote push	All hostile configs rejected pre-network; zero external include file opens (strace); redirect fails closed	strace -e openat, stderr, exit codes	NOT RUN
+V49-01–02	G44-49	C Unit + Bash + Adversarial (root+non-root)	Enforce --bounded-run + fexecve(tool_fd) on Cat C tools (find/sort/grep/openssl/sha256sum) & block launcher path swap	Deep dir tree + tampered tool copy	Disposable workspace	Run find cap test; swap tool path post-check	find terminates cleanly on cap; tampered binary rejected via fexecve(tool_fd) SHA-256 check	Exit codes, strace -f -e execve	NOT RUN
+V50-01	G44-50	C Unit + Bash	Validate 4th sealed --manifest-fd (<= 4 MiB) + EXPECTED_MANIFEST_SHA256 + post-open swap	Valid & malformed manifests (NUL, CR, non-ASCII, Layer B, wrong hash, >4 MiB)	Disposable files	Pass each manifest through C launcher	Only exact hash + schema passes into sealed manifest_memfd; post-open replacement ignored; all bad inputs fail closed	C stderr, F_GET_SEALS, exit codes	NOT RUN
+V-CORE	G44-01–45	GnuPG 2.2.27, libcurl, Crash-Recovery, Genuine gitleaks & shellcheck, Gate 0.4.5	Execute all prior matrices (V27-*–V45-*) across root, non-root, genuine Owner tools, and independent audit	Synthetic benign fixtures (zero real Layer B)	Separately authorized disposable /tmp + Owner workstation	Execute each matrix separately without merging tiers	All negative tests fail closed; genuine gitleaks/shellcheck/gpg 2.2.27/strace archived with SHA-256s	Signed/hashed evidence bundle	NOT RUN
+14. Separate Owner Decision Document (For Mukesh Kalonia — Sole Authorized PDFSun Owner)
+Notice: This document is a decision checklist only. No Owner approval is created, assumed, or inferred.
+Unresolved Design Hold (Blocker G — OPTION B): Five material architectural defects (G44-46–G44-50) must be closed in a short design-only revision before independent design acceptance.
+Residual Risks Requiring Explicit Owner Acceptance (Before Any Future Implementation Authorization):
+RR-01 & RR-03 & RR-13: Same-UID Linux DAC limits (direct /usr/bin/bash -p bypass, same-UID ptrace, same-UID read window on ephemeral $TEMP_HOME/.netrc).
+RR-02, RR-10, RR-12: Operating-system TCB (dynamic loader, shared libs, /etc/ld.so.preload, root binaries, /etc/gnupg/*, inherited signing gpg-agent).
+RR-11, RR-15: Offline OpenPGP revocation freshness; Git SHA-1 internal DAG pointers.
+RR-14, RR-16, RR-17: Memory capping of Go gitleaks, setsid() descendant reaping, and /tmp inode/quota isolation.
+Explicit Owner Architectural Policy Decisions Required (Yes / No in Writing):
+Dedicated Service UID required? (Recommended YES for production to close RR-01/RR-13; optional for disposable /tmp prototype.)
+OS cgroup v2 (memory.max, pids.max, cgroup.kill) mandatory on Owner workstation? (Recommended YES to close RR-14/RR-16.)
+Mandatory Access Control (SELinux/AppArmor) required? (Owner risk decision.)
+Are single-UID limitations (RR-01, RR-13) acceptable for disposable /tmp testing ONLY? (Owner risk decision.)
+Permitted vs. Blocked Future Scope:
+May be authorized NEXT (ONLY after G44-46–G44-50 design revision passes independent review AND Mukesh Kalonia issues explicit written authorization): Disposable /tmp implementation and internal adversarial verification ONLY of /tmp/pdfsun-stage1b2-recovery-v0.3.5.sh and /tmp/pdfsun-stage1b2-launch-v0.3.5 (preserving v0.3.4, /app/applet, and Layer B stores untouched).
+MUST REMAIN BLOCKED: Production recovery, external Git pushes, deployment, and Stage 1C-2 — blocked until independent Gate 0.4.5 audit AND Blockers A, B, C, E are resolved on the authorized Owner workstation under a separate production authorization.
+15. Independent Reviewer Verdict
+Selected Outcome: OPTION B — HOLD / REVISE
+Independent Justification (No Rubber-Stamp):
+The submitted G44-35–G44-45 architecture is technically serious and does not require fundamental redesign (OPTION C). However, independent adversarial review uncovered five concrete, material design inconsistencies/gaps (G44-46–G44-50) — specifically: (1) setsid() escape & missing inode/aggregate-CPU limits (G44-46), (2) non-disjoint ODB classification missing UNCLASSIFIABLE (G44-47), (3) Git config allowlist missing --no-includes --show-scope --show-origin & .git/config.worktree (G44-48), (4) unbounded Category C utilities & /tmp --bounded-run re-invocation TOCTOU (G44-49), and (5) missing 4th sealed --manifest-fd in the C launcher (G44-50). Issuing OPTION A while these five concrete contradictions remain in the specification would violate independent review standards.
+16. Exact Next-Step Recommendation
+Smallest Necessary Corrective Action (One Focused Design-Only Addendum — Zero Code):
+Reconcile only G44-46 through G44-50 (plus RR-16–RR-17) in a concise patch addendum without reopening already-sound sections:
+Fix G44-46: Add statvfs.f_favail + MAX_TMP_INODES, session-wide RUSAGE_CHILDREN CPU cap, and honest setsid() / cgroup v2 boundary.
+Fix G44-47: Adopt the 2-dimensional orthogonal ODB model (
+ × strict precedence disposition).
+Fix G44-48: Mandate .git/config.worktree absence + git config --local --no-includes --list --null + --show-scope --show-origin + singleton/non-empty checks + canonical .git URL rule.
+Fix G44-49: Route find/sort/grep/openssl/sha256sum through --bounded-run with fexecve(tool_fd) and FD-pinned launcher re-exec (--launcher-fd / root-owned prod dir).
+Fix G44-50: Add 4th sealed --manifest-fd (<= 4 MiB) + EXPECTED_MANIFEST_SHA256 to C launcher spec & diagram.
+Resubmission Gate: Re-verify G44-46–G44-50 closure → issue OPTION A design acceptance → present Section 14 Owner Decision Document to Mukesh Kalonia for separate, explicit written authorization of disposable /tmp implementation.
+MANDATORY FINAL STOP: Strictly design-only review completed. Zero implementation performed; v0.3.4 unchanged; v0.3.5 and static C launcher not created; Layer B stores untouched; production, external Git push, deployment, and Stage 1C-2 remain strictly BLOCKED.
