@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from "react";
+import React, { useState, Suspense } from "react";
 import {
   Mail,
   ShieldCheck,
@@ -12,8 +12,9 @@ import { PolicyType } from "../types";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { ALL_TOOLS } from "../data/toolsData";
 import { useLanguage } from "../lib/i18n";
+import { lazyWithDevSync } from "../utils/lazyWithDevSync";
 
-const PDFSunBrandShowcaseModal = lazy(() => import("./PDFSunBrandShowcaseModal").then((m) => ({ default: m.PDFSunBrandShowcaseModal })));
+const PDFSunBrandShowcaseModal = lazyWithDevSync(() => import("./PDFSunBrandShowcaseModal").then((m) => ({ default: m.PDFSunBrandShowcaseModal })));
 
 // Custom modern X (formerly Twitter) SVG icon
 const XIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (

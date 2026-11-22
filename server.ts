@@ -5778,6 +5778,26 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== "production") {
+    const readViteDepsBrowserHash = (): string => {
+      try {
+        const metaPath = path.join(process.cwd(), "node_modules/.vite/deps/_metadata.json");
+        if (!fs.existsSync(metaPath)) return "";
+        const parsed = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as { browserHash?: unknown };
+        const hash = typeof parsed?.browserHash === "string" ? parsed.browserHash.trim() : "";
+        return /^[a-zA-Z0-9_-]{4,64}$/.test(hash) ? hash : "";
+      } catch {
+        return "";
+      }
+    };
+
+    // Dev-only Vite optimized-deps hash probe so stale preview tabs (hmr: false) reload cleanly before loading mismatched React chunks
+    app.get("/__pdfsun_vite_deps_hash", (_req, res) => {
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.status(200).json({ browserHash: readViteDepsBrowserHash() });
+    });
+
     // Serve raw self-contained PDF.js worker module without Vite client HMR wrapper
     app.get("/node_modules/pdfjs-dist/build/pdf.worker.min.mjs", (_req, res) => {
       const workerFile = path.join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.min.mjs");
@@ -5823,7 +5843,18 @@ async function startServer() {
           template = await vite.transformIndexHtml(url, template);
           const routePath = (req.originalUrl || req.path).split("?")[0];
           template = injectSeoTagsIntoHtml(template, routePath, req.query as Record<string, any>);
-          res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(template);
+          const initialDepsHash = readViteDepsBrowserHash();
+          const devDepsSyncScript = `<script>(function(){if(window.__PDFSUN_DEV_DEPS_SYNC_INIT__)return;window.__PDFSUN_DEV_DEPS_SYNC_INIT__=true;var HASH_RE=/^[a-zA-Z0-9_-]{4,64}$/;var COOLDOWN_MS=5000;var DEBOUNCE_MS=3000;var TIMEOUT_MS=4000;var STORAGE_KEY="pdfsun_dev_deps_sync_ts";var initHash=${JSON.stringify(initialDepsHash)};window.__PDFSUN_DEV_DEPS_HASH__=HASH_RE.test(initHash)?initHash:"";var state=window.__PDFSUN_DEV_DEPS_HASH__?"HASH_MATCH":"UNINITIALIZED";var reloadCommitted=false;var reloadPermanentlyUnavailable=false;var inFlight=null;var lastProbeTs=0;function setState(next){state=next;window.__PDFSUN_DEV_DEPS_STATE__=next;}setState(state);function isReloadNav(){try{if(typeof performance!=="undefined"&&typeof performance.getEntriesByType==="function"){var entries=performance.getEntriesByType("navigation");if(entries&&entries[0]&&entries[0].type==="reload")return true;}if(typeof performance!=="undefined"&&performance.navigation&&performance.navigation.type===1)return true;}catch(e){}return false;}function readCooldown(now){try{if(typeof sessionStorage==="undefined"||!sessionStorage)return{storageOk:false,blocked:false};var prev=Number(sessionStorage.getItem(STORAGE_KEY)||"0");return{storageOk:true,blocked:Boolean(prev&&now-prev<COOLDOWN_MS)};}catch(e){return{storageOk:false,blocked:false};}}function writeTs(now){try{if(typeof sessionStorage==="undefined"||!sessionStorage)return false;sessionStorage.setItem(STORAGE_KEY,String(now));return true;}catch(e){return false;}}function commitMismatch(){setState("HASH_MISMATCH");if(reloadCommitted){setState("RELOAD_COMMITTED");return{state:"RELOAD_COMMITTED",allowImport:false};}if(reloadPermanentlyUnavailable){setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}var now=Date.now();var st=readCooldown(now);if(st.storageOk){if(st.blocked){setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}var wrote=writeTs(now);if(!wrote&&isReloadNav()){reloadPermanentlyUnavailable=true;setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}}else{if(isReloadNav()){reloadPermanentlyUnavailable=true;setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}}if(typeof window.location==="undefined"||!window.location||typeof window.location.reload!=="function"){reloadPermanentlyUnavailable=true;setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}reloadCommitted=true;setState("RELOAD_COMMITTED");try{window.location.reload();return{state:"RELOAD_COMMITTED",allowImport:false};}catch(e){reloadCommitted=false;reloadPermanentlyUnavailable=true;setState("RELOAD_UNAVAILABLE");return{state:"RELOAD_UNAVAILABLE",allowImport:false};}}function runProbe(){setState("CHECKING");var ctrl=typeof AbortController==="function"?new AbortController():null;var timer=ctrl?setTimeout(function(){try{ctrl.abort();}catch(e){}},TIMEOUT_MS):null;var opts=ctrl?{cache:"no-store",signal:ctrl.signal}:{cache:"no-store"};var p=Promise.resolve().then(function(){return fetch("/__pdfsun_vite_deps_hash",opts);}).then(function(r){if(!r||!r.ok)return null;return r.json();}).then(function(d){if(timer)clearTimeout(timer);if(reloadCommitted){setState("RELOAD_COMMITTED");return{state:"RELOAD_COMMITTED",allowImport:false};}var live=d&&typeof d.browserHash==="string"?d.browserHash.trim():"";if(!live||!HASH_RE.test(live)){setState("PROBE_FAILED");return{state:"PROBE_FAILED",allowImport:false};}if(!window.__PDFSUN_DEV_DEPS_HASH__){window.__PDFSUN_DEV_DEPS_HASH__=live;setState("HASH_MATCH");return{state:"HASH_MATCH",allowImport:true};}if(live!==window.__PDFSUN_DEV_DEPS_HASH__)return commitMismatch();setState("HASH_MATCH");return{state:"HASH_MATCH",allowImport:true};}).catch(function(){if(timer)clearTimeout(timer);if(reloadCommitted){setState("RELOAD_COMMITTED");return{state:"RELOAD_COMMITTED",allowImport:false};}setState("PROBE_FAILED");return{state:"PROBE_FAILED",allowImport:false};}).then(function(res){inFlight=null;return res;});inFlight=p;return p;}window.__PDFSUN_CHECK_DEV_DEPS_SYNC__=function(force){if(reloadCommitted){setState("RELOAD_COMMITTED");return Promise.resolve({state:"RELOAD_COMMITTED",allowImport:false});}if(reloadPermanentlyUnavailable){setState("RELOAD_UNAVAILABLE");return Promise.resolve({state:"RELOAD_UNAVAILABLE",allowImport:false});}if(inFlight)return inFlight;var now=Date.now();if(!force&&now-lastProbeTs<DEBOUNCE_MS){return Promise.resolve({state:state,allowImport:state==="HASH_MATCH"});}lastProbeTs=now;return runProbe();};window.addEventListener("load",function(){if(!window.__PDFSUN_DEV_DEPS_HASH__)window.__PDFSUN_CHECK_DEV_DEPS_SYNC__(true);});window.addEventListener("focus",function(){if(document.visibilityState!=="hidden")window.__PDFSUN_CHECK_DEV_DEPS_SYNC__(false);});document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")window.__PDFSUN_CHECK_DEV_DEPS_SYNC__(false);});})();</script>`;
+          if (template.includes("</head>")) {
+            template = template.replace("</head>", `${devDepsSyncScript}</head>`);
+          }
+          res
+            .status(200)
+            .set({
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+            })
+            .end(template);
         } else {
           next();
         }

@@ -50,6 +50,7 @@ export default defineConfig(() => {
       ],
     },
     optimizeDeps: {
+      noDiscovery: true,
       include: [
         'react',
         'react-dom',

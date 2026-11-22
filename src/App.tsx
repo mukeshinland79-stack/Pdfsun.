@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Component, ErrorInfo, ReactNode, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, useCallback, Component, ErrorInfo, ReactNode, Suspense } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
@@ -34,39 +34,41 @@ import { calculateAdPlacements } from "./utils/adSenseHelper";
 import { trackGAPricingView, trackToolOpened } from "./utils/analytics";
 import { useLanguage, SUPPORTED_LANGUAGES } from "./lib/i18n";
 
+import { lazyWithDevSync } from "./utils/lazyWithDevSync";
+
 // Route-based & Modal Code Splitting (prevents heavy workspaces, engines, and charts from loading on homepage)
-const ActiveToolWorkspace = lazy(() => import("./components/ActiveToolWorkspace").then((m) => ({ default: m.ActiveToolWorkspace })));
-const AIChatWorkspace = lazy(() => import("./components/AIChatWorkspace").then((m) => ({ default: m.AIChatWorkspace })));
-const WatermarkPdfTool = lazy(() => import("./components/WatermarkPdfTool").then((m) => ({ default: m.WatermarkPdfTool })));
-const RemoveWatermarkTool = lazy(() => import("./components/RemoveWatermarkTool").then((m) => ({ default: m.RemoveWatermarkTool })));
-const EditPdfMetadataTool = lazy(() => import("./components/EditPdfMetadataTool").then((m) => ({ default: m.EditPdfMetadataTool })));
-const ViewPdfMetadataTool = lazy(() => import("./components/ViewPdfMetadataTool").then((m) => ({ default: m.ViewPdfMetadataTool })));
-const ProtectPdfTool = lazy(() => import("./components/ProtectPdfTool").then((m) => ({ default: m.ProtectPdfTool })));
-const AservusPdfCompressor = lazy(() => import("./components/AservusPdfCompressor").then((m) => ({ default: m.AservusPdfCompressor })));
-const BarcodeGeneratorTool = lazy(() => import("./components/BarcodeGeneratorTool").then((m) => ({ default: m.BarcodeGeneratorTool })));
-const QrCodeGeneratorTool = lazy(() => import("./components/QrCodeGeneratorTool").then((m) => ({ default: m.QrCodeGeneratorTool })));
-const SharePdfSunModal = lazy(() => import("./components/SharePdfSunModal").then((m) => ({ default: m.SharePdfSunModal })));
-const PricingSection = lazy(() => import("./components/PricingSection").then((m) => ({ default: m.PricingSection })));
-const PolicyModals = lazy(() => import("./components/PolicyModals").then((m) => ({ default: m.PolicyModals })));
-const RecentHistoryModal = lazy(() => import("./components/RecentHistoryModal").then((m) => ({ default: m.RecentHistoryModal })));
-const KeyboardShortcutsModal = lazy(() => import("./components/KeyboardShortcutsModal").then((m) => ({ default: m.KeyboardShortcutsModal })));
-const AuthModal = lazy(() => import("./components/AuthModal").then((m) => ({ default: m.AuthModal })));
-const AdminPanel = lazy(() => import("./components/AdminPanel").then((m) => ({ default: m.AdminPanel })));
-const UserDashboard = lazy(() => import("./components/UserDashboard").then((m) => ({ default: m.UserDashboard })));
-const ProfileAvatarModal = lazy(() => import("./components/ProfileAvatarModal").then((m) => ({ default: m.ProfileAvatarModal })));
-const BlogModal = lazy(() => import("./components/BlogModal").then((m) => ({ default: m.BlogModal })));
-const ContactSupportModal = lazy(() => import("./components/ContactSupportModal").then((m) => ({ default: m.ContactSupportModal })));
-const SearchModal = lazy(() => import("./components/SearchModal").then((m) => ({ default: m.SearchModal })));
-const SitemapModal = lazy(() => import("./components/SitemapModal").then((m) => ({ default: m.SitemapModal })));
-const PaymentSuccessModal = lazy(() => import("./components/PaymentSuccessModal").then((m) => ({ default: m.PaymentSuccessModal })));
-const TodayInHistoryModal = lazy(() => import("./components/TodayInHistoryModal").then((m) => ({ default: m.TodayInHistoryModal })));
-const PSEOLandingBanner = lazy(() => import("./components/PSEOLandingBanner").then((m) => ({ default: m.PSEOLandingBanner })));
-const InstallAppModal = lazy(() => import("./components/InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
-const FuturePdfStudioModal = lazy(() => import("./components/FuturePdfStudioModal").then((m) => ({ default: m.FuturePdfStudioModal })));
-const GoldenFileVerificationModal = lazy(() => import("./components/GoldenFileVerificationModal").then((m) => ({ default: m.GoldenFileVerificationModal })));
-const BlogPage = lazy(() => import("./components/BlogPage").then((m) => ({ default: m.BlogPage })));
-const InactivityWarningModal = lazy(() => import("./components/InactivityWarningModal").then((m) => ({ default: m.InactivityWarningModal })));
-const OwnerCmsModal = lazy(() => import("./components/OwnerCmsModal").then((m) => ({ default: m.OwnerCmsModal })));
+const ActiveToolWorkspace = lazyWithDevSync(() => import("./components/ActiveToolWorkspace").then((m) => ({ default: m.ActiveToolWorkspace })));
+const AIChatWorkspace = lazyWithDevSync(() => import("./components/AIChatWorkspace").then((m) => ({ default: m.AIChatWorkspace })));
+const WatermarkPdfTool = lazyWithDevSync(() => import("./components/WatermarkPdfTool").then((m) => ({ default: m.WatermarkPdfTool })));
+const RemoveWatermarkTool = lazyWithDevSync(() => import("./components/RemoveWatermarkTool").then((m) => ({ default: m.RemoveWatermarkTool })));
+const EditPdfMetadataTool = lazyWithDevSync(() => import("./components/EditPdfMetadataTool").then((m) => ({ default: m.EditPdfMetadataTool })));
+const ViewPdfMetadataTool = lazyWithDevSync(() => import("./components/ViewPdfMetadataTool").then((m) => ({ default: m.ViewPdfMetadataTool })));
+const ProtectPdfTool = lazyWithDevSync(() => import("./components/ProtectPdfTool").then((m) => ({ default: m.ProtectPdfTool })));
+const AservusPdfCompressor = lazyWithDevSync(() => import("./components/AservusPdfCompressor").then((m) => ({ default: m.AservusPdfCompressor })));
+const BarcodeGeneratorTool = lazyWithDevSync(() => import("./components/BarcodeGeneratorTool").then((m) => ({ default: m.BarcodeGeneratorTool })));
+const QrCodeGeneratorTool = lazyWithDevSync(() => import("./components/QrCodeGeneratorTool").then((m) => ({ default: m.QrCodeGeneratorTool })));
+const SharePdfSunModal = lazyWithDevSync(() => import("./components/SharePdfSunModal").then((m) => ({ default: m.SharePdfSunModal })));
+const PricingSection = lazyWithDevSync(() => import("./components/PricingSection").then((m) => ({ default: m.PricingSection })));
+const PolicyModals = lazyWithDevSync(() => import("./components/PolicyModals").then((m) => ({ default: m.PolicyModals })));
+const RecentHistoryModal = lazyWithDevSync(() => import("./components/RecentHistoryModal").then((m) => ({ default: m.RecentHistoryModal })));
+const KeyboardShortcutsModal = lazyWithDevSync(() => import("./components/KeyboardShortcutsModal").then((m) => ({ default: m.KeyboardShortcutsModal })));
+const AuthModal = lazyWithDevSync(() => import("./components/AuthModal").then((m) => ({ default: m.AuthModal })));
+const AdminPanel = lazyWithDevSync(() => import("./components/AdminPanel").then((m) => ({ default: m.AdminPanel })));
+const UserDashboard = lazyWithDevSync(() => import("./components/UserDashboard").then((m) => ({ default: m.UserDashboard })));
+const ProfileAvatarModal = lazyWithDevSync(() => import("./components/ProfileAvatarModal").then((m) => ({ default: m.ProfileAvatarModal })));
+const BlogModal = lazyWithDevSync(() => import("./components/BlogModal").then((m) => ({ default: m.BlogModal })));
+const ContactSupportModal = lazyWithDevSync(() => import("./components/ContactSupportModal").then((m) => ({ default: m.ContactSupportModal })));
+const SearchModal = lazyWithDevSync(() => import("./components/SearchModal").then((m) => ({ default: m.SearchModal })));
+const SitemapModal = lazyWithDevSync(() => import("./components/SitemapModal").then((m) => ({ default: m.SitemapModal })));
+const PaymentSuccessModal = lazyWithDevSync(() => import("./components/PaymentSuccessModal").then((m) => ({ default: m.PaymentSuccessModal })));
+const TodayInHistoryModal = lazyWithDevSync(() => import("./components/TodayInHistoryModal").then((m) => ({ default: m.TodayInHistoryModal })));
+const PSEOLandingBanner = lazyWithDevSync(() => import("./components/PSEOLandingBanner").then((m) => ({ default: m.PSEOLandingBanner })));
+const InstallAppModal = lazyWithDevSync(() => import("./components/InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
+const FuturePdfStudioModal = lazyWithDevSync(() => import("./components/FuturePdfStudioModal").then((m) => ({ default: m.FuturePdfStudioModal })));
+const GoldenFileVerificationModal = lazyWithDevSync(() => import("./components/GoldenFileVerificationModal").then((m) => ({ default: m.GoldenFileVerificationModal })));
+const BlogPage = lazyWithDevSync(() => import("./components/BlogPage").then((m) => ({ default: m.BlogPage })));
+const InactivityWarningModal = lazyWithDevSync(() => import("./components/InactivityWarningModal").then((m) => ({ default: m.InactivityWarningModal })));
+const OwnerCmsModal = lazyWithDevSync(() => import("./components/OwnerCmsModal").then((m) => ({ default: m.OwnerCmsModal })));
 
 const WorkspaceLoadingFallback = () => (
   <div className="w-full max-w-4xl mx-auto min-h-[360px] rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col items-center justify-center p-8 text-slate-300 gap-3">
@@ -99,6 +101,28 @@ class SafeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("PDFSun Desktop Engine Error Captured:", error, errorInfo);
+
+    // Recover gracefully if a stale browser tab hits a Vite dev-bundle hash mismatch (hmr: false)
+    if (typeof window !== "undefined") {
+      const msg = String(error?.message || "");
+      const isStaleBundleMismatch =
+        /Cannot read properties of null \(reading '(useRef|useState|useEffect|useContext|useMemo|useCallback)'\)/i.test(msg) ||
+        /Invalid hook call/i.test(msg) ||
+        /Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg);
+
+      if (isStaleBundleMismatch) {
+        try {
+          const lastAttempt = Number(window.sessionStorage.getItem("pdfsun_chunk_recovery_ts") || "0");
+          const now = Date.now();
+          if (!lastAttempt || now - lastAttempt > 15000) {
+            window.sessionStorage.setItem("pdfsun_chunk_recovery_ts", String(now));
+            window.location.reload();
+          }
+        } catch {
+          // Ignore sessionStorage restrictions and keep fallback UI
+        }
+      }
+    }
   }
 
   handleReload = () => {

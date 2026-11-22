@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import {
   Sun,
   Moon,
@@ -40,11 +40,12 @@ import { useLanguage } from "../lib/i18n";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PDFSunLogo } from "./PDFSunLogo";
 import { checkAdminRole } from "../hooks/useAuth";
+import { lazyWithDevSync } from "../utils/lazyWithDevSync";
 
-const SearchModal = lazy(() =>
+const SearchModal = lazyWithDevSync(() =>
   import("./SearchModal").then((m) => ({ default: m.SearchModal }))
 );
-const PDFSunBrandShowcaseModal = lazy(() =>
+const PDFSunBrandShowcaseModal = lazyWithDevSync(() =>
   import("./PDFSunBrandShowcaseModal").then((m) => ({
     default: m.PDFSunBrandShowcaseModal,
   }))

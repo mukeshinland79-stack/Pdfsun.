@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Smartphone,
   QrCode,
@@ -19,8 +19,9 @@ import { PDFSunLogoIcon } from "./PDFSunLogo";
 import { usePWAStatus } from "../pwaRegister";
 import { useLanguage } from "../lib/i18n";
 import { getQrCodeDataUrl } from "../lib/qrGenerator";
+import { lazyWithDevSync } from "../utils/lazyWithDevSync";
 
-const InstallAppModal = lazy(() => import("./InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
+const InstallAppModal = lazyWithDevSync(() => import("./InstallAppModal").then((m) => ({ default: m.InstallAppModal })));
 
 interface MobileAppPromotionCardProps {
   className?: string;
