@@ -5,7 +5,7 @@
  * against the current user session to prevent unauthorized execution of administrative actions.
  */
 
-import { UserProfile, DUAL_OWNER_EMAILS } from "../src/types";
+import { UserProfile } from "../src/types";
 
 export interface AdminSessionValidationResult {
   isValid: boolean;
@@ -90,11 +90,8 @@ export function validateAdminSession(
   // Client-side localStorage secret strings MUST NEVER self-grant Owner or Admin privileges;
   // authoritative verification always requires verifyAdminSessionWithServer().
   if (userProfile && userProfile.email && hasJwtCredential) {
-    const normalizedEmail = (userProfile.email || "").toLowerCase().trim();
-    const isAllowlistedOwner = DUAL_OWNER_EMAILS.includes(normalizedEmail);
-
     if (userProfile.role === "owner") {
-      if (isAllowlistedOwner) {
+      if (userProfile.hasAdminAccess === true) {
         return {
           isValid: true,
           isOwner: true,
@@ -102,7 +99,7 @@ export function validateAdminSession(
           token: activeToken || undefined,
         };
       }
-      // Reject non-allowlisted email claiming owner role
+      // Reject unverified profile claiming owner role without server-issued admin clearance
       return {
         isValid: false,
         isOwner: false,
@@ -165,9 +162,8 @@ export async function verifyAdminSessionWithServer(
     if (res.ok) {
       const data = await res.json().catch(() => null);
       const serverRole = String(data?.user?.role || data?.role || "").toLowerCase();
-      const serverEmail = String(data?.user?.email || "").toLowerCase().trim();
       const isVerifiedSoleOwner =
-        serverRole === "owner" && DUAL_OWNER_EMAILS.includes(serverEmail);
+        serverRole === "owner" && data?.user?.hasAdminAccess === true;
       const isVerifiedAdmin =
         serverRole === "admin" && data?.user?.hasAdminAccess === true;
       const hasAdmin =

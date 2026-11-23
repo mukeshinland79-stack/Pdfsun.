@@ -7,7 +7,6 @@
  */
 
 import { TRAFFIC_SECURITY_CONFIG } from "../config/trafficSecurityConfig";
-import { DUAL_OWNER_EMAILS } from "../types";
 
 export const GA_MEASUREMENT_ID =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GA_MEASUREMENT_ID) ||
@@ -76,8 +75,7 @@ export function isInternalOwnerTraffic(): boolean {
     const savedUser = localStorage.getItem("pdfsun_user_profile");
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
-      const email = (parsed?.email || "").toLowerCase().trim();
-      if (parsed?.role === "owner" && DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === email)) {
+      if (parsed?.role === "owner" && parsed?.hasAdminAccess === true) {
         return true;
       }
     }

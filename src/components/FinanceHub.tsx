@@ -440,7 +440,7 @@ export const FinanceHub: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${activeTab === 'owner_audit' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-neutral-950 font-black shadow-xs' : 'text-amber-400 hover:text-amber-300 hover:bg-neutral-800'}`}
           >
             <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            <span>Owner Audit Portal (mukeshinland79@gmail.com)</span>
+            <span>Owner Audit Portal</span>
           </button>
         </div>
 
@@ -999,7 +999,7 @@ export const FinanceHub: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 5: OWNER PAYMENT AUDIT PORTAL (mukeshinland79@gmail.com) strictly per AGENTS_md Section 3 */}
+      {/* TAB 5: OWNER PAYMENT AUDIT PORTAL strictly per AGENTS_md Section 3 */}
       {activeTab === 'owner_audit' && (
         <div className="space-y-6">
           <div className="bg-neutral-900 border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl">
@@ -1009,7 +1009,7 @@ export const FinanceHub: React.FC = () => {
                   <span className="text-xl">👑</span>
                   <h2 className="text-lg font-black text-amber-400">Owner Payment Audit Portal</h2>
                   <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-500/30">
-                    mukeshinland79@gmail.com
+                    Verified Sole Owner
                   </span>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" />
@@ -1046,7 +1046,7 @@ export const FinanceHub: React.FC = () => {
 
               <div className="p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-1">
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Primary Owner Ledger</span>
-                <div className="text-sm font-bold text-neutral-200 font-mono truncate">mukeshinland79@gmail.com</div>
+                <div className="text-sm font-bold text-neutral-200 font-mono truncate">Verified Sole-Owner Account</div>
                 <div className="text-[10px] text-neutral-400">Database: ai-studio-pdfsun</div>
               </div>
 

@@ -49,13 +49,13 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ isOpen
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-slate-800 dark:text-slate-200 space-y-2">
           <div className="flex items-center space-x-2 text-xs font-bold text-orange-600 dark:text-amber-400">
             <Mail className="w-4 h-4" />
-            <span>Direct Email Support</span>
+            <span>Official PDFSun Support Channel</span>
           </div>
           <div className="text-xs font-mono text-slate-900 dark:text-white font-bold">
-            mukeshkalonia241@gmail.com
+            https://www.pdfsun.in/contact-us
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Managed directly by platform owner <strong>Mukesh Kalonia</strong>. Average response time: under 2 hours.
+            Managed by platform founder <strong>Mukesh Kalonia</strong>. Submit your inquiry below for direct support assistance.
           </p>
         </div>
 

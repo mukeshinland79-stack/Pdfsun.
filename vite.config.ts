@@ -103,6 +103,7 @@ export default defineConfig(() => {
       format: 'es',
     },
     build: {
+      sourcemap: false,
       chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {

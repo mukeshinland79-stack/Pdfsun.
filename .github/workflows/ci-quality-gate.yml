@@ -1,0 +1,70 @@
+name: PDFSun Quality & Security Gate
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  quality-and-security-gate:
+    name: Typecheck, Security Scan, Build & Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck (client + server)
+        run: npm run lint
+
+      - name: Verify 68-tool canonical registry integrity
+        run: |
+          npx tsx -e '
+            import { ALL_TOOLS } from "./src/data/toolsData";
+            const ids = new Set(ALL_TOOLS.map((t) => t.id));
+            const slugs = new Set(ALL_TOOLS.map((t) => t.slug));
+            if (ALL_TOOLS.length !== 68 || ids.size !== 68 || slugs.size !== 68) {
+              throw new Error(`Expected 68 unique tools, got count=${ALL_TOOLS.length}, ids=${ids.size}, slugs=${slugs.size}`);
+            }
+            console.log(`PASS: Verified ${ALL_TOOLS.length} unique canonical tools.`);
+          '
+
+      - name: Guard against exposed internal paste artifacts (PUB-ASSET-01)
+        run: |
+          if find public -type f -name 'Paste_*' | grep -q .; then
+            echo "FAIL: Internal Paste_* artifacts detected inside public/"
+            find public -type f -name 'Paste_*'
+            exit 1
+          fi
+          echo "PASS: Zero internal Paste_* artifacts in public/"
+
+      - name: Guard against public PII & uncreated mailbox leaks (PII-01 / MAILBOX-01)
+        run: |
+          if grep -rnE 'mukeshinland79@gmail\.com|mukeshkalonia241@gmail\.com|support@pdfsun\.in' \
+            index.html public src/types.ts src/App.tsx src/components src/hooks src/utils middleware; then
+            echo "FAIL: Personal email or uncreated support mailbox found in public/client source!"
+            exit 1
+          fi
+          echo "PASS: Zero personal email or uncreated mailbox references in public/client source."
+
+      - name: Production bundle build & dist security verification
+        run: npm run build
+
+      - name: Run deterministic security & engine unit tests
+        run: |
+          npx tsx src/tests/header.test.tsx
+          npx tsx src/tests/stage1b2SecurityHardening.test.tsx
+          npx tsx src/tests/barcodeQrEngines.test.ts

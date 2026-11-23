@@ -694,7 +694,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
           <h2>3. Google AdSense &amp; Third-Party Advertising Cookies</h2>
           <p>PDFSun partners with Google AdSense. Advertising cookies have absolute zero access to your uploaded files, document contents, filenames, or extracted text.</p>
           <h2>4. Contact Support &amp; Grievance Redressal</h2>
-          <p>For any privacy-related inquiries, contact Platform Operator Mukesh Kalonia at <a href="mailto:mukeshinland79@gmail.com">mukeshinland79@gmail.com</a>.</p>
+          <p>For any privacy-related inquiries, contact Platform Operator Mukesh Kalonia through our official <a href="https://www.pdfsun.in/contact-us">Contact Support Center</a>.</p>
         </article>
       `,
     },
@@ -728,7 +728,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
       html: `
         <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
           <h1>Contact Us &amp; Support - PDFSun</h1>
-          <p>Official Support Email: <a href="mailto:mukeshinland79@gmail.com">mukeshinland79@gmail.com</a></p>
+          <p>Official Support Channel: <a href="https://www.pdfsun.in/contact-us">PDFSun Support Center (/contact-us)</a></p>
           <p>Platform Operator: Mukesh Kalonia (Headquarters: Rajasthan, India)</p>
         </article>
       `,
@@ -749,7 +749,7 @@ export function getSeoMetadataForPath(rawPath: string, queryParams: Record<strin
       html: `
         <article style="max-width: 800px; margin: 0 auto; font-family: sans-serif; line-height: 1.6; color: #1e293b;">
           <h1>Refund Policy - PDFSun (pdfsun.in)</h1>
-          <p>We offer a 14-day refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Contact mukeshinland79@gmail.com.</p>
+          <p>We offer a 14-day refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Submit refund requests via our official <a href="https://www.pdfsun.in/contact-us">Contact Support Center</a>.</p>
         </article>
       `,
     },

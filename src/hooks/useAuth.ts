@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getAuth, signOut as firebaseSignOut } from "firebase/auth";
 import { getFirebaseApp } from "../lib/firebase";
-import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
+import { UserRole, UserProfile } from "../types";
 import {
   saveLocalStoredUser,
   clearLocalStoredUser,
-  isOwnerAccount,
 } from "../utils/mockAuth";
 import {
   initGoogleIdentityServices,
@@ -131,10 +130,9 @@ export function checkAdminRole(user: UserProfile | null, role?: UserRole): boole
 
   if (checkOwnerRole(user, role)) return true;
 
-  const email = (user.email || "").toLowerCase().trim();
-  // Never grant admin access via a non-allowlisted "owner" claim
+  // Never grant admin access via an unverified "owner" claim
   if (user.role === "owner" || role === "owner") {
-    return DUAL_OWNER_EMAILS.includes(email);
+    return false;
   }
 
   return user.role === "admin" && user.hasAdminAccess === true;
@@ -142,14 +140,15 @@ export function checkAdminRole(user: UserProfile | null, role?: UserRole): boole
 
 /**
  * Pure helper function to verify if a user is the confirmed Sole Platform Owner
- * STRICT: Requires BOTH authoritative DUAL_OWNER_EMAILS membership AND server-verified role === "owner".
+ * STRICT: Requires server-verified role === "owner" AND server-issued hasAdminAccess === true.
+ * Authoritative email allowlist enforcement occurs exclusively server-side in src/server/ownerIdentity.ts.
  */
 export function checkOwnerRole(user: UserProfile | null, role?: UserRole): boolean {
   if (!user || !user.email) return false;
   if (role === "public") return false;
+  if (role !== undefined && role !== "owner") return false;
 
-  const email = (user.email || "").toLowerCase().trim();
-  return DUAL_OWNER_EMAILS.includes(email) && (user.role === "owner" || role === "owner");
+  return user.role === "owner" && user.hasAdminAccess === true;
 }
 
 /**
@@ -208,7 +207,7 @@ export function useAuth() {
     const token = typeof window !== "undefined" ? localStorage.getItem("pdfsun_auth_token") : null;
 
     const applyAuthenticatedUser = (userData: UserProfile, sessionToken?: string | null) => {
-      const isAuthorizedOwner = userData.role === "owner" && isOwnerAccount(userData.email);
+      const isAuthorizedOwner = userData.role === "owner" && userData.hasAdminAccess === true;
       const serverRole: UserRole = isAuthorizedOwner
         ? "owner"
         : userData.role === "owner"

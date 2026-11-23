@@ -35,7 +35,7 @@ import {
   LayoutDashboard,
   FileCheck,
 } from "lucide-react";
-import { ToolItem, UserRole, UserProfile, CategoryId, DUAL_OWNER_EMAILS } from "../types";
+import { ToolItem, UserRole, UserProfile, CategoryId } from "../types";
 import { useLanguage } from "../lib/i18n";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PDFSunLogo } from "./PDFSunLogo";
@@ -95,8 +95,6 @@ export interface HeaderProps {
   defaultProfileMenuOpen?: boolean;
   defaultMobileMenuOpen?: boolean;
 }
-
-const SOLE_OWNER_EMAIL = "mukeshinland79@gmail.com";
 
 const THEME_OPTIONS: ReadonlyArray<{
   id: HeaderThemeMode;
@@ -191,18 +189,18 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   const { t } = useLanguage();
 
   // Strict Sole-Owner RBAC verification:
-  // Only an authenticated, server-verified mukeshinland79@gmail.com session with role === "owner"
-  // and canAccessAdmin === true may view Owner/Admin navigation controls.
+  // Only an authenticated, server-verified Owner session (role === "owner", hasAdminAccess === true,
+  // and canAccessAdmin === true) may view Owner/Admin navigation controls.
+  // Authoritative email allowlist enforcement occurs exclusively server-side in src/server/ownerIdentity.ts.
   const isAuthenticated = Boolean(
     userProfile && userProfile.email && currentRole !== "public"
   );
-  const normalizedEmail = (userProfile?.email || "").toLowerCase().trim();
   const isSoleOwner =
     isAuthenticated &&
     Boolean(canAccessAdmin) &&
     currentRole === "owner" &&
-    normalizedEmail === SOLE_OWNER_EMAIL &&
-    DUAL_OWNER_EMAILS.includes(normalizedEmail) &&
+    userProfile?.role === "owner" &&
+    userProfile?.hasAdminAccess === true &&
     checkAdminRole(userProfile, currentRole);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(defaultMobileMenuOpen);

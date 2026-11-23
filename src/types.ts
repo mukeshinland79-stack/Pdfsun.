@@ -250,6 +250,3 @@ export interface SystemConfig {
   [key: string]: any;
 }
 
-export const DUAL_OWNER_EMAILS = [
-  "mukeshinland79@gmail.com",
-];

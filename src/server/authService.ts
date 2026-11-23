@@ -2,7 +2,8 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { UserProfile, UserRole, DUAL_OWNER_EMAILS } from "../types";
+import { UserProfile, UserRole } from "../types";
+import { DUAL_OWNER_EMAILS } from "./ownerIdentity";
 import {
   dispatchMultiChannelOtp,
   generateSecureOtp,

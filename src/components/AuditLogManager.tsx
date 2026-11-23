@@ -36,7 +36,7 @@ import {
   Table,
   SlidersHorizontal,
 } from "lucide-react";
-import { UserProfile, DUAL_OWNER_EMAILS, AuditLogEntry, AuditLogCategory, AuditLogStatus } from "../types";
+import { UserProfile, AuditLogEntry, AuditLogCategory, AuditLogStatus } from "../types";
 import { generateAuditCompliancePdf } from "../utils/auditPdfGenerator";
 
 export interface AuditLogManagerProps {
@@ -87,7 +87,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
 
   const activeEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isVerifiedOwner =
-    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(activeEmail);
+    currentUserProfile?.role === "owner" && currentUserProfile?.hasAdminAccess === true;
 
   // Fetch live audit logs from backend
   const fetchLiveAuditLogs = async () => {
@@ -632,7 +632,7 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
           Access Denied: Verified Sole-Owner Clearance Required
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          Enterprise Audit Logs &amp; Identity Trail access is restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) with an active Owner role session.
+          Enterprise Audit Logs &amp; Identity Trail access is restricted exclusively to the verified Platform Owner with an active Owner role session.
         </p>
       </div>
     );
@@ -1193,7 +1193,10 @@ export const AuditLogManager: React.FC<AuditLogManagerProps> = ({
               ) : (
                 paginatedLogs.map((log, index) => {
                   const itemIndex = (currentPage - 1) * pageSize + index + 1;
-                  const isOwnerOperator = DUAL_OWNER_EMAILS.includes(log.adminOperator.toLowerCase().trim());
+                  const operatorLower = (log.adminOperator || "").toLowerCase().trim();
+                  const isOwnerOperator =
+                    Boolean(activeEmail && operatorLower === activeEmail) ||
+                    operatorLower.includes("owner");
                   const isSso = log.category === "sso_auth";
 
                   return (

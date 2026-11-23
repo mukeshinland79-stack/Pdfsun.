@@ -878,10 +878,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           localStorage.removeItem("pdfsun_user_plan_v1");
         } catch {}
       } else {
-        setRefundStatus("Failed to process refund. Please contact support@pdfsun.in.");
+        setRefundStatus("Failed to process refund. Please submit a request via https://www.pdfsun.in/contact-us.");
       }
     } catch {
-      setRefundStatus("Error connecting to refund server. Please email support@pdfsun.in.");
+      setRefundStatus("Error connecting to refund server. Please reach out via https://www.pdfsun.in/contact-us.");
     } finally {
       setIsProcessing(false);
     }
@@ -915,7 +915,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   const pricingFaqs = [
     {
       q: "How does the 7-Day Money-Back Guarantee work?",
-      a: "If you are not completely satisfied with PDFSun Pro within the first 7 days of purchase and have used less than 30% of standard fair-use quotas, you can initiate an instant full refund through our 1-Click Self-Service Refund portal or by emailing support@pdfsun.in.",
+      a: "If you are not completely satisfied with PDFSun Pro within the first 7 days of purchase and have used less than 30% of standard fair-use quotas, you can initiate an instant full refund through our 1-Click Self-Service Refund portal or via our Contact Support Center at /contact-us.",
     },
     {
       q: "Can I cancel my monthly or annual subscription anytime?",
@@ -2258,14 +2258,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                         <Mail className="w-3.5 h-3.5" />
                       </div>
                       <a
-                        href="mailto:support@pdfsun.in"
-                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline font-mono"
+                        href="/contact-us"
+                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
                       >
-                        support@pdfsun.in
+                        Contact Support Center
                       </a>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      24/7 priority email assistance for license &amp; billing inquiries.
+                      Official support channel for license &amp; billing inquiries.
                     </p>
                   </div>
                 </div>

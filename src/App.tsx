@@ -308,7 +308,7 @@ function MainApp() {
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
     siteName: "PDF Sun",
     domainName: "https://www.pdfsun.in",
-    supportEmail: "mukeshkalonia241@gmail.com",
+    supportEmail: "https://www.pdfsun.in/contact-us",
     ownerName: "Mukesh Kalonia",
     maintenanceMode: false,
     adsenseEnabled: true,

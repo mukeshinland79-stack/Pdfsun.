@@ -27,7 +27,7 @@ import {
   Smartphone,
   Award,
 } from "lucide-react";
-import { DUAL_OWNER_EMAILS, UserProfile } from "../types";
+import { UserProfile } from "../types";
 import { ALL_TOOLS } from "../data/toolsData";
 import { generateToolAuditRegistry, ToolAuditRecord } from "../lib/toolAuditRegistry";
 
@@ -62,9 +62,9 @@ export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceD
     return (
       effectiveRole === "owner" &&
       Boolean(effectiveEmail) &&
-      DUAL_OWNER_EMAILS.some((owner) => owner.toLowerCase() === effectiveEmail)
+      currentUserProfile?.hasAdminAccess === true
     );
-  }, [effectiveEmail, effectiveRole]);
+  }, [effectiveEmail, effectiveRole, currentUserProfile?.hasAdminAccess]);
 
   // Audit Matrix Data
   const fullAuditRegistry = useMemo(() => generateToolAuditRegistry(), []);
@@ -240,7 +240,7 @@ export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceD
         </div>
         <h2 className="text-xl font-bold text-white mb-2">Restricted Owner Business Intelligence</h2>
         <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-          This portal contains proprietary commercial analytics, Google Search Console position matrices, and conversion funnel intelligence strictly reserved for authenticated PDFSun ownership (<code>mukeshinland79@gmail.com</code>).
+          This portal contains proprietary commercial analytics, Google Search Console position matrices, and conversion funnel intelligence strictly reserved for authenticated PDFSun platform ownership.
         </p>
         <div className="bg-slate-950/60 p-4 rounded-xl text-xs text-slate-400 border border-slate-800/80 text-left">
           <p className="font-semibold text-slate-300 mb-1">Current Session Info:</p>
@@ -260,7 +260,7 @@ export const OwnerGrowthIntelligenceDashboard: React.FC<OwnerGrowthIntelligenceD
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Sole-Owner Master Dashboard • {DUAL_OWNER_EMAILS[0]}
+              Verified Sole-Owner Master Dashboard • {effectiveEmail || "Verified Platform Owner"}
             </div>
             <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
               PDFSun Growth & Tool Reliability Engine

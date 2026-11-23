@@ -20,7 +20,7 @@ import {
   Download,
   FileCheck,
 } from "lucide-react";
-import { SystemConfig, UserProfile, DUAL_OWNER_EMAILS } from "../types";
+import { SystemConfig, UserProfile } from "../types";
 
 interface ServerSystemConfigFormProps {
   currentUserProfile?: UserProfile | null;
@@ -48,7 +48,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
 
   const currentUserEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isVerifiedOwner =
-    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(currentUserEmail);
+    currentUserProfile?.role === "owner" && currentUserProfile?.hasAdminAccess === true;
 
   const getAuthHeaders = (): Record<string, string> => {
     const storedToken =
@@ -220,7 +220,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
         generatedAt: timestamp,
         generatedBy: currentUserEmail || "Authenticated Owner",
         soleOwnerAuthorized: isVerifiedOwner,
-        authorizedOwners: DUAL_OWNER_EMAILS,
+        authorizedOwnerSession: currentUserEmail || "Verified Platform Owner",
       },
       currentConfigurationSnapshot: config,
       complianceAttestation: "Exported from active PDFSun Owner console.",
@@ -245,7 +245,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
           Access Denied: Verified Sole-Owner Clearance Required
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          Server &amp; System Configurations are restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) with an active Owner role session.
+          Server &amp; System Configurations are restricted exclusively to the verified Platform Owner with an active Owner role session.
         </p>
       </div>
     );
@@ -300,7 +300,7 @@ export const ServerSystemConfigForm: React.FC<ServerSystemConfigFormProps> = ({
           </div>
         </div>
         <div className="text-[11px] text-slate-500 font-mono bg-white dark:bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-          Authorized Owner: {DUAL_OWNER_EMAILS[0]}
+          Authorized Owner: {currentUserProfile?.email || "Verified Platform Owner"}
         </div>
       </div>
 

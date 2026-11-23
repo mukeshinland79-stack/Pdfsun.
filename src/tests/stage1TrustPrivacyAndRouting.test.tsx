@@ -111,8 +111,12 @@ async function runTests() {
   const indexHtml = fs.readFileSync(path.join(ROOT, "index.html"), "utf-8");
   assert.ok(!indexHtml.includes("Gemini 3.6"), "index.html must not contain Gemini 3.6");
   assert.ok(
-    indexHtml.includes('"email": "mukeshinland79@gmail.com"'),
-    "index.html Organization email preserved pending owner confirmation of official support mailbox"
+    !indexHtml.includes("mukeshinland79@gmail.com") && !indexHtml.includes("mukeshkalonia241@gmail.com"),
+    "index.html must not expose personal Owner or Customer Gmail addresses (PII-01)"
+  );
+  assert.ok(
+    indexHtml.includes("https://github.com/mukeshinland79-stack/Pdfsun."),
+    "index.html Organization sameAs must reference canonical repository mukeshinland79-stack/Pdfsun."
   );
   console.log("✅ [6/7] Vercel /api/* routing config, /api/index.ts adapter, index.html & compliance docs verified");
   passed++;

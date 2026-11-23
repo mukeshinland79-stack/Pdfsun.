@@ -7,7 +7,8 @@ import crypto from "crypto";
 import zlib from "zlib";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import { DUAL_OWNER_EMAILS, SystemConfig } from "./src/types";
+import { SystemConfig } from "./src/types";
+import { DUAL_OWNER_EMAILS, PRIMARY_OWNER_EMAIL } from "./src/server/ownerIdentity";
 import { ALL_TOOLS } from "./src/data/toolsData";
 import { PSEO_LANDING_PAGES, POPULAR_COMPRESS_SIZES } from "./src/data/pSEOData";
 import { BLOG_POSTS } from "./src/data/blogData";
@@ -3358,8 +3359,7 @@ app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        error: "Unauthorized: Access to Owner Payment Audit Log is restricted to verified owner mukeshinland79@gmail.com.",
-        ownerEmail: "mukeshinland79@gmail.com",
+        error: "Unauthorized: Access to Owner Payment Audit Log is restricted to the verified Platform Owner.",
         isOwner: false,
         count: 0,
         logs: [],
@@ -3370,7 +3370,7 @@ app.get("/api/admin/owner-payment-audit-logs", async (req, res) => {
 
     res.json({
       success: true,
-      ownerEmail: "mukeshinland79@gmail.com",
+      ownerEmail: PRIMARY_OWNER_EMAIL,
       isOwner: true,
       count: logs.length,
       logs,
@@ -3544,8 +3544,8 @@ app.post("/api/enterprise/inquiry", (req, res) => {
     res.json({
       success: true,
       ticketId,
-      message: "Enterprise SSO Inquiry received. A dedicated account manager will reach out within 2 hours.",
-      contactEmail: "mukeshkalonia241@gmail.com",
+      message: "Enterprise SSO Inquiry received. A dedicated account manager will reach out shortly.",
+      contactUrl: "https://www.pdfsun.in/contact-us",
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -3769,7 +3769,7 @@ app.post("/api/process-refund", async (req, res) => {
     if (!hasLiveGateway) {
       return res.status(503).json({
         success: false,
-        error: "Live payment gateway credentials are not configured on this server. Please contact support@pdfsun.in for manual refund assistance.",
+        error: "Live payment gateway credentials are not configured on this server. Please submit a request via https://www.pdfsun.in/contact-us for manual refund assistance.",
       });
     }
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import jwt from "jsonwebtoken";
-import { DUAL_OWNER_EMAILS as AUTHORITATIVE_OWNERS } from "../types";
+import { DUAL_OWNER_EMAILS as AUTHORITATIVE_OWNERS, isServerOwnerEmail } from "../server/ownerIdentity";
 import {
   DUAL_OWNER_EMAILS as LEGACY_SECURITY_OWNERS,
   dualOwnerSecurityMiddleware,
@@ -77,19 +77,24 @@ function createMockReqRes(headers: Record<string, string> = {}) {
   };
 }
 
-test("1. Single Authoritative Sole-Owner Policy across types, authService, mockAuth, and legacy adminSecurity", () => {
+test("1. Single Authoritative Server-Only Sole-Owner Policy across ownerIdentity, authService, and legacy adminSecurity", () => {
   assert.deepEqual(AUTHORITATIVE_OWNERS, [SOLE_OWNER]);
   assert.deepEqual(LEGACY_SECURITY_OWNERS, [SOLE_OWNER]);
   assert.equal(AUTHORITATIVE_OWNERS.includes(CUSTOMER_EMAIL), false);
   assert.equal(LEGACY_SECURITY_OWNERS.includes(CUSTOMER_EMAIL), false);
 
+  assert.equal(isServerOwnerEmail(SOLE_OWNER), true);
+  assert.equal(isServerOwnerEmail(CUSTOMER_EMAIL), false);
   assert.equal(isOwnerAccountEmail(SOLE_OWNER), true);
   assert.equal(isOwnerAccountEmail(SOLE_OWNER.toUpperCase()), true);
   assert.equal(isOwnerAccountEmail(CUSTOMER_EMAIL), false);
   assert.equal(isOwnerAccountEmail("customer@example.com"), false);
 
-  assert.equal(isOwnerAccount(SOLE_OWNER), true);
+  // Client mockAuth must NOT trust raw email strings; it requires server-verified role + hasAdminAccess
+  assert.equal(isOwnerAccount(SOLE_OWNER), false);
   assert.equal(isOwnerAccount(CUSTOMER_EMAIL), false);
+  assert.equal(isOwnerAccount({ id: "owner-002", name: "Owner", email: SOLE_OWNER, role: "owner", hasAdminAccess: true, isPro: true, plan: "Owner", avatar: "", joinedDate: "2026" }), true);
+  assert.equal(isOwnerAccount({ id: "usr-1", name: "Customer", email: CUSTOMER_EMAIL, role: "owner", hasAdminAccess: false, isPro: false, plan: "Free", avatar: "", joinedDate: "2026" }), false);
 });
 
 test("2. Finding 1: detectActivePlanTier strictly denies Owner tier to Customer even with spoofed role and preserves Free/Pro tiers", () => {
@@ -124,11 +129,12 @@ test("2. Finding 1: detectActivePlanTier strictly denies Owner tier to Customer 
     "free"
   );
 
-  // Sole Owner WITH verified owner role gets owner tier
+  // Sole Owner WITH verified server-issued owner role + hasAdminAccess gets owner tier
   assert.equal(
     detectActivePlanTier({
       email: SOLE_OWNER,
       role: "owner",
+      hasAdminAccess: true,
       isPro: true,
     }),
     "owner"
@@ -206,22 +212,24 @@ test("3. Finding 2: Legacy adminSecurity.ts middleware enforces Sole-Owner JWT +
   }
 });
 
-test("4. Finding 3 & UI Audit: ServerSystemConfigForm, AdminPanel, and AdminActivityLog enforce clean Sole-Owner hygiene", () => {
+test("4. Finding 3 & PII-01 UI Audit: ServerSystemConfigForm, AdminPanel, AdminActivityLog, and src/types.ts contain zero personal email literals", () => {
+  const typesCode = fs.readFileSync(path.join(ROOT, "src/types.ts"), "utf8");
+  assert.equal(typesCode.includes(SOLE_OWNER), false, "src/types.ts must not embed personal Owner email");
+  assert.equal(typesCode.includes("DUAL_OWNER_EMAILS"), false, "DUAL_OWNER_EMAILS must live server-only in src/server/ownerIdentity.ts");
+
   const configForm = fs.readFileSync(path.join(ROOT, "src/components/ServerSystemConfigForm.tsx"), "utf8");
   assert.equal(configForm.includes("Owner 1:"), false, "ServerSystemConfigForm must not display Owner 1 / Owner 2");
   assert.equal(configForm.includes(CUSTOMER_EMAIL), false, "ServerSystemConfigForm must not display Customer email as Owner");
-  assert.equal(configForm.includes("Authorized Owner: {DUAL_OWNER_EMAILS[0]}"), true);
+  assert.equal(configForm.includes(SOLE_OWNER), false, "ServerSystemConfigForm must not hardcode personal Owner email");
+  assert.equal(configForm.includes('Authorized Owner: {currentUserProfile?.email || "Verified Platform Owner"}'), true);
 
   const adminPanel = fs.readFileSync(path.join(ROOT, "src/components/AdminPanel.tsx"), "utf8");
   assert.equal(adminPanel.includes('emailLower.includes("mukesh")'), false, "AdminPanel must not use substring matching on mukesh");
   assert.equal(adminPanel.includes('emailLower.includes("mukeshkalonia")'), false, "AdminPanel must not use substring matching on mukeshkalonia");
+  assert.equal(adminPanel.includes(SOLE_OWNER), false, "AdminPanel must not hardcode personal Owner email");
 
   const activityLog = fs.readFileSync(path.join(ROOT, "src/components/AdminActivityLog.tsx"), "utf8");
-  assert.equal(
-    activityLog.includes('currentUserProfile?.email || "mukeshinland79@gmail.com"'),
-    false,
-    "AdminActivityLog must not fall back to Owner email when profile is missing"
-  );
+  assert.equal(activityLog.includes(SOLE_OWNER), false, "AdminActivityLog must not embed personal Owner email");
   assert.equal(activityLog.includes(CUSTOMER_EMAIL), false, "AdminActivityLog must not list Customer as admin actor");
 });
 
@@ -261,13 +269,13 @@ test("5. Server adminAuth & JWT verification strictly reject Customer claiming o
   assert.equal(ownerCtx.req.isAdminAuthenticated, true);
 });
 
-test("6. Frontend useAuth helpers & root middleware/adminAuth strictly isolate Customer identity", () => {
+test("6. Frontend useAuth helpers & root middleware/adminAuth strictly isolate unverified profiles", () => {
   const spoofedCustomerProfile: any = {
     id: "usr-spoof",
     name: "Customer",
     email: CUSTOMER_EMAIL,
     role: "owner",
-    hasAdminAccess: true,
+    hasAdminAccess: false,
     isPro: false,
     plan: "Free",
     avatar: "",

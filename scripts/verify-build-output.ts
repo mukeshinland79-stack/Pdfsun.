@@ -20,7 +20,17 @@ const FORBIDDEN_DIST_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "Raw TypeScript source (*.ts / *.tsx)", regex: /\.tsx?$/i },
   { label: "Private key or certificate (*.pem / *.key)", regex: /\.(pem|key)$/i },
   { label: "Public JavaScript sourcemap (*.map)", regex: /\.map$/i },
+  { label: "Internal AI Studio paste artifact (assets/aistudio/Paste_*)", regex: /(^|\/)assets\/aistudio\/Paste_/i },
 ];
+
+const FORBIDDEN_DIST_CONTENT_RULES: Array<{ label: string; pattern: RegExp }> = [
+  { label: "Personal Owner Gmail address (PII-01)", pattern: /mukeshinland79@gmail\.com/i },
+  { label: "Personal Customer Gmail address (PII-01)", pattern: /mukeshkalonia241@gmail\.com/i },
+  { label: "Uncreated support mailbox reference (MAILBOX-01)", pattern: /support@pdfsun\.in/i },
+  { label: "Server-only ownerIdentity module reference", pattern: /SERVER_OWNER_EMAILS/i },
+];
+
+const TEXT_SCAN_EXTENSIONS = new Set([".html", ".js", ".mjs", ".css", ".json", ".txt", ".xml"]);
 
 const REQUIRED_PUBLIC_FILES = ["index.html", "robots.txt", "sitemap.xml"];
 
@@ -72,6 +82,22 @@ export function verifyBuildOutput(rootDir: string = ROOT_DIR): BuildOutputVerifi
         errors.push(`SECURITY VIOLATION: Forbidden file inside public dist/: "${relFile}" (matched ${rule.label})`);
       }
     }
+
+    const ext = path.extname(relFile).toLowerCase();
+    if (TEXT_SCAN_EXTENSIONS.has(ext)) {
+      try {
+        const content = fs.readFileSync(path.join(publicDistDir, relFile), "utf8");
+        for (const contentRule of FORBIDDEN_DIST_CONTENT_RULES) {
+          if (contentRule.pattern.test(content)) {
+            errors.push(
+              `PRIVACY VIOLATION: Forbidden string inside public dist/${relFile} (matched ${contentRule.label})`
+            );
+          }
+        }
+      } catch {
+        // Ignore unreadable binary edge files
+      }
+    }
   }
 
   let serverBundleBytes = 0;
@@ -108,6 +134,6 @@ if (isDirectRun) {
     process.exit(1);
   }
   console.log(
-    `[BUILD SECURITY ASSERTION PASSED] dist/ contains ${result.publicFileCount} public files (0 server bundles, 0 sourcemaps, 0 secret/config files). Backend bundle isolated at dist-server/server.cjs (${(result.serverBundleBytes / 1024).toFixed(1)} KB).`
+    `[BUILD SECURITY ASSERTION PASSED] dist/ contains ${result.publicFileCount} public files (0 server bundles, 0 sourcemaps, 0 paste artifacts, 0 PII/mailbox leaks, 0 secret/config files). Backend bundle isolated at dist-server/server.cjs (${(result.serverBundleBytes / 1024).toFixed(1)} KB).`
   );
 }

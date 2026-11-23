@@ -1,4 +1,4 @@
-import { UserProfile, UserRole, DUAL_OWNER_EMAILS } from "../types";
+import { UserProfile, UserRole } from "../types";
 
 const LOCAL_USER_KEY = "user";
 const LOCAL_PROFILE_KEY = "pdfsun_user_profile";
@@ -6,12 +6,13 @@ const LOCAL_ROLE_KEY = "pdfsun_user_role";
 const LOCAL_TOKEN_KEY = "pdfsun_auth_token";
 
 /**
- * Normalizes email and checks owner allowlist
+ * Client-side helper: verifies whether a server-issued UserProfile carries
+ * verified Owner privileges. Raw email strings are never trusted client-side;
+ * authoritative email allowlist enforcement lives exclusively in src/server/ownerIdentity.ts.
  */
-export function isOwnerAccount(email: string): boolean {
-  if (!email) return false;
-  const clean = email.toLowerCase().trim();
-  return DUAL_OWNER_EMAILS.includes(clean);
+export function isOwnerAccount(profileOrEmail?: UserProfile | string | null): boolean {
+  if (!profileOrEmail || typeof profileOrEmail !== "object") return false;
+  return profileOrEmail.role === "owner" && profileOrEmail.hasAdminAccess === true;
 }
 
 /**
@@ -22,11 +23,12 @@ export function createMockUserProfile(params: {
   name?: string;
   role?: UserRole;
   isPro?: boolean;
+  hasAdminAccess?: boolean;
   avatar?: string;
   plan?: string;
 }): UserProfile {
   const cleanEmail = params.email.toLowerCase().trim();
-  const isOwner = isOwnerAccount(cleanEmail) && params.role === "owner";
+  const isOwner = params.role === "owner" && params.hasAdminAccess === true;
   const role: UserRole = isOwner ? "owner" : params.role === "admin" ? "admin" : "user";
   const defaultName = isOwner
     ? "Mukesh Inland"
@@ -46,7 +48,7 @@ export function createMockUserProfile(params: {
         : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"),
     plan: params.plan || (isOwner ? "Founder & Owner - Unlimited" : params.isPro ? "Pro Sun (Active)" : "Free Plan (Active)"),
     joinedDate: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    hasAdminAccess: isOwner,
+    hasAdminAccess: isOwner || (role === "admin" && Boolean(params.hasAdminAccess)),
     isPro: isOwner ? true : Boolean(params.isPro),
   };
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, ToolHistoryItem, ToolItem, DUAL_OWNER_EMAILS } from "../types";
+import { UserProfile, ToolHistoryItem, ToolItem } from "../types";
 import { PaymentHistory, getVerificationStatusInfo, PaymentTransaction } from "./PaymentHistory";
 import {
   subscribeUserTransactionsFromFirestore,
@@ -189,7 +189,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   if (!isOpen) return null;
 
   const favoriteTools = allTools.filter((t) => favorites.includes(t.id));
-  const isOwner = userProfile.role === "owner" && DUAL_OWNER_EMAILS.includes((userProfile.email || "").toLowerCase().trim());
+  const isOwner = userProfile.role === "owner" && userProfile.hasAdminAccess === true;
   const resolvedPlan = resolvePaymentProduct({
     planId: userProfile.planId || userProfile.plan,
   });

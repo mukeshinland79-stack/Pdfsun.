@@ -31,7 +31,7 @@ import {
   Activity,
   UserCheck,
 } from "lucide-react";
-import { UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
+import { UserProfile, SystemConfig } from "../types";
 import { setInternalTrafficMode, isInternalOwnerTraffic } from "../utils/analytics";
 
 export interface ApiThrottlingManagerProps {
@@ -75,7 +75,7 @@ export const ApiThrottlingManager: React.FC<ApiThrottlingManagerProps> = ({
   const isVerifiedOwner =
     currentUserProfile?.role === "owner" &&
     Boolean(userEmail) &&
-    DUAL_OWNER_EMAILS.some((e) => e.toLowerCase() === userEmail);
+    currentUserProfile?.hasAdminAccess === true;
   const isVerifiedAdmin =
     currentUserProfile?.role === "admin" && currentUserProfile?.hasAdminAccess === true;
   const hasAuthorizedAccess = isVerifiedOwner || isVerifiedAdmin;

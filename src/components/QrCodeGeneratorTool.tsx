@@ -101,7 +101,7 @@ export const QrCodeGeneratorTool: React.FC<QrCodeGeneratorToolProps> = ({
   // Structured state across all 11 content types
   const [urlVal, setUrlVal] = useState("https://www.pdfsun.in");
   const [textVal, setTextVal] = useState("PDFSun Client-Side Document Workspace");
-  const [emailTo, setEmailTo] = useState("support@pdfsun.in");
+  const [emailTo, setEmailTo] = useState("hello@example.com");
   const [emailSubject, setEmailSubject] = useState("Document Inquiry");
   const [emailBody, setEmailBody] = useState("");
   const [phoneVal, setPhoneVal] = useState("+919876543210");
@@ -502,7 +502,7 @@ export const QrCodeGeneratorTool: React.FC<QrCodeGeneratorToolProps> = ({
       ["https://www.pdfsun.in/merge-pdf", "Merge PDF"],
       ["https://www.pdfsun.in/compress-pdf", "Compress PDF"],
       ["https://www.pdfsun.in/barcode-generator", "Barcode Studio"],
-      ["mailto:support@pdfsun.in?subject=Help", "Support Email"],
+      ["mailto:hello@example.com?subject=Help", "Sample Email QR"],
     ];
 
     if (format === "csv") {

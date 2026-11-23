@@ -25,7 +25,7 @@ import {
   PlusCircle,
   Eye,
 } from "lucide-react";
-import { UserProfile, DUAL_OWNER_EMAILS } from "../types";
+import { UserProfile } from "../types";
 
 export interface SystemActivityEntry {
   id: string;
@@ -47,7 +47,7 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
   {
     id: "evt-201",
     timestamp: new Date().toLocaleTimeString(),
-    userEmail: "mukeshinland79@gmail.com",
+    userEmail: "verified-owner-session",
     action: "Owner Login Authentication",
     category: "login_attempt",
     ipAddress: "152.58.16.42",
@@ -57,7 +57,7 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
   {
     id: "evt-202",
     timestamp: new Date(Date.now() - 1000 * 45).toLocaleTimeString(),
-    userEmail: "mukeshinland79@gmail.com",
+    userEmail: "verified-owner-session",
     action: "Runtime Config Update",
     category: "config_change",
     ipAddress: "152.58.16.42",
@@ -87,7 +87,7 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
   {
     id: "evt-205",
     timestamp: new Date(Date.now() - 1000 * 360).toLocaleTimeString(),
-    userEmail: "mukeshinland79@gmail.com",
+    userEmail: "verified-owner-session",
     action: "Toggled Stealth Mode Cloaking",
     category: "config_change",
     ipAddress: "152.58.16.42",
@@ -107,12 +107,12 @@ const INITIAL_SYSTEM_EVENTS: SystemActivityEntry[] = [
   {
     id: "evt-207",
     timestamp: new Date(Date.now() - 1000 * 900).toLocaleTimeString(),
-    userEmail: "mukeshinland79@gmail.com",
+    userEmail: "verified-owner-session",
     action: "Sole-Owner Policy Audit",
     category: "user_management",
     ipAddress: "152.58.16.42",
     status: "success",
-    details: "Verified sole Owner authorization boundary for mukeshinland79@gmail.com.",
+    details: "Verified sole Owner authorization boundary via server-side identity policy.",
   },
 ];
 
@@ -126,9 +126,8 @@ export const AdminActivityLog: React.FC<AdminActivityLogProps> = ({
   const [isLiveStream, setIsLiveStream] = useState<boolean>(true);
   const [logs, setLogs] = useState<SystemActivityEntry[]>(INITIAL_SYSTEM_EVENTS);
 
-  const activeEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isVerifiedOwner =
-    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(activeEmail);
+    currentUserProfile?.role === "owner" && currentUserProfile?.hasAdminAccess === true;
 
   // Fetch genuine audit logs from server or maintain verified records without random generation
   useEffect(() => {

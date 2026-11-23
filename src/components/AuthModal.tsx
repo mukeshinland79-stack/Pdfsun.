@@ -21,7 +21,7 @@ import {
   Building2,
   Sparkles,
 } from "lucide-react";
-import { UserRole, UserProfile, DUAL_OWNER_EMAILS } from "../types";
+import { UserRole, UserProfile } from "../types";
 import { safeFetchJson, getErrorMessage } from "../utils/apiHelper";
 import { sanitizeAuthError } from "../hooks/useAuth";
 import { trackGASignup } from "../utils/analytics";
@@ -1446,7 +1446,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="e.g. mukeshinland79@gmail.com"
+                      placeholder="Enter registered owner email or phone"
                       value={ownerEmailInput}
                       onChange={(e) => setOwnerEmailInput(e.target.value)}
                       required

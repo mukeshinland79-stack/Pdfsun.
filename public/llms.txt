@@ -100,5 +100,5 @@
 - [PDF/A Converter](https://www.pdfsun.in/pdf-a-converter): Convert PDFs into ISO-compliant long-term archival PDF/A files.
 
 ## Support & Governance
-- Owner / Primary Contact: mukeshinland79@gmail.com
+- Support & Primary Contact: https://www.pdfsun.in/contact-us
 - Legal Pages: `/privacy-policy`, `/terms-of-service`, `/refund-policy`, `/cookie-policy`, `/about-us`, `/contact-us`, `/pricing`

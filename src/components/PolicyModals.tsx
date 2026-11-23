@@ -39,7 +39,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
         <p>PDFSun uses first-party browser local storage strictly for essential user preferences: saving your active theme (light/dark/eye-protection), tool favorites, and recent local activity history. We do not sell or monetize personal browsing history.</p>
 
         <h4 className="font-bold text-sm text-slate-900 dark:text-white">5. Contact Support &amp; Grievance Redressal</h4>
-        <p>For any privacy-related inquiries, data rights requests, or feedback, you can reach Platform Operator Mukesh Kalonia directly at <a href="mailto:mukeshinland79@gmail.com" className="text-blue-600 dark:text-blue-400 font-bold underline font-mono">mukeshinland79@gmail.com</a> or <a href="mailto:mukeshkalonia241@gmail.com" className="text-blue-600 dark:text-blue-400 font-bold underline font-mono">mukeshkalonia241@gmail.com</a>.</p>
+        <p>For any privacy-related inquiries, data rights requests, or feedback, you can reach Platform Operator Mukesh Kalonia through our official <a href="/contact-us" className="text-blue-600 dark:text-blue-400 font-bold underline">Contact Support Center (/contact-us)</a>.</p>
       </div>
     );
   } else if (policy === "terms") {
@@ -69,7 +69,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
     title = "Refund Policy - PDFSun";
     content = (
       <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-        <p>We offer a 14-day no-questions-asked refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Contact mukeshkalonia241@gmail.com for instant refund processing.</p>
+        <p>We offer a 14-day no-questions-asked refund policy for Pro Sun and Team Enterprise subscription purchases on PDFSun. Submit a request via our official <a href="/contact-us" className="text-blue-600 dark:text-blue-400 font-bold underline">Contact Support Center</a> for prompt refund processing.</p>
       </div>
     );
   } else if (policy === "about") {
@@ -105,8 +105,8 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ policy, onClose }) =
           <div className="flex items-start space-x-3 text-sm font-bold text-slate-900 dark:text-white">
             <Mail className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
             <div>
-              <span className="block text-slate-900 dark:text-white">Official Support &amp; Privacy Email:</span>
-              <a href="mailto:mukeshkalonia241@gmail.com" className="text-orange-600 dark:text-orange-400 underline font-mono text-xs">mukeshkalonia241@gmail.com</a>
+              <span className="block text-slate-900 dark:text-white">Official Support &amp; Privacy Channel:</span>
+              <a href="/contact-us" className="text-orange-600 dark:text-orange-400 underline font-mono text-xs">https://www.pdfsun.in/contact-us</a>
             </div>
           </div>
           <div className="flex items-start space-x-3 text-xs font-semibold text-slate-600 dark:text-slate-300">

@@ -14,7 +14,7 @@ import { createCsrfOriginProtectionMiddleware } from "../server/middleware/csrfO
 import { getDistributedStateDiagnostics, getDistributedStateStore } from "../server/distributedStateStore";
 import { verifyBuildOutput } from "../../scripts/verify-build-output";
 import { ALL_TOOLS } from "../data/toolsData";
-import { DUAL_OWNER_EMAILS } from "../types";
+import { DUAL_OWNER_EMAILS } from "../server/ownerIdentity";
 
 type TestFn = () => void | Promise<void>;
 
@@ -100,6 +100,17 @@ test("Item 1 & 2: verifyBuildOutput rejects server.cjs, .map, and .env files ins
       pollutedReport.errors.some((e) => e.includes("server.cjs.map")),
       "Expected error mentioning server.cjs.map"
     );
+
+    // Polluted with Paste_* artifact or personal email fails hard (PUB-ASSET-01 / PII-01)
+    fs.unlinkSync(path.join(tmpDist, "server.cjs"));
+    fs.unlinkSync(path.join(tmpDist, "server.cjs.map"));
+    fs.mkdirSync(path.join(tmpDist, "assets", "aistudio"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDist, "assets", "aistudio", "Paste_November_test"), "internal prompt");
+    fs.writeFileSync(path.join(tmpDist, "index.html"), "<!doctype html><html>mukeshinland79@gmail.com</html>");
+    const piiReport = verifyBuildOutput(tmpRoot);
+    assert.equal(piiReport.passed, false, "Expected Paste_* and PII in dist/ to FAIL security audit");
+    assert.ok(piiReport.errors.some((e) => e.includes("Paste_")), "Expected PUB-ASSET-01 violation");
+    assert.ok(piiReport.errors.some((e) => e.includes("PII-01")), "Expected PII-01 violation");
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }

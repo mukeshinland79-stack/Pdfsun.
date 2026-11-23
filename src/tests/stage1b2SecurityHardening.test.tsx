@@ -4,7 +4,8 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import jwt from "jsonwebtoken";
-import { DUAL_OWNER_EMAILS, UserProfile } from "../types";
+import { UserProfile } from "../types";
+import { DUAL_OWNER_EMAILS } from "../server/ownerIdentity";
 import { ALL_TOOLS } from "../data/toolsData";
 import {
   adminAuth,
@@ -372,11 +373,11 @@ test("6. Client validateAdminSession strictly rejects localStorage-only secret k
     const resSecretOnlyWithProfile = validateAdminSession(ownerProfile, null, "AttackerInjectedLocalSecretKey_9999");
     assert.equal(resSecretOnlyWithProfile.isValid, false, "Secret key without JWT must NOT pass validateAdminSession");
 
-    // Attack: Customer claiming role=owner with valid JWT format -> must fail
+    // Attack: Customer claiming role=owner without server-issued admin clearance -> must fail
     const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InRlc3QifQ.signature_part_long_enough_12345";
-    const customerForgedOwner = makeProfile({ email: CUSTOMER_EMAIL, role: "owner", hasAdminAccess: true });
+    const customerForgedOwner = makeProfile({ email: CUSTOMER_EMAIL, role: "owner", hasAdminAccess: false });
     const resForged = validateAdminSession(customerForgedOwner, fakeJwt);
-    assert.equal(resForged.isValid, false, "Customer claiming owner role must fail validateAdminSession");
+    assert.equal(resForged.isValid, false, "Unverified Customer claiming owner role must fail validateAdminSession");
     assert.equal(resForged.isOwner, false);
 
     // Legitimate sole Owner with JWT format -> allowed for client hint
@@ -423,7 +424,7 @@ test("7. Behavioral SSR checks for all 5 Admin UI components (role+allowlist con
     email: CUSTOMER_EMAIL,
     name: "Mukesh Kalonia",
     role: "owner",
-    hasAdminAccess: true,
+    hasAdminAccess: false,
     plan: "Founder & Owner",
   });
   const customerStandard = makeProfile({
@@ -628,18 +629,18 @@ test("7. Behavioral SSR checks for all 5 Admin UI components (role+allowlist con
   assert.equal(adminPanelOwnerHtml.includes("Lead Web Developer &amp; Dual Owner"), false);
 });
 
-test("8. Single-source Owner identity, audit operator attribution, Google OAuth continuity & 68-tool invariants", () => {
+test("8. Server-only Owner identity, audit operator attribution, Google OAuth continuity & 68-tool invariants", () => {
   assert.deepEqual(DUAL_OWNER_EMAILS, [SOLE_OWNER]);
   assert.equal(isOwnerAccountEmail(SOLE_OWNER), true);
   assert.equal(isOwnerAccountEmail(CUSTOMER_EMAIL), false);
-  assert.equal(isOwnerAccount(SOLE_OWNER), true);
+  assert.equal(isOwnerAccount(SOLE_OWNER), false);
   assert.equal(isOwnerAccount(CUSTOMER_EMAIL), false);
 
   const authServiceCode = fs.readFileSync(path.join(ROOT, "src/server/authService.ts"), "utf8");
   assert.equal(
     authServiceCode.includes('DUAL_OWNER_EMAILS.includes(clean) || clean === "mukeshinland79@gmail.com"'),
     false,
-    "authService.ts must use single-source DUAL_OWNER_EMAILS without hardcoded fallback literal"
+    "authService.ts must use single-source server ownerIdentity without hardcoded fallback literal"
   );
   assert.ok(
     authServiceCode.includes('mfaVerified: params.provider === "google"'),
@@ -648,9 +649,9 @@ test("8. Single-source Owner identity, audit operator attribution, Google OAuth 
 
   const mockAuthCode = fs.readFileSync(path.join(ROOT, "src/utils/mockAuth.ts"), "utf8");
   assert.equal(
-    mockAuthCode.includes('clean === "mukeshinland79@gmail.com"'),
+    mockAuthCode.includes(SOLE_OWNER),
     false,
-    "mockAuth.ts must use single-source DUAL_OWNER_EMAILS without hardcoded fallback literal"
+    "mockAuth.ts must not embed personal Owner email literal in browser bundle"
   );
 
   const serverCode = fs.readFileSync(path.join(ROOT, "server.ts"), "utf8");

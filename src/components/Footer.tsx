@@ -421,9 +421,9 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenContactModal}
-                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-mono truncate"
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer truncate"
                 >
-                  support@pdfsun.in
+                  Contact Support Center
                 </button>
               </div>
             </div>

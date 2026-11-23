@@ -4,13 +4,13 @@ import {
   isVerifiedOwnerIdentity,
   isRevokedAdminOrSessionTokenAsync,
 } from "../server/middleware/adminAuth";
-import { DUAL_OWNER_EMAILS } from "../types";
+import { DUAL_OWNER_EMAILS } from "../server/ownerIdentity";
 
 /**
  * Enterprise Zero-Trust Admin Cloaking & Security Middleware for PDFSun
  *
  * Objectives:
- * 1. Enforce the single authoritative Sole-Owner policy imported from src/types.ts.
+ * 1. Enforce the single authoritative Sole-Owner policy imported from src/server/ownerIdentity.ts.
  * 2. Validate cryptographically signed Owner JWTs (with mandatory MFA & revocation check)
  *    or timing-safe ADMIN_SECRET_KEY from headers or HTTP-only cookies.
  * 3. Return generic 404 'Not Found' on unauthorized attempts to completely obscure

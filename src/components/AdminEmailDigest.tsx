@@ -24,7 +24,7 @@ export interface AdminEmailDigestProps {
 
 export const AdminEmailDigest: React.FC<AdminEmailDigestProps> = ({
   className = "",
-  userEmail = "mukeshinland79@gmail.com",
+  userEmail = "",
 }) => {
   const [recipientEmail, setRecipientEmail] = useState<string>(userEmail);
   const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly" | "critical_only">("daily");

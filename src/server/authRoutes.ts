@@ -20,7 +20,7 @@ import {
   verifyGoogleProviderToken,
   changeAuthenticatedUserPassword,
 } from "./authService";
-import { DUAL_OWNER_EMAILS } from "../types";
+import { DUAL_OWNER_EMAILS } from "./ownerIdentity";
 import { getUserSubscription } from "./paymentStore";
 import { parseCookieHeader } from "./cookieUtils";
 import { buildSessionCookies, buildClearSessionCookies } from "./cookieSecurity";

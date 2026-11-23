@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { DUAL_OWNER_EMAILS } from "../../types";
+import { DUAL_OWNER_EMAILS } from "../ownerIdentity";
 import { getDistributedStateStore } from "../distributedStateStore";
 
 // Dynamic JWT Secret resolver: Enforces minimum 256-bit cryptographically secure secret.

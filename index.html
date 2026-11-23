@@ -23,7 +23,7 @@
           isInternal = true;
         } else {
           var userProfile = localStorage.getItem("pdfsun_user_profile");
-          if (userProfile && (userProfile.indexOf("mukeshinland79@gmail.com") !== -1 || userProfile.indexOf('"role":"owner"') !== -1)) {
+          if (userProfile && userProfile.indexOf('"role":"owner"') !== -1) {
             isInternal = true;
           }
         }
@@ -247,10 +247,14 @@
       "url": "https://www.pdfsun.in",
       "logo": "https://www.pdfsun.in/logo.png",
       "image": "https://www.pdfsun.in/og-image.png",
-      "email": "mukeshinland79@gmail.com",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": "https://www.pdfsun.in/contact-us"
+      },
       "sameAs": [
         "https://twitter.com/pdfsun",
-        "https://github.com/mukeshinland79-stack/Pdfsun"
+        "https://github.com/mukeshinland79-stack/Pdfsun."
       ]
     }
     </script>
@@ -488,7 +492,7 @@
         </section>
 
         <footer style="border-top: 2px solid #e2e8f0; padding-top: 20px; font-size: 13px; color: #64748b;">
-          <p><strong>About PDFSun:</strong> Founded and operated by Mukesh Kalonia. Engineered with WebAssembly, Vite, React, and Gemini AI. Contact: mukeshkalonia241@gmail.com | Rajasthan, India.</p>
+          <p><strong>About PDFSun:</strong> Founded and operated by Mukesh Kalonia. Engineered with WebAssembly, Vite, React, and Gemini AI. Support: <a href="https://www.pdfsun.in/contact-us">https://www.pdfsun.in/contact-us</a> | Rajasthan, India.</p>
           <p>Links: Privacy Policy | Terms of Service | Cookie Policy | Refund Policy | About Us | Contact Support | Disclaimer</p>
         </footer>
       </div>

@@ -47,7 +47,7 @@ import {
   Cpu,
   Lock,
 } from "lucide-react";
-import { AdminSettings, AdminUserAccount, UserProfile, DUAL_OWNER_EMAILS, SystemConfig } from "../types";
+import { AdminSettings, AdminUserAccount, UserProfile, SystemConfig } from "../types";
 import { ServerSystemConfigForm } from "./ServerSystemConfigForm";
 import { FinanceHub } from "./FinanceHub";
 import { AdminCommentModeration } from "./AdminCommentModeration";
@@ -470,9 +470,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   if (!isOpen) return null;
 
-  const userEmail = (currentUserProfile?.email || "").toLowerCase().trim();
   const isVerifiedSoleOwner =
-    currentUserProfile?.role === "owner" && DUAL_OWNER_EMAILS.includes(userEmail);
+    currentUserProfile?.role === "owner" && currentUserProfile?.hasAdminAccess === true;
 
   const isPlatformOwner = isOwner !== undefined
     ? Boolean(isOwner) && isVerifiedSoleOwner
@@ -976,7 +975,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        PDFSun Platform Architecture • Sole Owner Governance (<strong className="text-amber-400">{DUAL_OWNER_EMAILS[0]}</strong>)
+                        PDFSun Platform Architecture • Sole Owner Governance (<strong className="text-amber-400">{currentUserProfile?.email || "Verified Platform Owner"}</strong>)
                       </p>
                     </div>
                   </div>
@@ -1711,8 +1710,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                     {activeUserList
                       .filter((usr) => {
-                        const emailLower = (usr.email || "").toLowerCase().trim();
-                        const isOwner = DUAL_OWNER_EMAILS.includes(emailLower) && (usr as any).role === "owner";
+                        const isOwner = (usr as any).role === "owner" && Boolean((usr as any).hasAdminAccess);
                         const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
                         const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
 
@@ -1728,8 +1726,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         return true;
                       })
                       .map((usr, index) => {
-                        const emailLower = (usr.email || "").toLowerCase().trim();
-                        const isOwner = DUAL_OWNER_EMAILS.includes(emailLower) && (usr as any).role === "owner";
+                        const isOwner = (usr as any).role === "owner" && Boolean((usr as any).hasAdminAccess);
                         const isClient = (usr as any).role === "client" || usr.plan?.toLowerCase().includes("enterprise");
                         const isCustomer = (usr as any).role === "customer" || usr.plan?.toLowerCase().includes("pro") || (usr as any).isPro;
 
@@ -2310,7 +2307,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   Access Denied: Sole-Owner Security Clearance Required
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  The System Activity Log is restricted exclusively to the verified Platform Owner ({DUAL_OWNER_EMAILS[0]}) to safeguard real-time login attempt records, configuration changes, and system exception telemetry.
+                  The System Activity Log is restricted exclusively to the verified Platform Owner to safeguard real-time login attempt records, configuration changes, and system exception telemetry.
                 </p>
               </div>
             )

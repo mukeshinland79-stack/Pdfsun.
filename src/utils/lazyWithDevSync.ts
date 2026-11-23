@@ -27,7 +27,7 @@ type DevDepsSyncChecker = (force?: boolean) => Promise<DevDepsSyncOutcome | bool
 export function lazyWithDevSync<T extends React.ComponentType<any>>(
   loader: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> {
-  if (!import.meta.env.DEV) {
+  if (!import.meta.env?.DEV) {
     return lazy(loader);
   }
 
