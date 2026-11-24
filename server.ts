@@ -121,6 +121,11 @@ import {
   issueCsrfTokenHandler,
 } from "./src/server/middleware/csrfOriginProtection";
 import { getDistributedStateDiagnostics } from "./src/server/distributedStateStore";
+import {
+  validateSupportInquiryInput,
+  persistSupportInquiry,
+  listSupportInquiries,
+} from "./src/server/supportStore";
 
 dotenv.config();
 
@@ -405,6 +410,18 @@ app.use("/api/admin/auth", authSlidingLimiter);
 app.use("/api/comments", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.commentsEndpoints, "comments"));
 app.use("/api/history", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "history"));
 app.use("/api/user", createSlidingRateLimiter(TRAFFIC_SECURITY_CONFIG.rateLimits.generalApi, "user"));
+app.use(
+  "/api/support/contact",
+  createSlidingRateLimiter(
+    {
+      windowMs: 10 * 60 * 1000,
+      maxRequests: 5,
+      burstAllowance: 2,
+      message: "Too many support inquiries submitted. Please wait a few minutes and try again.",
+    },
+    "support-contact"
+  )
+);
 
 // Metric Counters & Active System Config
 let lastCpuUsage = process.cpuUsage();
@@ -3549,6 +3566,68 @@ app.post("/api/enterprise/inquiry", (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Public Support Contact Form Endpoint (Validated, Rate-Limited, Durable Persistence)
+app.post("/api/support/contact", (req, res) => {
+  try {
+    const validation = validateSupportInquiryInput({
+      name: req.body?.name,
+      email: req.body?.email,
+      subject: req.body?.subject,
+      message: req.body?.message,
+    });
+
+    if (!validation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: validation.error,
+      });
+    }
+
+    const clientIp = getClientIp(req);
+    const saved = persistSupportInquiry(validation.data, {
+      ip: clientIp,
+      sourcePath: typeof req.headers.referer === "string" ? req.headers.referer : "/contact-us",
+    });
+
+    console.log(
+      `[Support Contact] Persisted ticket ${saved.ticketId} from ${maskEmailAddress(saved.email)} (subject length: ${saved.subject.length})`
+    );
+
+    return res.status(201).json({
+      success: true,
+      ticketId: saved.ticketId,
+      createdAt: saved.createdAt,
+      message: "Support inquiry received and ticket created successfully.",
+    });
+  } catch (err: any) {
+    console.error("[Support Contact] Failed to persist inquiry:", err?.message || err);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to save your support inquiry right now. Please try again shortly.",
+    });
+  }
+});
+
+// Owner/Admin Protected Support Inquiries Audit List
+app.get("/api/admin/support-inquiries", verifyDualOwnerAccess, (req, res) => {
+  try {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 100;
+    const inquiries = listSupportInquiries(limit);
+    return res.json({
+      success: true,
+      count: inquiries.length,
+      inquiries,
+    });
+  } catch (err: any) {
+    console.error("[Support Contact] Failed to list inquiries:", err?.message || err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to load support inquiries.",
+    });
   }
 });
 

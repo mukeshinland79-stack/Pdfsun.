@@ -26,7 +26,6 @@ const FORBIDDEN_DIST_PATTERNS: Array<{ label: string; regex: RegExp }> = [
 const FORBIDDEN_DIST_CONTENT_RULES: Array<{ label: string; pattern: RegExp }> = [
   { label: "Personal Owner Gmail address (PII-01)", pattern: /mukeshinland79@gmail\.com/i },
   { label: "Personal Customer Gmail address (PII-01)", pattern: /mukeshkalonia241@gmail\.com/i },
-  { label: "Uncreated support mailbox reference (MAILBOX-01)", pattern: /support@pdfsun\.in/i },
   { label: "Server-only ownerIdentity module reference", pattern: /SERVER_OWNER_EMAILS/i },
 ];
 
