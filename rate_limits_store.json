@@ -26,5 +26,12 @@
     "lastUpdated": "2026-11-23T19:33:37.107Z",
     "identifierHash": "12ca17b49af22894",
     "tier": "guest"
+  },
+  "guest_12ca17b49af22894_2026-11-24": {
+    "count": 3,
+    "date": "2026-11-24",
+    "lastUpdated": "2026-11-24T13:49:28.702Z",
+    "identifierHash": "12ca17b49af22894",
+    "tier": "guest"
   }
 }

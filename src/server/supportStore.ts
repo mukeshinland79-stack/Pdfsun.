@@ -28,9 +28,37 @@ export interface ValidatedSupportInquiry {
   message: string;
 }
 
-const SUPPORT_STORE_DIR = path.resolve(process.cwd(), ".data");
-const SUPPORT_STORE_PATH = path.resolve(SUPPORT_STORE_DIR, "support_inquiries.json");
-const MAX_STORED_INQUIRIES = 2000;
+export interface PersistSupportInquiryOptions {
+  ip?: string;
+  sourcePath?: string;
+  storeDir?: string;
+  maxRecords?: number;
+}
+
+export class SupportStoreCapacityError extends Error {
+  public readonly statusCode = 507;
+  constructor(message: string) {
+    super(message);
+    this.name = "SupportStoreCapacityError";
+  }
+}
+
+export class SupportStoreUnavailableError extends Error {
+  public readonly statusCode = 503;
+  constructor(message: string) {
+    super(message);
+    this.name = "SupportStoreUnavailableError";
+  }
+}
+
+const DEFAULT_SUPPORT_STORE_DIR = path.resolve(process.cwd(), ".data");
+const DEFAULT_MAX_STORED_INQUIRIES = 2000;
+
+// In-process async write serialization per store directory.
+// CRITICAL: An in-process mutex is preview/single-instance protection ONLY and is NOT
+// durable serverless storage across Vercel instances, cold starts, or redeployments (Gate 2).
+const writeQueues = new Map<string, Promise<void>>();
+let loggedNonDurableWarning = false;
 
 // Non-backtracking practical RFC-aligned email check
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -40,6 +68,43 @@ function sanitizeText(raw: string, allowNewlines = false): string {
     ? raw.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     : raw.replace(/[\u0000-\u001F\u007F]+/g, " ");
   return cleaned.trim();
+}
+
+function resolveStoreDir(explicitDir?: string): string {
+  const candidate = explicitDir || process.env.PDFSUN_SUPPORT_STORE_DIR || DEFAULT_SUPPORT_STORE_DIR;
+  return path.resolve(candidate);
+}
+
+function ensureSafeStoreDir(dir: string): string {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    }
+    const realDir = fs.realpathSync(dir);
+    const stat = fs.lstatSync(realDir);
+    if (!stat.isDirectory()) {
+      throw new SupportStoreUnavailableError("Support storage directory is invalid.");
+    }
+    return realDir;
+  } catch (err: any) {
+    if (err instanceof SupportStoreUnavailableError) {
+      throw err;
+    }
+    if (err?.code === "EROFS" || err?.code === "EACCES" || err?.code === "EPERM") {
+      throw new SupportStoreUnavailableError(
+        "Support storage is read-only or unavailable in this environment. Durable database storage (Gate 2) is required."
+      );
+    }
+    throw err;
+  }
+}
+
+function resolveContainedFile(realDir: string, fileName: string): string {
+  const target = path.resolve(realDir, fileName);
+  if (!target.startsWith(realDir + path.sep)) {
+    throw new SupportStoreUnavailableError("Invalid support store file path.");
+  }
+  return target;
 }
 
 export function validateSupportInquiryInput(
@@ -87,35 +152,78 @@ export function hashRequesterIp(ip: string): string {
   return crypto.createHash("sha256").update(`pdfsun-support:${ip || "unknown"}`).digest("hex").slice(0, 16);
 }
 
-function readInquiriesFromDisk(): SupportInquiryRecord[] {
-  if (!fs.existsSync(SUPPORT_STORE_PATH)) {
+function readInquiriesFromDisk(storeDir?: string): SupportInquiryRecord[] {
+  const dir = resolveStoreDir(storeDir);
+  if (!fs.existsSync(dir)) {
     return [];
   }
-  const raw = fs.readFileSync(SUPPORT_STORE_PATH, "utf-8");
+  const realDir = fs.realpathSync(dir);
+  const storePath = resolveContainedFile(realDir, "support_inquiries.json");
+  if (!fs.existsSync(storePath)) {
+    return [];
+  }
+  const raw = fs.readFileSync(storePath, "utf-8");
   const parsed = JSON.parse(raw);
   return Array.isArray(parsed) ? parsed : [];
 }
 
-function writeInquiriesAtomically(records: SupportInquiryRecord[]): void {
-  if (!fs.existsSync(SUPPORT_STORE_DIR)) {
-    fs.mkdirSync(SUPPORT_STORE_DIR, { recursive: true, mode: 0o700 });
-  }
-  const tmpPath = path.resolve(
-    SUPPORT_STORE_DIR,
-    `support_inquiries.${process.pid}.${Date.now()}.tmp`
+function writeInquiriesAtomically(records: SupportInquiryRecord[], storeDir?: string): void {
+  const realDir = ensureSafeStoreDir(resolveStoreDir(storeDir));
+  const storePath = resolveContainedFile(realDir, "support_inquiries.json");
+  const nonce = crypto.randomBytes(6).toString("hex");
+  const tmpPath = resolveContainedFile(
+    realDir,
+    `support_inquiries.${process.pid}.${Date.now()}.${nonce}.tmp`
   );
-  if (!tmpPath.startsWith(SUPPORT_STORE_DIR + path.sep)) {
-    throw new Error("Invalid support store path.");
+
+  let renamed = false;
+  try {
+    fs.writeFileSync(tmpPath, JSON.stringify(records, null, 2), { encoding: "utf-8", mode: 0o600 });
+    fs.renameSync(tmpPath, storePath);
+    renamed = true;
+  } catch (err: any) {
+    if (err?.code === "EROFS" || err?.code === "EACCES" || err?.code === "EPERM") {
+      throw new SupportStoreUnavailableError(
+        "Support storage is read-only or unavailable in this environment. Durable database storage (Gate 2) is required."
+      );
+    }
+    throw err;
+  } finally {
+    if (!renamed) {
+      try {
+        if (fs.existsSync(tmpPath)) {
+          fs.unlinkSync(tmpPath);
+        }
+      } catch {
+        // Best-effort cleanup of orphan temporary file
+      }
+    }
   }
-  fs.writeFileSync(tmpPath, JSON.stringify(records, null, 2), { encoding: "utf-8", mode: 0o600 });
-  fs.renameSync(tmpPath, SUPPORT_STORE_PATH);
 }
 
-export function persistSupportInquiry(
+function persistSupportInquirySyncInternal(
   validated: ValidatedSupportInquiry,
-  options: { ip?: string; sourcePath?: string } = {}
+  options: PersistSupportInquiryOptions = {}
 ): SupportInquiryRecord {
-  const existing = readInquiriesFromDisk();
+  if (!loggedNonDurableWarning && (process.env.VERCEL === "1" || process.env.NODE_ENV === "production")) {
+    loggedNonDurableWarning = true;
+    console.warn(
+      "[SupportStore] Local JSON store is preview/single-instance only and is NOT durable on Vercel serverless. Complete Gate 2 durable DB migration before production reliance."
+    );
+  }
+
+  const maxRecords =
+    typeof options.maxRecords === "number" && Number.isFinite(options.maxRecords) && options.maxRecords >= 1
+      ? Math.floor(options.maxRecords)
+      : DEFAULT_MAX_STORED_INQUIRIES;
+
+  const existing = readInquiriesFromDisk(options.storeDir);
+  if (existing.length >= maxRecords) {
+    throw new SupportStoreCapacityError(
+      `Support inquiry store reached its maximum safe capacity (${maxRecords} records). Existing inquiries were preserved and no records were truncated.`
+    );
+  }
+
   const record: SupportInquiryRecord = {
     ticketId: generateSupportTicketId(),
     name: validated.name,
@@ -128,12 +236,40 @@ export function persistSupportInquiry(
     ipHash: hashRequesterIp(options.ip || "unknown"),
   };
 
-  const nextRecords = [record, ...existing].slice(0, MAX_STORED_INQUIRIES);
-  writeInquiriesAtomically(nextRecords);
+  const nextRecords = [record, ...existing];
+  writeInquiriesAtomically(nextRecords, options.storeDir);
   return record;
 }
 
-export function listSupportInquiries(limit = 100): SupportInquiryRecord[] {
-  const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
-  return readInquiriesFromDisk().slice(0, safeLimit);
+/**
+ * Serialized async support inquiry writer (prevents in-process concurrent lost updates).
+ */
+export function persistSupportInquiryAsync(
+  validated: ValidatedSupportInquiry,
+  options: PersistSupportInquiryOptions = {}
+): Promise<SupportInquiryRecord> {
+  const queueKey = resolveStoreDir(options.storeDir);
+  const previous = writeQueues.get(queueKey) || Promise.resolve();
+
+  const runPromise = previous.then(() => persistSupportInquirySyncInternal(validated, options));
+  const tailPromise = runPromise.then(
+    () => undefined,
+    () => undefined
+  );
+  writeQueues.set(queueKey, tailPromise);
+
+  return runPromise;
 }
+
+export function persistSupportInquiry(
+  validated: ValidatedSupportInquiry,
+  options: PersistSupportInquiryOptions = {}
+): SupportInquiryRecord {
+  return persistSupportInquirySyncInternal(validated, options);
+}
+
+export function listSupportInquiries(limit = 100, storeDir?: string): SupportInquiryRecord[] {
+  const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+  return readInquiriesFromDisk(storeDir).slice(0, safeLimit);
+}
+

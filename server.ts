@@ -123,9 +123,12 @@ import {
 import { getDistributedStateDiagnostics } from "./src/server/distributedStateStore";
 import {
   validateSupportInquiryInput,
-  persistSupportInquiry,
+  persistSupportInquiryAsync,
   listSupportInquiries,
+  SupportStoreCapacityError,
+  SupportStoreUnavailableError,
 } from "./src/server/supportStore";
+import { createPrivatePathGuardMiddleware } from "./src/server/privatePathGuard";
 
 dotenv.config();
 
@@ -184,8 +187,12 @@ const HOST = cliHost || positionalHost || process.env.HOST || "0.0.0.0";
 const app = express();
 app.disable("x-powered-by");
 
-// Trust upstream reverse proxy (Google Cloud Run GFE / Nginx) to securely extract true client IP
+// Trust upstream reverse proxy (Google Cloud Run GFE / Nginx / Vercel) to extract validated client IP.
+// Note: TRUST_CLOUDFLARE_EDGE defaults to false in trafficProtection.ts until direct origin lockdown is verified (Gate 4).
 app.set("trust proxy", 1);
+
+// Centralized SEC-01 Private Path Isolation Guard (runs ahead of routes, Vite middleware, and static assets)
+app.use(createPrivatePathGuardMiddleware());
 
 // Built-in HTTP Response Compression (Brotli + Gzip via Node zlib) for HTML, JS, CSS, JSON, SVG, XML, WASM
 const COMPRESSIBLE_MIME_RE = /^(text\/|application\/(javascript|ecmascript|json|ld\+json|xml|rss\+xml|atom\+xml|manifest\+json|wasm)|image\/svg\+xml)/i;
@@ -3569,8 +3576,8 @@ app.post("/api/enterprise/inquiry", (req, res) => {
   }
 });
 
-// Public Support Contact Form Endpoint (Validated, Rate-Limited, Durable Persistence)
-app.post("/api/support/contact", (req, res) => {
+// Public Support Contact Form Endpoint (Validated, Rate-Limited, Serialized Preview Store — Gate 2 required for serverless durability)
+app.post("/api/support/contact", async (req, res) => {
   try {
     const validation = validateSupportInquiryInput({
       name: req.body?.name,
@@ -3587,22 +3594,36 @@ app.post("/api/support/contact", (req, res) => {
     }
 
     const clientIp = getClientIp(req);
-    const saved = persistSupportInquiry(validation.data, {
+    const saved = await persistSupportInquiryAsync(validation.data, {
       ip: clientIp,
       sourcePath: typeof req.headers.referer === "string" ? req.headers.referer : "/contact-us",
     });
 
     console.log(
-      `[Support Contact] Persisted ticket ${saved.ticketId} from ${maskEmailAddress(saved.email)} (subject length: ${saved.subject.length})`
+      `[Support Contact] Recorded inquiry ${saved.ticketId} from ${maskEmailAddress(saved.email)} (subject length: ${saved.subject.length})`
     );
 
     return res.status(201).json({
       success: true,
       ticketId: saved.ticketId,
       createdAt: saved.createdAt,
-      message: "Support inquiry received and ticket created successfully.",
+      message: "Support inquiry recorded in our support queue. Please save your reference ID.",
     });
   } catch (err: any) {
+    if (err instanceof SupportStoreCapacityError) {
+      console.error("[Support Contact] Store capacity reached:", err.message);
+      return res.status(507).json({
+        success: false,
+        message: "Support queue capacity is currently full. No inquiry was dropped; please try again later.",
+      });
+    }
+    if (err instanceof SupportStoreUnavailableError) {
+      console.error("[Support Contact] Storage unavailable:", err.message);
+      return res.status(503).json({
+        success: false,
+        message: "Support inquiry storage is temporarily unavailable in this environment. Please try again later.",
+      });
+    }
     console.error("[Support Contact] Failed to persist inquiry:", err?.message || err);
     return res.status(500).json({
       success: false,
@@ -5792,69 +5813,8 @@ async function startServer() {
     });
   });
 
-  // Strict Security Guard: Block public access to backend bundles, server source maps, backups, data stores, and environment files
-  app.use((req, res, next) => {
-    let rawPath = req.path || "";
-    try {
-      rawPath = decodeURIComponent(rawPath);
-    } catch {
-      // Malformed URI encoding
-    }
-    const normalized = path.normalize(rawPath).toLowerCase().replace(/\\/g, "/");
-    const base = path.basename(normalized);
-
-    const isDevViteJsonImport =
-      process.env.NODE_ENV !== "production" &&
-      req.query &&
-      Object.prototype.hasOwnProperty.call(req.query, "import");
-
-    if (
-      base === "server.cjs" ||
-      base === "server.cjs.map" ||
-      base.startsWith("server.cjs") ||
-      normalized.includes("server.cjs") ||
-      base === "server.ts" ||
-      base === "package.json" ||
-      base === "package-lock.json" ||
-      base === "tsconfig.json" ||
-      base === "vite.config.ts" ||
-      base === "firebase-blueprint.json" ||
-      (base === "firebase-applet-config.json" && !isDevViteJsonImport) ||
-      base === "firestore.rules" ||
-      base === "agents.md" ||
-      base === "metadata.json" ||
-      base.endsWith(".cjs") ||
-      base.endsWith(".cjs.map") ||
-      (base.endsWith(".map") && normalized.includes("server")) ||
-      normalized === "/backups" ||
-      normalized.startsWith("/backups/") ||
-      normalized.includes("/backups/") ||
-      normalized === "/data" ||
-      normalized.startsWith("/data/") ||
-      base === "users_store.json" ||
-      base === "comments_store.json" ||
-      base === "banned_ips.json" ||
-      base === "rate_limits_store.json" ||
-      base === "vercel.json" ||
-      base === "system_config.json" ||
-      base === "payment_store.json" ||
-      base === "verified_transactions.json" ||
-      base === "user_subscriptions.json" ||
-      base === "analytics_events.json" ||
-      base === ".env" ||
-      base.startsWith(".env.") ||
-      normalized.includes("/.git")
-    ) {
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("X-Content-Type-Options", "nosniff");
-      return res.status(404).json({
-        success: false,
-        error: "Resource not found.",
-        statusCode: 404,
-      });
-    }
-    next();
-  });
+  // Defense-in-depth SEC-01 Private Path Isolation Guard immediately ahead of Vite middleware and static serving
+  app.use(createPrivatePathGuardMiddleware());
 
   if (process.env.NODE_ENV !== "production") {
     const readViteDepsBrowserHash = (): string => {

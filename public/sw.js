@@ -1,6 +1,6 @@
-// PDF Sun PRO AI Progressive Web App (PWA) Service Worker - Master Blue Suite (v6.0)
-const CACHE_NAME = 'pdfsun-pro-ai-v6.0';
-const WASM_CACHE_NAME = 'pdfsun-wasm-binaries-v6.0';
+// PDF Sun PRO AI Progressive Web App (PWA) Service Worker - Master Blue Suite (v6.1)
+const CACHE_NAME = 'pdfsun-pro-ai-v6.1';
+const WASM_CACHE_NAME = 'pdfsun-wasm-binaries-v6.1';
 
 const STATIC_ASSETS = [
   '/',
@@ -43,22 +43,24 @@ self.addEventListener('install', (event) => {
   }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[PDF Sun PRO AI SW v6.0] Pre-caching app shell & blue suite assets');
+      console.log('[PDF Sun PRO AI SW v6.1] Pre-caching app shell & blue suite assets');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event - Sovereign Automated Cache Purge Protocol for legacy caches
+// Activate Event - Scoped Cache Purge Protocol (retires legacy PDFSun-owned caches only)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME && cache !== WASM_CACHE_NAME) {
-            console.log('[PDF Sun PRO AI SW v6.0] Purging legacy cache:', cache);
+          const isPdfSunCache = cache.startsWith('pdfsun-');
+          if (isPdfSunCache && cache !== CACHE_NAME && cache !== WASM_CACHE_NAME) {
+            console.log('[PDF Sun PRO AI SW v6.1] Purging legacy PDFSun cache:', cache);
             return caches.delete(cache);
           }
+          return Promise.resolve(false);
         })
       );
     }).then(async () => {
@@ -80,10 +82,22 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'CACHE_URLS' && Array.isArray(event.data.urls)) {
+    const safeUrls = event.data.urls.filter((rawUrl) => {
+      if (typeof rawUrl !== 'string') return false;
+      try {
+        const parsed = new URL(rawUrl, self.location.origin);
+        if (parsed.pathname === '/api' || parsed.pathname.startsWith('/api/') || parsed.pathname === '/sw.js') {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
     event.waitUntil(
       caches.open(CACHE_NAME).then((cache) => {
         return Promise.allSettled(
-          event.data.urls.map((url) =>
+          safeUrls.map((url) =>
             fetch(url, { cache: 'no-cache' })
               .then((res) => {
                 if (res && res.status === 200) {
@@ -103,6 +117,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // NEVER cache or intercept backend API routes, auth endpoints, webhooks, or service worker updates
+  if (
+    url.pathname === '/api' ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname === '/sw.js'
+  ) {
+    return;
+  }
 
   // ALWAYS bypass cache for Vite dev server, node_modules, HMR, source code
   if (

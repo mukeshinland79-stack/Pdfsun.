@@ -1,8 +1,11 @@
+import net from "node:net";
 import { Request, Response, NextFunction } from "express";
 import { TRAFFIC_SECURITY_CONFIG, RateLimitRule } from "../config/trafficSecurityConfig";
 import { getDistributedStateStore } from "./distributedStateStore";
 
 // Sliding-window record for tracking request frequency
+// NOTE: In-memory stores are process-local (preview / single-instance only).
+// Cross-instance serverless durability requires Upstash Redis (Gate 4).
 interface ClientTrafficRecord {
   requests: number[];
   badRequestCount: number;
@@ -92,41 +95,78 @@ const ipCleanupTimer = setInterval(() => {
 }, 10 * 60 * 1000);
 ipCleanupTimer.unref?.();
 
-/**
- * Extract real client IP behind reverse proxies/Cloudflare
- */
-export function getClientIp(req: Request): string {
-  // If trust proxy is configured in Express (Cloud Run / GFE reverse proxy), req.ip is validated
-  if (req.ip && req.ip !== "::1") {
-    return req.ip.replace(/^::ffff:/, "").trim();
-  }
+export interface ResolvedClientIp {
+  ip: string | null;
+  source: "cf-connecting-ip" | "express-req-ip" | "socket-remote" | "missing";
+  trusted: boolean;
+}
 
-  const cfConnectingIp = req.headers["cf-connecting-ip"];
-  if (typeof cfConnectingIp === "string" && cfConnectingIp) {
-    return cfConnectingIp.trim();
-  }
-
-  const realIp = req.headers["x-real-ip"];
-  if (typeof realIp === "string" && realIp) {
-    return realIp.trim();
-  }
-
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-
-  return req.socket.remoteAddress || "127.0.0.1";
+export function normalizeValidIp(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 64) return null;
+  const stripped = trimmed.replace(/^::ffff:/i, "");
+  return net.isIP(stripped) !== 0 ? stripped : null;
 }
 
 /**
- * Unconditionally checks if the request is from a legitimate search engine or social crawler
- * (Googlebot, Google-InspectionTool, Bingbot, etc.)
+ * Resolve trustworthy client IP without accepting spoofable client headers.
+ * TRUST_CLOUDFLARE_EDGE defaults to false until direct origin lockdown is verified (Gate 4).
+ */
+export function resolveClientIp(req: Request): ResolvedClientIp {
+  const trustCloudflareEdge = process.env.TRUST_CLOUDFLARE_EDGE === "true";
+
+  if (trustCloudflareEdge) {
+    const cfIp = normalizeValidIp(req.headers["cf-connecting-ip"]);
+    if (cfIp) {
+      return { ip: cfIp, source: "cf-connecting-ip", trusted: true };
+    }
+  }
+
+  // Express req.ip honors the configured `trust proxy` boundary without honoring arbitrary spoofed headers
+  const expressIp = normalizeValidIp(req.ip);
+  if (expressIp) {
+    return { ip: expressIp, source: "express-req-ip", trusted: true };
+  }
+
+  const socketIp = normalizeValidIp(req.socket?.remoteAddress);
+  if (socketIp) {
+    return { ip: socketIp, source: "socket-remote", trusted: true };
+  }
+
+  return { ip: null, source: "missing", trusted: false };
+}
+
+/**
+ * Extract verified client IP string (returns empty string if unavailable — never fabricates a spoofable fallback).
+ */
+export function getClientIp(req: Request): string {
+  return resolveClientIp(req).ip || "";
+}
+
+/**
+ * Checks if User-Agent matches known search engine crawler signatures.
  */
 export function isVerifiedSearchCrawler(userAgent: string): boolean {
   if (!userAgent) return false;
   const ua = userAgent.toLowerCase();
   return TRAFFIC_SECURITY_CONFIG.verifiedSearchCrawlers.some((crawler) => ua.includes(crawler));
+}
+
+/**
+ * Crawler exemptions are strictly limited to safe, read-only public GET/HEAD pages — NEVER POST or /api/* routes.
+ */
+export function isSafePublicCrawlerRequest(req: Request, userAgent: string): boolean {
+  const method = (req.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    return false;
+  }
+  const reqPath = (req.path || "").toLowerCase();
+  const originalUrl = (req.originalUrl || "").toLowerCase();
+  if (reqPath.startsWith("/api") || originalUrl.startsWith("/api")) {
+    return false;
+  }
+  return isVerifiedSearchCrawler(userAgent);
 }
 
 /**
@@ -200,8 +240,8 @@ export function trafficSecurityHeadersMiddleware(req: Request, res: Response, ne
 
 /**
  * Global Traffic Hygiene & Anomaly Filter Middleware
- * 
- * 1. Passes all verified search crawlers immediately (zero friction for Google/Bing indexing).
+ *
+ * 1. Passes verified search crawlers ONLY on safe public GET/HEAD pages (never POST or /api/*).
  * 2. Blocks known malicious exploit scanners (sqlmap, nikto, masscan).
  * 3. Flags and monitors referral spam domains.
  * 4. Checks temporary restriction status (with automatic expiry).
@@ -211,29 +251,31 @@ export function globalTrafficHygieneMiddleware(req: Request, res: Response, next
   const referer = (req.headers["referer"] || "").toString();
   const clientIp = getClientIp(req);
 
-  // 1. Search Engine Crawler Protection: NEVER block or rate-limit legitimate search indexers
-  if (isVerifiedSearchCrawler(userAgent)) {
+  // 1. Search Engine Crawler Protection: ONLY on safe public GET/HEAD pages (never POST/API)
+  if (isSafePublicCrawlerRequest(req, userAgent)) {
     trafficAuditStats.searchEngineCrawlerHits++;
     trafficAuditStats.normalTraffic++;
     return next();
   }
 
   // 2. Check Temporary Restriction (Level 4 progressive protection)
-  const restriction = tempRestrictedIpStore.get(clientIp);
-  if (restriction) {
-    if (Date.now() < restriction.until) {
-      trafficAuditStats.blockedTemporarily++;
-      addAuditLog(req.path, 429, "restricted_client", "direct", restriction.reason);
-      const remainingSec = Math.ceil((restriction.until - Date.now()) / 1000);
-      res.setHeader("Retry-After", remainingSec);
-      return res.status(429).json({
-        error: "Too Many Requests",
-        message: "Traffic frequency threshold exceeded. Please retry after a brief pause.",
-        retryAfter: remainingSec,
-      });
-    } else {
-      // Restriction expired: clean up
-      tempRestrictedIpStore.delete(clientIp);
+  if (clientIp) {
+    const restriction = tempRestrictedIpStore.get(clientIp);
+    if (restriction) {
+      if (Date.now() < restriction.until) {
+        trafficAuditStats.blockedTemporarily++;
+        addAuditLog(req.path, 429, "restricted_client", "direct", restriction.reason);
+        const remainingSec = Math.ceil((restriction.until - Date.now()) / 1000);
+        res.setHeader("Retry-After", remainingSec);
+        return res.status(429).json({
+          error: "Too Many Requests",
+          message: "Traffic frequency threshold exceeded. Please retry after a brief pause.",
+          retryAfter: remainingSec,
+        });
+      } else {
+        // Restriction expired: clean up
+        tempRestrictedIpStore.delete(clientIp);
+      }
     }
   }
 
@@ -262,33 +304,57 @@ export function globalTrafficHygieneMiddleware(req: Request, res: Response, next
   next();
 }
 
+const SENSITIVE_RATE_LIMIT_CATEGORIES = new Set([
+  "auth",
+  "admin",
+  "support",
+  "payment",
+  "payments",
+  "ai",
+  "comments",
+  "contact",
+]);
+
 /**
  * Progressive Sliding-Window Rate Limiter Factory
- * 
- * Protects specific sensitive endpoints with generous human thresholds:
- * - Tracks requests within a sliding millisecond window.
- * - Progressive response:
- *     * Level 1: Normal pass
- *     * Level 2: Soft 429 with Retry-After header
- *     * Level 3: Temporary throttle for burst spam
- *     * Level 4: Temporary IP hold for sustained flooding
+ *
+ * Security invariants (SEC-03):
+ * - Ignores caller-supplied X-User-Id and X-User-Email headers completely.
+ * - Never exempts POST or /api/* endpoints based on User-Agent.
+ * - Fails closed on sensitive production routes when a trustworthy client IP cannot be established.
+ * - Process-local RAM fallback is preview/single-instance only (distributed serverless limits require Gate 4 Upstash Redis).
  */
 export function createSlidingRateLimiter(rule: RateLimitRule, categoryName: string = "general") {
   return async (req: Request, res: Response, next: NextFunction) => {
     const userAgent = (req.headers["user-agent"] || "").toString();
 
-    // 1. Search Engine Crawlers are exempt from rate limits on public pages ONLY (never auth endpoints)
-    if (categoryName !== "auth" && isVerifiedSearchCrawler(userAgent) && !req.path.includes("/auth")) {
+    // 1. Search Engine Crawlers are exempt ONLY on safe public GET/HEAD non-API pages
+    if (categoryName !== "auth" && isSafePublicCrawlerRequest(req, userAgent)) {
       return next();
     }
 
-    const clientIp = getClientIp(req);
-    const userIdHeader =
-      categoryName === "auth"
-        ? ""
-        : (req.headers["x-user-id"] || req.headers["x-user-email"] || "").toString().toLowerCase().trim();
-    // Unique key: auth endpoints strictly key by IP (prevents header-rotation bypass); general endpoints may scope by IP+category
-    const clientKey = userIdHeader ? `${clientIp}:${userIdHeader}:${categoryName}` : `${clientIp}:${categoryName}`;
+    const resolved = resolveClientIp(req);
+    const isProduction = process.env.NODE_ENV === "production";
+    const isSensitiveCategory =
+      SENSITIVE_RATE_LIMIT_CATEGORIES.has(categoryName.toLowerCase()) ||
+      (req.path || "").toLowerCase().startsWith("/api/");
+
+    if (!resolved.ip) {
+      if (isProduction && isSensitiveCategory) {
+        trafficAuditStats.suspiciousRequests++;
+        addAuditLog(req.path, 503, "missing_ip", "direct", `${categoryName} missing trustworthy client IP`);
+        return res.status(503).json({
+          error: "Service Unavailable",
+          message: "Unable to verify request origin. Please retry shortly.",
+        });
+      }
+    }
+
+    // Preview/dev-only fallback bucket when local harness lacks a socket IP (explicitly NOT a per-client identity)
+    const clientIp = resolved.ip || "dev-missing-ip-shared-bucket";
+
+    // Strictly key by verified IP + category — NEVER include caller-supplied X-User-Id or X-User-Email
+    const clientKey = `${clientIp}:${categoryName}`;
 
     // If a shared distributed store (Redis REST) is configured, enforce cross-instance limits first
     const sharedStore = getDistributedStateStore();

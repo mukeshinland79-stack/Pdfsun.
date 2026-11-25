@@ -72,10 +72,9 @@ export function ContactSupportModal({ isOpen, onClose }: ContactSupportModalProp
             Official <span className="text-amber-400 font-medium">Pdfsun Support Channel</span>
           </p>
           <div className="mt-3 p-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-xs text-slate-300">
-            <span className="font-semibold text-white">Direct Assistance:</span> Reach us at{" "}
-            <a href="mailto:support@pdfsun.in" className="text-sky-400 hover:underline">
-              support@pdfsun.in
-            </a>
+            <span className="font-semibold text-white">In-App Support Queue:</span> Submit your
+            inquiry below to receive a tracked support reference ID once recorded. Automated email
+            replies remain paused until mailbox verification is completed.
           </div>
         </div>
 
@@ -89,16 +88,16 @@ export function ContactSupportModal({ isOpen, onClose }: ContactSupportModalProp
           </div>
         )}
 
-        {status.success ? (
+        {status.success && status.ticketId ? (
           <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-6 text-center animate-fade-in my-4">
             <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
               ✓
             </div>
-            <h4 className="text-base font-semibold text-emerald-300">Message Sent Successfully!</h4>
+            <h4 className="text-base font-semibold text-emerald-300">Support Inquiry Recorded</h4>
             <p className="text-xs text-slate-400 mt-1.5">
-              Ticket ID{" "}
+              Reference ID{" "}
               <span className="font-mono text-emerald-400 font-bold">{status.ticketId}</span> has
-              been created. Our team will get back to you via email shortly.
+              been recorded in our support queue. Please save this reference ID for your records.
             </p>
             <div className="mt-5 flex gap-3 justify-center">
               <button

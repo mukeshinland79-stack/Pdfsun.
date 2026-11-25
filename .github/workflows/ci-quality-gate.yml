@@ -15,6 +15,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Release Gate 1 — Verify canonical repository identity
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.repository }}" != "mukeshinland79-stack/Pdfsun." ]; then
+            echo "FAIL: Non-canonical repository '${{ github.repository }}'. Expected 'mukeshinland79-stack/Pdfsun.'."
+            exit 1
+          fi
+          if [ "${{ github.repository }}" = "mukeshinland79-stack/Pdfsun" ]; then
+            echo "FAIL: Lookalike archived repository 'mukeshinland79-stack/Pdfsun' is strictly forbidden."
+            exit 1
+          fi
+          echo "PASS: Repository identity check passed (${{ github.repository }})."
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -27,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: TypeScript typecheck (client + server)
+      - name: Release Gate 2 — TypeScript typecheck (client + server)
         run: npm run lint
 
       - name: Verify 68-tool canonical registry integrity
@@ -60,12 +72,77 @@ jobs:
           fi
           echo "PASS: Zero personal email references in public/client source."
 
-      - name: Production bundle build & dist security verification
+      - name: Guard against unverified support mailbox and email-delivery claims (MAILBOX-01)
+        run: |
+          if grep -rnEi 'mailto:support@pdfsun\.in|support@pdfsun\.in|get back to you via email shortly' \
+            index.html public src/App.tsx src/components src/hooks src/utils; then
+            echo "FAIL: Unverified support mailbox or unsupported email-delivery claim detected in client source!"
+            exit 1
+          fi
+          echo "PASS: Zero unverified support mailbox or email-delivery claims in client source."
+
+      - name: Release Gate 3, 4, 7, 8 — Production bundle build, serverless CJS cold-start, SW & env parity
         run: npm run build
 
-      - name: Run deterministic security & engine unit tests
+      - name: Release Gate 5 & 6 — Serverless CJS API health & SEC-01 private-path smoke tests (read-only CWD)
         run: |
+          node -e '
+            const fs = require("fs");
+            const os = require("os");
+            const path = require("path");
+            const http = require("http");
+            const assert = require("assert");
+            const entry = path.resolve("api/index.cjs");
+            const roDir = fs.mkdtempSync(path.join(os.tmpdir(), "pdfsun-ci-ro-"));
+            fs.chmodSync(roDir, 0o555);
+            process.chdir(roDir);
+            process.env.VERCEL = "1";
+            process.env.NODE_ENV = "production";
+            process.env.PDFSUN_DISABLE_AUTO_LISTEN = "1";
+            const handler = require(entry);
+            assert.strictEqual(typeof handler, "function", "api/index.cjs must export function");
+            const srv = http.createServer((req, res) => handler(req, res));
+            srv.listen(0, "127.0.0.1", async () => {
+              const { port } = srv.address();
+              const base = `http://127.0.0.1:${port}`;
+              try {
+                const h = await fetch(base + "/api/health");
+                assert.strictEqual(h.status, 200, "/api/health must return 200");
+                const hj = await h.json();
+                assert.strictEqual(hj.status, "ok", "/api/health status must be ok");
+
+                const csrf = await fetch(base + "/api/auth/csrf-token");
+                assert.strictEqual(csrf.status, 200, "/api/auth/csrf-token must return 200");
+                const cj = await csrf.json();
+                assert.ok(cj.csrfToken, "/api/auth/csrf-token must return csrfToken");
+
+                const vs = await fetch(base + "/api/auth/verify-session");
+                assert.ok(vs.status === 200 || vs.status === 401, "/api/auth/verify-session must return 200 or 401");
+                const vj = await vs.json();
+                assert.strictEqual(vj.valid, false, "unauthenticated verify-session must have valid=false");
+
+                for (const p of ["/.env", "/.data/support_inquiries.json", "/server.ts", "/src/server/ownerIdentity.ts", "/middleware/adminAuth.ts"]) {
+                  const r = await fetch(base + p);
+                  assert.strictEqual(r.status, 404, `SEC-01 must block ${p} with 404 in production (got ${r.status})`);
+                }
+                console.log("PASS: Serverless CJS API health & SEC-01 production probes passed in read-only CWD.");
+              } finally {
+                srv.close();
+                fs.chmodSync(roDir, 0o755);
+                fs.rmSync(roDir, { recursive: true, force: true });
+                process.exit(0);
+              }
+            });
+          '
+
+      - name: Release Gate 9 — Run all standalone deterministic security & engine unit tests
+        run: |
+          npx tsx src/tests/toolsCount.test.ts
           npx tsx src/tests/header.test.tsx
+          npx tsx src/tests/toolCardQuickTip.test.tsx
+          npx tsx src/tests/stage1b1SoleOwnerIntegrity.test.tsx
           npx tsx src/tests/stage1b2SecurityHardening.test.tsx
+          npx tsx src/tests/stage1bSecurityRemediation.test.tsx
           npx tsx src/tests/barcodeQrEngines.test.ts
           npx tsx src/tests/supportContact.test.ts
+

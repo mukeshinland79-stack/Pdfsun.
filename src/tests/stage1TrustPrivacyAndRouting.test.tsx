@@ -103,7 +103,7 @@ async function runTests() {
     vercelJson.rewrites.some((r: any) => r.source === "/api/(.*)" && r.destination === "/api"),
     "vercel.json must rewrite /api/(.*) to /api serverless function"
   );
-  assert.ok(fs.existsSync(path.join(ROOT, "api/index.ts")), "/api/index.ts serverless adapter must exist");
+  assert.ok(fs.existsSync(path.join(ROOT, "api/index.cjs")), "/api/index.cjs serverless adapter must exist");
   assert.ok(
     fs.existsSync(path.join(ROOT, "docs/STAGE1_COMPLIANCE_READINESS_AND_BACKEND_RECOVERY.md")),
     "Stage 1 compliance & backend recovery documentation must exist"
@@ -118,7 +118,7 @@ async function runTests() {
     indexHtml.includes("https://github.com/mukeshinland79-stack/Pdfsun."),
     "index.html Organization sameAs must reference canonical repository mukeshinland79-stack/Pdfsun."
   );
-  console.log("✅ [6/7] Vercel /api/* routing config, /api/index.ts adapter, index.html & compliance docs verified");
+  console.log("✅ [6/7] Vercel /api/* routing config, /api/index.cjs adapter, index.html & compliance docs verified");
   passed++;
 
   // TEST 7: Live Local Backend API Connectivity & Rate-Limiter Verification (http://localhost:3000)

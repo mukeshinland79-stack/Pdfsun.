@@ -772,12 +772,15 @@ export async function runSecurityRemediationTestSuite(): Promise<SecurityTestRes
 
   // 22. Phase 10D.2: Public Build Artifact & Source Map Guard Verification
   const serverArtifactGuardCode = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf-8");
+  const privatePathGuardCode = fs.readFileSync(path.join(process.cwd(), "src/server/privatePathGuard.ts"), "utf-8");
   assert(
-    serverArtifactGuardCode.includes('base === "server.cjs"') &&
-    serverArtifactGuardCode.includes('base === "server.cjs.map"') &&
-    serverArtifactGuardCode.includes('base.endsWith(".cjs")') &&
-    serverArtifactGuardCode.includes('base.endsWith(".map")'),
-    "server.ts contains strict middleware guard blocking server.cjs and server.cjs.map"
+    serverArtifactGuardCode.includes("createPrivatePathGuardMiddleware") &&
+    serverArtifactGuardCode.includes("app.use(createPrivatePathGuardMiddleware())") &&
+    privatePathGuardCode.includes('"server.cjs"') &&
+    privatePathGuardCode.includes('"server.cjs.map"') &&
+    privatePathGuardCode.includes('".cjs"') &&
+    privatePathGuardCode.includes('basename.endsWith(".map")'),
+    "server.ts mounts centralized privatePathGuard middleware strictly blocking server.cjs, server.cjs.map, .cjs, and .map"
   );
 
   // Functional verification of the artifact blocking logic
